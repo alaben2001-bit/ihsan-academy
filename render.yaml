@@ -28,3 +28,9 @@ services:
         sync: false
       - key: ACADEMY_BOOTSTRAP_ADMIN_PASSWORD
         sync: false
+
+databases:
+  - name: ihsan-academy-db
+    databaseName: ihsan_academy_db
+    user: ihsan_academy_db_user
+    plan: free
