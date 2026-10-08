@@ -1,0 +1,147 @@
+{
+  "version": "10.0",
+  "tables": {
+    "users": [
+      "id",
+      "email",
+      "role",
+      "created_at",
+      "last_login_at"
+    ],
+    "profiles": [
+      "id",
+      "user_id",
+      "full_name",
+      "phone",
+      "avatar_url",
+      "birth_year"
+    ],
+    "groups": [
+      "id",
+      "name",
+      "level",
+      "description",
+      "teacher_id",
+      "schedule"
+    ],
+    "memberships": [
+      "id",
+      "group_id",
+      "student_id",
+      "joined_at",
+      "status"
+    ],
+    "parent_links": [
+      "id",
+      "parent_user_id",
+      "student_id",
+      "relation"
+    ],
+    "posts": [
+      "id",
+      "author_id",
+      "group_id",
+      "title",
+      "body",
+      "created_at",
+      "published_at"
+    ],
+    "post_reads": [
+      "id",
+      "post_id",
+      "user_id",
+      "read_at"
+    ],
+    "notifications": [
+      "id",
+      "user_id",
+      "title",
+      "body",
+      "type",
+      "read_at",
+      "created_at"
+    ],
+    "attendance": [
+      "id",
+      "student_id",
+      "group_id",
+      "date",
+      "status",
+      "note"
+    ],
+    "subjects": [
+      "id",
+      "name",
+      "category",
+      "required",
+      "active"
+    ],
+    "lessons": [
+      "id",
+      "subject_id",
+      "title",
+      "description",
+      "lesson_type",
+      "order_no"
+    ],
+    "student_progress": [
+      "id",
+      "student_id",
+      "lesson_id",
+      "status",
+      "score",
+      "updated_at"
+    ],
+    "memorization": [
+      "id",
+      "student_id",
+      "subject_id",
+      "item_name",
+      "status",
+      "last_reviewed_at",
+      "next_review_at"
+    ],
+    "tests": [
+      "id",
+      "group_id",
+      "title",
+      "date",
+      "max_score",
+      "status"
+    ],
+    "grades": [
+      "id",
+      "test_id",
+      "student_id",
+      "score",
+      "note"
+    ],
+    "reports": [
+      "id",
+      "student_id",
+      "period_type",
+      "period_start",
+      "period_end",
+      "attendance_rate",
+      "progress_rate",
+      "summary",
+      "created_at"
+    ],
+    "audit_logs": [
+      "id",
+      "actor_user_id",
+      "action",
+      "entity",
+      "entity_id",
+      "created_at"
+    ]
+  },
+  "security_rules": [
+    "Never trust role or student_id from the browser; derive them from the authenticated session.",
+    "A student can read only their own private profile/progress.",
+    "A parent can read only linked children.",
+    "A teacher can read/update only students in assigned groups.",
+    "An admin can manage academy-wide records.",
+    "Public clients never receive service-role/admin database keys."
+  ]
+}

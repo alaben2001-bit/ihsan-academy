@@ -1,0 +1,12 @@
+'use strict';
+const fs=require('fs'), path=require('path'), crypto=require('crypto');
+const root=path.join(__dirname,'..');
+const target=process.env.ACADEMY_DB_FILE?path.resolve(process.env.ACADEMY_DB_FILE):path.join(root,'data','db.json');
+const source=process.argv[2];
+if(!source) throw new Error('الاستخدام: node tools/restore-db.js <backup.json>');
+const src=path.resolve(source); const raw=fs.readFileSync(src,'utf8');
+const db=JSON.parse(raw);
+if(!db || !Array.isArray(db.users) || !Array.isArray(db.groups)) throw new Error('النسخة ليست قاعدة أكاديمية صالحة');
+const safety=target+'.pre-restore-'+Date.now()+'.json'; fs.copyFileSync(target,safety);
+const tmp=target+'.tmp'; fs.writeFileSync(tmp,JSON.stringify(db,null,2),'utf8'); fs.renameSync(tmp,target);
+console.log(JSON.stringify({restored:target,source:src,pre_restore_backup:safety,sha256:crypto.createHash('sha256').update(raw).digest('hex')},null,2));

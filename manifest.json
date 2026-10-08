@@ -1,0 +1,37 @@
+{
+  "name": "أكاديمية الإحسان في بناء الإنسان",
+  "short_name": "أكاديمية الإحسان",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#faf7f0",
+  "theme_color": "#123f35",
+  "lang": "ar",
+  "dir": "rtl",
+  "icons": [
+    {
+      "src": "/assets/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ],
+  "description": "أكاديمية تربوية متكاملة: قرآن، علم، تربية، متابعة، ومحتوى صوتي ومرئي.",
+  "scope": "/",
+  "orientation": "portrait-primary",
+  "categories": [
+    "education",
+    "productivity"
+  ],
+  "shortcuts": [
+    {
+      "name": "اليوم",
+      "short_name": "اليوم",
+      "url": "/?page=dashboard"
+    },
+    {
+      "name": "المدرسة القرآنية",
+      "short_name": "القرآن",
+      "url": "/?page=quran"
+    }
+  ]
+}

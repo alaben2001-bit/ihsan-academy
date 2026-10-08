@@ -1,0 +1,13 @@
+# Runtime data — never publish real student data or secrets
+/data/db.json
+/data/*.sqlite
+/data/*.sqlite-shm
+/data/*.sqlite-wal
+/data/uploads/
+/data/backups/
+*.log
+.env
+.env.*
+!.env.example
+!.env.production.example
+/deploy/.env

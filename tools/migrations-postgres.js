@@ -1,0 +1,8 @@
+'use strict';
+const fs=require('fs'),path=require('path');
+const {Client}=require('pg');
+const url=process.env.DATABASE_URL||process.env.ACADEMY_POSTGRES_URL;
+if(!url) throw new Error('ضع DATABASE_URL أو ACADEMY_POSTGRES_URL');
+const dir=path.join(__dirname,'..','migrations');
+const files=fs.readdirSync(dir).filter(f=>/^\d+_.+\.sql$/.test(f)).sort((a,b)=>Number(a.match(/^\d+/)[0])-Number(b.match(/^\d+/)[0]));
+(async()=>{const c=new Client({connectionString:url,ssl:process.env.ACADEMY_PG_SSL==='1'?{rejectUnauthorized:process.env.ACADEMY_PG_SSL_VERIFY!=='0'}:undefined});await c.connect();try{await c.query('CREATE TABLE IF NOT EXISTS academy_migrations (version INTEGER PRIMARY KEY,name TEXT NOT NULL,applied_at TIMESTAMPTZ NOT NULL DEFAULT NOW())');const applied=(await c.query('SELECT version,name,applied_at FROM academy_migrations ORDER BY version')).rows;const have=new Set(applied.map(x=>x.version));const pending=files.filter(f=>!have.has(Number(f.match(/^\d+/)[0])));if(process.argv.includes('--status')){console.log(JSON.stringify({applied,pending},null,2));return;}for(const file of pending){const version=Number(file.match(/^\d+/)[0]),sql=fs.readFileSync(path.join(dir,file),'utf8');await c.query('BEGIN');try{await c.query(sql);await c.query('INSERT INTO academy_migrations(version,name) VALUES($1,$2)',[version,file]);await c.query('COMMIT');console.log(`applied ${version}: ${file}`);}catch(e){await c.query('ROLLBACK');throw e;}}console.log(`PostgreSQL migrations complete: ${files.length} known, ${pending.length} applied.`);}finally{await c.end();}})().catch(e=>{console.error(e.stack||e.message);process.exit(1)});

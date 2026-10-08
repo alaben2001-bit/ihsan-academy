@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#123f35">
+<title>أكاديمية بناء الإنسان</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/assets/icon.svg" type="image/svg+xml">
+<link rel="apple-touch-icon" href="/assets/icon.svg">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="application-name" content="أكاديمية الإحسان">
+<meta name="description" content="أكاديمية الإحسان في بناء الإنسان — قرآن، علم، تربية، متابعة وبناء متدرج.">
+<meta name="mobile-web-app-capable" content="yes">
+<link rel="stylesheet" href="/assets/app.css?v=49.2">
+</head>
+<body>
+
+<section class="login hidden" id="loginView">
+  <div class="login-art">
+    <div class="row" style="justify-content:flex-start;gap:12px"><span class="brandmark">ب</span><b style="font:700 20px var(--font-head)">أكاديمية بناء الإنسان</b></div>
+    <div>
+      <h1>نرتقي بهدوء، ونبني بثبات</h1>
+      <p>متابعة تربوية خفيفة ومستدامة، يُقاس فيها الطالب بتقدمه مقارنةً بنفسه.</p>
+    </div>
+    <small>نسخة تطوير محلية • V22 مطوّرة</small>
+  </div>
+  <div class="login-form">
+    <form id="loginForm" autocomplete="on">
+      <h2>تسجيل الدخول</h2>
+      <label class="field"><span>البريد الإلكتروني</span><input id="loginEmail" type="email" name="email" autocomplete="username" required dir="ltr" style="text-align:right"></label>
+      <label class="field"><span>كلمة المرور</span><input id="loginPass" type="password" name="password" autocomplete="current-password" required dir="ltr" style="text-align:right"></label>
+      <label class="showpw"><input type="checkbox" id="showPass"><span>إظهار كلمة المرور</span></label>
+      <div class="err-msg" id="loginErr" role="alert"></div>
+      <button class="btn" id="loginBtn" type="submit">دخول</button>
+    </form>
+    <div class="portal-box">
+      <div class="sec"><div><h3>المدارس القرآنية</h3><p class="muted small">يمكن الدخول مباشرة إلى بوابة المدرسة القرآنية بعد تسجيل الحساب.</p></div></div>
+      <div id="quranSchools" class="portal-grid"></div>
+    </div>
+  </div>
+</section>
+
+<div class="app hidden" id="appView">
+  <aside class="side">
+    <div class="brand"><span class="brandmark">ب</span><div><b>بناء الإنسان</b><small>أكاديمية تربوية</small></div></div>
+    <nav class="nav" id="nav" aria-label="القائمة الرئيسية"></nav>
+    <div class="account">
+      <div><b id="accName"></b><small id="accRole"></small></div>
+      <button data-act="logout" title="تسجيل الخروج" aria-label="تسجيل الخروج" id="logoutBtn"></button>
+    </div>
+  </aside>
+  <main class="main">
+    <div class="top">
+      <div><h1 id="pgTitle"></h1><div class="sub" id="pgSub"></div></div>
+      <div class="actions" id="topActions"></div>
+    </div>
+    <div id="view" aria-live="polite"></div>
+  </main>
+  <nav class="bottom" id="bottomNav" aria-label="التنقل السريع"></nav>
+</div>
+<div id="audioDock" class="audio-dock hidden" aria-label="مشغل الأكاديمية">
+  <div class="audio-dock-info"><span class="audio-dock-icon">♫</span><div><b id="audioDockTitle">لا يوجد تسجيل</b><small id="audioDockMeta">مشغل الأكاديمية</small></div></div>
+  <audio id="academyPlayer" controls preload="metadata"></audio>
+  <button class="btn sec2 sm" id="audioDockClose" type="button" aria-label="إغلاق المشغل">×</button>
+</div>
+
+<div id="overlay"></div>
+<div class="toast" id="toast" role="status"></div>
+<div class="install-prompt hidden" id="installPrompt"><div><b>ثبّت الأكاديمية على جهازك</b><span>تفتح بسرعة مثل تطبيق مستقل.</span></div><button class="btn sm" id="installBtn">تثبيت</button><button class="btn sec2 sm" id="installClose" aria-label="إغلاق">لاحقًا</button></div>
+<script src="/assets/app.js?v=49.2"></script>
+</body>
+</html>

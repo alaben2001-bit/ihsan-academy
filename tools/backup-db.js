@@ -1,0 +1,14 @@
+'use strict';
+const fs=require('fs'), path=require('path'), crypto=require('crypto');
+const root=path.join(__dirname,'..');
+const src=process.env.ACADEMY_DB_FILE?path.resolve(process.env.ACADEMY_DB_FILE):path.join(root,'data','db.json');
+const dir=process.env.ACADEMY_BACKUP_DIR?path.resolve(process.env.ACADEMY_BACKUP_DIR):path.join(root,'data','backups');
+if(!fs.existsSync(src)) throw new Error('ملف قاعدة البيانات غير موجود: '+src);
+fs.mkdirSync(dir,{recursive:true});
+const stamp=new Date().toISOString().replace(/[:.]/g,'-');
+const raw=fs.readFileSync(src);
+const hash=crypto.createHash('sha256').update(raw).digest('hex');
+const out=path.join(dir,`db-${stamp}-${hash.slice(0,12)}.json`);
+const tmp=out+'.tmp'; fs.writeFileSync(tmp,raw); fs.renameSync(tmp,out);
+fs.writeFileSync(out+'.sha256',hash+'  '+path.basename(out)+'\n');
+console.log(JSON.stringify({backup:out,sha256:hash,bytes:raw.length},null,2));

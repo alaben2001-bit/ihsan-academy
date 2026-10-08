@@ -1,0 +1,33 @@
+{
+  "name": "academy-build-human",
+  "version": "49.0.0",
+  "private": true,
+  "description": "أكاديمية الإحسان في بناء الإنسان — V49 (Production, Quran submissions, assessments, community, PWA, ops)",
+  "scripts": {
+    "start": "node server/server.js",
+    "backup": "node tools/backup-db.js",
+    "restore": "node tools/restore-db.js",
+    "export:production": "node tools/export-production-sql.js",
+    "migrate:sqlite": "node tools/migrate-json-sqlite.js",
+    "migrate:json": "node tools/migrate-sqlite-json.js",
+    "health:storage": "node tools/health-storage.js",
+    "migrate:core": "node tools/migrate-core-v31.js",
+    "verify:core": "node tools/verify-core-v31.js",
+    "migrate:postgres": "node tools/migrate-json-postgres.js",
+    "health:postgres": "node tools/health-postgres.js",
+    "test:security": "node tests/v41_security_tests.js",
+    "backup:postgres": "node tools/backup-postgres.js",
+    "restore:postgres": "node tools/restore-postgres.js",
+    "migrations:postgres": "node tools/migrations-postgres.js",
+    "migrations:postgres:status": "node tools/migrations-postgres.js --status",
+    "backup:scheduler": "node tools/backup-scheduler.js",
+    "backup:verify": "node tools/verify-backups.js",
+    "prod:compose": "docker compose --env-file deploy/.env -f deploy/docker-compose.yml up -d --build"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "pg": "^8.16.3"
+  }
+}

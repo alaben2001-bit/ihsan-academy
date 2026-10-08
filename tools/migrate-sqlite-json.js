@@ -1,0 +1,10 @@
+'use strict';
+const fs=require('fs'),path=require('path');
+const {SqliteStorageAdapter,JsonStorageAdapter}=require('../server/storage');
+const root=path.join(__dirname,'..');
+const source=path.resolve(process.argv[2]||process.env.ACADEMY_SQLITE_FILE||path.join(root,'data','academy-v30.sqlite'));
+const target=path.resolve(process.argv[3]||process.env.ACADEMY_DB_FILE||path.join(root,'data','db.restored-v30.json'));
+if(!fs.existsSync(source)) throw new Error('قاعدة SQLite غير موجودة');
+const db=new SqliteStorageAdapter(source).load();
+const store=new JsonStorageAdapter(target); store.save(db);
+console.log(JSON.stringify({source:path.relative(root,source),target:path.relative(root,target),health:store.health(),reversible:true},null,2));

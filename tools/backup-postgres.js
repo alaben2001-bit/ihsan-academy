@@ -1,0 +1,4 @@
+'use strict';
+const fs=require('fs'),path=require('path'),crypto=require('crypto'),{spawnSync}=require('child_process');
+const url=process.env.DATABASE_URL||process.env.ACADEMY_POSTGRES_URL;if(!url)throw new Error('ضع DATABASE_URL أو ACADEMY_POSTGRES_URL');
+const dir=process.env.ACADEMY_BACKUP_DIR?path.resolve(process.env.ACADEMY_BACKUP_DIR):path.join(__dirname,'..','data','backups');fs.mkdirSync(dir,{recursive:true});const stamp=new Date().toISOString().replace(/[:.]/g,'-');const out=path.join(dir,`postgres-${stamp}.dump`);const r=spawnSync(process.env.PG_DUMP_BIN||'pg_dump',['--format=custom','--no-owner','--file',out,url],{stdio:'inherit'});if(r.status!==0)throw new Error('pg_dump فشل؛ تأكد من تثبيت PostgreSQL client');const hash=crypto.createHash('sha256').update(fs.readFileSync(out)).digest('hex');fs.writeFileSync(out+'.sha256',hash+'  '+path.basename(out)+'\n');console.log(JSON.stringify({backup:out,sha256:hash},null,2));
