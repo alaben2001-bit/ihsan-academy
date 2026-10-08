@@ -1,8 +1,9 @@
-# Render Web Service blueprint. Create PostgreSQL separately and supply its internal URL.
+# Render Blueprint for the Ihsan Academy web app.
 services:
   - type: web
     name: ihsan-academy
     runtime: docker
+    plan: free
     dockerfilePath: ./Dockerfile
     dockerContext: .
     healthCheckPath: /api/health
@@ -18,9 +19,11 @@ services:
       - key: ACADEMY_COOKIE_SECURE
         value: "1"
       - key: DATABASE_URL
-        sync: false
+        fromDatabase:
+          name: ihsan-academy-db
+          property: connectionString
       - key: ACADEMY_BOOTSTRAP_ADMIN_NAME
-        sync: false
+        value: "مدير أكاديمية الإحسان"
       - key: ACADEMY_BOOTSTRAP_ADMIN_EMAIL
         sync: false
       - key: ACADEMY_BOOTSTRAP_ADMIN_PASSWORD
