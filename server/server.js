@@ -161,6 +161,17 @@ function migrate() {
   // إنشاء المدير الأول من متغيرات البيئة فقط إذا لم يوجد أي مدير. لا نضع كلمة مرور إنتاجية ثابتة داخل المشروع.
   // في الإنتاج نعطّل حسابات العرض المحلية حتى لا تدخل الأكاديمية العامة ببيانات التجربة.
   if (PRODUCTION) db.users.forEach(u => { if (String(u.email||'').toLowerCase().endsWith('@academy.local') && u.active !== false) { u.active=false; changed=true; } });
+  // One-time, explicitly enabled administrator recovery. Remove the flag after the recovery deploy.
+  const recoveryEmail = clean(process.env.ACADEMY_BOOTSTRAP_ADMIN_EMAIL || '', 200).toLowerCase();
+  const recoveryPassword = String(process.env.ACADEMY_BOOTSTRAP_ADMIN_PASSWORD || '');
+  if (process.env.ACADEMY_FORCE_ADMIN_PASSWORD_RESET === '1' && recoveryEmail && recoveryPassword.length >= 12 && /^\\S+@\\S+\\.\\S+$/.test(recoveryEmail)) {
+    const recoveryUser = db.users.find(u => String(u.email || '').toLowerCase() === recoveryEmail && u.role === 'admin');
+    if (recoveryUser) {
+      recoveryUser.password = hashPassword(recoveryPassword);
+      recoveryUser.active = true;
+      changed = true;
+    }
+  }
   if (!db.users.some(u => u.role === 'admin' && u.active !== false)) {
     const email = clean(process.env.ACADEMY_BOOTSTRAP_ADMIN_EMAIL || '', 200).toLowerCase();
     const password = String(process.env.ACADEMY_BOOTSTRAP_ADMIN_PASSWORD || '');
