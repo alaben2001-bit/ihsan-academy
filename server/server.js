@@ -1784,7 +1784,9 @@ const requestHandler = (req, res) => {
     if (req.method === 'GET' && incoming.pathname === '/api/health') {
       return send(res, 200, { ok: true, redirect: true, canonical: FRANKFURT_CANONICAL_URL });
     }
-    const destination = new URL(req.url || '/', FRANKFURT_CANONICAL_URL);
+    const destination = new URL(FRANKFURT_CANONICAL_URL);
+    destination.pathname = incoming.pathname;
+    destination.search = incoming.search;
     res.writeHead(308, {
       Location: destination.toString(),
       'Cache-Control': 'no-store',
