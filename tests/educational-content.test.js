@@ -20,6 +20,13 @@ assert.ok(LESSONS.some(l=>l.key==='seeking-dawah-with-knowledge'), 'responsible 
 assert.ok(LESSONS.some(l=>l.key==='allah-ikhlas'), 'knowledge of Allah path must have a source-noted starter lesson');
 assert.ok(LESSONS.some(l=>l.key==='prophet-mercy'), 'knowledge of the Prophet path must have a source-noted starter lesson');
 assert.ok(LESSONS.some(l=>l.key==='nawawi-five-pillars'), 'Nawawi Forty path must have a source-noted starter lesson');
+assert.ok(LESSONS.some(l=>l.key==='quran-weekly-review-plan'), 'Quran path must teach weekly memorization and review planning');
+assert.ok(LESSONS.some(l=>l.key==='allah-rabb-and-gratitude'), 'Allah path must connect learning with practical gratitude');
+assert.ok(LESSONS.some(l=>l.key==='prophet-trust-and-truthfulness'), 'Prophet path must connect seerah with truthfulness and verification');
+assert.ok(LESSONS.some(l=>l.key==='nawawi-din-nasihah'), 'Nawawi path must include the hadith of sincere advice');
+assert.ok(LESSONS.some(l=>l.key==='learning-weekly-review'), 'students must have a practical weekly review lesson');
+assert.ok(QUESTIONS.some(q=>q.key==='quran-weekly-review-1'), 'Quran weekly plan must include a practice question');
+assert.ok(QUESTIONS.some(q=>q.key==='nawawi-nasihah-1'), 'Nawawi advice lesson must include a practice question');
 assert.ok(QUESTIONS.some(q=>q.key==='allah-ikhlas-1'), 'knowledge of Allah path must include practice');
 assert.ok(QUESTIONS.some(q=>q.key==='prophet-mercy-1'), 'knowledge of the Prophet path must include practice');
 assert.ok(QUESTIONS.some(q=>q.key==='nawawi-pillars-1'), 'Nawawi Forty path must include practice');
