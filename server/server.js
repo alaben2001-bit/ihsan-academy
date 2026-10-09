@@ -224,11 +224,9 @@ function migrate() {
   // V56: add missing starter curriculum and practice questions without overwriting existing records.
   const educationalSeed = seedEducationalContent(db);
   if (educationalSeed.changed) changed = true;
-  if (changed) save();
+  return changed;
 }
-const storageReady = Promise.resolve(storage.load()).then(async loaded => { db = loaded; migrate(); if (storage.kind === 'postgres') await storage.save(db); return db; });
-// Mark the startup promise as handled even in redirect-only mode, where the database is intentionally bypassed.
-void storageReady.catch(() => {});
+const storageReady = Promise.resolve(storage.load()).then(async loaded => { db = loaded; const migrated = migrate(); if (migrated || storage.kind === 'postgres') await storage.save(db); return db; });
 
 /* ───────────── الصلاحيات والنطاق ───────────── */
 const isStaff = u => u.role === 'admin' || u.role === 'teacher';
@@ -1776,27 +1774,7 @@ async function handler(req, res) {
 
 const TLS_CERT=process.env.ACADEMY_TLS_CERT_FILE, TLS_KEY=process.env.ACADEMY_TLS_KEY_FILE;
 if (REQUIRE_HTTPS && (!TLS_CERT || !TLS_KEY)) throw new Error('الإنتاج يتطلب ACADEMY_TLS_CERT_FILE وACADEMY_TLS_KEY_FILE.');
-// Optional redirect-only mode for the legacy Oregon service. The canonical app and database live in Frankfurt.
-const FRANKFURT_CANONICAL_URL = 'https://ihsan-academy-frankfurt.onrender.com';
-const requestHandler = (req, res) => {
-  if (process.env.ACADEMY_REDIRECT_TO_FRANKFURT === '1') {
-    const incoming = new URL(req.url || '/', 'http://redirect.local');
-    if (req.method === 'GET' && incoming.pathname === '/api/health') {
-      return send(res, 200, { ok: true, redirect: true, canonical: FRANKFURT_CANONICAL_URL });
-    }
-    const destination = new URL(FRANKFURT_CANONICAL_URL);
-    destination.pathname = incoming.pathname;
-    destination.search = incoming.search;
-    res.writeHead(308, {
-      Location: destination.toString(),
-      'Cache-Control': 'no-store',
-      'X-Content-Type-Options': 'nosniff'
-    });
-    return res.end();
-  }
-  return handler(req, res);
-};
-const server = (TLS_CERT && TLS_KEY) ? https.createServer({cert:fs.readFileSync(path.resolve(TLS_CERT)),key:fs.readFileSync(path.resolve(TLS_KEY))},requestHandler) : http.createServer(requestHandler);
+const server = (TLS_CERT && TLS_KEY) ? https.createServer({cert:fs.readFileSync(path.resolve(TLS_CERT)),key:fs.readFileSync(path.resolve(TLS_KEY))},handler) : http.createServer(handler);
 setInterval(() => { const now = Date.now(); for (const [t, s] of sessions) if (s.exp < now) sessions.delete(t); }, 10 * 60 * 1000).unref();
 async function shutdown(signal) {
   try {
