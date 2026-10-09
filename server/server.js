@@ -1094,7 +1094,8 @@ async function handler(req, res) {
       if (!title || !text) return json(res, 400, { error: 'العنوان والمحتوى مطلوبان' });
       const gid = b.group_id || null;
       if (gid && !ownsGroup(user, gid)) return json(res, 403, { error: 'هذا الفوج خارج نطاقك' });
-      const post = { id: uid('p'), title, body: text, group_id: gid, author_id: user.id, author_name: user.name, created_at: new Date().toISOString() };
+      const imageUrl = safeUrl(b.image_url); if (b.image_url && !imageUrl) return json(res, 400, { error: 'رابط الصورة يجب أن يبدأ بـ http أو https' });
+      const post = { id: uid('p'), title, body: text, image_url: imageUrl || null, group_id: gid, author_id: user.id, author_name: user.name, created_at: new Date().toISOString() };
       db.posts.unshift(post);
       db.notifications.unshift({ id: uid('n'), title, body: text, group_id: gid, read_by: [], created_at: post.created_at });
       await save(); return json(res, 201, post);
