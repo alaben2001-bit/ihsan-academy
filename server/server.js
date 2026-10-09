@@ -591,7 +591,7 @@ function teamVisibleTo(user, team) {
 }
 function teamCanManage(user, team) {
   if (!teamVisibleTo(user, team)) return false;
-  if (user.role === 'admin') return true;
+  if (user.role === 'admin' || user.role === 'chief_supervisor') return true;
   if (user.role === 'teacher') return teacherGroupIds(user).includes(team.group_id);
   if (user.role === 'student') { const s=studentForUser(user); return !!s && teamSupervisorIds(team).includes(s.id); }
   return false;
@@ -1160,10 +1160,10 @@ async function handler(req, res) {
 
     if (p === '/api/teams' && req.method === 'GET') return json(res,200,db.teams.filter(t=>teamVisibleTo(user,t)).map(t=>teamView(t,user)));
     if (p === '/api/teams' && req.method === 'POST') {
-      if(!['admin','teacher'].includes(user.role)) fail(403,'إنشاء الفرق للطاقم فقط'); const b=await body(req),name=clean(b.name,100),gid=clean(b.group_id,80); if(!name||!gid||!db.groups.some(g=>g.id===gid))fail(400,'اسم الفريق والفوج مطلوبان'); if(user.role==='teacher'&&!teacherGroupIds(user).includes(gid))fail(403,'الفوج خارج نطاقك'); if(db.teams.some(t=>t.group_id===gid&&t.name.trim().toLowerCase()===name.toLowerCase()))fail(409,'اسم الفريق مستخدم داخل هذا الفوج'); const row={id:uid('tm'),group_id:gid,name,description:clean(b.description,600),active:true,created_by:user.id,created_at:new Date().toISOString()};db.teams.push(row);audit(user,'team.create',{id:row.id,group_id:gid});await save();return json(res,201,teamView(row,user));
+      if(!['admin','teacher','chief_supervisor'].includes(user.role)) fail(403,'إنشاء الفرق متاح للمدير والمشرف الرئيسي والشيخ'); const b=await body(req),name=clean(b.name,100),gid=clean(b.group_id,80); if(!name||!gid||!db.groups.some(g=>g.id===gid))fail(400,'اسم الفريق والفوج مطلوبان'); if(user.role==='teacher'&&!teacherGroupIds(user).includes(gid))fail(403,'الفوج خارج نطاقك'); if(db.teams.some(t=>t.group_id===gid&&t.name.trim().toLowerCase()===name.toLowerCase()))fail(409,'اسم الفريق مستخدم داخل هذا الفوج'); const row={id:uid('tm'),group_id:gid,name,description:clean(b.description,600),active:true,created_by:user.id,created_at:new Date().toISOString()};db.teams.push(row);audit(user,'team.create',{id:row.id,group_id:gid});await save();return json(res,201,teamView(row,user));
     }
     if ((r=route(req,p,'PUT','/api/teams/:id/members'))) {
-      const t=teamById(r.id);if(!t||!teamVisibleTo(user,t))fail(404,'الفريق غير موجود');if(user.role!=='admin'&&!(user.role==='teacher'&&teacherGroupIds(user).includes(t.group_id)))fail(403,'لا تملك إدارة أعضاء الفريق');const b=await body(req);if(!Array.isArray(b.student_ids))fail(400,'قائمة الطلبة مطلوبة');const valid=[...new Set(b.student_ids)].filter(id=>{const st=db.students.find(x=>x.id===id);return st&&studentGroupIds(st).includes(t.group_id);});db.team_members=db.team_members.filter(x=>x.team_id!==t.id);valid.forEach(student_id=>db.team_members.push({id:uid('tmem'),team_id:t.id,student_id}));const sup=[...new Set(Array.isArray(b.supervisor_ids)?b.supervisor_ids:[])].filter(id=>valid.includes(id));db.team_supervisors=db.team_supervisors.filter(x=>x.team_id!==t.id);sup.forEach(student_id=>db.team_supervisors.push({id:uid('tsup'),team_id:t.id,student_id}));audit(user,'team.members_replace',{team_id:t.id,members:valid,supervisors:sup});await save();return json(res,200,teamView(t,user));
+      const t=teamById(r.id);if(!t||!teamVisibleTo(user,t))fail(404,'الفريق غير موجود');if(user.role!=='admin'&&user.role!=='chief_supervisor'&&!(user.role==='teacher'&&teacherGroupIds(user).includes(t.group_id)))fail(403,'لا تملك إدارة أعضاء الفريق');const b=await body(req);if(!Array.isArray(b.student_ids))fail(400,'قائمة الطلبة مطلوبة');const valid=[...new Set(b.student_ids)].filter(id=>{const st=db.students.find(x=>x.id===id);return st&&studentGroupIds(st).includes(t.group_id);});db.team_members=db.team_members.filter(x=>x.team_id!==t.id);valid.forEach(student_id=>db.team_members.push({id:uid('tmem'),team_id:t.id,student_id}));const sup=[...new Set(Array.isArray(b.supervisor_ids)?b.supervisor_ids:[])].filter(id=>valid.includes(id));db.team_supervisors=db.team_supervisors.filter(x=>x.team_id!==t.id);sup.forEach(student_id=>db.team_supervisors.push({id:uid('tsup'),team_id:t.id,student_id}));audit(user,'team.members_replace',{team_id:t.id,members:valid,supervisors:sup});await save();return json(res,200,teamView(t,user));
     }
     if ((r=route(req,p,'POST','/api/teams/:id/tasks'))) {
       const t=teamById(r.id);if(!t||!teamCanManage(user,t))fail(404,'الفريق غير موجود أو لا تملك إدارته');const b=await body(req),title=clean(b.title,160);if(!title)fail(400,'عنوان المهمة مطلوب');const assigned=clean(b.assigned_student_id,80);if(assigned&&!teamStudentIds(t).includes(assigned))fail(400,'الطالب المكلّف ليس في الفريق');const task={id:uid('tt'),team_id:t.id,title,description:clean(b.description,800),assigned_student_id:assigned||null,due_date:isDate(b.due_date)?b.due_date:null,status:'pending',created_by:user.id,created_at:new Date().toISOString()};db.team_tasks.push(task);audit(user,'team.task_create',{team_id:t.id,id:task.id});await save();return json(res,201,task);
@@ -1387,7 +1387,7 @@ async function handler(req, res) {
     /* الحضور */
     if (p === '/api/attendance/weekly-report' && req.method === 'GET') {
       requireStaff(user);
-      const start = q.start || '2026-10-01', end = q.end || '2026-10-07';
+      const end = q.end || localISO(), start = q.start || addDays(end, -6);
       return json(res,200,buildWeeklyAttendanceReport(user,start,end,q.group_id||''));
     }
     if (p === '/api/schools' && req.method === 'GET') {
