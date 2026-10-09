@@ -147,7 +147,7 @@ function navGroups() {
     group('الرئيسية', [n('dashboard', 'الرئيسية', 'home'), n('quran', 'المدرسة القرآنية', 'quran')]),
     group('القيادة والإدارة', [n('hierarchy', 'هيكلة المنصة', 'group'), n('admin', 'الإدارة العليا', 'tools'), n('ops', 'مركز التشغيل', 'trend')]),
     group('التعليم والمنهج', [n('program', 'البرامج', 'book'), n('curriculum', 'المواد والمنهج', 'book')]),
-    group('الطلبة والمتابعة', [n('students', 'الطلاب', 'user'), n('groups', 'الأفواج', 'group'), n('teams', 'فرق المدرسة', 'group'), n('attendance', 'الحضور', 'check'), n('tracking', 'المتابعة', 'trend'), n('tests', 'الاختبارات', 'doc'), n('assignments', 'الواجبات', 'doc')]),
+    group('الطلبة والمتابعة', [n('students', 'الطلاب', 'user'), n('paths', 'المسارات التعليمية', 'book'), n('groups', 'إدارة الأفواج', 'group'), n('teams', 'فرق المدرسة', 'group'), n('attendance', 'الحضور', 'check'), n('tracking', 'المتابعة', 'trend'), n('tests', 'الاختبارات', 'doc'), n('assignments', 'الواجبات', 'doc')]),
     group('الخدمات والتواصل', [n('calendar', 'التقويم', 'calendar'), n('transport', 'النقل الجماعي', 'bus'), n('messages', 'المراسلات', 'bell'), n('media', 'مكتبة الشيخ', 'media'), n('question-bank', 'بنك الأسئلة', 'doc')]),
     group('عام', common)
   ];
@@ -157,7 +157,7 @@ function navGroups() {
   ];
   if (S.user.role === 'teacher') return [
     group('الرئيسية', [n('dashboard', 'الرئيسية', 'home'), n('teacher-tools', 'لوحة المعلم', 'tools'), n('quran', 'المدرسة القرآنية', 'quran')]),
-    group('طلبتي', [n('students', 'طلبتي', 'user'), n('groups', 'الأفواج', 'group'), n('teams', 'فرق المدرسة', 'group'), n('attendance', 'الحضور', 'check'), n('tracking', 'المتابعة', 'trend')]),
+    group('طلبتي', [n('students', 'طلبتي', 'user'), n('paths', 'المسارات التعليمية', 'book'), n('groups', 'إدارة الأفواج', 'group'), n('teams', 'فرق المدرسة', 'group'), n('attendance', 'الحضور', 'check'), n('tracking', 'المتابعة', 'trend')]),
     group('التعليم والتقويم', [n('curriculum', 'المواد والمنهج', 'book'), n('tests', 'الاختبارات', 'doc'), n('assignments', 'الواجبات', 'doc'), n('question-bank', 'بنك الأسئلة', 'doc')]),
     group('الخدمات والتواصل', [n('calendar', 'التقويم', 'calendar'), n('transport', 'النقل الجماعي', 'bus'), n('messages', 'المراسلات', 'bell'), n('media', 'مكتبة الشيخ', 'media')]),
     group('عام', common)
@@ -261,7 +261,7 @@ async function openTransportStudentModal(routeId){if(S.user.role!=='admin')retur
 
 const PAGES = {
   dashboard: ['الرئيسية', 'نظرة هادئة على اليوم', pgDashboard], 'school-directory': ['هيكلة المدرسة', 'الأسماء والرتب والمهام والمراسلة', pgSchoolDirectory], journey: ['رحلتي', 'مسار شخصي خفيف ومتدرج', pgJourney], program: ['بناء المنهج', 'إدارة المواد والدروس وطرق التعلم', pgProgram], quran: ['المدرسة القرآنية', 'حفظ وتسميع ومراجعة وتجويد وتقويم', pgQuran], admin: ['الإدارة العليا', 'صلاحيات كاملة وإدارة النظام', pgAdmin], hierarchy: ['هيكلة المنصة', 'المدير العام والمدارس والأفواج والفرق', pgHierarchy], news: ['ما الجديد؟', 'الإعلانات والتحديثات', pgNews],
-  groups: ['الأفواج', 'تنظيم الطلاب ومجموعاتهم', pgGroups], transport: ['النقل الجماعي', 'خطوط النقل ونقاط التوقف والطلبة', pgTransport], curriculum: ['المنهج', 'المواد والبرنامج الأسبوعي', pgCurriculum],
+  groups: ['إدارة الأفواج', 'إضافة الأفواج وتعديلها وربط الطلبة بها', pgGroups], paths: ['المسارات التعليمية', 'رحلات الحفظ والفهم والمتون بأهداف أسبوعية وتقويم دوري', pgLearningPaths], transport: ['النقل الجماعي', 'خطوط النقل ونقاط التوقف والطلبة', pgTransport], curriculum: ['المنهج', 'المواد والبرنامج الأسبوعي', pgCurriculum],
   students: ['الطلاب', 'اضغط على الطالب لفتح ملفه', pgStudents], file: ['ملف الطالب', 'مركز المتابعة', pgFile],
   profile: ['ملفي', 'بياناتي وتقدمي', pgProfile], children: ['أبنائي', 'متابعة الأبناء', pgChildren],
   tracking: ['المتابعة', 'الحضور والتقدم في نطاقك', pgTracking], learning: ['تعلّمي', 'الحفظ والمراجعة والأهداف', pgLearning],
@@ -489,6 +489,31 @@ async function pgGroups() {
   render(html`<div class="stack"><div class="card"><div class="sec"><div><h3>إدارة الأفواج والطلبات</h3><p class="muted">${S.user.role==='teacher'?'أدر الأفواج المسندة إليك وطلابها.':'المدير يعتمد الطلبات ويملك النقل المباشر.'}</p></div>${S.user.role==='teacher'?html`<button class="btn" data-act="teacher-new-group">إضافة فوج</button>`:''}</div>
     ${reqs.length?reqs.map(r=>html`<div class="item"><div class="row wrap"><div><b>${r.student_name}</b><p class="muted small">${r.current_group_name} ← ${r.group_name}</p></div><span class="badge ${r.status==='approved'?'ok':r.status==='rejected'?'bad':'gold'}">${r.status==='approved'?'مقبول':r.status==='rejected'?'مرفوض':'بانتظار المدير'}</span></div><p>${r.reason||''}</p>${S.user.role==='admin'&&r.status==='pending'?html`<div class="chips"><button class="btn sm" data-act="approve-group-request" data-id="${r.id}">موافقة ونقل</button><button class="btn sm sec2" data-act="reject-group-request" data-id="${r.id}">رفض</button></div>`:''}</div>`):empty('لا توجد طلبات أفواج')}</div>
     <div class="grid g3">${catalog.map(g=>html`<div class="card"><div class="row"><b>${g.name}</b><span class="badge">${g.student_count} طالب</span></div><p class="muted">${g.description||''}</p><div class="small muted">${(g.teachers||[]).join('، ')||'بدون شيخ'}</div>${S.user.role==='teacher'?html`<div class="chips" style="margin-top:10px"><button class="btn sm sec2" data-act="teacher-edit-group" data-id="${g.id}">تعديل</button><button class="btn sm danger" data-act="teacher-delete-group" data-id="${g.id}">حذف</button></div>`:''}</div>`)}</div></div>`);
+}
+/* ═══════════ المسارات التعليمية ═══════════ */
+async function pgLearningPaths() {
+  const [c, plans, tests] = await Promise.all([api('/api/curriculum'), api('/api/plans'), api('/api/tests')]);
+  const quranNames = ['مسار الخاتمين', 'مسار 45', 'مسار 30', 'مسار 15', 'المسار التمهيدي'];
+  const quranSubjects = c.subjects.filter(s => /قرآن|قران|تلاوة|حفظ|تجويد/i.test(s.name + ' ' + (s.category||'')));
+  const otherSubjects = c.subjects.filter(s => !quranSubjects.includes(s));
+  const weeklyPlans = plans.filter(p => p.type === 'weekly');
+  const now = today();
+  const upcoming = tests.filter(t => t.date >= now).sort((a,b)=>a.date.localeCompare(b.date)).slice(0,5);
+  const pathCard = (title, desc, subjects, tag) => html`<div class="card"><div class="row wrap"><span class="badge">${tag}</span><span class="badge">${subjects.length} مواد</span></div><h3 style="margin-top:10px">${title}</h3><p class="muted">${desc}</p>${subjects.length ? subjects.map(s=>html`<div class="item"><b>${s.name}</b><p class="muted small">${s.description||'مادة ضمن المسار التعليمي'}</p></div>`) : html`<p class="muted small">يمكن ربط المواد بهذا المسار من إدارة المنهج.</p>`}</div>`;
+  render(html`<div class="stack">
+    <div class="card hero"><span class="eyebrow">رحلة التعلّم</span><h2>المسارات تصنع طريقًا واضحًا</h2><p>لكل طالب وجهة، ولكل أسبوع خطوة، ولكل أسبوعين وقفة تقويم تثبّت ما تعلّمه. الأفواج للتنظيم، والمسارات للتعلّم.</p></div>
+    <div class="grid g3">
+      ${pathCard('مسار القرآن الكريم','اختر مقدار الحفظ المناسب مع المراجعة والتسميع والتجويد.',quranSubjects,'القرآن الكريم')}
+      ${pathCard('مسار المتون','حفظ المتون وفهمها ومراجعتها وتطبيقها.',otherSubjects.filter(s=>/متن|نووية|تحفة|علم|حديث|عقيدة/i.test(s.name+' '+(s.category||''))),'المتون')}
+      ${pathCard('مسارات العلوم والمعرفة','مسارات قابلة للتوسع بحسب مواد الأكاديمية.',otherSubjects.filter(s=>!/متن|نووية|تحفة|علم|حديث|عقيدة/i.test(s.name+' '+(s.category||''))),'علوم ومعارف')}
+    </div>
+    <div class="card"><div class="sec"><div><h3>درجات مسار القرآن</h3><p class="muted small">تصنيف تنظيمي أولي؛ يحدد الشيخ أهداف كل طالب وفق قدرته ومستواه.</p></div></div><div class="grid g3">${quranNames.map((n,i)=>html`<div class="item"><span class="badge">${i===0?'إتقان وختم':i===4?'بداية الطريق':'خطة حفظ'}</span><h3>${n}</h3><p class="muted small">${['خطة للخاتمين تجمع التعاهد والمراجعة الدائمة.','خطة حفظ متدرجة مع مراجعة أسبوعية.','خطة حفظ متدرجة مع مراجعة أسبوعية.','خطة حفظ متدرجة مع مراجعة أسبوعية.','تأسيس التلاوة والحفظ والعادات القرآنية.'][i]}</p></div>`)}</div></div>
+    <div class="grid g2">
+      <div class="card"><div class="sec"><div><h3>الخطط الأسبوعية</h3><p class="muted small">خطط منشورة في بناء المنهج.</p></div>${isStaff()?html`<button class="btn sm sec2" data-act="nav" data-page="program">إدارة الخطط</button>`:''}</div>${weeklyPlans.length?weeklyPlans.map(p=>html`<div class="item"><b>${p.title}</b><p class="muted small">${p.description||''}</p><span class="badge">${(p.items||[]).length} مهام</span></div>`):empty('لا توجد خطط أسبوعية منشورة بعد','يمكن للشيخ إعداد الخطة من قسم بناء المنهج.')}</div>
+      <div class="card"><div class="sec"><div><h3>الاختبارات القادمة</h3><p class="muted small">يوصى باختبار دوري كل أسبوعين لكل مسار.</p></div>${isStaff()?html`<button class="btn sm sec2" data-act="nav" data-page="tests">إدارة الاختبارات</button>`:''}</div>${upcoming.length?upcoming.map(t=>html`<div class="item"><b>${t.title}</b><p class="muted small">${t.subject_name||'مادة تعليمية'} · ${fmtDate(t.date)}</p></div>`):empty('لا توجد اختبارات قادمة مسجلة')}</div>
+    </div>
+    <div class="card flat"><b>مبدأ المتابعة</b><p class="muted">لا تُقاس الرحلة بكثرة الواجبات، بل بوضوح الهدف، وثبات المراجعة، وصدق التقدم. يلزم في المرحلة التالية ربط تسجيل المسار وأهدافه مباشرة بملف الطالب وقاعدة البيانات.</p></div>
+  </div>`);
 }
 async function pgCurriculum() {
   const c = await api('/api/curriculum'); const optional = S.user.role==='student' ? await api('/api/optional-curriculum') : [];
