@@ -654,3 +654,25 @@ button,.btn,.field input,.field select,.field textarea{transition:background-col
 .theme-swatch span{font-size:13px;font-weight:700}
 @media(max-width:520px){.theme-options{grid-template-columns:1fr}.login-tip{padding:12px}}
 @media(prefers-reduced-motion:reduce){.theme-swatch,.login-tip{transition:none!important}}
+
+
+/* V63 — calm, accessible self-check practice inside each lesson. */
+.practice-view,.practice-summary,.practice-empty{display:flex;flex-direction:column;gap:14px}
+.practice-progress{display:flex;justify-content:space-between;gap:12px;color:var(--muted);font-size:.88rem}
+.practice-track{height:6px;border-radius:99px;background:var(--line);overflow:hidden}
+.practice-track span{display:block;height:100%;background:var(--gold,#c7a45b);border-radius:inherit;transition:width .2s ease}
+.practice-question{font-size:1.12rem;line-height:1.85;margin:4px 0}
+.practice-options{display:grid;gap:12px}
+.practice-option{display:flex;align-items:center;gap:12px;border:1px solid var(--line);border-radius:14px;padding:12px;cursor:pointer;line-height:1.7}
+.practice-option:has(input:checked){border-color:var(--primary);background:color-mix(in srgb,var(--primary) 8%,transparent)}
+.practice-option input{accent-color:var(--primary);width:18px;height:18px;flex:none}
+.practice-letter{display:grid;place-items:center;width:28px;height:28px;border-radius:9px;background:var(--surface-2,var(--line));font-weight:700;flex:none}
+.practice-submit{width:100%;min-height:46px}
+.practice-feedback{border:1px solid var(--line);border-radius:14px;padding:14px;line-height:1.8}
+.practice-feedback.is-correct{border-color:#76a88e;background:color-mix(in srgb,#76a88e 10%,transparent)}
+.practice-feedback.is-wrong{border-color:#d9b06c;background:color-mix(in srgb,#d9b06c 10%,transparent)}
+.practice-feedback p{margin:6px 0}
+.practice-mark{font-size:1.8rem;color:var(--gold,#c7a45b)}
+.practice-summary,.practice-empty{text-align:center;align-items:center;padding:12px 0}
+.practice-score{font-size:2rem;font-weight:800;color:var(--primary)}
+@media(prefers-reduced-motion:reduce){.practice-track span{transition:none}}
