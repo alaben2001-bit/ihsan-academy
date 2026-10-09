@@ -186,7 +186,7 @@ async function startSession() {
 const isStaff = () => S.user && (S.user.role === 'admin' || S.user.role === 'teacher');
 function navGroups() {
   const n = (id, label, ic) => [id, label, ic];
-  const common = [n('academy-map', 'خريطة الأكاديمية والصلاحيات', 'chart'), n('school-directory', 'هيكلة المدرسة', 'users'), n('news', 'مكتبة الشيخ والمنشورات', 'news'), n('community', 'مجتمع التعلم', 'discuss'), n('notifications', 'الإشعارات', 'bell'), n('settings', 'الإعدادات والخصوصية', 'settings')];
+  const common = [n('academy-map', 'خريطة الأكاديمية والصلاحيات', 'chart'), n('learning-hub', 'برنامج التعلّم الممتع', 'brain'), n('school-directory', 'هيكلة المدرسة', 'users'), n('news', 'مكتبة الشيخ والمنشورات', 'news'), n('community', 'مجتمع التعلم', 'discuss'), n('notifications', 'الإشعارات', 'bell'), n('settings', 'الإعدادات والخصوصية', 'settings')];
   const group = (label, items) => ({ label, items });
   if (S.user.role === 'admin') return [
     group('الرئيسية', [n('dashboard', 'الرئيسية', 'home'), n('quran', 'المدرسة القرآنية', 'quran')]),
@@ -198,7 +198,7 @@ function navGroups() {
   ];
   if (S.user.role === 'chief_supervisor') return [
     group('الإشراف', [n('dashboard', 'الرئيسية', 'home'), n('school-directory', 'هيكلة المدرسة', 'users'), n('teams', 'فرق المدرسة', 'group'), n('supervisor-requests', 'طلبات الإشراف', 'check')]),
-    group('عام', [n('notifications', 'الإشعارات', 'bell'), n('settings', 'الإعدادات والخصوصية', 'settings')])
+    group('عام', [n('academy-map', 'خريطة الأكاديمية والصلاحيات', 'chart'), n('learning-hub', 'برنامج التعلّم الممتع', 'brain'), n('notifications', 'الإشعارات', 'bell'), n('settings', 'الإعدادات والخصوصية', 'settings')])
   ];
   if (S.user.role === 'teacher') return [
     group('الرئيسية', [n('dashboard', 'الرئيسية', 'home'), n('teacher-tools', 'لوحة المعلم', 'tools'), n('quran', 'المدرسة القرآنية', 'quran')]),
@@ -968,7 +968,7 @@ function pgAcademyMap(){
   render(html`<div class="stack">
     <div class="card hero hero-main"><div class="hero-copy"><span class="eyebrow">خريطة مرئية للجميع</span><h2>كل فرد يعرف طريقه وحدود مسؤوليته</h2><p>خريطة تعريفية عامة لا تعرض ملفات الطلاب أو البيانات الخاصة. الصلاحيات الفعلية تُفرض من الخادم، لا من إخفاء الأزرار فقط.</p></div><div class="hero-orbit"><span>هـ</span><i></i><i></i></div></div>
     <div class="card academy-map-card"><div class="row wrap"><div><span class="eyebrow">الخريطة البصرية</span><h3>عالم أكاديمية الإحسان</h3><p class="muted small">يمكن للجميع رؤية التصور العام للمنصة.</p></div><span class="badge">خريطة عامة</span></div><div class="academy-map-frame"><img src="/assets/academy-world-map.png" alt="الخريطة البصرية لأكاديمية الإحسان في بناء الإنسان" loading="lazy"></div></div>
-    <div class="card"><h3>سُلّم الصلاحيات</h3><div class="permission-flow"><span>المدير العام</span><i>←</i><span>مدير المدرسة</span><i>←</i><span>المعلم</span><i>←</i><span>مشرف الفريق</span><i>←</i><span>الطالب</span></div><p class="muted small">كل مستوى يرى ما يحتاجه فقط، ولا يرث صلاحيات المستوى الأعلى.</p></div>
+    <div class="card"><h3>سُلّم الصلاحيات</h3><div class="permission-flow"><span>المدير العام</span><i>←</i><span>مدير المدرسة</span><i>←</i><span>المعلم</span><i>←</i><span>مشرف الفريق</span><i>←</i><span>الطالب</span></div><p class="muted small">كل مستوى يرى ما يحتاجه فقط، ولا يرث صلاحيات المستوى الأعلى. هذه خريطة تنظيمية للصلاحيات المستهدفة؛ تفعيل دور مستقل لمدير المدرسة واختبار العزل بين الحسابات يحتاجان تحققًا تقنيًا منفصلًا.</p></div>
     <div class="grid g2">${roles.map((r,i)=>html`<article class="card permission-card"><div class="row wrap"><span class="badge">${String(i+1).padStart(2,'0')}</span><h3>${r[0]}</h3></div><p>${r[1]}</p></article>`)}</div>
     <div class="card flat"><b>قاعدة الخصوصية</b><p>مشرف الفريق لا يطّلع على ملفات بقية المدرسة ولا يملك صلاحيات المعلم أو المدير. وإذا احتاج أمرًا خارج نطاقه، يرفعه إلى المعلم أو مدير المدرسة.</p></div>
   </div>`);
