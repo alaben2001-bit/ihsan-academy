@@ -264,7 +264,7 @@ function getStudent(u, id, write = false) {
   if (!s || !(write ? canEdit(u, s) : canView(u, s))) fail(write ? 403 : 404, write ? 'هذا الطالب خارج نطاقك' : 'غير موجود');
   return s;
 }
-const safeUser = u => ({ id: u.id, name: u.name, email: u.email, role: u.role, font_scale: Number(u.font_scale)||1, high_contrast: !!u.high_contrast, reduced_motion: !!u.reduced_motion, theme: ['emerald','sand','indigo','olive'].includes(u.theme) ? u.theme : 'emerald' });
+const safeUser = u => ({ id: u.id, name: u.name, email: String(u.email||'').endsWith('@no-email.invalid') ? '' : u.email, role: u.role, font_scale: Number(u.font_scale)||1, high_contrast: !!u.high_contrast, reduced_motion: !!u.reduced_motion, theme: ['emerald','sand','indigo','olive'].includes(u.theme) ? u.theme : 'emerald' });
 
 /* ───────────── الحضور والتقارير ───────────── */
 function attStats(recs) {
@@ -674,7 +674,7 @@ async function handler(req, res) {
        حساب المدير يملك صلاحيات النظام كاملة، لكن لا نعيد كلمات المرور أو الأسرار للواجهة. */
     const requireAdmin = () => { if (user.role !== 'admin') fail(403, 'هذه العملية متاحة لمدير الأكاديمية فقط'); };
     if (p === '/api/admin/health/storage' && req.method === 'GET') { requireAdmin(); const h=await storage.health(); return json(res, h.healthy ? 200 : 503, { version:32, mode:CONFIG.mode, storage:h, migration:{reversible:true, json_source:DATA} }); }
-    const adminUserView = u => ({ id: u.id, name: u.name, email: u.email, role: u.role, active: u.active !== false, created_at: u.created_at || null });
+    const adminUserView = u => ({ id: u.id, name: u.name, email: String(u.email||'').endsWith('@no-email.invalid') ? '' : u.email, role: u.role, active: u.active !== false, created_at: u.created_at || null });
     const ALL_PERMISSIONS = {
       'dashboard:read':'لوحة التحكم', 'users:manage':'إدارة المستخدمين', 'roles:manage':'إدارة الصلاحيات',
       'groups:manage':'إدارة الأفواج', 'students:manage':'إدارة الطلاب', 'curriculum:manage':'إدارة المنهج',
