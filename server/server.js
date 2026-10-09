@@ -1,6 +1,6 @@
 'use strict';
 /*
- * أكاديمية الإحسان في بناء الإنسان — V32 (Local Development + Repository/Service core)
+ * أكاديمية الإحسان في بناء الإنسان — Local Development + Repository/Service core
  * خادم محلي + قاعدة JSON. ليس متصلًا بسحابة حقيقية.
  *
  * مبادئ الأمان في هذا الملف:
@@ -17,6 +17,7 @@ const { handleAdvanced } = require('./advanced');
 const { seedEducationalContent } = require('./educational-content');
 
 const ROOT = path.join(__dirname, '..');
+const APP_VERSION = require('../package.json').version;
 const DATA = process.env.ACADEMY_DB_FILE ? path.resolve(process.env.ACADEMY_DB_FILE) : path.join(ROOT, 'data', 'db.json');
 const ASSETS = path.join(ROOT, 'assets');
 const PORT = Number(process.env.PORT) || 3000;
@@ -662,7 +663,7 @@ async function handler(req, res) {
   if (req.method === 'GET' && !p.startsWith('/api/')) return serveStatic(res, p);
   if (!p.startsWith('/api/')) return json(res, 404, { error: 'المسار غير موجود' });
   try {
-    if (p === '/api/health' && req.method === 'GET') { const h=await storage.health(); return json(res, h.healthy && !lastPersistenceError ? 200 : 503, { ok:h.healthy && !lastPersistenceError, storage:h.kind, storage_healthy:h.healthy, persistence_error:lastPersistenceError?lastPersistenceError.message:null, production:PRODUCTION, https_required:REQUIRE_HTTPS }); }
+    if (p === '/api/health' && req.method === 'GET') { const h=await storage.health(); return json(res, h.healthy && !lastPersistenceError ? 200 : 503, { ok:h.healthy && !lastPersistenceError, version:APP_VERSION, storage:h.kind, storage_healthy:h.healthy, persistence_error:lastPersistenceError?lastPersistenceError.message:null, production:PRODUCTION, https_required:REQUIRE_HTTPS }); }
     if (p === '/api/privacy' && req.method === 'GET') return json(res,200,{title:'سياسة الخصوصية — أكاديمية الإحسان في بناء الإنسان',version:'V41',updated_at:'2026-10-08',principles:['نجمع أقل قدر لازم للتعليم والإدارة.','لا نبيع البيانات الشخصية ولا نشاركها للإعلانات.','الصلاحيات تحدد ما يراه كل مستخدم.','السجلات الحساسة تُحفظ في الخادم ولا تُرسل إلا عند الحاجة.'],data_types:['الحساب وبيانات التواصل','السجل التعليمي والحضور والدرجات','السجل القرآني والتقارير','الرسائل والملاحظات التعليمية','سجل العمليات الأمنية'],retention:'تحتفظ الأكاديمية بالبيانات ما دامت لازمة للغرض التعليمي أو النظامي، ثم تُؤرشف أو تُحذف وفق سياسة الإدارة.',rights:['طلب الوصول إلى البيانات','طلب تصحيح البيانات','طلب حذف البيانات عندما لا يوجد التزام تعليمي أو نظامي يمنع ذلك'],contact:(db.institution||{}).email||''});
     if (p === '/api/public/quran-schools' && req.method === 'GET') return json(res,200,db.quran_schools.filter(x=>x.active!==false).sort((a,b)=>(a.order||0)-(b.order||0)).map(x=>({id:x.id,name:x.name,description:x.description||'',school_id:x.school_id||null})));
     if (!sameOrigin(req)) return json(res, 403, { error: 'مصدر الطلب غير مسموح' });
@@ -679,7 +680,7 @@ async function handler(req, res) {
     /* ═══════════ الإدارة العليا V23 ═══════════
        حساب المدير يملك صلاحيات النظام كاملة، لكن لا نعيد كلمات المرور أو الأسرار للواجهة. */
     const requireAdmin = () => { if (user.role !== 'admin') fail(403, 'هذه العملية متاحة لمدير الأكاديمية فقط'); };
-    if (p === '/api/admin/health/storage' && req.method === 'GET') { requireAdmin(); const h=await storage.health(); return json(res, h.healthy ? 200 : 503, { version:32, mode:CONFIG.mode, storage:h, migration:{reversible:true, json_source:DATA} }); }
+    if (p === '/api/admin/health/storage' && req.method === 'GET') { requireAdmin(); const h=await storage.health(); return json(res, h.healthy ? 200 : 503, { version:APP_VERSION, mode:CONFIG.mode, storage:h, migration:{reversible:true, json_source:DATA} }); }
     const adminUserView = u => ({ id: u.id, name: u.name, email: String(u.email||'').endsWith('@no-email.invalid') ? '' : u.email, role: u.role, active: u.active !== false, created_at: u.created_at || null });
     const ALL_PERMISSIONS = {
       'dashboard:read':'لوحة التحكم', 'users:manage':'إدارة المستخدمين', 'roles:manage':'إدارة الصلاحيات',
@@ -696,7 +697,7 @@ async function handler(req, res) {
       const activeSessions = [...sessions.values()].filter(x => x.exp > now).length;
       const recent = db.audit_log.slice(0, 8).map(x => ({ ...x, user_name: (db.users.find(u => u.id === x.user_id) || {}).name || 'النظام' }));
       return json(res, 200, {
-        version: '21.0.0', mode: CONFIG.mode, node: process.version,
+        version: APP_VERSION, mode: CONFIG.mode, node: process.version,
         users: db.users.length, active_users: db.users.filter(x => x.active !== false).length,
         students: db.students.length, groups: db.groups.length, subjects: db.subjects.length, lessons: db.lessons.length,
         active_sessions: activeSessions, audit_count: db.audit_log.length, db_bytes: storageStatus.bytes || 0, storage: storageStatus,
@@ -1813,7 +1814,7 @@ if (require.main === module) {
   // للحاسوب فقط: ACADEMY_LOCAL_ONLY=1
   const HOST = process.env.ACADEMY_LOCAL_ONLY === '1' ? '127.0.0.1' : '0.0.0.0';
   server.listen(PORT, HOST, () => {
-    console.log('\n  أكاديمية الإحسان في بناء الإنسان — V32');
+    console.log(`\n  أكاديمية الإحسان في بناء الإنسان — V${APP_VERSION}`);
     console.log(`  على هذا الحاسوب:  http://localhost:${PORT}`);
     if (HOST !== '127.0.0.1') {
       const ips = Object.values(require('os').networkInterfaces()).flat().filter(i => i && i.family === 'IPv4' && !i.internal).map(i => i.address);
