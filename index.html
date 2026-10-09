@@ -20,32 +20,39 @@
 
 <section class="login hidden" id="loginView">
   <div class="login-art">
-    <div class="row" style="justify-content:flex-start;gap:12px"><span class="brandmark">ب</span><b style="font:700 20px var(--font-head)">أكاديمية بناء الإنسان</b></div>
-    <div>
-      <h1>نرتقي بهدوء، ونبني بثبات</h1>
-      <p>متابعة تربوية خفيفة ومستدامة، يُقاس فيها الطالب بتقدمه مقارنةً بنفسه.</p>
+    <div class="login-brand"><img src="/assets/ihsan-emblem.svg" alt="شعار أكاديمية الإحسان"><div><b>أكاديمية الإحسان</b><small>في بناء الإنسان</small></div></div>
+    <div class="login-copy">
+      <span class="login-eyebrow">رحلة علمٍ وتزكيةٍ وإتقان</span>
+      <h1>نزرع العلم… <em>ونبني الإنسان</em></h1>
+      <p class="login-lead">مساحة تربوية تنمو فيها علاقتك بالقرآن، ويصبح طلب العلم رحلةً واضحة الخطوات، مليئة بالإنجاز والمعنى والأثر الطيب.</p>
+      <img class="login-illustration" src="/assets/welcome-garden.svg" alt="رسم فني لكتاب مفتوح ونبات ينمو داخل محراب هندسي">
+      <div class="login-pillars"><span>القرآن الكريم</span><span>علمٌ نافع</span><span>صحبةٌ صالحة</span><span>تقدّمٌ ثابت</span></div>
     </div>
-    <small>نسخة تطوير محلية • V22 مطوّرة</small>
+    <div class="login-footer"><span>خطوة صغيرة كل يوم تصنع أثرًا كبيرًا</span><span>إحسان • علم • عمل</span></div>
   </div>
   <div class="login-form">
-    <form id="loginForm" autocomplete="on">
-      <h2>تسجيل الدخول</h2>
-      <label class="field"><span>اسمك ولقبك أو البريد الإلكتروني</span><input id="loginEmail" type="text" name="identity" autocomplete="username" required style="text-align:right"><small class="muted small">اكتب اسمك الأول ثم لقبك كما سجّلك المشرف. تسجيل الدخول بحساب Google سيُضاف بعد إعداد الربط.</small></label>
-      <label class="field"><span>كلمة المرور</span><input id="loginPass" type="password" name="password" autocomplete="current-password" required dir="ltr" style="text-align:right"></label>
-      <label class="showpw"><input type="checkbox" id="showPass"><span>إظهار كلمة المرور</span></label>
-      <div class="err-msg" id="loginErr" role="alert"></div>
-      <button class="btn" id="loginBtn" type="submit">دخول</button>
-    </form>
-    <div class="portal-box">
-      <div class="sec"><div><h3>المدارس القرآنية</h3><p class="muted small">يمكن الدخول مباشرة إلى بوابة المدرسة القرآنية بعد تسجيل الحساب.</p></div></div>
-      <div id="quranSchools" class="portal-grid"></div>
+    <div class="login-form-inner">
+      <div class="form-brand"><img src="/assets/ihsan-emblem.svg" alt=""><div><strong>مرحبًا بك في رحلتك</strong><small>ابدأ من حيث أنت، وتقدّم خطوةً خطوة.</small></div></div>
+      <form id="loginForm" autocomplete="on">
+        <h2>تسجيل الدخول</h2>
+        <p class="form-intro">ادخل إلى مسارك، وتعرّف على مهمتك التالية، وتابع أثر اجتهادك.</p>
+        <label class="field"><span>اسمك ولقبك أو البريد الإلكتروني</span><input id="loginEmail" type="text" name="identity" autocomplete="username" required style="text-align:right"><small class="muted small">اكتب اسمك الأول ثم لقبك كما سجّلك المشرف. تسجيل الدخول بحساب Google سيُضاف بعد إعداد الربط.</small></label>
+        <label class="field"><span>كلمة المرور</span><input id="loginPass" type="password" name="password" autocomplete="current-password" required dir="ltr" style="text-align:right"></label>
+        <label class="showpw"><input type="checkbox" id="showPass"><span>إظهار كلمة المرور</span></label>
+        <div class="err-msg" id="loginErr" role="alert"></div>
+        <button class="btn" id="loginBtn" type="submit">دخول إلى الأكاديمية <span aria-hidden="true">←</span></button>
+      </form>
+      <div class="portal-box">
+        <div class="sec"><div><h3>المدارس القرآنية</h3><p class="muted small">اختر بوابة مدرستك بعد تسجيل الحساب.</p></div></div>
+        <div id="quranSchools" class="portal-grid"></div>
+      </div>
     </div>
   </div>
 </section>
 
 <div class="app hidden" id="appView">
   <aside class="side">
-    <div class="brand"><span class="brandmark">ب</span><div><b>بناء الإنسان</b><small>أكاديمية تربوية</small></div></div>
+    <div class="brand"><span class="brandmark"><img src="/assets/ihsan-emblem.svg" alt=""></span><div><b>أكاديمية الإحسان</b><small>في بناء الإنسان</small></div></div>
     <nav class="nav" id="nav" aria-label="القائمة الرئيسية"></nav>
     <div class="account">
       <div><b id="accName"></b><small id="accRole"></small></div>
