@@ -264,7 +264,7 @@ function getStudent(u, id, write = false) {
   if (!s || !(write ? canEdit(u, s) : canView(u, s))) fail(write ? 403 : 404, write ? 'هذا الطالب خارج نطاقك' : 'غير موجود');
   return s;
 }
-const safeUser = u => ({ id: u.id, name: u.name, email: u.email, role: u.role, font_scale: Number(u.font_scale)||1, high_contrast: !!u.high_contrast, reduced_motion: !!u.reduced_motion });
+const safeUser = u => ({ id: u.id, name: u.name, email: u.email, role: u.role, font_scale: Number(u.font_scale)||1, high_contrast: !!u.high_contrast, reduced_motion: !!u.reduced_motion, theme: ['emerald','sand','indigo','olive'].includes(u.theme) ? u.theme : 'emerald' });
 
 /* ───────────── الحضور والتقارير ───────────── */
 function attStats(recs) {
@@ -624,16 +624,16 @@ function serveStatic(res, p) {
 
 async function login(req, res) {
   const b = await body(req);
-  const email = clean(b.email, 200).toLowerCase(), key = (req.socket.remoteAddress || '') + '|' + email;
+  const identity = clean(b.identity !== undefined ? b.identity : b.email, 200).trim().toLowerCase(), key = (req.socket.remoteAddress || '') + '|' + identity;
   const f = loginFails.get(key);
   if (f && f.until > Date.now()) return json(res, 429, { error: 'محاولات كثيرة. حاول مرة أخرى بعد قليل.' });
   if (CONFIG.mode === 'cloud') return json(res, 503, { error: 'قاعدة السحابة لم تُربط بعد. ضع بيانات الاتصال في متغيرات البيئة.' });
-  const u = coreRepo.findUserByEmail(email);
+  const u = coreRepo.findUserByEmail(identity) || db.users.find(x => String(x.name || '').trim().toLowerCase() === identity);
   const ok = verifyPassword(String(b.password || ''), u ? u.password : DUMMY_HASH) && !!u && u.active !== false;
   if (!ok) {
     let n = f ? f.n : 0; if (f && f.until && f.until <= Date.now()) n = 0;
     n++; loginFails.set(key, { n, until: n >= 5 ? Date.now() + 10 * 60000 : 0 });
-    return json(res, 401, { error: 'البريد أو كلمة المرور غير صحيحة' });
+    return json(res, 401, { error: 'الاسم واللقب أو البريد الإلكتروني أو كلمة المرور غير صحيحة' });
   }
   loginFails.delete(key);
   if (sessions.size >= MAX_SESSIONS) {
@@ -1702,6 +1702,14 @@ async function handler(req, res) {
     }
     if ((r=route(req,p,'GET','/api/media/:id/viewers'))) { const m=db.media_posts.find(x=>x.id===r.id); if(user.role!=='admin'&&!(m&&m.author_id===user.id)) fail(403,'المشاهدات للمدير وصاحب المحتوى'); return json(res,200,db.media_reads.filter(x=>x.media_id===r.id).map(x=>({user_id:x.user_id,name:(db.users.find(u=>u.id===x.user_id)||{}).name||'',read_at:x.read_at}))); }
 
+    if (p === '/api/account/password' && req.method === 'POST') {
+      const b = await body(req), current = String(b.current_password || ''), next = String(b.new_password || '');
+      if (!verifyPassword(current, user.password)) fail(400, 'كلمة المرور الحالية غير صحيحة');
+      if (next.length < 8) fail(400, 'كلمة المرور الجديدة يجب أن تكون 8 أحرف على الأقل');
+      if (next === current) fail(400, 'اختر كلمة مرور مختلفة عن الحالية');
+      user.password = hashPassword(next); audit(user, 'account.password_change'); await save();
+      return json(res, 200, { ok: true, message: 'تم تغيير كلمة المرور' });
+    }
     if ((await handleAdvanced({req,res,p,q,user,db,fail,json,body,uid,clean,isDate,isStaff,canView,canEdit,scopedStudents,studentForUser,studentGroupIds,visibleGroupIds,ownsGroup,audit,save,ROOT,storageHealth:()=>storage.health(),lastPersistenceError})) !== false) return;
 
     if (p === '/api/student-tasks' && req.method === 'GET') {
