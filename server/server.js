@@ -549,7 +549,7 @@ function buildFile(user, s, month) {
 }
 
 /* ───────────── HTTP ───────────── */
-const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon' };
+const MIME = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.txt': 'text/plain; charset=utf-8', '.xml': 'application/xml; charset=utf-8' };
 const CSP = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; media-src 'self' http: https: blob:; connect-src 'self'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'";
 function send(res, status, data, type = 'application/json; charset=utf-8') {
   res.writeHead(status, {
@@ -624,7 +624,7 @@ function serveStatic(res, p) {
   let rel;
   try { rel = p === '/' ? 'index.html' : decodeURIComponent(p).replace(/^\/+/, ''); } catch { return send(res, 400, 'Bad request', 'text/plain'); }
   const fp = path.resolve(ROOT, rel);
-  const ok = fp === path.join(ROOT, 'index.html') || fp === path.join(ROOT, 'offline.html') || fp === path.join(ROOT, 'privacy.html') || fp === path.join(ROOT, 'manifest.json') || fp === path.join(ROOT, 'service-worker.js') || fp.startsWith(ASSETS + path.sep);
+  const ok = fp === path.join(ROOT, 'index.html') || fp === path.join(ROOT, 'offline.html') || fp === path.join(ROOT, 'privacy.html') || fp === path.join(ROOT, 'manifest.json') || fp === path.join(ROOT, 'service-worker.js') || fp === path.join(ROOT, 'robots.txt') || fp === path.join(ROOT, 'sitemap.xml') || fp.startsWith(ASSETS + path.sep);
   if (!ok || !fs.existsSync(fp) || !fs.statSync(fp).isFile()) return send(res, 404, 'Not found', 'text/plain');
   send(res, 200, fs.readFileSync(fp), MIME[path.extname(fp)] || 'application/octet-stream');
 }
