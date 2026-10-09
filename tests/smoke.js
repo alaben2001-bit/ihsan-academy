@@ -14,8 +14,8 @@ const htmlSource = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'ut
 const cssSource = fs.readFileSync(path.join(__dirname, '..', 'assets', 'app.css'), 'utf8');
 assert.match(htmlSource, /login-illustration/, 'welcome screen must include its dedicated illustration');
 assert.match(htmlSource, /\/assets\/ihsan-emblem\.svg/, 'navigation and welcome screen must use the academy emblem');
-assert.match(htmlSource, /app\.css\?v=68\.0/, 'refreshed visual styles must bypass the old browser cache');
-assert.match(htmlSource, /app\.js\?v=68\.0/, 'dashboard script changes must bypass the old browser cache');
+assert.match(htmlSource, /app\.css\?v=69\.0/, 'refreshed visual styles must bypass the old browser cache');
+assert.match(htmlSource, /app\.js\?v=69\.0/, 'dashboard script changes must bypass the old browser cache');
 assert.match(htmlSource, /مرحبًا بك في رحلتك/, 'welcome screen must orient students toward a learning journey');
 assert.match(appSource, /hero-orbit"><img src="\/assets\/ihsan-emblem\.svg"/, 'signed-in dashboard must use the academy emblem instead of a text placeholder');
 assert.match(appSource, /today-step-open/, 'daily learning steps must have direct actions into the relevant learning area');
