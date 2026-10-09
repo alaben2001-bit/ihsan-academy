@@ -1179,6 +1179,19 @@ async function handler(req, res) {
     if ((r=route(req,p,'PUT','/api/teams/:id/members'))) {
       const t=teamById(r.id);if(!t||!teamVisibleTo(user,t))fail(404,'الفريق غير موجود');if(user.role!=='admin'&&user.role!=='chief_supervisor'&&!(user.role==='teacher'&&teacherGroupIds(user).includes(t.group_id)))fail(403,'لا تملك إدارة أعضاء الفريق');const b=await body(req);if(!Array.isArray(b.student_ids))fail(400,'قائمة الطلبة مطلوبة');const valid=[...new Set(b.student_ids)].filter(id=>{const st=db.students.find(x=>x.id===id);return st&&studentGroupIds(st).includes(t.group_id);});db.team_members=db.team_members.filter(x=>x.team_id!==t.id);valid.forEach(student_id=>db.team_members.push({id:uid('tmem'),team_id:t.id,student_id}));const sup=[...new Set(Array.isArray(b.supervisor_ids)?b.supervisor_ids:[])].filter(id=>valid.includes(id));db.team_supervisors=db.team_supervisors.filter(x=>x.team_id!==t.id);sup.forEach(student_id=>db.team_supervisors.push({id:uid('tsup'),team_id:t.id,student_id}));audit(user,'team.members_replace',{team_id:t.id,members:valid,supervisors:sup});await save();return json(res,200,teamView(t,user));
     }
+    if ((r=route(req,p,'POST','/api/teams/:id/students'))) {
+      const t=teamById(r.id);if(!t||!teamCanManage(user,t))fail(403,'لا تملك صلاحية إضافة طالب إلى هذا الفريق');
+      const b=await body(req),name=clean(b.name,120),suppliedEmail=clean(b.email,200).toLowerCase(),password=String(b.password||'');
+      if(name.length<2||(suppliedEmail&&!/^\S+@\S+\.\S+$/.test(suppliedEmail))||(password.length<8&&!(!suppliedEmail&&!password)))fail(400,'أدخل الاسم والبريد الصحيح إن وُجد وكلمة مرور مناسبة');
+      if(suppliedEmail&&db.users.some(x=>String(x.email).toLowerCase()===suppliedEmail))fail(409,'البريد مستخدم بالفعل');
+      const email=suppliedEmail||('student-'+uid('mail')+'@no-email.invalid'),initialPassword=password||(name.trim().split(/\s+/)[0]+'123');
+      const nu=coreService.createUser({name,email,password:initialPassword,role:'student'});
+      const group=db.groups.find(g=>g.id===t.group_id);if(!group)fail(404,'فوج الفريق غير موجود');
+      const st={id:uid('s'),user_id:nu.id,parent_id:null,name,group_name:group.name||'',level:'المستوى الأساسي',attendance_rate:0,progress:0,memorized:'—',review:0,group_id:t.group_id};
+      db.students.push(st);addMembership(st.id,t.group_id);db.team_members.push({id:uid('tmem'),team_id:t.id,student_id:st.id});
+      audit(user,'team.student.create',{student_id:st.id,team_id:t.id,group_id:t.group_id});await save();
+      return json(res,201,{id:st.id,name,group_id:t.group_id,team_id:t.id,initial_password:initialPassword,email:suppliedEmail});
+    }
     if ((r=route(req,p,'POST','/api/teams/:id/tasks'))) {
       const t=teamById(r.id);if(!t||!teamCanManage(user,t))fail(404,'الفريق غير موجود أو لا تملك إدارته');const b=await body(req),title=clean(b.title,160);if(!title)fail(400,'عنوان المهمة مطلوب');const assigned=clean(b.assigned_student_id,80);if(assigned&&!teamStudentIds(t).includes(assigned))fail(400,'الطالب المكلّف ليس في الفريق');const task={id:uid('tt'),team_id:t.id,title,description:clean(b.description,800),assigned_student_id:assigned||null,due_date:isDate(b.due_date)?b.due_date:null,status:'pending',created_by:user.id,created_at:new Date().toISOString()};db.team_tasks.push(task);audit(user,'team.task_create',{team_id:t.id,id:task.id});await save();return json(res,201,task);
     }
