@@ -10,6 +10,10 @@ const { ensureCoreCollections } = require('../server/storage/postgres');
 // student file, and saved through the same API used by the attendance sheet.
 const serverSource = fs.readFileSync(path.join(__dirname, '..', 'server', 'server.js'), 'utf8');
 const appSource = fs.readFileSync(path.join(__dirname, '..', 'assets', 'app.js'), 'utf8');
+assert.match(serverSource, /const APP_VERSION = require\('\.\.\/package\.json'\)\.version;/, 'server diagnostics must use the package version');
+assert.match(serverSource, /version:APP_VERSION/, 'health endpoints must report the current app version');
+assert.match(serverSource, /console\.log\(`\\n  أكاديمية الإحسان في بناء الإنسان — V\$\{APP_VERSION\}`\)/, 'startup banner must report the current app version');
+assert.doesNotMatch(serverSource, /V32|version:32|version: '21\.0\.0'/, 'stale hard-coded app version labels must not return');
 assert.match(serverSource, /function upsertAttendance\(studentId, date, status, note, user\)/, 'attendance writes must use a single upsert path');
 assert.match(serverSource, /a\.student_id === studentId && a\.date === date/, 'a student must have at most one attendance record per date');
 assert.match(serverSource, /attendance: \{ summary: attendance\.summary, records: attendance\.records\.slice\(0, 60\), weekly: attendance\.weekly \}/, 'student file must include attendance records');
