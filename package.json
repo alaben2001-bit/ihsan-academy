@@ -1,8 +1,8 @@
 {
   "name": "academy-build-human",
-  "version": "57.0.0",
+  "version": "58.0.0",
   "private": true,
-  "description": "أكاديمية الإحسان في بناء الإنسان — V57 (canonical service routing, student formation curriculum, lessons and question bank)",
+  "description": "أكاديمية الإحسان في بناء الإنسان — V58 (expanded student-growth curriculum and practice bank)",
   "scripts": {
     "start": "node server/server.js",
     "backup": "node tools/backup-db.js",
