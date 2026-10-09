@@ -146,3 +146,11 @@ assert.match(serverSource, /destination\.search = incoming\.search/, 'redirect m
 // Docker runtime writes uploads/backups as the non-root node user.
 const dockerfileSource = fs.readFileSync(path.join(__dirname, '..', 'Dockerfile'), 'utf8');
 assert.match(dockerfileSource, /chown -R node:node \/app\/data \/app\/backups/, 'runtime user must own writable upload and backup directories');
+
+
+// The legacy Oregon service must stay in redirect-only mode in the Blueprint.
+const renderSource = fs.readFileSync(path.join(__dirname, '..', 'render.yaml'), 'utf8');
+const legacyServiceConfig = renderSource.split('  # Replacement web service')[0];
+const canonicalServiceConfig = renderSource.split('name: ihsan-academy-frankfurt')[1] || '';
+assert.ok(legacyServiceConfig.includes('name: ihsan-academy') && legacyServiceConfig.includes('key: ACADEMY_REDIRECT_TO_FRANKFURT') && legacyServiceConfig.includes('value: "1"'), 'legacy Oregon service must redirect to Frankfurt');
+assert.doesNotMatch(canonicalServiceConfig, /key: ACADEMY_REDIRECT_TO_FRANKFURT/, 'canonical Frankfurt service must not redirect itself');
