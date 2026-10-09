@@ -168,6 +168,17 @@ assert.match(serverSource, /destination\.pathname = incoming\.pathname/, 'redire
 assert.match(serverSource, /destination\.search = incoming\.search/, 'redirect mode must preserve query parameters safely');
 
 
+// SEO discovery files must be tracked and publicly served by the static allowlist.
+const robotsSource = fs.readFileSync(path.join(__dirname, '..', 'robots.txt'), 'utf8');
+const sitemapSource = fs.readFileSync(path.join(__dirname, '..', 'sitemap.xml'), 'utf8');
+assert.match(robotsSource, /^User-agent:\\s*\\*/m, 'robots.txt must define a general crawler policy');
+assert.match(robotsSource, /^Sitemap:\\s*https:\\/\\/ihsan-academy-frankfurt\\.onrender\\.com\\/sitemap\\.xml$/m, 'robots.txt must point to the canonical sitemap');
+assert.match(robotsSource, /^Disallow:\\s*\\/api\\//m, 'robots.txt must discourage indexing private API endpoints');
+assert.match(sitemapSource, /<urlset[^>]+xmlns="https:\\/\\/www\\.sitemaps\\.org\\/schemas\\/sitemap\\/0\\.9"/, 'sitemap must use the standard sitemap namespace');
+assert.match(sitemapSource, /<loc>https:\\/\\/ihsan-academy-frankfurt\\.onrender\\.com\\/<\\/loc>/, 'sitemap must list the canonical home page');
+assert.match(serverSource, /path\\.join\\(ROOT, 'robots\\.txt'\\)/, 'static serving allowlist must include robots.txt');
+assert.match(serverSource, /path\\.join\\(ROOT, 'sitemap\\.xml'\\)/, 'static serving allowlist must include sitemap.xml');
+
 // Docker runtime writes uploads/backups as the non-root node user.
 const dockerfileSource = fs.readFileSync(path.join(__dirname, '..', 'Dockerfile'), 'utf8');
 assert.match(dockerfileSource, /chown -R node:node \/app\/data \/app\/backups/, 'runtime user must own writable upload and backup directories');
