@@ -171,13 +171,13 @@ assert.match(serverSource, /destination\.search = incoming\.search/, 'redirect m
 // SEO discovery files must be tracked and publicly served by the static allowlist.
 const robotsSource = fs.readFileSync(path.join(__dirname, '..', 'robots.txt'), 'utf8');
 const sitemapSource = fs.readFileSync(path.join(__dirname, '..', 'sitemap.xml'), 'utf8');
-assert.match(robotsSource, /^User-agent:\\s*\\*/m, 'robots.txt must define a general crawler policy');
-assert.match(robotsSource, /^Sitemap:\\s*https:\\/\\/ihsan-academy-frankfurt\\.onrender\\.com\\/sitemap\\.xml$/m, 'robots.txt must point to the canonical sitemap');
-assert.match(robotsSource, /^Disallow:\\s*\\/api\\//m, 'robots.txt must discourage indexing private API endpoints');
-assert.match(sitemapSource, /<urlset[^>]+xmlns="https:\\/\\/www\\.sitemaps\\.org\\/schemas\\/sitemap\\/0\\.9"/, 'sitemap must use the standard sitemap namespace');
-assert.match(sitemapSource, /<loc>https:\\/\\/ihsan-academy-frankfurt\\.onrender\\.com\\/<\\/loc>/, 'sitemap must list the canonical home page');
-assert.match(serverSource, /path\\.join\\(ROOT, 'robots\\.txt'\\)/, 'static serving allowlist must include robots.txt');
-assert.match(serverSource, /path\\.join\\(ROOT, 'sitemap\\.xml'\\)/, 'static serving allowlist must include sitemap.xml');
+assert.ok(robotsSource.includes('User-agent: *'), 'robots.txt must define a general crawler policy');
+assert.ok(robotsSource.includes('Sitemap: https://ihsan-academy-frankfurt.onrender.com/sitemap.xml'), 'robots.txt must point to the canonical sitemap');
+assert.ok(robotsSource.includes('Disallow: /api/'), 'robots.txt must discourage indexing private API endpoints');
+assert.ok(sitemapSource.includes('xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"'), 'sitemap must use the standard sitemap namespace');
+assert.ok(sitemapSource.includes('<loc>https://ihsan-academy-frankfurt.onrender.com/</loc>'), 'sitemap must list the canonical home page');
+assert.ok(serverSource.includes("path.join(ROOT, 'robots.txt')"), 'static serving allowlist must include robots.txt');
+assert.ok(serverSource.includes("path.join(ROOT, 'sitemap.xml')"), 'static serving allowlist must include sitemap.xml');
 
 // Docker runtime writes uploads/backups as the non-root node user.
 const dockerfileSource = fs.readFileSync(path.join(__dirname, '..', 'Dockerfile'), 'utf8');
