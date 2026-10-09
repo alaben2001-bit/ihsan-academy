@@ -134,3 +134,7 @@ assert.match(serverSource, /seedEducationalContent\(db\)/, 'startup migration mu
 
 assert.match(appSource, /journey-hearts/, 'student journey must display five visual progress hearts');
 assert.match(appSource, /كل قلب يذكّرك بالتقدم/, 'progress hearts must not be presented as a measure of student worth');
+
+assert.match(appSource, /async function openQuestionAttemptReview/, 'teachers must have a UI for reviewing short-answer submissions');
+assert.match(appSource, /data-act="review-question-attempt"/, 'pending question attempts must expose a review action');
+assert.match(appSource, /question-attempt-review/, 'manual question review form must submit scores and feedback');
