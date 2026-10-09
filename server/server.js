@@ -1129,6 +1129,45 @@ async function handler(req, res) {
       requireAdmin();
       return json(res,200,db.groups.map(g=>({...g,student_count:new Set(db.memberships.filter(m=>m.group_id===g.id).map(m=>m.student_id)).size,teachers:db.teacher_groups.filter(x=>x.group_id===g.id).map(x=>{const t=db.users.find(u=>u.id===x.teacher_id);return t?{id:t.id,name:t.name,email:t.email}:null}).filter(Boolean)})));
     }
+    // Teacher-scoped group management: a teacher can manage only groups assigned to them.
+    if (p === '/api/teacher/groups' && req.method === 'POST') {
+      requireStaff(user); if(user.role!=='teacher') fail(403,'هذه العملية مخصصة للشيخ');
+      const b=await body(req), name=clean(b.name,120); if(!name) fail(400,'اسم الفوج مطلوب');
+      if(db.groups.some(g=>g.name.trim().toLowerCase()===name.toLowerCase())) fail(409,'اسم الفوج مستخدم');
+      const row={id:uid('g'),name,description:clean(b.description,600),level:clean(b.level,80)||'عام',active:true};
+      db.groups.push(row); db.teacher_groups.push({teacher_id:user.id,group_id:row.id}); audit(user,'teacher.group.create',{id:row.id}); await save(); return json(res,201,row);
+    }
+    if ((r=route(req,p,'PATCH','/api/teacher/groups/:id'))) {
+      requireStaff(user); if(user.role!=='teacher'||!teacherGroupIds(user).includes(r.id)) fail(403,'هذا الفوج خارج نطاقك');
+      const g=db.groups.find(x=>x.id===r.id); if(!g) fail(404,'الفوج غير موجود'); const b=await body(req);
+      if(b.name!==undefined){const name=clean(b.name,120);if(!name)fail(400,'اسم الفوج مطلوب');if(db.groups.some(x=>x.id!==g.id&&x.name.trim().toLowerCase()===name.toLowerCase()))fail(409,'اسم الفوج مستخدم');g.name=name;}
+      if(b.description!==undefined)g.description=clean(b.description,600);if(b.level!==undefined)g.level=clean(b.level,80);
+      audit(user,'teacher.group.update',{id:g.id});await save();return json(res,200,g);
+    }
+    if ((r=route(req,p,'DELETE','/api/teacher/groups/:id'))) {
+      requireStaff(user);if(user.role!=='teacher'||!teacherGroupIds(user).includes(r.id))fail(403,'هذا الفوج خارج نطاقك');
+      const g=db.groups.find(x=>x.id===r.id);if(!g)fail(404,'الفوج غير موجود');
+      const members=db.memberships.some(x=>x.group_id===g.id)||db.students.some(x=>x.group_id===g.id),pending=db.group_join_requests.some(x=>x.requested_group_id===g.id&&x.status==='pending');
+      if(members||pending)fail(409,'لا يمكن حذف فوج مرتبط بطلاب أو طلبات معلقة؛ عدّل الفوج أو اطلب من الإدارة تعطيله');
+      db.teacher_groups=db.teacher_groups.filter(x=>!(x.teacher_id===user.id&&x.group_id===g.id));db.groups=db.groups.filter(x=>x.id!==g.id);audit(user,'teacher.group.delete',{id:g.id});await save();return json(res,200,{ok:true});
+    }
+    if (p === '/api/teacher/students' && req.method === 'POST') {
+      requireStaff(user);if(user.role!=='teacher')fail(403,'هذه العملية مخصصة للشيخ');
+      const b=await body(req),name=clean(b.name,120),email=clean(b.email,200).toLowerCase(),password=String(b.password||''),gid=String(b.group_id||'');
+      if(name.length<2||!/^\\S+@\\S+\\.\\S+$/.test(email)||password.length<8)fail(400,'أدخل الاسم والبريد وكلمة مرور من 8 أحرف على الأقل');
+      if(!teacherGroupIds(user).includes(gid))fail(403,'اختر فوجًا تشرف عليه');if(db.users.some(x=>String(x.email).toLowerCase()===email))fail(409,'البريد مستخدم بالفعل');
+      const nu=coreService.createUser({name,email,password,role:'student'});const st={id:uid('s'),user_id:nu.id,parent_id:null,name,group_name:(db.groups.find(g=>g.id===gid)||{}).name||'',level:clean(b.level,80)||'المستوى الأساسي',attendance_rate:0,progress:0,memorized:'—',review:0,group_id:gid};db.students.push(st);addMembership(st.id,gid);audit(user,'teacher.student.create',{student_id:st.id,group_id:gid});await save();return json(res,201,{id:st.id,name:st.name,group_id:gid});
+    }
+    if ((r=route(req,p,'PATCH','/api/teacher/students/:id'))) {
+      requireStaff(user);if(user.role!=='teacher')fail(403,'هذه العملية مخصصة للشيخ');const st=db.students.find(x=>x.id===r.id);if(!st||!canEdit(user,st))fail(403,'هذا الطالب خارج نطاقك');const b=await body(req);
+      if(b.name!==undefined){const name=clean(b.name,120);if(name.length<2)fail(400,'الاسم قصير');st.name=name;const u=db.users.find(x=>x.id===st.user_id);if(u)u.name=name;}
+      if(b.level!==undefined)st.level=clean(b.level,80);audit(user,'teacher.student.update',{student_id:st.id});await save();return json(res,200,studentView(st,user));
+    }
+    if ((r=route(req,p,'DELETE','/api/teacher/students/:id'))) {
+      requireStaff(user);if(user.role!=='teacher')fail(403,'هذه العملية مخصصة للشيخ');const st=db.students.find(x=>x.id===r.id);if(!st||!canEdit(user,st))fail(403,'هذا الطالب خارج نطاقك');
+      const u=db.users.find(x=>x.id===st.user_id);if(u)u.active=false;db.memberships=db.memberships.filter(m=>m.student_id!==st.id||!teacherGroupIds(user).includes(m.group_id));if(!db.memberships.some(m=>m.student_id===st.id)){st.group_id=null;st.group_name='';}
+      audit(user,'teacher.student.remove_from_groups',{student_id:st.id});await save();return json(res,200,{ok:true,archived:true});
+    }
     if (p === '/api/admin/groups' && req.method === 'POST') {
       requireAdmin(); const b=await body(req); const name=clean(b.name,120); if(!name) fail(400,'اسم الفوج مطلوب');
       if(db.groups.some(g=>g.name.trim().toLowerCase()===name.toLowerCase())) fail(409,'اسم الفوج مستخدم');
