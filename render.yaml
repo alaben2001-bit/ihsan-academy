@@ -4,6 +4,10 @@ services:
     name: ihsan-academy
     runtime: docker
     plan: free
+    # Legacy Oregon URL redirects to the canonical Frankfurt service.
+    envVars:
+      - key: ACADEMY_REDIRECT_TO_FRANKFURT
+        value: "1"
     dockerfilePath: ./Dockerfile
     dockerContext: .
     healthCheckPath: /api/health
