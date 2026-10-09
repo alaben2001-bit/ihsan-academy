@@ -225,7 +225,7 @@ function buildNav() {
   const groups = navGroups();
   const items = groups.flatMap(g => g.items);
   put($('#nav'), html`${groups.map(g => html`<div class="nav-group"><div class="nav-label">${g.label}</div>${g.items.map(([id, l, ic]) => html`<button data-act="nav" data-page="${id}" title="${l}">${ico(ic)}<span>${l}</span></button>`)}</div>`)}`);
-  const mainIds = S.user.role === 'student' ? ['dashboard', 'learning-hub', 'media'] : S.user.role === 'teacher' ? ['dashboard', 'students', 'curriculum'] : S.user.role === 'admin' ? ['dashboard', 'students', 'curriculum'] : S.user.role === 'chief_supervisor' ? ['dashboard', 'teams', 'school-directory'] : ['dashboard', 'children', 'media'];
+  const mainIds = S.user.role === 'student' ? ['dashboard', 'learning-hub', 'media'] : S.user.role === 'teacher' ? ['dashboard', 'learning-hub', 'students'] : S.user.role === 'admin' ? ['dashboard', 'learning-hub', 'students'] : S.user.role === 'chief_supervisor' ? ['dashboard', 'learning-hub', 'teams'] : ['dashboard', 'learning-hub', 'children'];
   const main = mainIds.map(id => items.find(x => x[0] === id) || (id === 'learning-hub' ? ['learning-hub','برنامج التعلّم','brain'] : null)).filter(Boolean);
   put($('#bottomNav'), html`${main.map(([id, l, ic]) => html`<button data-act="nav" data-page="${id}">${ico(ic)}<span>${l}</span></button>`)}<button data-act="more">${ico('more')}<span>المزيد</span></button>`);
 }
