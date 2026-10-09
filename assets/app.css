@@ -474,3 +474,19 @@ html[data-role="parent"] .side{box-shadow:inset -3px 0 0 rgba(184,154,90,.60),-1
 .journey-heart { display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:50%; border:1px solid var(--line); color:var(--muted); font-size:24px; line-height:1; background:var(--surface,#fff); }
 .journey-heart.filled { color:#b65d67; border-color:#e4b4b9; background:#fff3f4; }
 @media(max-width:420px){.journey-hearts{gap:6px}.journey-heart{width:30px;height:30px;font-size:21px}}
+
+
+/* تحسينات الواجهة: ألوان واضحة، بطاقات اختيار ملموسة، ومسافات أهدأ. */
+.theme-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:6px 0 4px}
+.theme-swatch{display:flex;align-items:center;gap:10px;min-height:52px;padding:10px 12px;border:1px solid var(--line);border-radius:13px;background:var(--white);text-align:right;transition:border-color .16s,box-shadow .16s,transform .16s}
+.theme-swatch:hover{transform:translateY(-1px);border-color:var(--g500)}
+.theme-swatch.selected{border:2px solid var(--g500);padding:9px 11px;box-shadow:0 0 0 3px color-mix(in srgb,var(--g500) 12%,transparent)}
+.theme-swatch i{display:block;width:27px;height:27px;flex:none;border-radius:9px;background:var(--swatch);box-shadow:inset 0 0 0 1px #00000012}
+.theme-swatch span{font-size:13px;font-weight:700}
+.theme-select-fallback{margin-top:2px}
+.login-art{position:relative;overflow:hidden;background-image:linear-gradient(135deg,rgba(7,35,30,.15),rgba(7,35,30,.02)),var(--pattern)}
+.login-art h1{line-height:1.55;letter-spacing:-.02em}
+.login-form form,.login-form .portal-box{max-width:440px}
+.card{transition:box-shadow .18s,border-color .18s}
+.card:focus-within{border-color:color-mix(in srgb,var(--g500) 42%,var(--line))}
+@media(max-width:520px){.theme-options{grid-template-columns:1fr}.theme-swatch{min-height:48px}}
