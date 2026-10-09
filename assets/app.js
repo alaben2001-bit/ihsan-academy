@@ -186,7 +186,7 @@ async function startSession() {
 const isStaff = () => S.user && (S.user.role === 'admin' || S.user.role === 'teacher');
 function navGroups() {
   const n = (id, label, ic) => [id, label, ic];
-  const common = [n('school-directory', 'هيكلة المدرسة', 'users'), n('news', 'ما الجديد؟', 'news'), n('community', 'مجتمع التعلم', 'discuss'), n('notifications', 'الإشعارات', 'bell'), n('settings', 'الإعدادات والخصوصية', 'settings')];
+  const common = [n('academy-map', 'خريطة الأكاديمية والصلاحيات', 'chart'), n('school-directory', 'هيكلة المدرسة', 'users'), n('news', 'مكتبة الشيخ والمنشورات', 'news'), n('community', 'مجتمع التعلم', 'discuss'), n('notifications', 'الإشعارات', 'bell'), n('settings', 'الإعدادات والخصوصية', 'settings')];
   const group = (label, items) => ({ label, items });
   if (S.user.role === 'admin') return [
     group('الرئيسية', [n('dashboard', 'الرئيسية', 'home'), n('quran', 'المدرسة القرآنية', 'quran')]),
@@ -225,8 +225,8 @@ function buildNav() {
   const groups = navGroups();
   const items = groups.flatMap(g => g.items);
   put($('#nav'), html`${groups.map(g => html`<div class="nav-group"><div class="nav-label">${g.label}</div>${g.items.map(([id, l, ic]) => html`<button data-act="nav" data-page="${id}" title="${l}">${ico(ic)}<span>${l}</span></button>`)}</div>`)}`);
-  const mainIds = ['dashboard', 'quran', S.user.role === 'teacher' ? 'students' : S.user.role === 'student' ? 'journey' : S.user.role === 'parent' ? 'children' : 'students'];
-  const main = mainIds.map(id => items.find(x => x[0] === id)).filter(Boolean);
+  const mainIds = S.user.role === 'student' ? ['dashboard', 'learning-hub', 'media'] : S.user.role === 'teacher' ? ['dashboard', 'students', 'curriculum'] : S.user.role === 'admin' ? ['dashboard', 'students', 'curriculum'] : S.user.role === 'chief_supervisor' ? ['dashboard', 'teams', 'school-directory'] : ['dashboard', 'children', 'media'];
+  const main = mainIds.map(id => items.find(x => x[0] === id) || (id === 'learning-hub' ? ['learning-hub','برنامج التعلّم','brain'] : null)).filter(Boolean);
   put($('#bottomNav'), html`${main.map(([id, l, ic]) => html`<button data-act="nav" data-page="${id}">${ico(ic)}<span>${l}</span></button>`)}<button data-act="more">${ico('more')}<span>المزيد</span></button>`);
 }
 
@@ -305,7 +305,7 @@ function openTransportRouteModal(id){
 async function openTransportStudentModal(routeId){if(S.user.role!=='admin')return;const routes=await api('/api/transport');const r=routes.find(x=>x.id===routeId);if(!r)return;openModal('إضافة طالب إلى النقل',html`<form data-form="transport-assign" data-route="${routeId}" class="stack"><label class="field"><span>الطالب</span><select name="student_id">${S.students.map(s=>html`<option value="${s.id}">${s.name}</option>`)}</select></label><label class="field"><span>نقطة التوقف</span><select name="stop"><option value="">غير محددة</option>${(r.pickup_points||[]).map(x=>html`<option>${x}</option>`)}</select></label><label class="field"><span>ملاحظة</span><input name="notes" maxlength="300"></label><button class="btn">إضافة</button></form>`)}
 
 const PAGES = {
-  dashboard: ['الرئيسية', 'نظرة هادئة على اليوم', pgDashboard], 'school-directory': ['هيكلة المدرسة', 'الأسماء والرتب والمهام والمراسلة', pgSchoolDirectory], journey: ['رحلتي', 'مسار شخصي خفيف ومتدرج', pgJourney], program: ['بناء المنهج', 'إدارة المواد والدروس وطرق التعلم', pgProgram], quran: ['المدرسة القرآنية', 'حفظ وتسميع ومراجعة وتجويد وتقويم', pgQuran], admin: ['الإدارة العليا', 'صلاحيات كاملة وإدارة النظام', pgAdmin], hierarchy: ['هيكلة المنصة', 'المدير العام والمدارس والأفواج والفرق', pgHierarchy], news: ['ما الجديد؟', 'الإعلانات والتحديثات', pgNews],
+  dashboard: ['الرئيسية', 'نظرة هادئة على اليوم', pgDashboard], 'academy-map': ['خريطة الأكاديمية والصلاحيات', 'تعريف واضح بالأدوار وحدود كل صلاحية', pgAcademyMap], 'learning-hub': ['برنامج التعلّم الممتع', 'خمسة مجالات لبناء المعرفة والعمل', pgLearningHub], 'school-directory': ['هيكلة المدرسة', 'الأسماء والرتب والمهام والمراسلة', pgSchoolDirectory], journey: ['رحلتي', 'مسار شخصي خفيف ومتدرج', pgJourney], program: ['بناء المنهج', 'إدارة المواد والدروس وطرق التعلم', pgProgram], quran: ['المدرسة القرآنية', 'حفظ وتسميع ومراجعة وتجويد وتقويم', pgQuran], admin: ['الإدارة العليا', 'صلاحيات كاملة وإدارة النظام', pgAdmin], hierarchy: ['هيكلة المنصة', 'المدير العام والمدارس والأفواج والفرق', pgHierarchy], news: ['ما الجديد؟', 'الإعلانات والتحديثات', pgNews],
   groups: ['الأفواج', 'تنظيم الطلاب ومجموعاتهم', pgGroups], transport: ['النقل الجماعي', 'خطوط النقل ونقاط التوقف والطلبة', pgTransport], curriculum: ['المنهج', 'المواد والبرنامج الأسبوعي', pgCurriculum],
   students: ['الطلاب', 'اضغط على الطالب لفتح ملفه', pgStudents], file: ['ملف الطالب', 'مركز المتابعة', pgFile],
   profile: ['ملفي', 'بياناتي وتقدمي', pgProfile], children: ['أبنائي', 'متابعة الأبناء', pgChildren],
@@ -955,6 +955,36 @@ async function pgSchoolDirectory(){
     <div class="card"><div class="sec"><div><h3>أهل المدرسة</h3><p class="muted small">المدير، الشيوخ، المشرف الرئيسي، مشرفو الفرق، ثم الطلبة.</p></div><span class="badge">${people.length} شخصًا</span></div>
       ${people.length?people.map((p,i)=>html`<div class="item"><div class="row wrap"><div class="row" style="gap:12px"><span class="avatar">${i+1}</span><div><b>${p.name}</b><p class="muted small">${p.role_label}</p></div></div><button class="btn sm sec2" data-act="message-user" data-id="${p.id}" ${p.id===S.user.id?'disabled':''}>${ico('mail')} مراسلة</button></div></div>`):empty('لا توجد حسابات نشطة بعد')}</div>
     <div class="card flat"><p class="muted small">تُعرض الرتب وفق الحسابات والأدوار المسجلة. تأكد أن أسماء الحسابات مكتوبة كما تريد ظهورها في الهيكلة.</p></div>
+  </div>`);
+}
+function pgAcademyMap(){
+  const roles=[
+    ['المدير العام','إدارة المنصة والمدارس والمديرين والحسابات والإعدادات والأمان والنسخ الاحتياطية.'],
+    ['مدير المدرسة','إدارة مدرسته فقط: المعلمون والأفواج والطلبة والبرامج والتقارير داخل مدرسته.'],
+    ['المعلم','إدارة الأفواج والطلبة المسندين إليه، والحضور والدروس والاختبارات والمتابعة التعليمية.'],
+    ['مشرف الفريق من الطلبة','متابعة مهام فريقه وأعضائه فقط، ورفع الملاحظات والطلبات؛ لا يرى ملفات بقية المدرسة ولا يدير المعلمين أو الحسابات العامة.'],
+    ['الطالب','مساره ومهامه ودروسه واختباراته وتقدمه وفريقه، دون بيانات الطلاب الآخرين الخاصة.']
+  ];
+  render(html`<div class="stack">
+    <div class="card hero hero-main"><div class="hero-copy"><span class="eyebrow">خريطة مرئية للجميع</span><h2>كل فرد يعرف طريقه وحدود مسؤوليته</h2><p>خريطة تعريفية عامة لا تعرض ملفات الطلاب أو البيانات الخاصة. الصلاحيات الفعلية تُفرض من الخادم، لا من إخفاء الأزرار فقط.</p></div><div class="hero-orbit"><span>هـ</span><i></i><i></i></div></div>
+    <div class="card academy-map-card"><div class="row wrap"><div><span class="eyebrow">الخريطة البصرية</span><h3>عالم أكاديمية الإحسان</h3><p class="muted small">يمكن للجميع رؤية التصور العام للمنصة.</p></div><span class="badge">خريطة عامة</span></div><div class="academy-map-frame"><img src="/assets/academy-world-map.png" alt="الخريطة البصرية لأكاديمية الإحسان في بناء الإنسان" loading="lazy"></div></div>
+    <div class="card"><h3>سُلّم الصلاحيات</h3><div class="permission-flow"><span>المدير العام</span><i>←</i><span>مدير المدرسة</span><i>←</i><span>المعلم</span><i>←</i><span>مشرف الفريق</span><i>←</i><span>الطالب</span></div><p class="muted small">كل مستوى يرى ما يحتاجه فقط، ولا يرث صلاحيات المستوى الأعلى.</p></div>
+    <div class="grid g2">${roles.map((r,i)=>html`<article class="card permission-card"><div class="row wrap"><span class="badge">${String(i+1).padStart(2,'0')}</span><h3>${r[0]}</h3></div><p>${r[1]}</p></article>`)}</div>
+    <div class="card flat"><b>قاعدة الخصوصية</b><p>مشرف الفريق لا يطّلع على ملفات بقية المدرسة ولا يملك صلاحيات المعلم أو المدير. وإذا احتاج أمرًا خارج نطاقه، يرفعه إلى المعلم أو مدير المدرسة.</p></div>
+  </div>`);
+}
+function pgLearningHub(){
+  const domains=[
+    ['معرفة الله تعالى','أسماء الله وصفاته من الوحي الصحيح، ومعانٍ تقود إلى العبادة والعمل.','✧','curriculum'],
+    ['معرفة الرسول ﷺ','السيرة والهدي والشمائل، مع تطبيق خُلُق نبوي في الحياة.','ﷺ','curriculum'],
+    ['القرآن الكريم','حفظ وفهم وتجويد ومراجعة، ومسارات تناسب مستوى الطالب.','۞','quran'],
+    ['الحديث النبوي','الأربعون النووية: حفظ الحديث وفهمه ومعرفة مصدره والعمل به.','٤٠','curriculum'],
+    ['باقي العلوم والفوائد','آداب طلب العلم، اللغة، المتون، مهارات الحياة، وفوائد قصيرة موثقة.','✦','curriculum']
+  ];
+  render(html`<div class="stack">
+    <div class="card hero hero-main"><div class="hero-copy"><span class="eyebrow">برنامج التعلّم الممتع</span><h2>خمس بوابات، وخطوة واضحة في كل مرة</h2><p>اختر مجالًا واحدًا، تعلّم شيئًا قصيرًا، أجب عن سؤال، ثم طبّق فائدة واحدة. لا نقاط تُشعرك بالفشل ولا قلوب عقابية.</p></div><div class="hero-orbit"><span>ع</span><i></i><i></i></div></div>
+    <div class="grid g2">${domains.map((d,i)=>html`<article class="card learning-domain"><span class="learning-domain-symbol">${d[2]}</span><span class="eyebrow">المجال ${['الأول','الثاني','الثالث','الرابع','الخامس'][i]}</span><h3>${d[0]}</h3><p class="muted">${d[1]}</p><button class="btn sm" data-act="nav" data-page="${d[3]}">ادخل المجال <span aria-hidden="true">←</span></button></article>`)}</div>
+    <div class="card"><div class="sec"><div><h3>طريقة التعلّم</h3><p class="muted small">درس قصير ← سؤال تفاعلي ← تطبيق عملي ← مراجعة لاحقة</p></div></div><div class="learning-steps"><span>تعلّم</span><i>←</i><span>جرّب</span><i>←</i><span>طبّق</span><i>←</i><span>راجع</span></div></div>
   </div>`);
 }
 async function pgHierarchy(){
