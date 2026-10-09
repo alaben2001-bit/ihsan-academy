@@ -110,7 +110,7 @@ assert.match(serverSource, /\/api\/school-directory/, 'all signed-in roles must 
 assert.match(serverSource, /role_label:roleLabel/, 'directory entries must expose a readable role label');
 assert.match(serverSource, /\/api\/teams\/:id\/students/, 'team supervisors must have a scoped student-account creation route');
 assert.match(serverSource, /teamCanManage\(user,t\)/, 'student creation must be restricted to managers of that team');
-assert.match(serverSource, /name\.trim\(\)\.split\(\/\\s\+\/\)\[0\]\+'123'/, 'student default password must be first name plus 123');
+assert.match(serverSource, /crypto\.randomBytes\(18\)\.toString\('base64url'\)/, 'student default password must be cryptographically random');
 assert.match(serverSource, /suppliedEmail\|\|\('student-'\+uid\('mail'\)\+'@no-email\.invalid'\)/, 'student account creation must support no email');
 assert.match(appSource, /'school-directory': \['هيكلة المدرسة'/, 'school directory page must be registered');
 assert.match(appSource, /S\.user\.role === 'admin' \? '' : S\.user\.name/, 'admin name must be hidden from the account header');
