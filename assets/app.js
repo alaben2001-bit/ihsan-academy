@@ -37,7 +37,7 @@ function academyTone(kind='soft'){
 window.addEventListener('DOMContentLoaded',setupAcademyAtmosphere);
 
 window.addEventListener('DOMContentLoaded',async()=>{try{const schools=await fetch('/api/public/quran-schools').then(r=>r.json());const box=$('#quranSchools');if(box&&Array.isArray(schools))put(box,html`${schools.map(x=>html`<button type="button" class="portal-card" data-entry="quran"><span class="brandmark">ق</span><span><b>${x.name}</b><small>${x.description||'حفظ ومراجعة وتجويد وتربية'}</small></span></button>`)}`);}catch{}});
-document.addEventListener('click',e=>{const tab=e.target.closest('[data-act="news-tab"]');if(tab){drawNewsTab(tab.dataset.tab);return;}const b=e.target.closest('[data-entry="quran"]');if(b){try{sessionStorage.setItem('academy_entry','quran')}catch{}} if(e.target.closest('button,.btn,.nav button,.portal-card')) academyTone('soft');});
+document.addEventListener('click',e=>{const tab=e.target.closest('[data-act="news-tab"]');if(tab){drawNewsTab(tab.dataset.tab);return;}const b=e.target.closest('[data-entry="quran"]');if(b){try{sessionStorage.setItem('academy_entry','quran')}catch{}} const tapped=e.target.closest('button,.btn,.nav button,.portal-card,[data-act="nav"]'); if(tapped){academyTone('soft');try{if(navigator.vibrate&&!window.matchMedia('(prefers-reduced-motion: reduce)').matches)navigator.vibrate(8)}catch{}}});
 
 const p2 = n => String(n).padStart(2, '0');
 const today = () => { const d = new Date(); return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`; };
@@ -140,9 +140,9 @@ const bar = p => html`<div class="progress"><i data-w="${clamp(p)}"></i></div>`;
 const empty = (t, s = '') => html`<div class="empty"><b>${t}</b>${s}</div>`;
 const initial = n => String(n || '؟').trim()[0] || '؟';
 
-function render(s) { put(V(), s); requestAnimationFrame(() => document.querySelectorAll('.progress i[data-w]').forEach(i => { i.style.width = i.dataset.w + '%'; })); }
+function render(s) { const view=V(); if(view){view.classList.remove('view-enter'); put(view,s); requestAnimationFrame(()=>{view.classList.add('view-enter');document.querySelectorAll('.progress i[data-w]').forEach(i=>{i.style.width=i.dataset.w+'%';});});} }
 let toastT;
-function toast(msg, err) { const t = $('#toast'); t.textContent = msg; t.className = 'toast show' + (err ? ' err' : ''); clearTimeout(toastT); toastT = setTimeout(() => { t.className = 'toast'; }, 2600); }
+function toast(msg, err) { const t = $('#toast'); t.textContent = msg; t.className = 'toast show' + (err ? ' err' : ''); try { if (navigator.vibrate) navigator.vibrate(err ? [18,35,18] : 12); } catch {} clearTimeout(toastT); toastT = setTimeout(() => { t.className = 'toast'; }, 2600); }
 
 async function api(url, opt = {}) {
   const headers = { 'Content-Type': 'application/json' };
@@ -334,7 +334,7 @@ function showPage(id, opts = {}) {
   if (!PAGES[id]) id = 'dashboard';
   if (opts.history === true) { try { history.pushState({ academy: true, page: id }, '', '#'+encodeURIComponent(id)); } catch { /* */ } }
   else if (opts.history !== false) { try { if (!history.state || !history.state.academy) history.replaceState({ academy: true, page: id }, '', location.pathname); } catch { /* */ } }
-  S.page = id; S.grading = id === 'tests' && opts.grading ? opts.grading : null; document.documentElement.dataset.page = id;
+  S.page = id; S.grading = id === 'tests' && opts.grading ? opts.grading : null; document.documentElement.dataset.page = id; document.documentElement.dataset.transition = 'page';
   const [title, sub, fn] = PAGES[id];
   $('#pgTitle').textContent = title; $('#pgSub').textContent = sub; put($('#topActions'), topActions(id));
   document.querySelectorAll('[data-page]').forEach(b => b.classList.toggle('active', b.dataset.page === navFor(id)));
