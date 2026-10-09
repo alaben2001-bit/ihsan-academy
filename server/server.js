@@ -215,7 +215,14 @@ const storageReady = Promise.resolve(storage.load()).then(async loaded => { db =
 /* ───────────── الصلاحيات والنطاق ───────────── */
 const isStaff = u => u.role === 'admin' || u.role === 'teacher';
 const teacherGroupIds = u => db.teacher_groups.filter(x => x.teacher_id === u.id).map(x => x.group_id);
-const studentGroupIds = s => [...new Set(db.memberships.filter(m => m.student_id === s.id).map(m => m.group_id))];
+// العضويات هي المصدر الأساسي؛ group_id احتياطي لسجلات الطلبة القديمة التي لم تُنشأ لها عضوية بعد.
+const studentGroupIds = s => {
+  if (!s) return [];
+  const memberships = [...new Set(db.memberships.filter(m => m.student_id === s.id).map(m => m.group_id))]
+    .filter(id => db.groups.some(g => g.id === id));
+  if (memberships.length) return memberships;
+  return s.group_id && db.groups.some(g => g.id === s.group_id) ? [s.group_id] : [];
+};
 
 function scopedStudents(u) {
   if (u.role === 'admin') return db.students;
@@ -1308,8 +1315,12 @@ async function handler(req, res) {
       if (!Array.isArray(b.records) || b.records.length > 300) return json(res, 400, { error: 'قائمة الحضور غير صحيحة' });
       const roster = db.students.filter(s => studentGroupIds(s).includes(b.group_id)).map(s => s.id);
       const todo = [];
+      const seenStudents = new Set();
       for (const rec of b.records) {
         if (!rec || !rec.status) continue;
+        if (typeof rec.student_id !== 'string' || !rec.student_id) return json(res, 400, { error: 'معرّف الطالب غير صحيح' });
+        if (seenStudents.has(rec.student_id)) return json(res, 400, { error: 'تكرر الطالب في سجل الحضور؛ أعد تحميل القائمة' });
+        seenStudents.add(rec.student_id);
         if (!roster.includes(rec.student_id)) return json(res, 403, { error: 'طالب ليس من هذا الفوج' });
         if (!ATT_STATUS.includes(rec.status)) return json(res, 400, { error: 'حالة حضور غير صحيحة' });
         todo.push(rec);
