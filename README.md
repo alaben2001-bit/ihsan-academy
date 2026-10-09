@@ -226,3 +226,14 @@ The Oregon Render service cannot resolve the Frankfurt-only PostgreSQL internal 
 - Added two optional enrichment subjects: money/financial responsibility and balanced recreation. Core religious learning remains distinguished from optional enrichment.
 - Questions link to their lesson and are seeded idempotently. Short-answer questions remain subject to teacher review; objective items are automatically graded.
 - Health, family, finance, and religious lessons are educational starters, not professional advice or final religious rulings. Teachers should review source notes and adapt content to age and school policy.
+
+
+## خطة العمل المستقبلية — مشاكل التشغيل والنقل
+- [ ] إصلاح اتصال PostgreSQL في Render: التحقق من رابط الاتصال واسم المضيف والمنطقة وربط الخدمة بقاعدة البيانات.
+- [ ] أخذ نسخة احتياطية قابلة للاستعادة قبل أي ترحيل، والتحقق من حفظ حسابات الطلبة وسجلات الحضور والاختبارات.
+- [ ] تجهيز ZIP جديد من أحدث نسخة من المستودع، وفحص محتوياته واختبار تثبيته وتشغيله قبل تسليمه.
+- [ ] تقييم نقل الاستضافة إلى Cloudflare: التحقق من توافق Node.js وواجهات التطبيق وPostgreSQL والجلسات والمهام المجدولة والتخزين الدائم.
+- [ ] اختبار نسخة تجريبية على Cloudflare دون إيقاف Render، ثم تحويل النطاق فقط بعد نجاح الفحوصات وخطة الرجوع.
+- [ ] اختبار صلاحيات كل دور من الخادم، خصوصًا منع مشرف الفريق من الاطلاع على ملفات بقية المدرسة أو إدارة صلاحيات أعلى.
+- [ ] اختبار الواجهات على هاتف فعلي، والشريط السفلي ذي الست خانات، والرجوع بين الصفحات، وتبديل الألوان واستمرارها بعد إعادة التحميل.
+- [ ] إضافة اختبارات للنشر والصحة التشغيلية وقاعدة البيانات، وعدم إعلان اكتمال النشر قبل فحص التطبيق فعليًا.
