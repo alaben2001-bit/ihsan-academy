@@ -219,3 +219,10 @@ V18: Android/AAB وPlay Store.
 
 ## V57 — legacy service routing
 The Oregon Render service cannot resolve the Frankfurt-only PostgreSQL internal hostname. V57 adds an explicit, opt-in redirect-only mode for that legacy service. When `ACADEMY_REDIRECT_TO_FRANKFURT=1` is set on the Oregon service, requests are redirected to the canonical Frankfurt app, while its health check returns a small healthy response without opening the remote database. The variable must be set only on the Oregon service; do not set it on Frankfurt.
+
+
+## V58 — expanded student-development content
+- Expanded the curriculum from the initial pack to 26 lessons and 92 practice questions across Quran vocabulary, revision, character and bullying prevention, planning, critical thinking, family communication, health and movement, financial responsibility, balanced recreation, Arabic speaking, seerah timeline, and asking for help.
+- Added two optional enrichment subjects: money/financial responsibility and balanced recreation. Core religious learning remains distinguished from optional enrichment.
+- Questions link to their lesson and are seeded idempotently. Short-answer questions remain subject to teacher review; objective items are automatically graded.
+- Health, family, finance, and religious lessons are educational starters, not professional advice or final religious rulings. Teachers should review source notes and adapt content to age and school policy.
