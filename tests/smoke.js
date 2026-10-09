@@ -96,3 +96,10 @@ try {
 } finally {
   fs.rmSync(dir, { recursive: true, force: true });
 }
+
+// Feedback regressions: dynamic attendance week and scoped team management.
+assert.match(serverSource, /const end = q\.end \|\| localISO\(\), start = q\.start \|\| addDays\(end, -6\)/, 'weekly attendance defaults must follow the current week');
+assert.match(serverSource, /user\.role === 'admin' \|\| user\.role === 'chief_supervisor'/, 'chief supervisor must manage teams');
+assert.match(serverSource, /\['admin','teacher','chief_supervisor'\]\.includes\(user\.role\)/, 'chief supervisor may create teams');
+assert.match(appSource, /chief_supervisor:'المشرف الرئيسي'/, 'admin user list must label chief supervisor correctly');
+assert.match(appSource, /data-act="new-team-task" data-id="\$\{t\.id\}"/, 'team supervisors must see add-task controls for teams they manage');
