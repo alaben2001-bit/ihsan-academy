@@ -26,6 +26,11 @@ try {
   assert.deepEqual(emptyPostgres.students, [], 'a fresh PostgreSQL database must initialize students');
   assert.equal(ensureCoreCollections({ users: [{ id: 'u1' }], groups: [{ id: 'g1' }] }).users.length, 1, 'existing records must be preserved');
 
+  const migrationsDir = path.join(__dirname, '..', 'migrations');
+  const migrations = fs.readdirSync(migrationsDir).filter(name => /^\d+_.+\.sql$/.test(name));
+  const versions = migrations.map(name => Number(name.match(/^\d+/)[0]));
+  assert.equal(new Set(versions).size, versions.length, 'PostgreSQL migration versions must be unique');
+
   const previousMode = process.env.ACADEMY_STORAGE;
   const previousDbMode = process.env.ACADEMY_DB_MODE;
   const previousUrl = process.env.DATABASE_URL;
