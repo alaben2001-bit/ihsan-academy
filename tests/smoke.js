@@ -123,3 +123,13 @@ assert.match(appSource, /name="confirm_password"/, 'student account creation mus
 assert.match(appSource, /كلمتا المرور غير متطابقتين/, 'student account creation must reject mismatched passwords');
 assert.match(appSource, /data-target="teamStudentConfirm"/, 'team supervisor must be able to reveal password confirmation');
 assert.match(appSource, /data-target="teacherStudentConfirm"/, 'teacher must be able to reveal password confirmation');
+
+\n// V56 — substantive learner-growth curriculum and question-bank seeds are idempotent.
+assert.match(serverSource, /const v56Lessons = \[/, 'V56 must seed real lesson content for the student-growth program');
+assert.match(serverSource, /const v56Questions = \[/, 'V56 must seed a usable question bank');
+assert.match(serverSource, /v56_key===item\.key/, 'V56 lesson seeding must be idempotent and preserve existing content');
+assert.match(serverSource, /v56_key===key/, 'V56 question seeding must be idempotent and preserve existing content');
+assert.match(serverSource, /source_status:'teacher_review'/, 'seeded lesson content must be flagged for teacher review');
+assert.match(serverSource, /'مهارات التفكير','تنظيم الوقت','مهارات التعلم','الصحة والعادات','آداب الحوار','المسؤولية والخدمة'/, 'enrichment subjects must be distinguished from required core learning');
+assert.match(serverSource, /db\.question_bank\.push\(\{id:'v56-q-'/, 'V56 questions must be stored in the existing question-bank collection');
+assert.match(idx.result.content, /app\.js\?v=56\.0/, 'V56 must refresh the application cache version');
