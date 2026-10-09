@@ -1165,7 +1165,7 @@ async function handler(req, res) {
     }
     if ((r=route(req,p,'DELETE','/api/teacher/students/:id'))) {
       requireStaff(user);if(user.role!=='teacher')fail(403,'هذه العملية مخصصة للشيخ');const st=db.students.find(x=>x.id===r.id);if(!st||!canEdit(user,st))fail(403,'هذا الطالب خارج نطاقك');
-      const u=db.users.find(x=>x.id===st.user_id);if(u)u.active=false;db.memberships=db.memberships.filter(m=>m.student_id!==st.id||!teacherGroupIds(user).includes(m.group_id));if(!db.memberships.some(m=>m.student_id===st.id)){st.group_id=null;st.group_name='';}
+      const u=db.users.find(x=>x.id===st.user_id);db.memberships=db.memberships.filter(m=>m.student_id!==st.id||!teacherGroupIds(user).includes(m.group_id));const remaining=db.memberships.some(m=>m.student_id===st.id);if(!remaining){st.group_id=null;st.group_name='';if(u)u.active=false;}
       audit(user,'teacher.student.remove_from_groups',{student_id:st.id});await save();return json(res,200,{ok:true,archived:true});
     }
     if (p === '/api/admin/groups' && req.method === 'POST') {
