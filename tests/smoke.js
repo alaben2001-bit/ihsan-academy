@@ -131,3 +131,6 @@ assert.match(advancedSource, /لا تملك صلاحية تعديل هذا ال�
 assert.match(advancedSource, /nextOptions\.length<2/, 'choice questions must keep at least two options on edit');
 assert.match(advancedSource, /الإجابة الصحيحة غير موجودة ضمن الخيارات/, 'choice question answers must match the available options');
 assert.match(serverSource, /seedEducationalContent\(db\)/, 'startup migration must safely seed missing curriculum content');
+
+assert.match(appSource, /journey-hearts/, 'student journey must display five visual progress hearts');
+assert.match(appSource, /كل قلب يذكّرك بالتقدم/, 'progress hearts must not be presented as a measure of student worth');
