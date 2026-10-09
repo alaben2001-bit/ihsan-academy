@@ -458,3 +458,10 @@ html[data-role="parent"] .side{box-shadow:inset -3px 0 0 rgba(184,154,90,.60),-1
   .g2,.lists,.form .two{grid-template-columns:minmax(0,1fr)}
   .card img,.card video{max-width:100%;height:auto}
 }
+
+@media(max-width:720px){
+  .side{display:none!important}
+  .bottom{display:flex!important}
+  .bottom button{min-width:0}
+  .bottom button span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+}
