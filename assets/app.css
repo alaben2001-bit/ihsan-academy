@@ -706,3 +706,13 @@ button,.btn,.field input,.field select,.field textarea{transition:background-col
 .explore-cta{white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center;gap:12px}
 @media(max-width:1100px){.explore-paths{grid-template-columns:repeat(2,minmax(0,1fr))}.explore-method{grid-template-columns:repeat(2,minmax(0,1fr))}.login{grid-template-columns:1fr 1fr}}
 @media(max-width:720px){.login{display:grid;grid-template-columns:1fr}.login-explore{padding:30px 18px}.explore-paths{grid-template-columns:1fr}.explore-path{padding:17px}.explore-method{grid-template-columns:1fr 1fr;gap:14px}.explore-footer{padding:21px;align-items:stretch;flex-direction:column}.explore-cta{justify-content:center}.explore-heading h2{font-size:26px}}
+
+
+/* V66 — app-like touch feedback and page transitions */
+#view.view-enter{animation:ihsan-view-in .22s ease-out both}
+@keyframes ihsan-view-in{from{opacity:.45;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+button,.btn,.portal-card,[data-act="nav"]{-webkit-tap-highlight-color:transparent;touch-action:manipulation;transition:transform .12s ease,filter .12s ease,box-shadow .12s ease}
+button:active,.btn:active,.portal-card:active,[data-act="nav"]:active{transform:scale(.975);filter:brightness(.97)}
+.card,.stat,.portal-card{transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease}
+@media(hover:hover){.card:hover{transform:translateY(-2px);box-shadow:0 9px 24px rgba(18,63,53,.07)}.portal-card:hover{transform:translateY(-2px)}}
+@media(prefers-reduced-motion:reduce){#view.view-enter{animation:none}button,.btn,.portal-card,[data-act="nav"],.card,.stat{transition:none!important}}
