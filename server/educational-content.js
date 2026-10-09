@@ -432,7 +432,7 @@ function seedEducationalContent(db){
     }
     lessonIds[spec.key]=row.id;
   }
-  for(const spec of [...QUESTIONS,...REFLECTION_QUESTIONS]){
+  for(const spec of [...ALL_QUESTIONS,...REFLECTION_QUESTIONS]){
     if(db.question_bank.some(x=>x.seed_key==='formation-question-'+spec.key)) continue;
     const lesson=ALL_LESSONS.find(x=>x.key===spec.lesson);
     const row={id:uniqueId(db.question_bank,'seed-q-'+spec.key),seed_key:'formation-question-'+spec.key,title:spec.title,type:spec.type,points:spec.points,options:spec.options,correct_answer:spec.correct_answer,explanation:spec.explanation,subject_id:subjectIds[lesson.subject],lesson_id:lessonIds[spec.lesson],group_id:null,active:true,created_by:null,created_at:new Date().toISOString()};
@@ -454,4 +454,4 @@ function seedEducationalContent(db){
   return {changed,subjects:SUBJECTS.length,lessons:ALL_LESSONS.length,questions:ALL_QUESTIONS.length+REFLECTION_QUESTIONS.length,journey_items:5};
 }
 
-module.exports={seedEducationalContent,SUBJECTS,LESSONS,QUESTIONS,REFLECTION_QUESTIONS};
+module.exports={seedEducationalContent,SUBJECTS,LESSONS:ALL_LESSONS,QUESTIONS:ALL_QUESTIONS,REFLECTION_QUESTIONS};
