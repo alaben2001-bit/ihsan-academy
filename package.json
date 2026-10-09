@@ -22,7 +22,8 @@
     "migrations:postgres:status": "node tools/migrations-postgres.js --status",
     "backup:scheduler": "node tools/backup-scheduler.js",
     "backup:verify": "node tools/verify-backups.js",
-    "prod:compose": "docker compose --env-file deploy/.env -f deploy/docker-compose.yml up -d --build"
+    "prod:compose": "docker compose --env-file deploy/.env -f deploy/docker-compose.yml up -d --build",
+    "test": "node --check server/server.js && node --check server/advanced.js && node --check assets/app.js && node tests/smoke.js"
   },
   "engines": {
     "node": ">=18"
