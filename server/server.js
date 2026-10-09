@@ -730,7 +730,7 @@ async function handler(req, res) {
       if (name.length < 2 || (suppliedEmail && !/^\S+@\S+\.\S+$/.test(suppliedEmail)) || (!suppliedEmail && role !== 'student') || (password.length < 8 && !(role === 'student' && !password)) || !['admin','teacher','student','parent','chief_supervisor'].includes(role)) fail(400, 'أدخل الاسم والبريد الصحيح إن وُجد وكلمة مرور مناسبة والدور');
       if (suppliedEmail && db.users.some(x => String(x.email).toLowerCase() === suppliedEmail)) fail(409, 'البريد مستخدم بالفعل');
       const email = suppliedEmail || ('student-' + uid('mail') + '@no-email.invalid');
-      const initialPassword = password || (name.trim().split(/\s+/)[0] + '123');
+      const initialPassword = password || crypto.randomBytes(18).toString('base64url');
       const nu = coreService.createUser({ name, email, password:initialPassword, role });
       if(role==='student'){
         const st={id:uid('s'),user_id:nu.id,parent_id:null,name,group_name:'',level:'المستوى الأساسي',attendance_rate:0,progress:0,memorized:'—',review:0,group_id:null}; db.students.push(st);
