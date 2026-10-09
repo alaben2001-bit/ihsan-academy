@@ -141,3 +141,8 @@ assert.match(serverSource, /incoming\.pathname === '\/api\/health'/, 'redirect-o
 
 assert.match(serverSource, /destination\.pathname = incoming\.pathname/, 'redirect mode must preserve the path without trusting a supplied host');
 assert.match(serverSource, /destination\.search = incoming\.search/, 'redirect mode must preserve query parameters safely');
+
+
+// Docker runtime writes uploads/backups as the non-root node user.
+const dockerfileSource = fs.readFileSync(path.join(__dirname, '..', 'Dockerfile'), 'utf8');
+assert.match(dockerfileSource, /chown -R node:node \/app\/data \/app\/backups/, 'runtime user must own writable upload and backup directories');
