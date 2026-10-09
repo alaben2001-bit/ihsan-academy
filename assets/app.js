@@ -606,7 +606,10 @@ async function pgReports() {
 }
 
 async function openAttendanceWeeklyReport(){
-  const start='2026-10-01', end='2026-10-07';
+  const end = today();
+  const startDate = new Date(end + 'T12:00:00');
+  startDate.setDate(startDate.getDate() - 6);
+  const start = `${startDate.getFullYear()}-${p2(startDate.getMonth()+1)}-${p2(startDate.getDate())}`;
   const group=S.att.group_id||'';
   const r=await api(`/api/attendance/weekly-report?start=${start}&end=${end}${group?'&group_id='+encodeURIComponent(group):''}`);
   openModal('التقرير الأسبوعي الآلي للحضور',html`<div class="stack">
@@ -638,11 +641,24 @@ function drawSheet() {
     <div class="row wrap" style="margin-top:16px"><div class="tally" id="tally">${tallyHtml()}</div><button class="btn" data-act="att-save">${ico('save')}<span>حفظ حضور الجميع</span></button></div>` : empty('لا يوجد طلاب في هذا الفوج'));
 }
 async function saveAttendance(btn) {
-  const A = S.att, records = A.rows.filter(r => r.status).map(r => ({ student_id: r.id, status: r.status, note: r.note || '' }));
+  const A = S.att;
+  const records = (A.rows || []).filter(r => ATT.some(([k]) => k === r.status))
+    .map(r => ({ student_id: String(r.id), status: r.status, note: String(r.note || '').trim().slice(0, 300) }));
   if (!records.length) return toast('حدّد حالة طالب واحد على الأقل', true);
+  const unique = new Set(records.map(r => r.student_id));
+  if (unique.size !== records.length) return toast('تكرّر طالب في القائمة؛ أعد تحميل سجل الحضور', true);
   btn.disabled = true;
-  try { const r = await post('/api/attendance/bulk', { group_id: A.group_id, date: A.date, records }); toast(`تم حفظ حضور ${r.saved} طالب`); document.querySelectorAll('.att-row').forEach(e => { e.classList.remove('flash'); void e.offsetWidth; e.classList.add('flash'); }); }
-  catch (e) { toast(e.message, true); } finally { btn.disabled = false; }
+  try {
+    const result = await post('/api/attendance/bulk', { group_id: A.group_id, date: A.date, records });
+    // أعد القراءة من الخادم حتى تظهر القيم المحفوظة نفسها في سجل الفوج وملف الطالب.
+    await loadSheet();
+    toast(`تم حفظ ${result.saved} سجل حضور وتحديث القائمة`);
+    document.querySelectorAll('.att-row').forEach(e => { e.classList.remove('flash'); void e.offsetWidth; e.classList.add('flash'); });
+  } catch (e) {
+    toast(e.message, true);
+  } finally {
+    btn.disabled = false;
+  }
 }
 
 /* ═══════════ الاختبارات والدرجات ═══════════ */
