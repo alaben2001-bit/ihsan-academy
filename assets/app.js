@@ -140,6 +140,25 @@ async function guard(fn) { try { return await fn(); } catch (e) { toast(e.messag
 /* ── الجلسة ── */
 function endSession() { S.token = null; S.user = null; try { sessionStorage.removeItem('ab_token'); sessionStorage.removeItem('academy_entry'); } catch { /* */ } try { history.replaceState({ academy: true, page: 'login' }, '', location.pathname); } catch { /* */ } closeOverlay(); showLogin(); }
 function showLogin() { $('#appView').classList.add('hidden'); $('#loginView').classList.remove('hidden'); $('#loginPass').value = ''; }
+// ومضة تربوية متجددة يوميًا، بصياغة أصلية غير منسوبة إلى أحد.
+const dailyTips = [
+  "لا تجعل كثرة البدايات تغريك؛ العبرة بحسن الإتمام والثبات.",
+  "إذا تعلمت مسألة، فاسأل نفسك: كيف أعمل بها؟ وكيف أعلّمها بأدب؟",
+  "ليس النجاح أن تسبق الناس كلهم؛ بل أن تتقدم اليوم على تقصير الأمس.",
+  "احفظ للعلم هيبته بالتواضع، وللمتعلم حقه بالرفق، وللوقت حرمته.",
+  "ابدأ بمهمة صغيرة تؤديها بإتقان؛ فالإتقان عادة تُبنى بالتكرار.",
+  "اجعل للقرآن نصيبًا ثابتًا من يومك؛ لا فضلة الوقت فقط.",
+  "إذا أخطأت في التعلم، فلا تيأس: صحح الخطأ، وافهم سببه، ثم أعد المحاولة.",
+  "العلم النافع يزيد صاحبه بصيرةً وتواضعًا وحسنَ عمل، لا مجرد كلام."
+];
+function setDailyTip() {
+  const node = document.getElementById('dailyTip');
+  if (!node) return;
+  const day = Math.floor(Date.now() / 86400000);
+  node.textContent = dailyTips[((day % dailyTips.length) + dailyTips.length) % dailyTips.length];
+}
+setDailyTip();
+
 async function startSession() {
   S.user = await api('/api/me');
   const [groups, students, notifs, posts, subjects] = await Promise.all([api('/api/groups'), api('/api/students'), api('/api/notifications'), api('/api/posts'), api('/api/subjects')]);
