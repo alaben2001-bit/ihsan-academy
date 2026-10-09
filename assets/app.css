@@ -845,3 +845,8 @@ input:focus,select:focus,textarea:focus{outline:none!important;border-color:#58a
 .learning-domain-symbol{display:grid;place-items:center;width:54px;height:54px;margin-bottom:15px;border-radius:17px;background:var(--g100);color:var(--g800);font-size:28px;font-weight:800}
 .learning-domain .btn{margin-top:8px}
 @media(max-width:720px){.public-map-card{grid-template-columns:1fr;gap:16px;margin:18px 12px;padding:19px}.public-map-image img{max-height:300px}.permission-flow{gap:6px}.permission-flow span{padding:8px 10px;font-size:12px}.learning-domain{padding:19px}}
+
+.sheikh-post-feed{display:grid;gap:14px;margin-top:14px}
+.sheikh-post{padding:17px;border:1px solid var(--line);border-radius:18px;background:var(--white)}
+.sheikh-post-image{display:block;width:100%;max-height:480px;object-fit:contain;background:var(--b100);border-radius:15px;margin:12px 0}
+.sheikh-post .post-body{white-space:pre-wrap;line-height:1.9;font-size:15px}
