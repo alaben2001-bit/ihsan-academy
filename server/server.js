@@ -124,7 +124,7 @@ function migrate() {
 
   db.users.forEach(u => { if (typeof u.password === 'string' && !u.password.startsWith('scrypt$')) { u.password = hashPassword(u.password); changed = true; } });
 
-  ['attendance', 'grades', 'tests', 'teacher_notes', 'reports', 'memorization', 'goals', 'subjects', 'lessons', 'schedule', 'posts', 'post_reads', 'notifications', 'lesson_progress', 'audit_log', 'quran_sessions', 'quran_evaluations', 'quran_levels', 'assignments', 'assignment_submissions', 'calendar_events', 'messages', 'group_join_requests', 'optional_enrollments', 'student_tasks', 'media_posts', 'media_reads', 'media_reactions', 'media_comments', 'quran_halaqas', 'quran_plans', 'quran_reviews', 'quran_attendance', 'quran_certificates','academic_years','terms','journey_items','student_journey','student_diagnostics','challenges','challenge_participants','anonymous_feedback','exam_excuses','teacher_profiles','donation_intents','learning_plans','quran_submissions','question_bank','question_attempts','discussions','discussion_replies','media_bookmarks','security_events','privacy_requests','app_metrics','teams','team_members','team_tasks','team_supervisors','quran_schools','schools','school_staff','attendance_weekly','transport_routes','transport_assignments'].forEach(k => { if (!Array.isArray(db[k])) { db[k] = []; changed = true; } });
+  ['attendance', 'grades', 'tests', 'teacher_notes', 'reports', 'memorization', 'goals', 'subjects', 'lessons', 'schedule', 'posts', 'post_reads', 'notifications', 'lesson_progress', 'audit_log', 'quran_sessions', 'quran_evaluations', 'quran_levels', 'assignments', 'assignment_submissions', 'calendar_events', 'messages', 'group_join_requests', 'optional_enrollments', 'student_tasks', 'media_posts', 'media_reads', 'media_reactions', 'media_comments', 'quran_halaqas', 'quran_plans', 'quran_reviews', 'quran_attendance', 'quran_certificates','academic_years','terms','journey_items','student_journey','student_diagnostics','challenges','challenge_participants','anonymous_feedback','exam_excuses','teacher_profiles','donation_intents','learning_plans','quran_submissions','question_bank','question_attempts','discussions','discussion_replies','media_bookmarks','security_events','privacy_requests','app_metrics','teams','team_members','team_tasks','team_supervisors','supervisor_requests','quran_schools','schools','school_staff','attendance_weekly','transport_routes','transport_assignments'].forEach(k => { if (!Array.isArray(db[k])) { db[k] = []; changed = true; } });
   db.memberships = db.memberships || [];
   db.teacher_groups = db.teacher_groups || [];
   db.group_join_requests = db.group_join_requests || [];
@@ -157,6 +157,7 @@ function migrate() {
   db.team_members = db.team_members || [];
   db.team_tasks = db.team_tasks || [];
   db.team_supervisors = db.team_supervisors || [];
+   db.supervisor_requests = db.supervisor_requests || [];
   db.quran_schools = db.quran_schools || [{ id:'qs1', name:'مدرسة مسجد الرحمان القرآنية', description:'مدخل المدرسة القرآنية للحفظ والمراجعة والتجويد والتربية.', active:true, order:1, school_id:'school1' }];
   // إنشاء المدير الأول من متغيرات البيئة فقط إذا لم يوجد أي مدير. لا نضع كلمة مرور إنتاجية ثابتة داخل المشروع.
   // في الإنتاج نعطّل حسابات العرض المحلية حتى لا تدخل الأكاديمية العامة ببيانات التجربة.
@@ -581,7 +582,7 @@ function teamStudentIds(team) { return [...new Set(db.team_members.filter(x => x
 function teamSupervisorIds(team) { return [...new Set(db.team_supervisors.filter(x => x.team_id === team.id).map(x => x.student_id))]; }
 function teamVisibleTo(user, team) {
   if (!team || team.active === false) return false;
-  if (user.role === 'admin') return true;
+  if (user.role === 'admin' || user.role === 'chief_supervisor') return true;
   if (user.role === 'teacher') return teacherGroupIds(user).includes(team.group_id);
   const ids = teamStudentIds(team);
   if (user.role === 'student') { const s=studentForUser(user); return !!s && ids.includes(s.id); }
@@ -707,7 +708,7 @@ async function handler(req, res) {
     if (p === '/api/admin/users' && req.method === 'POST') {
       requireAdmin(); const b = await body(req);
       const name = clean(b.name, 120), email = clean(b.email, 200).toLowerCase(), password = String(b.password || ''), role = clean(b.role, 20);
-      if (name.length < 2 || !/^\S+@\S+\.\S+$/.test(email) || password.length < 8 || !['admin','teacher','student','parent'].includes(role)) fail(400, 'البيانات غير صحيحة: الاسم والبريد وكلمة مرور من 8 أحرف والدور مطلوبة');
+      if (name.length < 2 || !/^\S+@\S+\.\S+$/.test(email) || password.length < 8 || !['admin','teacher','student','parent','chief_supervisor'].includes(role)) fail(400, 'البيانات غير صحيحة: الاسم والبريد وكلمة مرور من 8 أحرف والدور مطلوبة');
       if (db.users.some(x => String(x.email).toLowerCase() === email)) fail(409, 'البريد مستخدم بالفعل');
       const nu = coreService.createUser({ name, email, password, role });
       if(role==='student'){
@@ -722,7 +723,7 @@ async function handler(req, res) {
       const oldRole = target.role;
       if (b.name !== undefined) { const name = clean(b.name, 120); if (name.length < 2) fail(400, 'الاسم قصير'); target.name = name; }
       if (b.email !== undefined) { const email = clean(b.email, 200).toLowerCase(); if (!/^\S+@\S+\.\S+$/.test(email)) fail(400, 'البريد غير صالح'); if (db.users.some(x => x.id !== target.id && String(x.email).toLowerCase() === email)) fail(409, 'البريد مستخدم بالفعل'); target.email = email; }
-      if (b.role !== undefined) { if (!['admin','teacher','student','parent'].includes(b.role)) fail(400, 'الدور غير صالح'); target.role = b.role; }
+      if (b.role !== undefined) { if (!['admin','teacher','student','parent','chief_supervisor'].includes(b.role)) fail(400, 'الدور غير صالح'); target.role = b.role; }
       if (b.active !== undefined) { if (target.id === user.id && b.active === false) fail(400, 'لا يمكنك تعطيل حسابك الحالي'); target.active = !!b.active; }
       if (b.password !== undefined) { if (String(b.password).length < 8) fail(400, 'كلمة المرور يجب أن تكون 8 أحرف على الأقل'); target.password = hashPassword(String(b.password)); }
       audit(user, 'admin.user_update', { id: target.id, role_from: oldRole, role_to: target.role }); await save(); return json(res, 200, adminUserView(target));
@@ -1111,6 +1112,51 @@ async function handler(req, res) {
       audit(user,'team.members_replace',{team_id:t.id,members:valid,supervisors:sup});await save();return json(res,200,teamView(t,user));
     }
     if ((r=route(req,p,'DELETE','/api/admin/teams/:id'))) { requireAdmin();const t=teamById(r.id);if(!t)fail(404,'الفريق غير موجود');db.team_members=db.team_members.filter(x=>x.team_id!==t.id);db.team_supervisors=db.team_supervisors.filter(x=>x.team_id!==t.id);db.team_tasks=db.team_tasks.filter(x=>x.team_id!==t.id);db.teams=db.teams.filter(x=>x.id!==t.id);audit(user,'team.delete',{id:t.id});await save();return json(res,200,{ok:true});}
+
+    // Student-led supervisor applications. Approval is restricted to the chief supervisor or platform admin.
+    if (p === '/api/supervisor-requests' && req.method === 'GET') {
+      let rows = db.supervisor_requests;
+      if (user.role === 'student') rows = rows.filter(x => x.requested_by === user.id);
+      else if (user.role === 'teacher') {
+        const gids = new Set(teacherGroupIds(user));
+        rows = rows.filter(x => { const t=teamById(x.team_id); return t && gids.has(t.group_id); });
+      } else if (!['admin','chief_supervisor'].includes(user.role)) fail(403,'طلبات الإشراف غير متاحة لهذا الحساب');
+      return json(res,200,rows.slice().sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at))).map(x=>{
+        const t=teamById(x.team_id), st=db.students.find(s=>s.id===x.student_id);
+        const g=t&&db.groups.find(q=>q.id===t.group_id), reviewer=db.users.find(u=>u.id===x.reviewed_by);
+        return {...x,team_name:t?.name||'فريق محذوف',group_name:g?.name||'',student_name:st?.name||'طالب محذوف',reviewer_name:reviewer?.name||null};
+      }));
+    }
+    if (p === '/api/supervisor-requests' && req.method === 'POST') {
+      if (user.role !== 'student') fail(403,'طلب الإشراف متاح للطلبة فقط');
+      const b=await body(req), team=teamById(clean(b.team_id,80)), st=studentForUser(user);
+      if(!st||!team||!teamVisibleTo(user,team)) fail(404,'الفريق غير موجود');
+      if(!teamStudentIds(team).includes(st.id)) fail(403,'يجب أن تكون عضوًا في الفريق قبل طلب الإشراف');
+      if(teamSupervisorIds(team).includes(st.id)) fail(409,'أنت مشرف في هذا الفريق بالفعل');
+      if(db.supervisor_requests.some(x=>x.team_id===team.id&&x.student_id===st.id&&['pending','approved'].includes(x.status))) fail(409,'لديك طلب قائم أو موافقة سابقة لهذا الفريق');
+      const row={id:uid('sreq'),team_id:team.id,student_id:st.id,requested_by:user.id,reason:clean(b.reason,800),status:'pending',created_at:new Date().toISOString(),reviewed_by:null,reviewed_at:null};
+      db.supervisor_requests.push(row);
+      const recipients=new Set(db.users.filter(u=>u.active!==false&&['admin','chief_supervisor'].includes(u.role)).map(u=>u.id));
+      db.teacher_groups.filter(x=>x.group_id===team.group_id).forEach(x=>recipients.add(x.teacher_id));
+      recipients.forEach(user_id=>db.notifications.unshift({id:uid('n'),user_id,title:'طلب جديد للإشراف على فريق',body:`${st.name} طلب الإشراف على فريق ${team.name}.`,group_id:team.group_id,created_at:row.created_at,read:false}));
+      audit(user,'team.supervisor_request',{id:row.id,team_id:team.id,student_id:st.id}); await save(); return json(res,201,row);
+    }
+    const supervisorReview=route(req,p,'PATCH','/api/supervisor-requests/:id/review');
+    if(supervisorReview){
+      if(!['admin','chief_supervisor'].includes(user.role)) fail(403,'اعتماد طلبات الإشراف من صلاحية كبير المشرفين أو المدير العام');
+      const row=db.supervisor_requests.find(x=>x.id===supervisorReview.id); if(!row)fail(404,'الطلب غير موجود');
+      if(row.status!=='pending')fail(409,'تمت معالجة هذا الطلب من قبل');
+      const b=await body(req); if(!['approve','reject'].includes(b.decision))fail(400,'قرار المراجعة غير صحيح');
+      const team=teamById(row.team_id), st=db.students.find(x=>x.id===row.student_id);
+      if(b.decision==='approve'){
+        if(!team||!st||!teamStudentIds(team).includes(st.id))fail(409,'تعذر الاعتماد: الطالب لم يعد عضوًا في الفريق');
+        if(!teamSupervisorIds(team).includes(st.id))db.team_supervisors.push({id:uid('tsup'),team_id:team.id,student_id:st.id});
+        row.status='approved';
+      } else row.status='rejected';
+      row.reviewed_by=user.id; row.reviewed_at=new Date().toISOString();
+      if(st?.user_id)db.notifications.unshift({id:uid('n'),user_id:st.user_id,title:row.status==='approved'?'تمت الموافقة على طلب الإشراف':'لم تتم الموافقة على طلب الإشراف',body:row.status==='approved'?'أصبحت مشرفًا على فريقك، والتزم بحدود المسؤولية والصلاحيات.':'يمكنك مواصلة التعلم وخدمة زملائك، وطلب التوجيه من الشيخ.',group_id:team?.group_id||null,created_at:row.reviewed_at,read:false});
+      audit(user,'team.supervisor_request_review',{id:row.id,decision:b.decision,team_id:row.team_id,student_id:row.student_id}); await save(); return json(res,200,row);
+    }
 
     if (p === '/api/teams' && req.method === 'GET') return json(res,200,db.teams.filter(t=>teamVisibleTo(user,t)).map(t=>teamView(t,user)));
     if (p === '/api/teams' && req.method === 'POST') {
