@@ -824,3 +824,24 @@ input:focus,select:focus,textarea:focus{outline:none!important;border-color:#58a
 .theme-swatch:active{transform:scale(.97)}
 .theme-swatch.selected{border-color:var(--g700)!important;box-shadow:0 0 0 3px var(--g100),0 5px 14px rgba(20,50,40,.08)}
 @media(prefers-reduced-motion:reduce){.bottom button,.theme-swatch{transition:none!important}}
+
+
+/* V68 — clear mobile priorities, public academy map, and learning domains */
+@media(max-width:720px){
+  .bottom{grid-template-columns:repeat(4,minmax(0,1fr))!important;gap:3px!important}
+  .bottom button{min-height:50px;padding-inline:1px;font-size:10px}
+  .bottom button span{letter-spacing:-.2px}
+}
+.public-map-card{max-width:1320px;margin:26px auto;padding:clamp(18px,3vw,32px);display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);align-items:center;gap:26px;border:1px solid #dfe6d9;border-radius:24px;background:linear-gradient(135deg,#fff 0%,#f1f5eb 100%);box-shadow:0 12px 34px rgba(21,61,49,.07)}
+.public-map-copy h2{margin:8px 0;font-size:clamp(23px,3vw,34px);line-height:1.4}
+.public-map-copy p{color:#65756a;line-height:1.9}
+.public-map-image img{display:block;width:100%;height:auto;max-height:440px;object-fit:contain;border-radius:17px}
+.permission-flow,.learning-steps{display:flex;align-items:center;justify-content:center;flex-wrap:wrap;gap:9px;margin:16px 0}
+.permission-flow span,.learning-steps span{padding:10px 14px;border:1px solid var(--line);border-radius:14px;background:var(--white);font-weight:750}
+.permission-flow i,.learning-steps i{color:var(--g700);font-style:normal;font-weight:900}
+.permission-card h3{margin:0}
+.permission-card p,.learning-domain p{line-height:1.9}
+.learning-domain{position:relative;overflow:hidden;padding:24px}
+.learning-domain-symbol{display:grid;place-items:center;width:54px;height:54px;margin-bottom:15px;border-radius:17px;background:var(--g100);color:var(--g800);font-size:28px;font-weight:800}
+.learning-domain .btn{margin-top:8px}
+@media(max-width:720px){.public-map-card{grid-template-columns:1fr;gap:16px;margin:18px 12px;padding:19px}.public-map-image img{max-height:300px}.permission-flow{gap:6px}.permission-flow span{padding:8px 10px;font-size:12px}.learning-domain{padding:19px}}
