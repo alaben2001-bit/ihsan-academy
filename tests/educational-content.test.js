@@ -1,6 +1,6 @@
 'use strict';
 const assert = require('node:assert/strict');
-const { seedEducationalContent, LESSONS, QUESTIONS, SUBJECTS } = require('../server/educational-content');
+const { seedEducationalContent, LESSONS, QUESTIONS, REFLECTION_QUESTIONS, SUBJECTS } = require('../server/educational-content');
 
 function blankDb(){ return {subjects:[],lessons:[],question_bank:[],journey_items:[]}; }
 const db=blankDb();
@@ -8,7 +8,7 @@ const first=seedEducationalContent(db);
 assert.equal(first.changed,true);
 assert.equal(db.subjects.length,SUBJECTS.length);
 assert.equal(db.lessons.length,LESSONS.length);
-assert.equal(db.question_bank.length,QUESTIONS.length);
+assert.equal(db.question_bank.length,QUESTIONS.length+REFLECTION_QUESTIONS.length);
 assert.equal(db.journey_items.length,5);
 for(const lesson of db.lessons){
   assert.ok(db.subjects.some(s=>s.id===lesson.subject_id),'lesson must reference a subject: '+lesson.id);
