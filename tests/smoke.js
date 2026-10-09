@@ -33,7 +33,12 @@ assert.match(appSource, /apply-team-supervisor/, 'students must be able to apply
 assert.match(appSource, /showLoginCredentials\(v\.name,v\.email,v\.password\)/, 'admin must be able to share newly set login credentials');
 assert.match(appSource, /copy-login-credential/, 'admin must be able to copy credentials');
 assert.match(appSource, /adminPasswordVisibility/, 'admin must be able to reveal the password while entering it');
+assert.match(appSource, /data-act="news-tab"/, 'news page must separate reels from written posts');
+assert.match(appSource, /change-password/, 'settings must offer password changes');
+assert.match(appSource, /theme:v\.theme/, 'settings must persist the selected interface theme');
 assert.match(serverSource, /target\.password = hashPassword\(String\(b\.password\)\)/, 'password resets must store hashes');
+assert.match(serverSource, /db\.users\.find\(x => String\(x\.name \|\| ''\)\.trim\(\)\.toLowerCase\(\) === identity\)/, 'login must accept the full display name');
+assert.match(serverSource, /\/api\/account\/password/, 'users must be able to change their password');
 assert.match(serverSource, /return json\(res, 200, adminUserView\(target\)\)/, 'user update API must not return a plaintext password');
 
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ihsan-academy-test-'));
