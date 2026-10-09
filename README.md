@@ -215,3 +215,7 @@ V18: Android/AAB وPlay Store.
 - إكمال التدقيق الأمني المتكامل لاختبارات الصلاحيات وCSRF وRate Limiting والجلسات ورفع الملفات واستعادة النسخ الاحتياطية.
 - استعادة تعريف «القلوب الخمسة» كما صاغه صاحب الأكاديمية حرفيًا قبل تصميمها، وعدم اختراع دلالات لها.
 - إكمال المنهج السنوي المتدرج وبنك الأسئلة الشامل وفق أعمار الطلبة ومستوياتهم ومراجعة الشيخ، ثم اختبار واجهة الهاتف على أجهزة حقيقية.
+
+
+## V57 — legacy service routing
+The Oregon Render service cannot resolve the Frankfurt-only PostgreSQL internal hostname. V57 adds an explicit, opt-in redirect-only mode for that legacy service. When `ACADEMY_REDIRECT_TO_FRANKFURT=1` is set on the Oregon service, requests are redirected to the canonical Frankfurt app, while its health check returns a small healthy response without opening the remote database. The variable must be set only on the Oregon service; do not set it on Frankfurt.
