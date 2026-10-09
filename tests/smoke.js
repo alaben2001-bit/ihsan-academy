@@ -157,8 +157,8 @@ assert.match(advancedSource, /nextOptions\.length<2/, 'choice questions must kee
 assert.match(advancedSource, /الإجابة الصحيحة غير موجودة ضمن الخيارات/, 'choice question answers must match the available options');
 assert.match(serverSource, /seedEducationalContent\(db\)/, 'startup migration must safely seed missing curriculum content');
 
-assert.match(appSource, /journey-hearts/, 'student journey must display five visual progress hearts');
-assert.match(appSource, /كل قلب يذكّرك بالتقدم/, 'progress hearts must not be presented as a measure of student worth');
+assert.doesNotMatch(appSource, /journey-hearts/, 'progress hearts should not clutter the student journey overview');
+assert.match(appSource, /تعلم على دفعات صغيرة/, 'student journey should encourage learning in small, clear steps');
 
 assert.match(serverSource, /ACADEMY_REDIRECT_TO_FRANKFURT === '1'/, 'legacy Oregon deployment must support explicit redirect-only mode');
 assert.match(serverSource, /FRANKFURT_CANONICAL_URL = 'https:\/\/ihsan-academy-frankfurt\.onrender\.com'/, 'redirect destination must be fixed to the verified canonical service');
