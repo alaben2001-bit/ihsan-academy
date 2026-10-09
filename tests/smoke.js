@@ -6,6 +6,19 @@ const path = require('node:path');
 const { JsonStorageAdapter, createStorage } = require('../server/storage');
 const { ensureCoreCollections } = require('../server/storage/postgres');
 
+// Regression guard: attendance must be keyed by student+date, exposed by the
+// student file, and saved through the same API used by the attendance sheet.
+const serverSource = fs.readFileSync(path.join(__dirname, '..', 'server', 'server.js'), 'utf8');
+const appSource = fs.readFileSync(path.join(__dirname, '..', 'assets', 'app.js'), 'utf8');
+assert.match(serverSource, /function upsertAttendance\(studentId, date, status, note, user\)/, 'attendance writes must use a single upsert path');
+assert.match(serverSource, /a\.student_id === studentId && a\.date === date/, 'a student must have at most one attendance record per date');
+assert.match(serverSource, /attendance: \{ summary: attendance\.summary, records: attendance\.records\.slice\(0, 60\), weekly: attendance\.weekly \}/, 'student file must include attendance records');
+assert.match(serverSource, /p === '\/api\/attendance\/sheet'/, 'attendance sheet endpoint must exist');
+assert.match(serverSource, /p === '\/api\/attendance\/bulk'/, 'bulk attendance save endpoint must exist');
+assert.match(serverSource, /seenStudents\.has\(rec\.student_id\)/, 'bulk save must reject duplicate student records');
+assert.match(appSource, /await post\('\/api\/attendance\/bulk'/, 'attendance UI must save to the backend endpoint');
+assert.match(appSource, /await loadSheet\(\);\s*toast\(/, 'attendance UI must reload saved server records after saving');
+
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ihsan-academy-test-'));
 try {
   const file = path.join(dir, 'db.json');
