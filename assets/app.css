@@ -640,3 +640,17 @@ button,.btn,.field input,.field select,.field textarea{transition:background-col
 .subject-lesson-copy b{display:block;margin-top:6px;line-height:1.65}
 .subject-lesson-copy p{margin:4px 0 0;line-height:1.7}
 @media(max-width:520px){.subject-lesson-row .row{align-items:flex-start}.subject-lesson-row .btn{flex:none}.subject-open{min-height:42px}}
+
+/* Release polish: daily guidance and tactile, accessible theme choices. */
+.login-tip{display:flex;align-items:flex-start;gap:12px;margin-top:20px;padding:14px 16px;border:1px solid #d8c68a66;border-radius:16px;background:#ffffff0b;max-width:590px}
+.login-tip b{display:block;color:#ead9a9;font-size:13px;margin-bottom:3px}
+.login-tip p{margin:0!important;color:#d8e5df!important;font-size:13px!important;line-height:1.9!important}
+.tip-mark{display:grid;place-items:center;flex:none;width:30px;height:30px;border-radius:10px;background:#e5d19b;color:#163d33;font-size:18px}
+.theme-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:4px 0 8px}
+.theme-swatch{display:flex;align-items:center;gap:10px;min-height:48px;padding:9px 11px;border:1px solid var(--line);border-radius:13px;background:var(--white);text-align:right;transition:border-color .16s,box-shadow .16s,transform .16s}
+.theme-swatch:hover{transform:translateY(-1px);border-color:var(--g500)}
+.theme-swatch.selected{border:2px solid var(--g500);padding:8px 10px;box-shadow:0 0 0 3px color-mix(in srgb,var(--g500) 12%,transparent)}
+.theme-swatch i{display:block;width:27px;height:27px;flex:none;border-radius:9px;background:var(--swatch);box-shadow:inset 0 0 0 1px #00000012}
+.theme-swatch span{font-size:13px;font-weight:700}
+@media(max-width:520px){.theme-options{grid-template-columns:1fr}.login-tip{padding:12px}}
+@media(prefers-reduced-motion:reduce){.theme-swatch,.login-tip{transition:none!important}}
