@@ -498,7 +498,7 @@ function drawNewsTab(tab,q='') {
   const host=$('#newsContent'); if(!host)return;
   if(tab==='posts') {
     const list=S.posts.filter(p=>(p.title+' '+p.body+' '+(p.author_name||'')).toLowerCase().includes(q.toLowerCase()));
-    put(host,list.length?html`<label class="field"><span>ابحث في منشورات الشيخ</span><input id="postSearch" placeholder="ابحث في المنشورات…" data-in="postSearch" value="${q}"></label><div class="sheikh-post-feed">${list.map(p=>html`<article class="item sheikh-post"><div class="row wrap"><b>${p.title}</b><span class="badge">${p.group_id?'منشور لفوج':'منشور للأكاديمية'}</span></div><p class="post-body">${p.body}</p><div class="muted small">${p.author_name||'الشيخ'} · ${fmtStamp(p.created_at)}</div></article>`)}</div>`:html`<label class="field"><span>ابحث في منشورات الشيخ</span><input id="postSearch" placeholder="ابحث في المنشورات…" data-in="postSearch" value="${q}"></label>${empty('لا توجد منشورات مطابقة')}`);
+    put(host,list.length?html`<label class="field"><span>ابحث في منشورات الشيخ</span><input id="postSearch" placeholder="ابحث في المنشورات…" data-in="postSearch" value="${q}"></label><div class="sheikh-post-feed">${list.map(p=>html`<article class="item sheikh-post"><div class="row wrap"><b>${p.title}</b><span class="badge">${p.group_id?'منشور لفوج':'منشور للأكاديمية'}</span></div>${p.image_url?html`<img class="sheikh-post-image" src="${p.image_url}" alt="${p.title}" loading="lazy" referrerpolicy="no-referrer">`:``}<p class="post-body">${p.body}</p><div class="muted small">${p.author_name||'الشيخ'} · ${fmtStamp(p.created_at)}</div></article>`)}</div>`:html`<label class="field"><span>ابحث في منشورات الشيخ</span><input id="postSearch" placeholder="ابحث في المنشورات…" data-in="postSearch" value="${q}"></label>${empty('لا توجد منشورات مطابقة')}`);
     return;
   }
   const videos=NEWS_MEDIA.filter(m=>m.type==='video'&&(m.title+' '+(m.description||'')).toLowerCase().includes(q.toLowerCase()));
@@ -507,7 +507,7 @@ function drawNewsTab(tab,q='') {
 function drawPosts(q) { drawNewsTab('posts',q); }
 function openPostModal() {
   if (!isStaff()) return;
-  openModal('نشر تحديث', html`<form class="form" data-form="post"><label class="field"><span>العنوان</span><input name="title" maxlength="160" required></label><label class="field"><span>المحتوى</span><textarea name="body" maxlength="5000" required></textarea></label><div class="two"><label class="field"><span>الجمهور</span><select name="aud" data-ch="postAud"><option value="all">كل الأكاديمية</option><option value="group">فوج محدد</option></select></label><label class="field hidden" id="postGroupWrap"><span>الفوج</span><select name="group">${S.groups.map(g => html`<option value="${g.id}">${g.name}</option>`)}</select></label></div><button class="btn" type="submit">نشر الآن</button></form>`);
+  openModal('نشر تحديث', html`<form class="form" data-form="post"><label class="field"><span>العنوان</span><input name="title" maxlength="160" required></label><label class="field"><span>المحتوى أو القول</span><textarea name="body" maxlength="5000" required></textarea></label><label class="field"><span>رابط صورة للمنشور (اختياري)</span><input name="image_url" type="url" placeholder="https://…"><small class="muted small">يمكن أن يكون المنشور قولًا قصيرًا مع صورة مناسبة.</small></label><div class="two"><label class="field"><span>الجمهور</span><select name="aud" data-ch="postAud"><option value="all">كل الأكاديمية</option><option value="group">فوج محدد</option></select></label><label class="field hidden" id="postGroupWrap"><span>الفوج</span><select name="group">${S.groups.map(g => html`<option value="${g.id}">${g.name}</option>`)}</select></label></div><button class="btn" type="submit">نشر الآن</button></form>`);
 }
 
 function openTeacherGroupModal(id){
@@ -1076,7 +1076,7 @@ const CHG = {
 };
 const fd = f => Object.fromEntries(new FormData(f).entries());
 const FORM = {
-  post: f => guard(async () => { const v = fd(f); await post('/api/posts', { title: v.title, body: v.body, group_id: v.aud === 'group' ? v.group : null }); S.posts = await api('/api/posts'); S.notifications = await api('/api/notifications'); closeOverlay(); toast('تم نشر التحديث'); showPage('news'); }),
+  post: f => guard(async () => { const v = fd(f); await post('/api/posts', { title: v.title, body: v.body, image_url: v.image_url, group_id: v.aud === 'group' ? v.group : null }); S.posts = await api('/api/posts'); S.notifications = await api('/api/notifications'); closeOverlay(); toast('تم نشر التحديث'); showPage('news'); }),
   test: f => guard(async () => { const v = fd(f); const t = await post('/api/tests', { title: v.title, subject_id: v.subject_id, group_id: v.group_id, date: v.date, max_score: Number(v.max_score), description: v.description }); closeOverlay(); toast('تم إنشاء الاختبار'); showPage('tests', { grading: t.id }); }),
   note: f => guard(async () => { const v = fd(f); await post('/api/teacher-notes', { student_id: S.file.id, category: v.category, text: v.text, shared: v.shared === 'on' }); toast('تم حفظ الملاحظة'); await pgFile(); }),
   quicknote: f => guard(async () => { const v = fd(f); await post('/api/teacher-notes', { student_id: v.student_id, category: v.category, text: v.text, shared: v.shared === 'on' }); toast('تم حفظ الملاحظة'); showPage('teacher-tools'); }),
