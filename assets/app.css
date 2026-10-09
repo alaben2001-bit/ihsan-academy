@@ -430,3 +430,31 @@ html[data-role="parent"] .side{box-shadow:inset -3px 0 0 rgba(184,154,90,.60),-1
 .academy-map-frame{margin-top:14px;border:1px solid var(--line);border-radius:22px;background:#f8f5ea;padding:8px;box-shadow:var(--shadow)}
 .academy-map-frame img{display:block;width:100%;height:auto;border-radius:16px}
 @media(max-width:800px){.academy-map-frame{padding:4px;border-radius:16px}.academy-map-frame img{border-radius:12px}}
+
+
+/* V50: mobile completeness, scrollable More sheet and compact controls */
+.more-sheet>div{max-height:min(86vh,760px);overflow-y:auto;overscroll-behavior:contain}
+.more-sheet button{min-height:46px}
+@media(max-width:720px){
+  .main{min-width:0;width:100%;box-sizing:border-box}
+  #view,.stack,.card,.toolbar,.sec,.row{min-width:0;max-width:100%}
+  .toolbar{align-items:stretch}
+  .toolbar .field{min-width:0;width:100%}
+  .scroll{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .tbl{min-width:600px}
+  .tbl.stack-m{min-width:0}
+  .rail{max-width:100%;overflow-x:auto;-webkit-overflow-scrolling:touch}
+  .rail button{padding:10px 12px}
+  .att-row{align-items:stretch}
+  .att-row .ctrl{width:100%;justify-content:flex-start}
+  .att-row .ctrl .seg{max-width:100%;overflow-x:auto}
+  .hero-orbit{max-width:100%;opacity:.75}
+  .sheet-head,.file-head{align-items:flex-start;flex-wrap:wrap}
+  .modal{padding:8px}
+  .modalbox{padding:18px 14px;max-height:94dvh}
+  .more-sheet>div{padding:12px;padding-bottom:max(12px,env(safe-area-inset-bottom))}
+  .more-sheet button{padding:12px 10px}
+  .g4,.g3{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .g2,.lists,.form .two{grid-template-columns:minmax(0,1fr)}
+  .card img,.card video{max-width:100%;height:auto}
+}
