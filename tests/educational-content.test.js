@@ -6,7 +6,9 @@ function blankDb(){ return {subjects:[],lessons:[],question_bank:[],journey_item
 const db=blankDb();
 const first=seedEducationalContent(db);
 assert.equal(first.changed,true);
+assert.ok(SUBJECTS.length >= 14, 'curriculum should cover core and enrichment domains');
 assert.equal(db.subjects.length,SUBJECTS.length);
+assert.ok(LESSONS.length >= 26, 'curriculum must contain a meaningful starter course, not only placeholders');
 assert.equal(db.lessons.length,LESSONS.length);
 assert.equal(db.question_bank.length,QUESTIONS.length+REFLECTION_QUESTIONS.length);
 assert.equal(db.journey_items.length,5);
