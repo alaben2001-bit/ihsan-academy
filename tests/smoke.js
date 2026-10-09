@@ -134,3 +134,10 @@ assert.match(serverSource, /seedEducationalContent\(db\)/, 'startup migration mu
 
 assert.match(appSource, /journey-hearts/, 'student journey must display five visual progress hearts');
 assert.match(appSource, /كل قلب يذكّرك بالتقدم/, 'progress hearts must not be presented as a measure of student worth');
+
+assert.match(serverSource, /ACADEMY_REDIRECT_TO_FRANKFURT === '1'/, 'legacy Oregon deployment must support explicit redirect-only mode');
+assert.match(serverSource, /FRANKFURT_CANONICAL_URL = 'https:\/\/ihsan-academy-frankfurt\.onrender\.com'/, 'redirect destination must be fixed to the verified canonical service');
+assert.match(serverSource, /incoming\.pathname === '\/api\/health'/, 'redirect-only mode must satisfy Render health checks without the remote database');
+
+assert.match(serverSource, /destination\.pathname = incoming\.pathname/, 'redirect mode must preserve the path without trusting a supplied host');
+assert.match(serverSource, /destination\.search = incoming\.search/, 'redirect mode must preserve query parameters safely');
