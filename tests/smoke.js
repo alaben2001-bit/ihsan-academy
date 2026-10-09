@@ -10,6 +10,14 @@ const { ensureCoreCollections } = require('../server/storage/postgres');
 // student file, and saved through the same API used by the attendance sheet.
 const serverSource = fs.readFileSync(path.join(__dirname, '..', 'server', 'server.js'), 'utf8');
 const appSource = fs.readFileSync(path.join(__dirname, '..', 'assets', 'app.js'), 'utf8');
+const htmlSource = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
+assert.match(htmlSource, /login-illustration/, 'welcome screen must include its dedicated illustration');
+assert.match(htmlSource, /\/assets\/ihsan-emblem\.svg/, 'navigation and welcome screen must use the academy emblem');
+assert.match(htmlSource, /app\.css\?v=59\.0/, 'refreshed visual styles must bypass the old browser cache');
+assert.match(htmlSource, /مرحبًا بك في رحلتك/, 'welcome screen must orient students toward a learning journey');
+assert.ok(fs.existsSync(path.join(__dirname, '..', 'assets', 'welcome-garden.svg')), 'welcome illustration asset must exist');
+assert.ok(fs.existsSync(path.join(__dirname, '..', 'assets', 'ihsan-emblem.svg')), 'academy emblem asset must exist');
+
 assert.match(appSource, /function establishHistoryGuard\(page = 'dashboard'\)/, 'session startup must establish an in-app history guard');
 assert.match(appSource, /history\.replaceState\(\{ academy: true, page, root: true \}/, 'the initial academy entry must be marked as the root history entry');
 assert.match(appSource, /if \(!state \|\| !state\.academy \|\| state\.root\)/, 'browser back from the root entry must restore an academy history entry');
