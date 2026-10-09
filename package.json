@@ -1,8 +1,8 @@
 {
   "name": "academy-build-human",
-  "version": "49.0.0",
+  "version": "56.0.0",
   "private": true,
-  "description": "أكاديمية الإحسان في بناء الإنسان — V49 (Production, Quran submissions, assessments, community, PWA, ops)",
+  "description": "أكاديمية الإحسان في بناء الإنسان — V56 (Student growth curriculum, lessons, question bank, mobile learning)",
   "scripts": {
     "start": "node server/server.js",
     "backup": "node tools/backup-db.js",
