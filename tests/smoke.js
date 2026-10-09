@@ -28,6 +28,14 @@ assert.match(serverSource, /teamStudentIds\(team\)\.includes\(st\.id\)/, 'only c
 assert.match(appSource, /pgSupervisorRequests/, 'supervisor request review page must exist');
 assert.match(appSource, /apply-team-supervisor/, 'students must be able to apply for team supervision');
 
+// Admin credentials are shown only from the just-entered password after create/reset;
+// the API must continue storing password hashes and never expose existing passwords.
+assert.match(appSource, /showLoginCredentials\(v\.name,v\.email,v\.password\)/, 'admin must be able to share newly set login credentials');
+assert.match(appSource, /copy-login-credential/, 'admin must be able to copy credentials');
+assert.match(appSource, /adminPasswordVisibility/, 'admin must be able to reveal the password while entering it');
+assert.match(serverSource, /target\.password = hashPassword\(String\(b\.password\)\)/, 'password resets must store hashes');
+assert.match(serverSource, /return json\(res, 200, adminUserView\(target\)\)/, 'user update API must not return a plaintext password');
+
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ihsan-academy-test-'));
 try {
   const file = path.join(dir, 'db.json');
