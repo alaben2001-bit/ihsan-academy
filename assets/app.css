@@ -676,3 +676,33 @@ button,.btn,.field input,.field select,.field textarea{transition:background-col
 .practice-summary,.practice-empty{text-align:center;align-items:center;padding:12px 0}
 .practice-score{font-size:2rem;font-weight:800;color:var(--primary)}
 @media(prefers-reduced-motion:reduce){.practice-track span{transition:none}}
+
+/* V65: public learning-path preview and clear student journey */
+.login{grid-template-columns:minmax(0,1fr) minmax(390px,.78fr);align-items:stretch}
+.login-explore{grid-column:1/-1;padding:clamp(28px,5vw,72px);background:#fbf8ef;border-top:1px solid #e8e1d1;color:#173e34}
+.explore-heading{max-width:760px;margin:0 auto 28px;text-align:center}
+.explore-heading .eyebrow,.explore-footer .eyebrow{color:#a17b3f;font-size:12px;font-weight:800;letter-spacing:.04em}
+.explore-heading h2{font-size:clamp(25px,3vw,38px);line-height:1.45;margin:8px 0;color:#123f35}
+.explore-heading p{max-width:640px;margin:auto;color:#5c6e64;line-height:1.9}
+.explore-paths{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;max-width:1320px;margin:0 auto}
+.explore-path{display:flex;gap:13px;align-items:flex-start;padding:21px 18px;border:1px solid #e5decd;border-radius:18px;background:rgba(255,255,255,.76);box-shadow:0 8px 24px rgba(18,63,53,.035);min-width:0}
+.explore-path.path-quran{background:linear-gradient(145deg,#123f35,#205b49);color:#fff;border-color:#205b49}
+.path-symbol{flex:0 0 42px;width:42px;height:42px;display:grid;place-items:center;border-radius:14px;background:#efe5c9;color:#173f34;font-size:22px;font-weight:800}
+.explore-path h3{font-size:18px;margin:4px 0 5px}
+.explore-path p{font-size:12px;font-weight:700;color:#a17b3f;margin:0 0 8px}
+.explore-path.path-quran p{color:#e6d2a0}
+.explore-path small{display:block;font-size:12px;line-height:1.9;color:#66776e}
+.explore-path.path-quran small{color:#d3e4db}
+.path-kicker{font-size:10px;color:#8a9b90}
+.path-quran .path-kicker{color:#c4d9cc}
+.explore-method{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:18px;max-width:1320px;margin:34px auto 0;padding:24px 0;border-top:1px solid #e5decd}
+.explore-method>div{padding-inline:5px}
+.method-number{display:block;color:#b28c4d;font-family:var(--font-head);font-size:25px;font-weight:800;margin-bottom:8px}
+.explore-method b{font-size:15px}
+.explore-method p{font-size:12px;line-height:1.9;color:#68776e;margin-top:6px}
+.explore-footer{max-width:1320px;margin:8px auto 0;padding:24px 28px;display:flex;justify-content:space-between;align-items:center;gap:22px;border:1px solid #e4dbc4;border-radius:20px;background:#f4efdf}
+.explore-footer h3{font-size:21px;margin:6px 0}
+.explore-footer p{font-size:12px;line-height:1.8;color:#65756a;margin:0}
+.explore-cta{white-space:nowrap;text-decoration:none;display:inline-flex;align-items:center;gap:12px}
+@media(max-width:1100px){.explore-paths{grid-template-columns:repeat(2,minmax(0,1fr))}.explore-method{grid-template-columns:repeat(2,minmax(0,1fr))}.login{grid-template-columns:1fr 1fr}}
+@media(max-width:720px){.login{display:grid;grid-template-columns:1fr}.login-explore{padding:30px 18px}.explore-paths{grid-template-columns:1fr}.explore-path{padding:17px}.explore-method{grid-template-columns:1fr 1fr;gap:14px}.explore-footer{padding:21px;align-items:stretch;flex-direction:column}.explore-cta{justify-content:center}.explore-heading h2{font-size:26px}}
