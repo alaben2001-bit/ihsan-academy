@@ -1,0 +1,4 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Sitemap: https://ihsan-academy-frankfurt.onrender.com/sitemap.xml
