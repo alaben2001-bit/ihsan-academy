@@ -4,6 +4,7 @@ ENV NODE_ENV=production ACADEMY_PRODUCTION=1 ACADEMY_STORAGE=postgres
 COPY package*.json ./
 RUN npm install --omit=dev --no-audit --no-fund
 COPY . .
+RUN npm test
 RUN mkdir -p /app/data/uploads /app/backups
 USER node
 EXPOSE 3000
