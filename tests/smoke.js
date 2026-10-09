@@ -117,3 +117,9 @@ assert.match(appSource, /S\.user\.role === 'admin' \? '' : S\.user\.name/, 'admi
 assert.match(appSource, /data-act="new-team-student"/, 'team supervisors must have a student creation control');
 assert.match(appSource, /اسم الطالب ثم لقبه/, 'student creation must remind staff to enter first name before surname');
 assert.match(appSource, /created\.initial_password/, 'the generated initial password must be shown once after creation');
+
+assert.match(appSource, /passwordVisibility: el =>/, 'password fields must support show/hide');
+assert.match(appSource, /name="confirm_password"/, 'student account creation must include password confirmation');
+assert.match(appSource, /كلمتا المرور غير متطابقتين/, 'student account creation must reject mismatched passwords');
+assert.match(appSource, /data-target="teamStudentConfirm"/, 'team supervisor must be able to reveal password confirmation');
+assert.match(appSource, /data-target="teacherStudentConfirm"/, 'teacher must be able to reveal password confirmation');
