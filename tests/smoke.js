@@ -13,7 +13,7 @@ const appSource = fs.readFileSync(path.join(__dirname, '..', 'assets', 'app.js')
 const htmlSource = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 assert.match(htmlSource, /login-illustration/, 'welcome screen must include its dedicated illustration');
 assert.match(htmlSource, /\/assets\/ihsan-emblem\.svg/, 'navigation and welcome screen must use the academy emblem');
-assert.match(htmlSource, /app\\.css\\?v=60\\.0/, 'refreshed visual styles must bypass the old browser cache');
+assert.match(htmlSource, /app\.css\?v=60\.0/, 'refreshed visual styles must bypass the old browser cache');
 assert.match(htmlSource, /مرحبًا بك في رحلتك/, 'welcome screen must orient students toward a learning journey');
 assert.match(appSource, /hero-orbit"><img src="\/assets\/ihsan-emblem\.svg"/, 'signed-in dashboard must use the academy emblem instead of a text placeholder');
 assert.ok(fs.existsSync(path.join(__dirname, '..', 'assets', 'welcome-garden.svg')), 'welcome illustration asset must exist');
