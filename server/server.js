@@ -224,9 +224,9 @@ function migrate() {
   // V56: add missing starter curriculum and practice questions without overwriting existing records.
   const educationalSeed = seedEducationalContent(db);
   if (educationalSeed.changed) changed = true;
-  if (changed) save();
+  return changed;
 }
-const storageReady = Promise.resolve(storage.load()).then(async loaded => { db = loaded; migrate(); if (storage.kind === 'postgres') await storage.save(db); return db; });
+const storageReady = Promise.resolve(storage.load()).then(async loaded => { db = loaded; const migrated = migrate(); if (migrated || storage.kind === 'postgres') await storage.save(db); return db; });
 
 /* ───────────── الصلاحيات والنطاق ───────────── */
 const isStaff = u => u.role === 'admin' || u.role === 'teacher';
