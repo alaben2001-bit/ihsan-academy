@@ -19,6 +19,15 @@ assert.match(serverSource, /seenStudents\.has\(rec\.student_id\)/, 'bulk save mu
 assert.match(appSource, /await post\('\/api\/attendance\/bulk'/, 'attendance UI must save to the backend endpoint');
 assert.match(appSource, /await loadSheet\(\);\s*toast\(/, 'attendance UI must reload saved server records after saving');
 
+
+// Regression guard: supervisor requests must be scoped, reviewable, and exposed in the UI.
+assert.match(serverSource, /supervisor_requests/, 'supervisor applications must persist');
+assert.match(serverSource, /\/api\/supervisor-requests/, 'supervisor application API must exist');
+assert.match(serverSource, /chief_supervisor/, 'chief supervisor must be a distinct role');
+assert.match(serverSource, /teamStudentIds\(team\)\.includes\(st\.id\)/, 'only current team members may be approved as supervisors');
+assert.match(appSource, /pgSupervisorRequests/, 'supervisor request review page must exist');
+assert.match(appSource, /apply-team-supervisor/, 'students must be able to apply for team supervision');
+
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ihsan-academy-test-'));
 try {
   const file = path.join(dir, 'db.json');
