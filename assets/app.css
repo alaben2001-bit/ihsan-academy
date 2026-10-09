@@ -572,3 +572,46 @@ button,.btn,.field input,.field select,.field textarea{transition:background-col
  .login-form .portal-box{margin-top:24px}
 }
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
+
+
+/* V60 — make the signed-in dashboard feel like a guided learning space. */
+.hero-main{min-height:230px;padding:clamp(22px,3vw,38px);border:1px solid rgba(239,224,184,.13);background:radial-gradient(circle at 12% 20%,rgba(226,204,150,.17),transparent 28%),linear-gradient(122deg,#0d352d 0%,#174b3f 57%,#236657 100%);box-shadow:0 18px 42px rgba(16,61,52,.13)}
+.hero-main:before{content:"";position:absolute;inset:0;pointer-events:none;opacity:.13;background-image:linear-gradient(30deg,transparent 48%,rgba(255,255,255,.2) 49%,transparent 50%),linear-gradient(150deg,transparent 48%,rgba(255,255,255,.12) 49%,transparent 50%);background-size:48px 48px;mask-image:linear-gradient(100deg,transparent,#000)}
+.hero-main .hero-copy{max-width:68%}
+.hero-main h2{font-size:clamp(28px,3.2vw,42px);line-height:1.35;letter-spacing:-.02em;text-wrap:balance}
+.hero-main p{max-width:53ch;line-height:2;color:#d5e5dd;font-size:15px;margin-top:8px}
+.hero-main .eyebrow{color:#dfc98f;font-size:12px;margin-bottom:8px}
+.hero-orbit{width:clamp(112px,15vw,170px);height:clamp(112px,15vw,170px);margin-inline:8px}
+.hero-orbit img{width:70px;height:70px;object-fit:contain;position:relative;z-index:1;filter:drop-shadow(0 10px 18px rgba(0,0,0,.22));border-radius:22px}
+.hero-orbit i{border-color:rgba(238,220,174,.24);animation:orbitBreath 9s ease-in-out infinite}
+.hero-orbit i:last-child{animation-delay:-4.5s}
+@keyframes orbitBreath{0%,100%{transform:scale(.96) rotate(22deg);opacity:.55}50%{transform:scale(1.04) rotate(35deg);opacity:1}}
+.daily-note{padding:19px 22px;border-radius:20px}
+.daily-icon{border-radius:15px;box-shadow:0 8px 18px rgba(18,63,53,.15)}
+.stat{min-height:106px;padding:18px;border-radius:18px;gap:13px}
+.stat .ic{width:48px;height:48px;border-radius:15px}
+.stat .num{font-size:clamp(22px,2vw,29px);font-weight:800;color:var(--g900);font-variant-numeric:tabular-nums}
+.today-plan{border-radius:20px;padding:22px}
+.today-plan .sec h3,.q-home-card h3,.home-pulse h3{font-size:24px}
+.today-step{padding:14px 15px;border-radius:15px;transition:transform .18s ease,border-color .18s ease,background .18s ease}
+.today-step:hover{transform:translateY(-1px);border-color:rgba(77,144,123,.42);background:#fff}
+.today-step.urgent{background:linear-gradient(100deg,rgba(246,228,226,.48),#fff 70%)}
+.q-home-card,.home-pulse{border-radius:20px;padding:22px}
+.q-home-metrics>div{border-radius:16px;padding:14px;background:linear-gradient(145deg,#fff,#f5f7f1)}
+.home-pulse-list button{transition:transform .18s ease,border-color .18s ease,box-shadow .18s ease}
+.home-pulse-list button:hover{transform:translateY(-2px);border-color:var(--g200);box-shadow:0 8px 20px rgba(18,63,53,.07)}
+@media(max-width:720px){
+ .hero-main{min-height:0;align-items:flex-start;padding:22px 20px;border-radius:22px}
+ .hero-main .hero-copy{max-width:100%}
+ .hero-main h2{font-size:30px}
+ .hero-main p{font-size:14px}
+ .hero-orbit{position:absolute;left:12px;bottom:8px;width:74px;height:74px;opacity:.28;pointer-events:none}
+ .hero-orbit img{width:42px;height:42px}
+ .hero-orbit i{inset:4px}.hero-orbit i:last-child{inset:12px}
+ .stat{min-height:88px;padding:13px;gap:9px}
+ .stat .ic{width:38px;height:38px}
+ .daily-note{align-items:flex-start;padding:16px}
+ .today-plan,.q-home-card,.home-pulse{padding:17px}
+ .today-step{align-items:flex-start;gap:9px}
+ .today-step .chip{font-size:11px;padding:4px 7px}
+}
