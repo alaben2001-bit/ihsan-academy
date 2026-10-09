@@ -133,4 +133,4 @@ assert.match(serverSource, /v56_key===key/, 'V56 question seeding must be idempo
 assert.match(serverSource, /source_status:'teacher_review'/, 'seeded lesson content must be flagged for teacher review');
 assert.match(serverSource, /'مهارات التفكير','تنظيم الوقت','مهارات التعلم','الصحة والعادات','آداب الحوار','المسؤولية والخدمة'/, 'enrichment subjects must be distinguished from required core learning');
 assert.match(serverSource, /db\.question_bank\.push\(\{id:'v56-q-'/, 'V56 questions must be stored in the existing question-bank collection');
-assert.match(idx.result.content, /app\.js\?v=56\.0/, 'V56 must refresh the application cache version');
+assert.match(indexSource, /app\.js\?v=56\.0/, 'V56 must refresh the application cache version');
