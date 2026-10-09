@@ -1085,7 +1085,7 @@ async function handler(req, res) {
       return json(res, 200, { ok: true });
     }
 
-    if (p === '/api/group-catalog' && req.method === 'GET') return json(res,200,db.groups.map(g=>({...g,student_count:new Set(db.memberships.filter(m=>m.group_id===g.id).map(m=>m.student_id)).size,teachers:db.teacher_groups.filter(x=>x.group_id===g.id).map(x=>(db.users.find(u=>u.id===x.teacher_id)||{}).name).filter(Boolean)})));
+    if (p === '/api/group-catalog' && req.method === 'GET') { const visible=visibleGroupIds(user); return json(res,200,db.groups.filter(g=>user.role==='admin'||visible.includes(g.id)).map(g=>({...g,student_count:new Set(db.memberships.filter(m=>m.group_id===g.id).map(m=>m.student_id)).size,teachers:db.teacher_groups.filter(x=>x.group_id===g.id).map(x=>(db.users.find(u=>u.id===x.teacher_id)||{}).name).filter(Boolean)}))); }
     if (p === '/api/admin/quran-schools' && req.method === 'GET') { requireAdmin(); return json(res,200,db.quran_schools); }
     if (p === '/api/admin/quran-schools' && req.method === 'POST') {
       requireAdmin(); const b=await body(req), name=clean(b.name,160); if(!name) fail(400,'اسم المدرسة القرآنية مطلوب');
