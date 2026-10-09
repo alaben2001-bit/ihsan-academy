@@ -103,3 +103,23 @@ assert.match(serverSource, /user\.role === 'admin' \|\| user\.role === 'chief_su
 assert.match(serverSource, /\['admin','teacher','chief_supervisor'\]\.includes\(user\.role\)/, 'chief supervisor may create teams');
 assert.match(appSource, /chief_supervisor:'المشرف الرئيسي'/, 'admin user list must label chief supervisor correctly');
 assert.match(appSource, /data-act="new-team-task" data-id="\$\{t\.id\}"/, 'team supervisors must see add-task controls for teams they manage');
+
+
+// V54 school directory and student account provisioning.
+assert.match(serverSource, /\/api\/school-directory/, 'all signed-in roles must have access to the school directory');
+assert.match(serverSource, /role_label:roleLabel/, 'directory entries must expose a readable role label');
+assert.match(serverSource, /\/api\/teams\/:id\/students/, 'team supervisors must have a scoped student-account creation route');
+assert.match(serverSource, /teamCanManage\(user,t\)/, 'student creation must be restricted to managers of that team');
+assert.match(serverSource, /name\.trim\(\)\.split\(\/\\s\+\/\)\[0\]\+'123'/, 'student default password must be first name plus 123');
+assert.match(serverSource, /suppliedEmail\|\|\('student-'\+uid\('mail'\)\+'@no-email\.invalid'\)/, 'student account creation must support no email');
+assert.match(appSource, /'school-directory': \['هيكلة المدرسة'/, 'school directory page must be registered');
+assert.match(appSource, /S\.user\.role === 'admin' \? '' : S\.user\.name/, 'admin name must be hidden from the account header');
+assert.match(appSource, /data-act="new-team-student"/, 'team supervisors must have a student creation control');
+assert.match(appSource, /اسم الطالب ثم لقبه/, 'student creation must remind staff to enter first name before surname');
+assert.match(appSource, /created\.initial_password/, 'the generated initial password must be shown once after creation');
+
+assert.match(appSource, /passwordVisibility: el =>/, 'password fields must support show/hide');
+assert.match(appSource, /name="confirm_password"/, 'student account creation must include password confirmation');
+assert.match(appSource, /كلمتا المرور غير متطابقتين/, 'student account creation must reject mismatched passwords');
+assert.match(appSource, /data-target="teamStudentConfirm"/, 'team supervisor must be able to reveal password confirmation');
+assert.match(appSource, /data-target="teacherStudentConfirm"/, 'teacher must be able to reveal password confirmation');
