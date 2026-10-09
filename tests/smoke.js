@@ -10,6 +10,10 @@ const { ensureCoreCollections } = require('../server/storage/postgres');
 // student file, and saved through the same API used by the attendance sheet.
 const serverSource = fs.readFileSync(path.join(__dirname, '..', 'server', 'server.js'), 'utf8');
 const appSource = fs.readFileSync(path.join(__dirname, '..', 'assets', 'app.js'), 'utf8');
+assert.match(appSource, /function establishHistoryGuard\(page = 'dashboard'\)/, 'session startup must establish an in-app history guard');
+assert.match(appSource, /history\.replaceState\(\{ academy: true, page, root: true \}/, 'the initial academy entry must be marked as the root history entry');
+assert.match(appSource, /if \(!state \|\| !state\.academy \|\| state\.root\)/, 'browser back from the root entry must restore an academy history entry');
+assert.match(appSource, /showPage\(landing, \{ history: false \}\)/, 'session startup must not create a duplicate navigation entry');
 assert.match(serverSource, /const APP_VERSION = require\('\.\.\/package\.json'\)\.version;/, 'server diagnostics must use the package version');
 assert.match(serverSource, /version:APP_VERSION/, 'health endpoints must report the current app version');
 assert.match(serverSource, /console\.log\(`\\n  أكاديمية الإحسان في بناء الإنسان — V\$\{APP_VERSION\}`\)/, 'startup banner must report the current app version');

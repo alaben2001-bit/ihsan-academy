@@ -125,6 +125,13 @@ async function guard(fn) { try { return await fn(); } catch (e) { toast(e.messag
 /* ── الجلسة ── */
 function endSession() { S.token = null; S.user = null; try { sessionStorage.removeItem('ab_token'); sessionStorage.removeItem('academy_entry'); } catch { /* */ } try { history.replaceState({ academy: true, page: 'login' }, '', location.pathname); } catch { /* */ } closeOverlay(); showLogin(); }
 function showLogin() { $('#appView').classList.add('hidden'); $('#loginView').classList.remove('hidden'); $('#loginPass').value = ''; }
+function establishHistoryGuard(page = 'dashboard') {
+  const url = location.pathname + '#' + encodeURIComponent(page);
+  try {
+    history.replaceState({ academy: true, page, root: true }, '', url);
+    history.pushState({ academy: true, page, guard: true }, '', url);
+  } catch { /* history may be unavailable in embedded contexts */ }
+}
 async function startSession() {
   S.user = await api('/api/me');
   const [groups, students, notifs, posts, subjects] = await Promise.all([api('/api/groups'), api('/api/students'), api('/api/notifications'), api('/api/posts'), api('/api/subjects')]);
@@ -134,7 +141,9 @@ async function startSession() {
   put($('#logoutBtn'), ico('out'));
   buildNav();
   const entry = sessionStorage.getItem('academy_entry') || ''; sessionStorage.removeItem('academy_entry');
-  showPage(entry === 'quran' ? 'quran' : 'dashboard');
+  const landing = entry === 'quran' ? 'quran' : 'dashboard';
+  establishHistoryGuard(landing);
+  showPage(landing, { history: false });
 }
 
 /* ── التنقل ── */
@@ -878,7 +887,17 @@ function pgFuture() {
 }
 
 /* ═══════════ الأحداث (تفويض واحد) ═══════════ */
-window.addEventListener('popstate', e => { if (!S.user) return; const page = e.state && e.state.academy && PAGES[e.state.page] ? e.state.page : 'dashboard'; showPage(page, { history: false }); });
+window.addEventListener('popstate', e => {
+  if (!S.user) return;
+  const state = e.state;
+  const page = state && state.academy && PAGES[state.page] ? state.page : 'dashboard';
+  // When the user reaches the app's root history entry, add a guard entry
+  // so browser Back returns to the academy instead of leaving it unexpectedly.
+  if (!state || !state.academy || state.root) {
+    try { history.pushState({ academy: true, page, guard: true }, '', location.pathname + '#' + encodeURIComponent(page)); } catch { /* */ }
+  }
+  showPage(page, { history: false });
+});
 const ACT = {
   nav: el => showPage(el.dataset.page, { history: true }),
   'teacher-new-group': () => openTeacherGroupModal(), 'teacher-edit-group': el => openTeacherGroupModal(el.dataset.id),
