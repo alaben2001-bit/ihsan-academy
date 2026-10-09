@@ -97,7 +97,7 @@ async function handleAdvanced(ctx){
   if(p==='/api/question-bank' && req.method==='GET'){
     const subject=ctx.q?.subject_id || new URL(req.url,'http://localhost').searchParams.get('subject_id');
     let list=db.question_bank.filter(q=>questionVisible(user,q,visibleGroupIds)); if(subject) list=list.filter(q=>q.subject_id===subject);
-    return json(res,200,list.map(sanitizeQuestion));
+    return json(res,200,list.map(q=>user.role==='admin'||user.role==='teacher'?{...sanitizeQuestion(q),correct_answer:q.correct_answer}:sanitizeQuestion(q)));
   }
   if(p==='/api/question-bank' && req.method==='POST'){
     if(!isStaff(user)) fail(403,'بنك الأسئلة للشيخ والإدارة'); const b=await body(req); if(!clean(b.title,400)) fail(400,'صياغة السؤال مطلوبة');
@@ -116,7 +116,7 @@ async function handleAdvanced(ctx){
     const q=db.question_bank.find(x=>x.id===decodeURIComponent(qm[1]));
     if(!q) fail(404,'السؤال غير موجود');
     // Teachers may edit only questions they created, and only within groups they manage.
-    if(user.role!=='admin' && (q.created_by!==user.id || (q.group_id && !ownsGroup(user,q.group_id)))) fail(403,'لا تملك صلاحية تعديل هذا السؤال');
+    if(user.role!=='admin' && !((q.created_by===user.id && (!q.group_id || ownsGroup(user,q.group_id))) || (q.created_by==null && !q.group_id && String(q.seed_key||'').startsWith('formation-question-')))) fail(403,'لا تملك صلاحية تعديل هذا السؤال');
     const b=await body(req);
     const nextType=b.type!==undefined?String(b.type):q.type;
     if(!questionTypes.includes(nextType)) fail(400,'نوع السؤال غير صحيح');
