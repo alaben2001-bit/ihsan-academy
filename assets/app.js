@@ -123,7 +123,7 @@ const post = (url, data) => api(url, { method: 'POST', body: JSON.stringify(data
 async function guard(fn) { try { return await fn(); } catch (e) { toast(e.message, true); } }
 
 /* ── الجلسة ── */
-function endSession() { S.token = null; S.user = null; try { sessionStorage.removeItem('ab_token'); } catch { /* */ } showLogin(); }
+function endSession() { S.token = null; S.user = null; try { sessionStorage.removeItem('ab_token'); sessionStorage.removeItem('academy_entry'); } catch { /* */ } try { history.replaceState({ academy: true, page: 'login' }, '', location.pathname); } catch { /* */ } closeOverlay(); showLogin(); }
 function showLogin() { $('#appView').classList.add('hidden'); $('#loginView').classList.remove('hidden'); $('#loginPass').value = ''; }
 async function startSession() {
   S.user = await api('/api/me');
@@ -285,6 +285,8 @@ function topActions(page) {
 function navFor(page) { if (page === 'file') return S.user.role === 'student' ? 'profile' : S.user.role === 'parent' ? 'children' : 'students'; return page; }
 function showPage(id, opts = {}) {
   if (!PAGES[id]) id = 'dashboard';
+  if (opts.history === true) { try { history.pushState({ academy: true, page: id }, '', '#'+encodeURIComponent(id)); } catch { /* */ } }
+  else if (opts.history !== false) { try { if (!history.state || !history.state.academy) history.replaceState({ academy: true, page: id }, '', location.pathname); } catch { /* */ } }
   S.page = id; S.grading = id === 'tests' && opts.grading ? opts.grading : null; document.documentElement.dataset.page = id;
   const [title, sub, fn] = PAGES[id];
   $('#pgTitle').textContent = title; $('#pgSub').textContent = sub; put($('#topActions'), topActions(id));
@@ -812,10 +814,11 @@ function pgFuture() {
 }
 
 /* ═══════════ الأحداث (تفويض واحد) ═══════════ */
+window.addEventListener('popstate', e => { if (!S.user) return; const page = e.state && e.state.academy && PAGES[e.state.page] ? e.state.page : 'dashboard'; showPage(page, { history: false }); });
 const ACT = {
-  nav: el => showPage(el.dataset.page),
+  nav: el => showPage(el.dataset.page, { history: true }),
   'journey-done': el => guard(async()=>{await post('/api/journey/complete',{item_id:el.dataset.id});toast('تم تسجيل الإنجاز');showPage('journey');}),
-  'challenge-join': el => guard(async()=>{await post('/api/challenges/join',{challenge_id:el.dataset.id});toast('تم الانضمام إلى التحدي');showPage('journey');}), more: openMore, logout: async () => { try { await post('/api/logout'); } catch { /* */ } endSession(); },
+  'challenge-join': el => guard(async()=>{await post('/api/challenges/join',{challenge_id:el.dataset.id});toast('تم الانضمام إلى التحدي');showPage('journey');}), more: openMore, logout: () => { const token = S.token; endSession(); if (token) fetch('/api/logout', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + token }, body: '{}' }).catch(() => {}); },
   'close-modal': closeOverlay, 'close-modal-bg': (el, e) => { if (e.target === el) closeOverlay(); },
   'quran-student': el => guard(()=>openQuranStudent(el.dataset.id)), 'quran-attendance': ()=>guard(openQuranAttendance), 'quran-report': ()=>guard(openQuranReport), 'quran-session': openQuranSession, 'quran-eval': el => openQuranEval(el.dataset.id), 'quran-plan': el => guard(()=>openQuranPlan(el.dataset.id)), 'quran-review': el => guard(()=>openQuranReview(el.dataset.id)),
   'quran-submit': openQuranSubmission, 'quran-submission-review': el=>guard(()=>openQuranSubmissionReview(el.dataset.id)), 'new-question': openQuestionModal, 'solve-question': el=>guard(()=>openQuestionSolve(el.dataset.id)), 'new-discussion': openDiscussionModal, 'open-discussion': el=>guard(()=>openDiscussion(el.dataset.id)), 'privacy-request': el=>openPrivacyRequest(el.dataset.type),
