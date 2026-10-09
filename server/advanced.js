@@ -40,7 +40,7 @@ function autoGrade(question, answer){
   return null;
 }
 function sanitizeQuestion(q){
-  const out={id:q.id,title:q.title,type:q.type,points:q.points,options:q.options||[],subject_id:q.subject_id||null,group_id:q.group_id||null,active:q.active!==false,explanation:q.explanation||''};
+  const out={id:q.id,title:q.title,type:q.type,points:q.points,options:q.options||[],subject_id:q.subject_id||null,lesson_id:q.lesson_id||null,group_id:q.group_id||null,active:q.active!==false,explanation:q.explanation||''};
   return out;
 }
 
