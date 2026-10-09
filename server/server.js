@@ -1400,6 +1400,35 @@ async function handler(req, res) {
       const lessons = db.lessons.filter(l => subjects.some(x => x.id === l.subject_id)).sort((a,b) => (a.subject_id+a.order_no).localeCompare(b.subject_id+b.order_no)).map(l => ({ ...l, subject_name: (db.subjects.find(x => x.id === l.subject_id) || {}).name || '', completed: doneMap.has(l.id), completed_at: doneMap.get(l.id)?.completed_at || null }));
       return json(res, 200, { student: studentView(s, user), subjects, lessons });
     }
+    if (p === '/api/learning/questions' && req.method === 'GET') {
+      if (user.role !== 'student') fail(403, 'التدريب الذاتي متاح للطالب فقط');
+      const student = scopedStudents(user)[0];
+      if (!student) return json(res, 200, { lesson_id: q.lesson_id || '', questions: [] });
+      const lesson = db.lessons.find(x => x.id === String(q.lesson_id || ''));
+      if (!lesson || !lessonAccessible(user, lesson)) fail(404, 'الدرس غير موجود');
+      const questions = db.question_bank.filter(x => x.lesson_id === lesson.id && x.active !== false && ['single_choice', 'true_false'].includes(x.type)).map(x => ({
+        id: x.id, type: x.type, title: x.title, options: Array.isArray(x.options) ? x.options : [], points: Math.max(1, Number(x.points) || 1)
+      }));
+      return json(res, 200, { lesson_id: lesson.id, questions });
+    }
+    if (p === '/api/learning/attempts' && req.method === 'POST') {
+      if (user.role !== 'student') fail(403, 'التدريب الذاتي متاح للطالب فقط');
+      const student = scopedStudents(user)[0];
+      if (!student) fail(403, 'لا يوجد ملف طالب مرتبط بهذا الحساب');
+      const b = await body(req), lesson = db.lessons.find(x => x.id === String(b.lesson_id || ''));
+      const question = db.question_bank.find(x => x.id === String(b.question_id || ''));
+      if (!lesson || !lessonAccessible(user, lesson) || !question || question.lesson_id !== lesson.id || question.active === false || !['single_choice', 'true_false'].includes(question.type)) fail(404, 'السؤال غير متاح');
+      const answer = clean(String(b.answer == null ? '' : b.answer), 300);
+      if (!answer) fail(400, 'اختر إجابة أولًا');
+      const correct = answer.trim().toLowerCase() === String(question.correct_answer || '').trim().toLowerCase();
+      const alreadyCorrect = db.question_attempts.some(x => x.student_id === student.id && x.question_id === question.id && x.correct === true);
+      const pointsAwarded = correct && !alreadyCorrect ? Math.max(1, Number(question.points) || 1) : 0;
+      const attempt = { id: uid('qa'), student_id: student.id, lesson_id: lesson.id, question_id: question.id, answer, correct, points_awarded: pointsAwarded, attempted_at: new Date().toISOString() };
+      db.question_attempts.push(attempt);
+      audit(user, 'learning.question_attempt', { lesson_id: lesson.id, question_id: question.id, correct });
+      await save();
+      return json(res, 200, { correct, correct_answer: question.correct_answer, explanation: question.explanation || '', points_awarded: pointsAwarded, already_correct: alreadyCorrect });
+    }
     if ((r = route(req, p, 'POST', '/api/lessons/:id/complete'))) {
       if (user.role !== 'student') return json(res, 403, { error: 'هذه العملية متاحة للطالب فقط' });
       const s = scopedStudents(user)[0], lesson = db.lessons.find(x => x.id === r.id);
