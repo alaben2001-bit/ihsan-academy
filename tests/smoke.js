@@ -207,8 +207,8 @@ assert.match(appSource, /submitPracticeAnswer/, 'practice must submit selected a
 assert.match(appSource, /اختبر فهمك/, 'lesson modal must offer a clear practice action');
 assert.match(appSource, /practice-feedback/, 'practice must show feedback after answering');
 assert.match(cssSource, /practice-option/, 'practice choices must have dedicated responsive styling');
-assert.match(htmlSource, /app\.css\?v=67\.0/, 'practice styles must bypass browser cache');
-assert.match(htmlSource, /app\.js\?v=67\.0/, 'practice script must bypass browser cache');
+assert.match(htmlSource, /app\.css\?v=68\.0/, 'practice styles must bypass browser cache');
+assert.match(htmlSource, /app\.js\?v=68\.0/, 'practice script must bypass browser cache');
 
 assert.match(htmlSource, /id="exploreTitle"/, 'Public landing must introduce academy learning paths');
 assert.match(htmlSource, /القرآن الكريم/, 'Public landing must feature Quran pathway');
