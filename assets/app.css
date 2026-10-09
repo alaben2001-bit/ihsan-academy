@@ -850,3 +850,12 @@ input:focus,select:focus,textarea:focus{outline:none!important;border-color:#58a
 .sheikh-post{padding:17px;border:1px solid var(--line);border-radius:18px;background:var(--white)}
 .sheikh-post-image{display:block;width:100%;max-height:480px;object-fit:contain;background:var(--b100);border-radius:15px;margin:12px 0}
 .sheikh-post .post-body{white-space:pre-wrap;line-height:1.9;font-size:15px}
+
+/* V69 — six clear destinations, no overloaded More drawer */
+#bottomNav.bottom{display:grid!important;grid-template-columns:repeat(6,minmax(0,1fr))!important;align-items:stretch;gap:5px!important;padding:8px max(8px,env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) max(8px,env(safe-area-inset-left))!important}
+#bottomNav.bottom button{display:flex;min-width:0;min-height:54px;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:6px 2px;border:0;border-radius:13px;background:transparent;color:var(--muted);font-size:10px;font-weight:700;line-height:1.25}
+#bottomNav.bottom button svg{width:20px;height:20px;flex:0 0 auto}
+#bottomNav.bottom button span{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#bottomNav.bottom button.active,#bottomNav.bottom button[aria-current="page"]{background:var(--g100);color:var(--g800)}
+@media(max-width:380px){#bottomNav.bottom{gap:2px!important;padding-inline:4px!important}#bottomNav.bottom button{font-size:9px;min-height:50px}}
+@media(min-width:721px){#bottomNav.bottom{max-width:720px;margin-inline:auto}}
