@@ -1,1 +1,9 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><rect width="512" height="512" rx="112" fill="#123f35"/><g fill="none" stroke="#fff" stroke-opacity=".16" stroke-width="3"><path d="M256 40l66 150 150 66-150 66-66 150-66-150L40 256l150-66z"/></g><text x="256" y="340" font-family="Noto Naskh Arabic,Amiri,Tahoma,serif" font-size="280" font-weight="700" text-anchor="middle" fill="#f3eddf">ب</text></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+<defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#1b5a49"/><stop offset="1" stop-color="#0b3029"/></linearGradient><linearGradient id="gold" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#f7e8b8"/><stop offset="1" stop-color="#c9a85f"/></linearGradient></defs>
+<rect width="512" height="512" rx="112" fill="url(#bg)"/>
+<g fill="none" stroke="url(#gold)" stroke-width="3" opacity=".65"><path d="M256 48l42 72 82 12-59 59 14 82-79-38-79 38 14-82-59-59 82-12z"/><circle cx="256" cy="256" r="184"/><circle cx="256" cy="256" r="166" stroke-dasharray="3 12"/></g>
+<path d="M120 278q65-26 136 16 71-42 136-16v102q-65-24-136 18-71-42-136-18z" fill="#f8f2e4" stroke="#d5bd83" stroke-width="5" stroke-linejoin="round"/>
+<path d="M256 294v104M140 302q58-13 99 12M140 328q58-13 99 12M372 302q-58-13-99 12M372 328q-58-13-99 12" fill="none" stroke="#a28b5b" stroke-width="4" stroke-linecap="round"/>
+<path d="M256 118l22 44 48 7-35 34 8 48-43-23-43 23 8-48-35-34 48-7z" fill="url(#gold)"/>
+<text x="256" y="464" text-anchor="middle" font-family="Tahoma, sans-serif" font-size="25" font-weight="700" fill="#f8f2e4">إحسان</text>
+</svg>
