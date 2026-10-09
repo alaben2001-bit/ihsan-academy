@@ -637,6 +637,7 @@ function pgTracking() {
 }
 let LDATA = null;
 let LQUERY = '';
+let PRACTICE = null;
 async function pgLearning() {
   LDATA = await api('/api/learning');
   if (!LDATA.student) return render(html`<div class="card">${empty('لا يوجد ملف طالب مرتبط بحسابك بعد')}</div>`);
@@ -696,9 +697,56 @@ async function openLesson(id) {
       <div class="lesson-cover"><div><span class="eyebrow">مجلس العلم</span><h2>${l.title}</h2><p>${l.subject_name} · ${l.duration_minutes} دقيقة تقريبًا · ${l.type_label}</p></div><div class="lesson-seal">علم<br><small>وعمل</small></div></div>
       <div class="card flat lesson-objective"><b>هدف الدرس</b><p>${l.objective}</p></div>
       ${richLessonContent(c)}
-      <div class="lesson-footer row wrap"><span class="muted small">${l.completed ? 'تم إكمال هذا الدرس سابقًا.' : 'اقرأ على مهل، وتأمل، ثم اجعل للدرس أثرًا في عملك.'}</span>${completeBtn}</div>
+      <div class="lesson-footer row wrap"><span class="muted small">${l.completed ? 'تم إكمال هذا الدرس سابقًا.' : 'اقرأ على مهل، وتأمل، ثم اجعل للدرس أثرًا في عملك.'}</span>${S.user.role === 'student' ? html`<button class="btn sec2" type="button" data-act="open-practice" data-id="${l.id}">اختبر فهمك</button>` : ''}${completeBtn}</div>
     </div>`);
   });
+}
+async function openPractice(lessonId) {
+  await guard(async () => {
+    const data = await api('/api/learning/questions?lesson_id=' + encodeURIComponent(lessonId));
+    if (!data.questions.length) {
+      openModal('اختبر فهمك', html`<div class="practice-empty"><span class="practice-mark">✦</span><h3>لا توجد أسئلة تدريبية لهذا الدرس بعد</h3><p class="muted">يمكنك مراجعة الفكرة الأساسية، وسيضيف المعلم الأسئلة المناسبة لاحقًا.</p><button class="btn sec2" data-act="close-modal">العودة إلى الدرس</button></div>`);
+      return;
+    }
+    PRACTICE = { lessonId, questions: data.questions, index: 0, result: null, score: 0, points: 0 };
+    drawPractice();
+  });
+}
+function drawPractice() {
+  if (!PRACTICE) return;
+  if (PRACTICE.index >= PRACTICE.questions.length) {
+    openModal('أحسنت على المحاولة', html`<div class="practice-summary"><span class="practice-mark">✦</span><h3>أنهيت تدريب الدرس</h3><div class="practice-score">${PRACTICE.score} / ${PRACTICE.questions.length}</div><p>إجابات صحيحة</p><p class="muted">النقاط الجديدة: ${PRACTICE.points}. يمكنك إعادة قراءة الدرس ثم العودة للتدريب متى شئت.</p><button class="btn" data-act="close-modal">العودة إلى الدرس</button></div>`);
+    return;
+  }
+  const q = PRACTICE.questions[PRACTICE.index];
+  const options = q.type === 'true_false' ? [{value:'true',label:'صحيح'},{value:'false',label:'خطأ'}] : q.options.map(x => ({value:x,label:x}));
+  const result = PRACTICE.result;
+  openModal('اختبر فهمك', html`<div class="practice-view">
+    <div class="practice-progress"><span>السؤال ${PRACTICE.index + 1} من ${PRACTICE.questions.length}</span><span>${PRACTICE.score} إجابات صحيحة</span></div>
+    <div class="practice-track"><span style="width:${Math.round((PRACTICE.index + 1) / PRACTICE.questions.length * 100)}%"></span></div>
+    <h3 class="practice-question">${q.title}</h3>
+    ${result ? html`<div class="practice-feedback ${result.correct ? 'is-correct' : 'is-wrong'}"><b>${result.correct ? 'أحسنت، إجابة صحيحة' : 'ليست هذه الإجابة الصحيحة'}</b><p>الإجابة: ${result.correct_answer === 'true' ? 'صحيح' : result.correct_answer === 'false' ? 'خطأ' : result.correct_answer}</p><p>${result.explanation}</p>${result.points_awarded ? html`<span class="chip">+${result.points_awarded} نقطة</span>` : ''}</div>` : html`<form class="practice-options" data-form="practice-answer"><div class="stack">${options.map((o,i)=>html`<label class="practice-option"><input type="radio" name="answer" value="${o.value}" required><span class="practice-letter">${String.fromCharCode(65+i)}</span><span>${o.label}</span></label>`)}</div><button class="btn practice-submit" type="submit">تحقق من الإجابة</button></form>`}
+    ${result ? html`<button class="btn practice-submit" type="button" data-act="practice-next">${PRACTICE.index + 1 === PRACTICE.questions.length ? 'عرض النتيجة' : 'السؤال التالي'}</button>` : ''}
+  </div>`);
+}
+async function submitPracticeAnswer(form) {
+  await guard(async () => {
+    const selected = form.querySelector('input[name="answer"]:checked');
+    if (!selected) { toast('اختر إجابة أولًا', true); return; }
+    const q = PRACTICE?.questions[PRACTICE.index];
+    if (!q || PRACTICE.result) return;
+    const result = await post('/api/learning/attempts', { lesson_id: PRACTICE.lessonId, question_id: q.id, answer: selected.value });
+    PRACTICE.result = result;
+    if (result.correct) PRACTICE.score += 1;
+    PRACTICE.points += result.points_awarded || 0;
+    drawPractice();
+  });
+}
+function nextPracticeQuestion() {
+  if (!PRACTICE || !PRACTICE.result) return;
+  PRACTICE.index += 1;
+  PRACTICE.result = null;
+  drawPractice();
 }
 function completeLessonFromModal(id) {
   return guard(async () => { await post(`/api/lessons/${encodeURIComponent(id)}/complete`); closeOverlay(); toast('أحسنت، تم تسجيل إكمال الدرس'); await pgLearning(); });
@@ -966,6 +1014,8 @@ const ACT = {
   'back-tests': () => showPage('tests', { grading: null }),
   'grades-save': el => saveGrades(el),
   'open-lesson': el => openLesson(el.dataset.id),
+  'open-practice': el => openPractice(el.dataset.id),
+  'practice-next': nextPracticeQuestion,
   'lesson-complete-modal': el => completeLessonFromModal(el.dataset.id),
   'lesson-complete': el => guard(async () => { el.disabled = true; await post(`/api/lessons/${encodeURIComponent(el.dataset.id)}/complete`); toast('أحسنت، تم تسجيل إكمال الدرس'); showPage('learning'); }),
   'lesson-uncomplete': el => guard(async () => { el.disabled = true; await post(`/api/lessons/${encodeURIComponent(el.dataset.id)}/uncomplete`); toast('تم إلغاء الإكمال'); showPage('learning'); }),
@@ -1036,6 +1086,7 @@ document.addEventListener('input', e => { const k = e.target.dataset && e.target
 document.addEventListener('change', e => { const k = e.target.dataset && e.target.dataset.ch; if (k && CHG[k]) CHG[k](e.target); });
 document.addEventListener('submit', async e => {
   const f=e.target;
+  if (f.dataset.form === 'practice-answer') { e.preventDefault(); await submitPracticeAnswer(f); return; }
   if(f.dataset.form==='teacher-group'){e.preventDefault();try{const d=fd(f),id=f.dataset.id;await api(id?'/api/teacher/groups/'+encodeURIComponent(id):'/api/teacher/groups',{method:id?'PATCH':'POST',body:JSON.stringify(d)});closeOverlay();toast('تم حفظ الفوج');S.groups=await api('/api/groups');S.students=await api('/api/students');showPage('groups');}catch(err){toast(err.message,true)}return;}
   if(f.dataset.form==='team-student'){e.preventDefault();try{const d=fd(f);if(d.password&&d.password!==d.confirm_password)throw new Error('كلمتا المرور غير متطابقتين');const created=await post('/api/teams/'+encodeURIComponent(f.dataset.id)+'/students',d);closeOverlay();S.groups=await api('/api/groups');S.students=await api('/api/students');showPage('teams');showLoginCredentials(d.name,d.email||'',created.initial_password||d.password);}catch(err){toast(err.message,true)}return;}
   if(f.dataset.form==='teacher-student'){e.preventDefault();try{const d=fd(f),id=f.dataset.id;if(!id&&d.password&&d.password!==d.confirm_password)throw new Error('كلمتا المرور غير متطابقتين');if(id){await api('/api/teacher/students/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify({name:d.name,level:d.level})});closeOverlay();toast('تم تعديل بيانات الطالب');}else{const created=await post('/api/teacher/students',{...d});closeOverlay();showLoginCredentials(d.name,d.email||'',created.initial_password||d.password);}S.groups=await api('/api/groups');S.students=await api('/api/students');showPage('students');}catch(err){toast(err.message,true)}return;} if(f.dataset.form==='academic-year'){e.preventDefault(); try{const d=fd(f);d.active=f.elements.active.checked;await post('/api/admin/academic-years',d);closeOverlay();toast('تم إنشاء السنة الدراسية');showPage('program')}catch(err){toast(err.message,true)}}
