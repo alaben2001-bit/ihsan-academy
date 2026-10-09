@@ -192,6 +192,9 @@ assert.ok(legacyServiceConfig.includes('name: ihsan-academy') && legacyServiceCo
 assert.doesNotMatch(canonicalServiceConfig, /key: ACADEMY_REDIRECT_TO_FRANKFURT/, 'canonical Frankfurt service must not redirect itself');
 
 assert.match(appSource, /const dailyTips = \[/, 'login should offer original daily educational guidance');
+assert.match(appSource, /navigator\.vibrate/, 'supported mobile devices should provide tactile feedback');
+assert.match(appSource, /view-enter/, 'page content should have an app-like entry transition');
+assert.match(fs.readFileSync(path.join(__dirname, '..', 'service-worker.js'), 'utf8'), /ihsan-academy-v66-app-shell/, 'new app shell must refresh the offline cache');
 
 assert.match(appSource, /data-theme-option/, 'theme swatches must support immediate selection');
 
