@@ -165,7 +165,7 @@ function migrate() {
   // One-time, explicitly enabled administrator recovery. Remove the flag after the recovery deploy.
   const recoveryEmail = clean(process.env.ACADEMY_BOOTSTRAP_ADMIN_EMAIL || '', 200).toLowerCase();
   const recoveryPassword = String(process.env.ACADEMY_BOOTSTRAP_ADMIN_PASSWORD || '');
-  if (process.env.ACADEMY_FORCE_ADMIN_PASSWORD_RESET === '1' && recoveryEmail && recoveryPassword.length >= 12 && /^\\S+@\\S+\\.\\S+$/.test(recoveryEmail)) {
+  if (process.env.ACADEMY_FORCE_ADMIN_PASSWORD_RESET === '1' && recoveryEmail && recoveryPassword.length >= 12 && /^\S+@\S+\.\S+$/.test(recoveryEmail)) {
     const recoveryUser = db.users.find(u => String(u.email || '').toLowerCase() === recoveryEmail && u.role === 'admin');
     if (recoveryUser) {
       recoveryUser.password = hashPassword(recoveryPassword);
@@ -720,10 +720,10 @@ async function handler(req, res) {
       requireAdmin(); const b = await body(req);
       const name = clean(b.name, 120), suppliedEmail = clean(b.email, 200).toLowerCase(), role = clean(b.role, 20);
       const password = String(b.password || '');
-      if (name.length < 2 || (suppliedEmail && !/^\\S+@\\S+\\.\\S+$/.test(suppliedEmail)) || (!suppliedEmail && role !== 'student') || (password.length < 8 && !(role === 'student' && !password)) || !['admin','teacher','student','parent','chief_supervisor'].includes(role)) fail(400, 'أدخل الاسم والبريد الصحيح إن وُجد وكلمة مرور مناسبة والدور');
+      if (name.length < 2 || (suppliedEmail && !/^\S+@\S+\.\S+$/.test(suppliedEmail)) || (!suppliedEmail && role !== 'student') || (password.length < 8 && !(role === 'student' && !password)) || !['admin','teacher','student','parent','chief_supervisor'].includes(role)) fail(400, 'أدخل الاسم والبريد الصحيح إن وُجد وكلمة مرور مناسبة والدور');
       if (suppliedEmail && db.users.some(x => String(x.email).toLowerCase() === suppliedEmail)) fail(409, 'البريد مستخدم بالفعل');
       const email = suppliedEmail || ('student-' + uid('mail') + '@no-email.invalid');
-      const initialPassword = password || (name.trim().split(/\\s+/)[0] + '123');
+      const initialPassword = password || (name.trim().split(/\s+/)[0] + '123');
       const nu = coreService.createUser({ name, email, password:initialPassword, role });
       if(role==='student'){
         const st={id:uid('s'),user_id:nu.id,parent_id:null,name,group_name:'',level:'المستوى الأساسي',attendance_rate:0,progress:0,memorized:'—',review:0,group_id:null}; db.students.push(st);
@@ -1214,9 +1214,9 @@ async function handler(req, res) {
     if (p === '/api/teacher/students' && req.method === 'POST') {
       requireStaff(user);if(user.role!=='teacher')fail(403,'هذه العملية مخصصة للشيخ');
       const b=await body(req),name=clean(b.name,120),suppliedEmail=clean(b.email,200).toLowerCase(),password=String(b.password||''),gid=String(b.group_id||'');
-      if(name.length<2||(suppliedEmail&&!/^\\S+@\\S+\\.\\S+$/.test(suppliedEmail))||(password.length<8&&!(!suppliedEmail&&!password)))fail(400,'أدخل الاسم والبريد الصحيح إن وُجد وكلمة مرور مناسبة');
+      if(name.length<2||(suppliedEmail&&!/^\S+@\S+\.\S+$/.test(suppliedEmail))||(password.length<8&&!(!suppliedEmail&&!password)))fail(400,'أدخل الاسم والبريد الصحيح إن وُجد وكلمة مرور مناسبة');
       if(!teacherGroupIds(user).includes(gid))fail(403,'اختر فوجًا تشرف عليه');if(suppliedEmail&&db.users.some(x=>String(x.email).toLowerCase()===suppliedEmail))fail(409,'البريد مستخدم بالفعل');
-      const email=suppliedEmail||('student-'+uid('mail')+'@no-email.invalid'),initialPassword=password||(name.trim().split(/\\s+/)[0]+'123');
+      const email=suppliedEmail||('student-'+uid('mail')+'@no-email.invalid'),initialPassword=password||(name.trim().split(/\s+/)[0]+'123');
       const nu=coreService.createUser({name,email,password:initialPassword,role:'student'});const st={id:uid('s'),user_id:nu.id,parent_id:null,name,group_name:(db.groups.find(g=>g.id===gid)||{}).name||'',level:clean(b.level,80)||'المستوى الأساسي',attendance_rate:0,progress:0,memorized:'—',review:0,group_id:gid};db.students.push(st);addMembership(st.id,gid);audit(user,'teacher.student.create',{student_id:st.id,group_id:gid});await save();return json(res,201,{id:st.id,name:st.name,group_id:gid,initial_password:initialPassword,email:suppliedEmail});
     }
     if ((r=route(req,p,'PATCH','/api/teacher/students/:id'))) {
