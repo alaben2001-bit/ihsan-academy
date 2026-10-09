@@ -18,7 +18,9 @@ const SUBJECTS = [
   { key:'thinking', name:'التفكير والتحقق من المعلومات', category:'التفكير والإعلام', learning_mode:'discussion', required:true, study_method:'توقف، تحقق من المصدر، فرّق بين الخبر والرأي، ثم ناقش بأدب.' },
   { key:'health', name:'الصحة والعادات الرقمية', category:'الصحة والعادات', learning_mode:'apply', required:false, study_method:'عادات واقعية متدرجة للنوم والحركة والراحة وتقليل التشتت.' },
   { key:'family', name:'الأسرة وآداب التعامل', category:'الآداب والعلاقات', learning_mode:'apply', required:true, study_method:'مواقف حياتية وتمثيل عملي للكلمة الطيبة والإنصات والإحسان.' },
-  { key:'duaa', name:'الدعاء والذكر', category:'الذكر والدعاء', learning_mode:'memorize', required:true, study_method:'حفظ ذكر صحيح، فهم معناه، معرفة وقته ومصدره، والمحافظة عليه.' }
+  { key:'duaa', name:'الدعاء والذكر', category:'الذكر والدعاء', learning_mode:'memorize', required:true, study_method:'حفظ ذكر صحيح، فهم معناه، معرفة وقته ومصدره، والمحافظة عليه.' },
+  { key:'finance', name:'المال والأمانة والكرم', category:'المال والمسؤولية', learning_mode:'apply', required:false, study_method:'تعلّم الميزانية البسيطة، الأمانة، العطاء الاختياري، والتحقق من جهات التبرع.' },
+  { key:'leisure', name:'الترفيه النافع وإدارة العادات', category:'العادات والترفيه', learning_mode:'apply', required:false, study_method:'اختيار ترفيه مباح ومتوازن يحفظ الواجبات والصحة والوقت.' }
 ];
 
 const LESSONS = [
@@ -203,6 +205,107 @@ const LESSONS = [
   }}
 ];
 
+const V58_LESSONS = [
+  {key:'quran-vocabulary',subject:'quran',title:'مفردات القرآن: كيف أتعلم كلمة جديدة؟',description:'بناء عادة لفهم مفردات القرآن من تفسير موثوق.',learning_mode:'understand',study_method:'اختر كلمة من وردك، راجع معناها في مصدر موثوق، ثم اشرحها بسياق الآية.',content:{
+    opening:'قد تمر علينا كلمة قرآنية نعرف صوتها ولا نعرف معناها؛ والتدرج في فهم المفردات يفتح باب التدبر.',
+    ayahs:[{text:'أَفَلَا يَتَدَبَّرُونَ الْقُرْآنَ',reference:'سورة النساء، الآية 82'}],hadiths:[],
+    story:'يختار الطالب كلمة من ورد اليوم، ثم يكتب معناها من تفسير موثوق ويتأكد أن المعنى مناسب لسياق الآية.',
+    explanation:'لا يكفي تخمين معنى الكلمة من اللهجة أو من استعمالها المعاصر. ارجع إلى تفسير أو معجم قرآني موثوق، ولا تعمم معنى واحدًا على كل السياقات.',
+    examples:['سجل الكلمة والسورة والآية.','اكتب المعنى المختصر من مصدر معتمد.','اشرح كيف يخدم المعنى فهم الآية.'],
+    reflection_questions:['ما المصدر الذي تحققت منه؟','هل يختلف معنى الكلمة بحسب السياق؟'],
+    action:'أضف كلمة واحدة إلى دفتر مفرداتك القرآنية بإشراف الشيخ.',memorize:'احفظ الكلمة ومعناها المختصر وسياقها.',review:'راجع الكلمات السابقة واسأل نفسك عن معناها قبل فتح الدفتر.',source_notes:'الآية: النساء 4:82. المعاني تُراجع في تفسير معتمد.',source_status:'verified'
+  }},
+  {key:'tazkiyah-bullying',subject:'tazkiyah',title:'التنمر: قوة بلا أذى',description:'تمييز المزاح المقبول عن الإيذاء وكيفية طلب المساعدة.',learning_mode:'apply',study_method:'حلل الموقف، سمِّ السلوك المؤذي، واختر ردًا آمنًا يحفظ الكرامة.',content:{
+    opening:'ليس كل ما يضحك المجموعة مزاحًا مقبولًا؛ إذا كان يجرح شخصًا أو يخيفه فهو يحتاج إلى توقف.',
+    ayahs:[],hadiths:[],story:'مجموعة تكرر لقبًا يكرهه طالب. يوضح لهم أن التكرار مؤذٍ، ويطلب مساعدة الشيخ أو وليه إذا استمر الأمر.',
+    explanation:'التنمر سلوك مؤذٍ متكرر أو فيه اختلال قوة. لا يُطلب من الطالب أن يواجه خطرًا وحده؛ يبتعد عن الموقف غير الآمن، ويخبر بالغًا موثوقًا، ويوثق ما يلزم دون نشر فضيحة أو بيانات خاصة.',
+    examples:['قل بوضوح: «لا أقبل هذا اللقب».','لا تضحك أو تعيد نشر صورة مهينة.','أبلغ الشيخ أو ولي الأمر إذا تكرر الأذى.'],
+    reflection_questions:['كيف أعرف أن المزاح تحول إلى إيذاء؟','من الشخص البالغ الذي أستطيع اللجوء إليه؟'],
+    action:'اكتب خطة آمنة من خطوتين إذا شاهدت تنمرًا.',memorize:'الكرامة محفوظة، وطلب المساعدة ليس ضعفًا.',review:'راجع الخطة مع بالغ موثوق إذا كان الموقف واقعيًا.',source_notes:'درس توعوي عام؛ الحالات الخطرة تُرفع إلى ولي الأمر والجهة المسؤولة.',source_status:'teacher_review'
+  }},
+  {key:'learning-week-review',subject:'learning',title:'مراجعة الأسبوع دون جلد الذات',description:'مراجعة الخطة واختيار تعديل واحد قابل للتنفيذ.',learning_mode:'apply',study_method:'اكتب ما أنجزته وما تعثر وما ستعدله، دون مقارنة نفسك بغيرك.',content:{
+    opening:'الخطة مرشد وليست قاضيًا؛ ننظر إليها لنتعلم كيف نخطط أفضل في الأسبوع القادم.',
+    ayahs:[],hadiths:[],story:'طالب وضع عشر مهام ولم ينجز إلا أربعًا بسبب الاختبارات والمرض. بدل وصف نفسه بالفشل، يحدد الأولويات ويقلل المهام.',
+    explanation:'راجع الوقائع: ما الذي تم؟ ما الذي منع الباقي؟ هل كانت الخطة واقعية؟ اختر تعديلًا واحدًا فقط. لا تقارن بدايتك بمرحلة غيرك، ولا تجعل البرنامج الإضافي مقياسًا لقيمتك.',
+    examples:['أضع ثلاث أولويات للأسبوع المقبل.','أقسم الواجب الكبير إلى خطوات.','أحجز وقتًا للنوم والراحة والأسرة.'],
+    reflection_questions:['ما الذي ساعدني على الاستمرار؟','ما التعديل الصغير الذي أحتاجه؟'],
+    action:'اكتب مراجعة من ثلاثة أسطر: أنجزت، تعلمت، سأجرب.',memorize:'مراجعة صادقة، تعديل صغير، ثم بداية جديدة.',review:'ارجع إلى خطتك بعد أسبوع لترى أثر التعديل.',source_notes:'الهدف تحسين التخطيط لا تقييم قيمة الطالب.',source_status:'teacher_review'
+  }},
+  {key:'thinking-disagreement',subject:'thinking',title:'السؤال الصادق أم الشبهة المضللة؟',description:'تعلم طرح الأسئلة والتحقق قبل الانفعال.',learning_mode:'discussion',study_method:'اكتب السؤال بوضوح، حدّد ما تعرفه وما لا تعرفه، ثم اطلب مصدرًا مناسبًا.',content:{
+    opening:'السؤال وسيلة للتعلم؛ لا نحتاج إلى كتم سؤال صادق، ولا إلى تصديق كل ادعاء يقدم نفسه على أنه سؤال.',
+    ayahs:[{text:'وَلَا تَقْفُ مَا لَيْسَ لَكَ بِهِ عِلْمٌ',reference:'سورة الإسراء، الآية 36'}],hadiths:[],
+    story:'يرى الطالب مقطعًا يجزم بأن عالمًا قال كلامًا غريبًا. بدل مهاجمة صاحبه أو إعادة نشره، يبحث عن المصدر الأصلي والسياق.',
+    explanation:'ميّز بين سؤال يريد فهمًا، وادعاء يحتاج دليلًا، ومقطع يثير الانفعال. اطلب المصدر، تحقق من النقل، وافصل الدليل عن التعليق. في المسائل الشرعية ارجع إلى الشيخ وأهل العلم.',
+    examples:['«ما مصدر هذه المعلومة؟»','«هل هذا نص كامل أم اقتباس مجتزأ؟»','«لا أعلم، سأتحقق قبل الحكم».'],
+    reflection_questions:['ما الذي جعلني أصدق المعلومة بسرعة؟','كيف أبحث عن المصدر الأصلي؟'],
+    action:'تدرب على التحقق من اقتباس غير حساس قبل مشاركته.',memorize:'توقف، تحقق، افهم السياق، ثم احكم.',review:'اشرح الخطوات الأربع لزميلك.',source_notes:'الآية: الإسراء 17:36.',source_status:'verified'
+  }},
+  {key:'family-listening',subject:'family',title:'الإنصات داخل الأسرة',description:'كيف تسمع قبل الرد وتختلف دون إهانة.',learning_mode:'apply',study_method:'أعد صياغة ما سمعته، اسأل عن المقصود، ثم اشرح رأيك بأدب.',content:{
+    opening:'قد لا نتفق في كل شيء، لكن يمكن أن نحفظ الاحترام ونفهم ما يقصده الطرف الآخر.',
+    ayahs:[],hadiths:[],story:'يطلب الوالد من ابنه إغلاق الهاتف أثناء الطعام. بدل الرد بانفعال، يسأل عن الوقت المطلوب ويتفقان على ترتيب مناسب.',
+    explanation:'الإنصات لا يعني الموافقة على كل شيء؛ بل يعطي الطرف الآخر فرصة ليُفهم. استخدم عبارات واضحة، واطلب وقتًا للحديث إذا كنت غاضبًا. إذا كان هناك أذى أو خوف، فاطلب مساعدة بالغ موثوق.',
+    examples:['«أفهم أنك تريد… هل هذا قصدك؟»','«أختلف في هذه النقطة لأن…»','«أحتاج دقائق لأهدأ ثم نكمل الحديث».'],
+    reflection_questions:['هل قاطعت أحدًا قبل أن يكمل؟','ما عبارة محترمة أستطيع استعمالها عند الاختلاف؟'],
+    action:'استمع لشخص من أسرتك دون مقاطعة ثم لخّص ما فهمته.',memorize:'أسمع، أتأكد، أشرح، وأحفظ الأدب.',review:'تذكر موقفًا تحسن فيه الحوار بسبب الإنصات.',source_notes:'هذا الدرس لا يطلب من الطالب تحمل أذى؛ السلامة وطلب المساعدة أولًا.',source_status:'teacher_review'
+  }},
+  {key:'health-sleep-movement',subject:'health',title:'النوم والحركة أساس للتعلم',description:'عادات صحية بسيطة تساعد على الانتباه دون مبالغة.',learning_mode:'apply',study_method:'اختر تعديلًا صغيرًا في النوم أو الحركة، وراقب أثره أسبوعًا.',content:{
+    opening:'العقل يتعلم ضمن جسد يحتاج إلى نوم وحركة وغذاء وراحة؛ ليست كل مشكلة تُحل بزيادة ساعات الدراسة.',
+    ayahs:[],hadiths:[],story:'طالب يسهر على الهاتف ثم يجد صعوبة في التركيز. يجرب إبعاد الهاتف قبل النوم بوقت مناسب وإضافة مشي قصير خلال اليوم.',
+    explanation:'العادات الصحية تختلف حسب العمر والظروف. حافظ على روتين نوم مناسب، وحركة آمنة، وشرب الماء، واطلب مساعدة وليك أو مختص إذا استمر التعب أو ظهرت أعراض مقلقة. لا تستخدم هذا الدرس لتشخيص نفسك أو غيرك.',
+    examples:['مشي أو لعب آمن بحسب القدرة.','تقليل الشاشة قبل النوم تدريجيًا.','استراحة قصيرة بعد جلسة تعلم مركزة.'],
+    reflection_questions:['أي عادة تؤثر في نشاطي أكثر؟','ما التغيير الصغير الذي أستطيع المحافظة عليه؟'],
+    action:'اختر عادة صحية واحدة وجربها لمدة أسبوع.',memorize:'التدرج والثبات أفضل من تغييرات مرهقة.',review:'سجل ملاحظة بسيطة عن النوم والنشاط دون هوس بالأرقام.',source_notes:'إرشاد عام لا يغني عن نصيحة الطبيب عند الحاجة.',source_status:'teacher_review'
+  }},
+  {key:'finance-budget',subject:'finance',title:'ميزانية صغيرة وأمانة المال',description:'تعلم الفرق بين الحاجة والرغبة والتخطيط للمصروف.',learning_mode:'apply',study_method:'سجل المصروفات بإذن وليك، صنفها، ثم اختر هدف ادخار بسيطًا.',content:{
+    opening:'المال أمانة ووسيلة؛ والتخطيط له يساعد على الاستقلال المسؤول والكرم دون إسراف.',
+    ayahs:[],hadiths:[],story:'يتلقى طالب مصروفًا أسبوعيًا. يكتب ما يحتاجه فعلًا، وما يرغب فيه، ويترك جزءًا لهدف يختاره بموافقة وليه.',
+    explanation:'الميزانية البسيطة تسجل ما يدخل وما يخرج، وتفرق بين الحاجة والرغبة، وتترك مساحة للظروف. لا يُطلب من الطالب مشاركة بيانات مالية خاصة أو إرسال المال إلى جهة غير موثوقة. الصدقة اختيارية وبإشراف ولي الأمر والجهة الموثوقة.',
+    examples:['أقارن بين خيارين قبل الشراء.','أدخر جزءًا صغيرًا لهدف واضح.','أتحقق من جهة التبرع قبل أي مساهمة.'],
+    reflection_questions:['ما الحاجة وما الرغبة في مثال من يومي؟','كيف أحافظ على أمانة المال؟'],
+    action:'صمم ميزانية افتراضية بسيطة دون مشاركة معلوماتك المالية الخاصة.',memorize:'خطط، تحقق، لا تسرف، ولا تتبرع تحت ضغط.',review:'راجع الخطة وعدلها مع وليك عند الحاجة.',source_notes:'لا تجمع المنصة أموالًا من الطلاب عبر هذا الدرس؛ أي تبرع يحتاج إجراءات موثوقة وموافقة ولي الأمر.',source_status:'teacher_review'
+  }},
+  {key:'leisure-balance',subject:'leisure',title:'الترفيه المباح والتوازن',description:'اختيار ترفيه لا يزاحم الواجبات والصحة والعلاقات.',learning_mode:'apply',study_method:'قارن النشاط بآثاره على الوقت والواجبات والنوم والخصوصية.',content:{
+    opening:'الراحة والترفيه جزء من الحياة، والمطلوب أن يبقيا في توازن مع الواجبات والعبادة والصحة.',
+    ayahs:[],hadiths:[],story:'يحب الطالب لعبة إلكترونية، لكنه يلاحظ أنها تؤخر نومه وواجباته. يحدد وقتًا معلومًا ويختار أحيانًا نشاطًا بديلًا مع الأسرة أو الأصدقاء.',
+    explanation:'لا يُحكم على كل ترفيه بحكم واحد دون معرفة محتواه وظروفه. اختر ما لا يتضمن محرمًا أو أذى، ولا يستهلك وقت الواجبات والنوم، واحفظ خصوصيتك ولا تتواصل مع الغرباء بطريقة غير آمنة.',
+    examples:['حدد وقتًا للترفيه بعد الأولويات.','جرّب رياضة أو قراءة أو نشاطًا عائليًا.','توقف إذا أصبح النشاط يؤذي النوم أو الدراسة أو العلاقات.'],
+    reflection_questions:['ما العلامة التي تدل أن الترفيه خرج عن التوازن؟','ما بديل ممتع ومناسب أستطيع تجربته؟'],
+    action:'ضع حدًا زمنيًا واقعيًا لنشاط ترفيهي واحد وجربه هذا الأسبوع.',memorize:'الترفيه يخدم الحياة ولا يبتلعها.',review:'لاحظ أثر التوازن على النوم والواجبات والمزاج.',source_notes:'التفاصيل الشرعية المتعلقة بنوع معين من الترفيه يراجعها الشيخ.',source_status:'teacher_review'
+  }},
+  {key:'arabic-speaking',subject:'arabic',title:'التعبير الشفهي: اشرح فكرة في دقيقة',description:'ترتيب الكلام إلى فكرة ومثال وخلاصة.',learning_mode:'apply',study_method:'حضّر ثلاث نقاط، تحدث بهدوء، ثم اسأل المستمع ماذا فهم.',content:{
+    opening:'الفصاحة ليست سرعة الكلام؛ بل وضوح الفكرة وحسن ترتيبها واحترام السامع.',
+    ayahs:[],hadiths:[],story:'يُطلب من الطالب شرح درس. بدل حفظ فقرة كاملة، يحدد الفكرة الرئيسة ومثالًا وخلاصة ثم يشرحها بكلماته.',
+    explanation:'ابدأ بجملة تقول الفكرة، ثم مثال يوضحها، ثم خلاصة قصيرة. إذا نسيت كلمة فتوقف وخذ نفسًا وأكمل؛ لا تحتاج إلى الكمال لتوصل معنى صحيحًا.',
+    examples:['الفكرة: المراجعة تثبت الحفظ.','المثال: أسمع غيبًا ثم أصحح الخطأ.','الخلاصة: أراجع قبل زيادة الجديد.'],
+    reflection_questions:['هل يستطيع المستمع فهم فكرتي من أول دقيقة؟','ما الكلمة التي يمكن استبدالها بأوضح منها؟'],
+    action:'اشرح درسًا سابقًا في دقيقة ثم اطلب ملاحظة واحدة للتحسين.',memorize:'فكرة، مثال، خلاصة.',review:'كرر الشرح مرة أخرى بعد تحسين نقطة واحدة.',source_notes:'نشاط تعليمي لا يقيس قيمة الطالب أو شخصيته.',source_status:'teacher_review'
+  }},
+  {key:'seerah-timeline',subject:'seerah',title:'رتّب أحداث السيرة وافهم سياقها',description:'تعلم التاريخ من مصادر موثوقة بدل حفظ أحداث مبعثرة.',learning_mode:'understand',study_method:'حدد الحدث والزمن والسياق والمصدر ثم استخرج الفائدة.',content:{
+    opening:'حين نفهم تسلسل الحدث وسياقه، نرى أسباب المواقف ونتائجها بدل حفظ أسماء وتواريخ بلا معنى.',
+    ayahs:[],hadiths:[],story:'يقارن الطالب بين ملخصين لحدث تاريخي، ويتحقق من مصدرهما ثم يرتب الأحداث على خط زمني.',
+    explanation:'اقرأ من مصدر سيرة معتمد يقره الشيخ، واكتب الحدث في جملة، ثم ضع ما قبله وما بعده. لا تنسب تفاصيل غير ثابتة، وميّز بين الرواية التاريخية والاستنتاج الشخصي.',
+    examples:['خط زمني من ثلاث محطات.','مصدر بجانب كل معلومة.','فائدة تربوية لا تتجاوز ما يدل عليه الحدث.'],
+    reflection_questions:['هل أعرف مصدر الحدث؟','ما السياق الذي يساعدني على فهمه؟'],
+    action:'أنشئ خطًا زمنيًا من ثلاثة أحداث درستها مع توثيق المصدر.',memorize:'الحدث، السياق، المصدر، الفائدة.',review:'اشرح التسلسل دون خلط بين الأحداث.',source_notes:'تُراجع الروايات والتواريخ من كتب سيرة معتمدة.',source_status:'teacher_review'
+  }},
+  {key:'tazkiyah-resilience',subject:'tazkiyah',title:'الثبات بعد التعثر',description:'كيف تعود إلى الطريق بعد انقطاع أو خطأ.',learning_mode:'apply',study_method:'حدد سبب التعثر، صغّر الخطوة، واستعن بمن تثق به عند الحاجة.',content:{
+    opening:'الثبات لا يعني أنك لا تتعثر أبدًا؛ بل أن تتعلم كيف تعود وتواصل بما تستطيع.',
+    ayahs:[],hadiths:[],story:'فات طالب عدة أيام من المراجعة. يبدأ اليوم بمقدار قصير ويطلب من الشيخ إعادة ضبط الخطة بدل أن يحاول تعويض كل شيء دفعة واحدة.',
+    explanation:'افصل بين التعثر وبين هويتك: فاتتك مهمة، وهذا حدث يمكن فهم أسبابه. اختر خطوة صغيرة قابلة للتنفيذ، وأصلح ما يلزم، واطلب الدعم إذا كان السبب خارج قدرتك. لا تجعل البرنامج الإضافي معيارًا للنجاح أو الفشل.',
+    examples:['أعود بمراجعة قصيرة بدل تعويض مرهق.','أطلب المساعدة عند تكرار المشكلة.','أحتسب التقدم الصغير وأواصل.'],
+    reflection_questions:['ما الذي أدى إلى التعثر؟','ما أصغر خطوة أستطيع البدء بها اليوم؟'],
+    action:'اختر خطوة عودة واحدة لا تتجاوز 10 دقائق.',memorize:'تعثر، فهم، تعديل، عودة.',review:'بعد أسبوع لاحظ ما ساعدك على الاستمرار.',source_notes:'إذا استمر الضيق أو تعذر القيام بالمهام اليومية، ينبغي إشراك ولي الأمر أو مختص مناسب.',source_status:'teacher_review'
+  }},
+  {key:'learning-ask-help',subject:'learning',title:'كيف أطلب المساعدة بسؤال جيد؟',description:'صياغة سؤال يوضح ما فهمته وأين توقفت.',learning_mode:'apply',study_method:'اذكر الموضوع، ما فهمته، موضع الصعوبة، وما جربته.',content:{
+    opening:'السؤال الجيد يوفر الوقت ويكشف موضع التعثر؛ وطلب المساعدة علامة على الرغبة في التعلم.',
+    ayahs:[],hadiths:[],story:'يقول طالب «لم أفهم شيئًا». يساعده الشيخ على تحديد خطوة بعينها لم تتضح، فيصبح الشرح أسهل.',
+    explanation:'قبل السؤال، اقرأ المطلوب، اكتب ما فهمته، وحدد الكلمة أو الخطوة التي توقفت عندها. لا تخف من السؤال ولا تدّع الفهم. واحترم وقت المعلم بكتابة السؤال بوضوح.',
+    examples:['«فهمت الخطوة الأولى، لكن لم أفهم سبب الثانية».','«هل يمكن مثال آخر على هذه القاعدة؟»','«ما المصدر الذي أراجع منه هذا الموضوع؟»'],
+    reflection_questions:['ما الجزء الذي فهمته فعلًا؟','ما السؤال المحدد الذي أحتاج إلى طرحه؟'],
+    action:'اكتب سؤالًا جيدًا عن درس سابق وجرّب الإجابة عنه من المصدر أولًا.',memorize:'الموضوع، ما فهمت، موضع الصعوبة، ما جربت.',review:'حسّن سؤالًا قديمًا واجعله أكثر تحديدًا.',source_notes:'لا تُعرض أسئلة الطالب الشخصية للآخرين دون إذن.',source_status:'teacher_review'
+  }}
+];
+
 const QUESTIONS = [
   {key:'quran-taqwa-1',lesson:'quran-taqwa',type:'single_choice',title:'بحسب سورة الحجرات، ما ميزان الكرامة عند الله تعالى؟',options:['المال وكثرة الممتلكات','النسب وحده','التقوى','الشهرة بين الناس'],correct_answer:'التقوى',explanation:'قال تعالى: «إن أكرمكم عند الله أتقاكم» (الحجرات: 13).',points:2},
   {key:'quran-taqwa-2',lesson:'quran-taqwa',type:'true_false',title:'يجوز الحكم على قيمة الإنسان من مظهره وحده.',options:[],correct_answer:'false',explanation:'المظهر ليس ميزان التفاضل عند الله، وعلى المسلم ترك السخرية والتفاخر.',points:1},
@@ -266,6 +369,49 @@ const REFLECTION_QUESTIONS = [
   {key:'duaa-meaning-reflect',lesson:'duaa-meaning',title:'اختر دعاءً تريد تعلمه، واذكر كيف تتحقق من لفظه ومصدره ومعناه.',explanation:'ينتظر من الطالب ذكر مصدر موثوق وفهم المعنى وعدم نسبة غير المتحقق إلى السنة.'}
 ].map(x=>({...x,type:'short_answer',points:3,options:[],correct_answer:'',group_id:null}));
 
+const ALL_LESSONS = [...LESSONS, ...V58_LESSONS];
+
+const V58_QUESTIONS = [
+  {key:'quran-vocabulary-1',lesson:'quran-vocabulary',type:'single_choice',title:'ما الطريقة الأنسب لفهم مفردة قرآنية؟',options:['تخمين معناها من اللهجة فقط','الرجوع إلى تفسير أو معجم قرآني موثوق','اختيار أول معنى في تعليق مجهول','تعميم معنى واحد في كل السياقات'],correct_answer:'الرجوع إلى تفسير أو معجم قرآني موثوق',explanation:'السياق والمصدر المعتمد مهمان لفهم المفردة.',points:2},
+  {key:'quran-vocabulary-2',lesson:'quran-vocabulary',type:'true_false',title:'قد يختلف معنى الكلمة بحسب سياقها.',options:[],correct_answer:'true',explanation:'يجب مراعاة السياق عند تفسير الألفاظ.',points:1},
+  {key:'quran-vocabulary-3',lesson:'quran-vocabulary',type:'short_answer',title:'ما العناصر التي تكتبها في دفتر المفردات القرآنية؟',options:[],correct_answer:'',explanation:'إجابة مقترحة: الكلمة، موضعها، معناها من مصدر موثوق، وسياقها.',points:2},
+  {key:'bullying-1',lesson:'tazkiyah-bullying',type:'single_choice',title:'إذا استمر التنمر، ما التصرف الأنسب؟',options:['مواجهة الخطر وحدك دائمًا','إعادة نشر الإهانة','طلب مساعدة بالغ موثوق','السكوت مهما كان الضرر'],correct_answer:'طلب مساعدة بالغ موثوق',explanation:'السلامة وطلب المساعدة أهم من مواجهة الخطر وحدك.',points:2},
+  {key:'bullying-2',lesson:'tazkiyah-bullying',type:'true_false',title:'إعادة نشر صورة مهينة قد تزيد الأذى.',options:[],correct_answer:'true',explanation:'لا تكرر الإيذاء أو تنشر بيانات خاصة.',points:1},
+  {key:'bullying-3',lesson:'tazkiyah-bullying',type:'short_answer',title:'اذكر خطوتين آمنتين إذا شاهدت تنمرًا.',options:[],correct_answer:'',explanation:'إجابة مقترحة: عدم المشاركة في الإهانة، وإخبار الشيخ أو ولي الأمر.',points:2},
+  {key:'week-review-1',lesson:'learning-week-review',type:'single_choice',title:'ما الهدف من مراجعة الأسبوع؟',options:['الحكم على قيمة الطالب','معرفة ما نجح وتعديل الخطة','زيادة المهام مهما كانت الظروف','مقارنة النفس بكل الزملاء'],correct_answer:'معرفة ما نجح وتعديل الخطة',explanation:'المراجعة أداة للتعلم وتحسين التخطيط.',points:2},
+  {key:'week-review-2',lesson:'learning-week-review',type:'true_false',title:'إذا تعثرت الخطة، يمكن تقليل الحمل وتعديلها.',options:[],correct_answer:'true',explanation:'التعديل الواقعي يدعم الاستمرار.',points:1},
+  {key:'week-review-3',lesson:'learning-week-review',type:'short_answer',title:'اكتب: أنجزت، تعلمت، سأجرب.',options:[],correct_answer:'',explanation:'يُقبل جواب صادق ومحدد في ثلاث جمل قصيرة.',points:2},
+  {key:'thinking-disagreement-1',lesson:'thinking-disagreement',type:'single_choice',title:'قبل نشر اقتباس غريب، ما الذي ينبغي فعله؟',options:['نشره لأنه مثير','التحقق من المصدر والسياق','الاكتفاء بصورة المقطع','إضافة تفاصيل من عندنا'],correct_answer:'التحقق من المصدر والسياق',explanation:'التحقق يسبق الحكم والنشر.',points:2},
+  {key:'thinking-disagreement-2',lesson:'thinking-disagreement',type:'true_false',title:'يمكن طرح سؤال صادق مع التحقق من الادعاءات التي يتضمنها.',options:[],correct_answer:'true',explanation:'نحترم السؤال ونفحص الادعاء بالدليل.',points:1},
+  {key:'thinking-disagreement-3',lesson:'thinking-disagreement',type:'short_answer',title:'ما الفرق بين السؤال والادعاء الذي يحتاج إلى دليل؟',options:[],correct_answer:'',explanation:'إجابة مقترحة: السؤال يطلب فهمًا، أما الادعاء فيقرر شيئًا يحتاج تحققًا ودليلًا.',points:2},
+  {key:'family-listening-1',lesson:'family-listening',type:'single_choice',title:'ما أول خطوة في إنصات جيد؟',options:['مقاطعة المتحدث','إعادة صياغة ما فهمته للتأكد','رفع الصوت','افتراض النية'],correct_answer:'إعادة صياغة ما فهمته للتأكد',explanation:'التأكد من الفهم يقلل سوء التفاهم.',points:2},
+  {key:'family-listening-2',lesson:'family-listening',type:'true_false',title:'الإنصات يعني الموافقة على كل ما يقال.',options:[],correct_answer:'false',explanation:'يمكن الإنصات ثم الاختلاف بأدب.',points:1},
+  {key:'family-listening-3',lesson:'family-listening',type:'short_answer',title:'اكتب عبارة محترمة تبدأ بها اختلافك مع شخص.',options:[],correct_answer:'',explanation:'تُقبل عبارة واضحة تحفظ الاحترام وتشرح سبب الاختلاف.',points:2},
+  {key:'health-sleep-1',lesson:'health-sleep-movement',type:'single_choice',title:'ما خطة مناسبة لتحسين عادة صحية؟',options:['تغيير كل شيء في يوم واحد','اختيار تغيير صغير ومراقبة أثره','حرمان النفس من الراحة','تشخيص النفس من درس'],correct_answer:'اختيار تغيير صغير ومراقبة أثره',explanation:'التدرج ومراعاة الظروف يساعدان على الاستمرار.',points:2},
+  {key:'health-sleep-2',lesson:'health-sleep-movement',type:'true_false',title:'إذا استمر التعب أو ظهرت أعراض مقلقة، يمكن طلب نصيحة مختص.',options:[],correct_answer:'true',explanation:'المحتوى التعليمي لا يستبدل التقييم الصحي.',points:1},
+  {key:'health-sleep-3',lesson:'health-sleep-movement',type:'short_answer',title:'اذكر عادة واحدة تساعدك على التعلم مع راحة أفضل.',options:[],correct_answer:'',explanation:'تُقبل أمثلة واقعية مثل النوم المنتظم أو الحركة الآمنة أو تقليل التنبيهات.',points:2},
+  {key:'finance-1',lesson:'finance-budget',type:'single_choice',title:'ما فائدة الميزانية البسيطة؟',options:['شراء كل رغبة فورًا','تمييز الحاجة من الرغبة والتخطيط للمصروف','مشاركة معلومات الحسابات مع الجميع','التبرع تحت ضغط'],correct_answer:'تمييز الحاجة من الرغبة والتخطيط للمصروف',explanation:'التخطيط يساعد على الأمانة والإنفاق الواعي.',points:2},
+  {key:'finance-2',lesson:'finance-budget',type:'true_false',title:'ينبغي التحقق من جهة التبرع قبل إرسال المال.',options:[],correct_answer:'true',explanation:'الأمانة والحماية من الاحتيال مهمتان.',points:1},
+  {key:'finance-3',lesson:'finance-budget',type:'short_answer',title:'اذكر مثالًا لحاجة ورغبة، دون ذكر بيانات مالية خاصة.',options:[],correct_answer:'',explanation:'تُقبل أمثلة عامة تميز الحاجة الأساسية من رغبة إضافية.',points:2},
+  {key:'leisure-1',lesson:'leisure-balance',type:'single_choice',title:'متى يحتاج الترفيه إلى إعادة تنظيم؟',options:['إذا كان مباحًا ومتوازنًا','إذا بدأ يضر النوم أو الواجبات أو العلاقات','إذا كان مع الأسرة','إذا كان بعد إنجاز الأولويات'],correct_answer:'إذا بدأ يضر النوم أو الواجبات أو العلاقات',explanation:'التوازن يحفظ الواجبات والصحة والعلاقات.',points:2},
+  {key:'leisure-2',lesson:'leisure-balance',type:'true_false',title:'يمكن للطالب اختيار ترفيه مناسب مع حفظ الخصوصية والواجبات.',options:[],correct_answer:'true',explanation:'المطلوب استخدام واعٍ ومتوازن.',points:1},
+  {key:'leisure-3',lesson:'leisure-balance',type:'short_answer',title:'اقترح نشاطًا ترفيهيًا مناسبًا لا يزاحم الواجبات.',options:[],correct_answer:'',explanation:'تُقبل أنشطة آمنة ومناسبة للعمر والظروف.',points:2},
+  {key:'arabic-speaking-1',lesson:'arabic-speaking',type:'single_choice',title:'ما البنية السهلة لشرح فكرة في دقيقة؟',options:['تفاصيل كثيرة بلا ترتيب','فكرة ومثال وخلاصة','قراءة نص طويل بسرعة','البدء باعتذار طويل'],correct_answer:'فكرة ومثال وخلاصة',explanation:'الترتيب يساعد المستمع على الفهم.',points:2},
+  {key:'arabic-speaking-2',lesson:'arabic-speaking',type:'true_false',title:'نسيان كلمة أثناء الشرح يعني أن الطالب لا يستطيع التعلم.',options:[],correct_answer:'false',explanation:'يمكن التوقف قليلًا ثم إكمال الفكرة؛ التعثر طبيعي.',points:1},
+  {key:'arabic-speaking-3',lesson:'arabic-speaking',type:'short_answer',title:'اشرح فكرة من درس سابق في ثلاث جمل.',options:[],correct_answer:'',explanation:'يُقيّم الجواب على وضوح الفكرة والمثال والخلاصة.',points:2},
+  {key:'seerah-timeline-1',lesson:'seerah-timeline',type:'single_choice',title:'ما الذي يساعد على فهم حدث تاريخي؟',options:['حفظ تاريخ دون سياق','معرفة الحدث والسياق والمصدر','تجاهل اختلاف الروايات','اختراع تفاصيل لإكمال القصة'],correct_answer:'معرفة الحدث والسياق والمصدر',explanation:'السياق والمصدر يمنعان الخلط والتخمين.',points:2},
+  {key:'seerah-timeline-2',lesson:'seerah-timeline',type:'true_false',title:'ينبغي تمييز الرواية التاريخية عن الاستنتاج الشخصي.',options:[],correct_answer:'true',explanation:'هذا يساعد على الأمانة في التعلم.',points:1},
+  {key:'seerah-timeline-3',lesson:'seerah-timeline',type:'short_answer',title:'ما أربعة عناصر تسجلها عند دراسة حدث من السيرة؟',options:[],correct_answer:'',explanation:'الحدث، السياق، المصدر، والفائدة.',points:2},
+  {key:'resilience-1',lesson:'tazkiyah-resilience',type:'single_choice',title:'إذا فاتتك عدة مهام، ما البداية الأنسب؟',options:['محاولة تعويض كل شيء دفعة واحدة','خطوة صغيرة وواقعية مع تعديل الخطة','ترك البرنامج كله','وصف نفسك بالفشل'],correct_answer:'خطوة صغيرة وواقعية مع تعديل الخطة',explanation:'العودة المتدرجة أفضل من الضغط أو الاستسلام.',points:2},
+  {key:'resilience-2',lesson:'tazkiyah-resilience',type:'true_false',title:'التعثر في مهمة واحدة يحدد قيمة الإنسان كلها.',options:[],correct_answer:'false',explanation:'الخطأ أو التعثر حدث يمكن التعلم منه ولا يختزل الإنسان.',points:1},
+  {key:'resilience-3',lesson:'tazkiyah-resilience',type:'short_answer',title:'ما أصغر خطوة تستطيع فعلها للعودة إلى مهمة متعثرة؟',options:[],correct_answer:'',explanation:'يُقبل جواب واقعي ومحدد يناسب الطالب.',points:2},
+  {key:'ask-help-1',lesson:'learning-ask-help',type:'single_choice',title:'أي سؤال يوضح موضع الصعوبة؟',options:['لم أفهم أي شيء أبدًا','فهمت الخطوة الأولى ولم أفهم سبب الثانية','هذا الدرس سيئ','أعطني الجواب فقط'],correct_answer:'فهمت الخطوة الأولى ولم أفهم سبب الثانية',explanation:'السؤال المحدد يبين ما فُهم وما يحتاج شرحًا.',points:2},
+  {key:'ask-help-2',lesson:'learning-ask-help',type:'true_false',title:'طلب المساعدة عند الحاجة قد يكون خطوة نافعة في التعلم.',options:[],correct_answer:'true',explanation:'السؤال الواضح يساعد المعلم والطالب.',points:1},
+  {key:'ask-help-3',lesson:'learning-ask-help',type:'short_answer',title:'اكتب سؤالًا يتضمن ما فهمته والجزء الذي لم يتضح.',options:[],correct_answer:'',explanation:'يُقيّم السؤال على التحديد والوضوح.',points:2}
+
+];
+const ALL_QUESTIONS = [...QUESTIONS, ...V58_QUESTIONS];
+
 function norm(s){ return String(s||'').trim().toLocaleLowerCase('ar'); }
 function uniqueId(rows, base){ let id=base, n=2; const used=new Set(rows.map(x=>x.id)); while(used.has(id)) id=base+'-'+n++; return id; }
 
@@ -282,7 +428,7 @@ function seedEducationalContent(db){
     subjectIds[spec.key]=row.id;
   }
   const lessonIds={};
-  for(const spec of LESSONS){
+  for(const spec of ALL_LESSONS){
     let row=db.lessons.find(x=>x.seed_key==='formation-lesson-'+spec.key);
     if(!row){
       row={id:uniqueId(db.lessons,'seed-les-'+spec.key),seed_key:'formation-lesson-'+spec.key,subject_id:subjectIds[spec.subject],title:spec.title,description:spec.description,learning_mode:spec.learning_mode,study_method:spec.study_method,active:true,duration_minutes:15,objective:spec.description,content:JSON.parse(JSON.stringify(spec.content)),created_at:new Date().toISOString()};
@@ -290,9 +436,9 @@ function seedEducationalContent(db){
     }
     lessonIds[spec.key]=row.id;
   }
-  for(const spec of [...QUESTIONS,...REFLECTION_QUESTIONS]){
+  for(const spec of [...ALL_QUESTIONS,...REFLECTION_QUESTIONS]){
     if(db.question_bank.some(x=>x.seed_key==='formation-question-'+spec.key)) continue;
-    const lesson=LESSONS.find(x=>x.key===spec.lesson);
+    const lesson=ALL_LESSONS.find(x=>x.key===spec.lesson);
     const row={id:uniqueId(db.question_bank,'seed-q-'+spec.key),seed_key:'formation-question-'+spec.key,title:spec.title,type:spec.type,points:spec.points,options:spec.options,correct_answer:spec.correct_answer,explanation:spec.explanation,subject_id:subjectIds[lesson.subject],lesson_id:lessonIds[spec.lesson],group_id:null,active:true,created_by:null,created_at:new Date().toISOString()};
     db.question_bank.push(row); changed=true;
   }
@@ -309,7 +455,7 @@ function seedEducationalContent(db){
     }
     changed=true;
   }
-  return {changed,subjects:SUBJECTS.length,lessons:LESSONS.length,questions:QUESTIONS.length+REFLECTION_QUESTIONS.length,journey_items:5};
+  return {changed,subjects:SUBJECTS.length,lessons:ALL_LESSONS.length,questions:ALL_QUESTIONS.length+REFLECTION_QUESTIONS.length,journey_items:5};
 }
 
-module.exports={seedEducationalContent,SUBJECTS,LESSONS,QUESTIONS,REFLECTION_QUESTIONS};
+module.exports={seedEducationalContent,SUBJECTS,LESSONS:ALL_LESSONS,QUESTIONS:ALL_QUESTIONS,REFLECTION_QUESTIONS};
