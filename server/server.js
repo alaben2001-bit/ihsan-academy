@@ -1154,7 +1154,7 @@ async function handler(req, res) {
     if (p === '/api/teacher/students' && req.method === 'POST') {
       requireStaff(user);if(user.role!=='teacher')fail(403,'هذه العملية مخصصة للشيخ');
       const b=await body(req),name=clean(b.name,120),email=clean(b.email,200).toLowerCase(),password=String(b.password||''),gid=String(b.group_id||'');
-      if(name.length<2||!/^\\S+@\\S+\\.\\S+$/.test(email)||password.length<8)fail(400,'أدخل الاسم والبريد وكلمة مرور من 8 أحرف على الأقل');
+      if(name.length<2||!/^\S+@\S+\.\S+$/.test(email)||password.length<8)fail(400,'أدخل الاسم والبريد وكلمة مرور من 8 أحرف على الأقل');
       if(!teacherGroupIds(user).includes(gid))fail(403,'اختر فوجًا تشرف عليه');if(db.users.some(x=>String(x.email).toLowerCase()===email))fail(409,'البريد مستخدم بالفعل');
       const nu=coreService.createUser({name,email,password,role:'student'});const st={id:uid('s'),user_id:nu.id,parent_id:null,name,group_name:(db.groups.find(g=>g.id===gid)||{}).name||'',level:clean(b.level,80)||'المستوى الأساسي',attendance_rate:0,progress:0,memorized:'—',review:0,group_id:gid};db.students.push(st);addMembership(st.id,gid);audit(user,'teacher.student.create',{student_id:st.id,group_id:gid});await save();return json(res,201,{id:st.id,name:st.name,group_id:gid});
     }
