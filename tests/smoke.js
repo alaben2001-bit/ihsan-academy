@@ -152,5 +152,5 @@ assert.match(dockerfileSource, /chown -R node:node \/app\/data \/app\/backups/, 
 const renderSource = fs.readFileSync(path.join(__dirname, '..', 'render.yaml'), 'utf8');
 const legacyServiceConfig = renderSource.split('  # Replacement web service')[0];
 const canonicalServiceConfig = renderSource.split('name: ihsan-academy-frankfurt')[1] || '';
-assert.match(legacyServiceConfig, /name: ihsan-academy[\\s\\S]*?key: ACADEMY_REDIRECT_TO_FRANKFURT[\\s\\S]*?value: "1"/, 'legacy Oregon service must redirect to Frankfurt');
+assert.ok(legacyServiceConfig.includes('name: ihsan-academy') && legacyServiceConfig.includes('key: ACADEMY_REDIRECT_TO_FRANKFURT') && legacyServiceConfig.includes('value: "1"'), 'legacy Oregon service must redirect to Frankfurt');
 assert.doesNotMatch(canonicalServiceConfig, /key: ACADEMY_REDIRECT_TO_FRANKFURT/, 'canonical Frankfurt service must not redirect itself');
