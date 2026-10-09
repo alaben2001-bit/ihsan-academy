@@ -12,6 +12,7 @@ const serverSource = fs.readFileSync(path.join(__dirname, '..', 'server', 'serve
 const appSource = fs.readFileSync(path.join(__dirname, '..', 'assets', 'app.js'), 'utf8');
 const htmlSource = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const cssSource = fs.readFileSync(path.join(__dirname, '..', 'assets', 'app.css'), 'utf8');
+const serviceWorkerSource = fs.readFileSync(path.join(__dirname, '..', 'service-worker.js'), 'utf8');
 assert.match(htmlSource, /login-illustration/, 'welcome screen must include its dedicated illustration');
 assert.match(htmlSource, /\/assets\/ihsan-emblem\.svg/, 'navigation and welcome screen must use the academy emblem');
 assert.match(htmlSource, /app\.css\?v=63\.0/, 'refreshed visual styles must bypass the old browser cache');
@@ -207,3 +208,5 @@ assert.match(appSource, /practice-feedback/, 'practice must show feedback after 
 assert.match(cssSource, /practice-option/, 'practice choices must have dedicated responsive styling');
 assert.match(htmlSource, /app\.css\?v=63\.0/, 'practice styles must bypass browser cache');
 assert.match(htmlSource, /app\.js\?v=63\.0/, 'practice script must bypass browser cache');
+
+assert.match(serviceWorkerSource, /ihsan-academy-v63-student-practice/, 'offline cache must be refreshed for V63');
