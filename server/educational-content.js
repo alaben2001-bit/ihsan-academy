@@ -248,6 +248,24 @@ const QUESTIONS = [
   {key:'duaa-meaning-3',lesson:'duaa-meaning',type:'single_choice',title:'ما فائدة فهم ألفاظ الدعاء؟',options:['معرفة المعنى وحضور القلب','الاستغناء عن العمل','نسبة كل عبارة إلى السنة','ترك التحقق من المصدر'],correct_answer:'معرفة المعنى وحضور القلب',explanation:'فهم الدعاء يعين على حضوره ومعرفة ما يسأل العبد ربه.',points:2}
 ];
 
+
+const REFLECTION_QUESTIONS = [
+  {key:'quran-taqwa-reflect',lesson:'quran-taqwa',title:'اذكر موقفًا عمليًا تستطيع فيه ترك التفاخر أو إنصاف شخص حكمت عليه بسرعة.',explanation:'تُقبل الإجابة إذا تضمنت موقفًا واقعيًا وخطوة عملية محترمة.'},
+  {key:'quran-fatiha-reflect',lesson:'quran-fatiha',title:'اشرح بكلماتك معنى الاستعانة بالله مع بذل الأسباب.',explanation:'ينتظر من الطالب ذكر طلب العون من الله مع القيام بالعمل المشروع.'},
+  {key:'hadith-intention-reflect',lesson:'hadith-intention',title:'اكتب نية صالحة للدراسة اليوم، واذكر كيف تتجنب تحويل مراجعة النية إلى وسوسة.',explanation:'تُقبل الإجابة إذا جمعت قصدًا صالحًا والمضي في العمل دون تكرار قلِق.'},
+  {key:'hadith-kindness-reflect',lesson:'hadith-kindness',title:'أعد صياغة نصيحة جارحة لتصبح واضحة ورفيقة دون إخفاء الخطأ.',explanation:'تُقيّم الإجابة على وضوح التصحيح واحترام الشخص.'},
+  {key:'aqidah-worship-reflect',lesson:'aqidah-worship',title:'اذكر عملًا يوميًا مباحًا يمكن أن تنوي به خيرًا، وبيّن شرطين لصلاحه.',explanation:'ينتظر مثالًا مشروعًا مع نية صالحة وعدم مخالفة الشرع.'},
+  {key:'fiqh-prayer-reflect',lesson:'fiqh-prayer',title:'اكتب سؤالًا محددًا عن عبادة تريد تعلمها، وحدد مصدرًا موثوقًا لتعلمها.',explanation:'تُقبل الإجابة إذا كان السؤال واضحًا والمصدر مناسبًا.'},
+  {key:'seerah-character-reflect',lesson:'seerah-character',title:'اذكر خلقًا تريد تحسينه، وموقفًا ستطبقه فيه هذا الأسبوع.',explanation:'تُقيّم الإجابة على ارتباط الخلق بخطوة عملية.'},
+  {key:'arabic-summary-reflect',lesson:'arabic-summary',title:'لخّص فكرة هذا الدرس في ثلاث جمل من صياغتك دون إضافة معنى غير موجود.',explanation:'تُقيّم الإجابة على حفظ الفكرة، والاختصار، وعدم تحريف المعنى.'},
+  {key:'tazkiyah-repentance-reflect',lesson:'tazkiyah-repentance',title:'اشرح الفرق بين الندم الذي يدفع للإصلاح والقنوط الذي يعطّل العمل.',explanation:'ينتظر من الطالب ذكر الرجوع والإصلاح مع الرجاء وعدم الاستسلام.'},
+  {key:'learning-spaced-review-reflect',lesson:'learning-spaced-review',title:'صمّم خطة مراجعة بسيطة لدرس واحد تتضمن الاسترجاع وموعد مراجعة لاحقًا.',explanation:'تُقيّم الإجابة على وجود استرجاع وتصحيح وتوقيت واقعي للمراجعة.'},
+  {key:'thinking-verify-reflect',lesson:'thinking-verify',title:'طبّق ثلاث خطوات للتحقق من خبر قبل نشره، واذكر متى تقرر عدم نشره.',explanation:'ينتظر مصدرًا أصليًا وسياقًا ودليلًا، مع الامتناع عن النشر عند غياب التحقق.'},
+  {key:'health-digital-reflect',lesson:'health-digital',title:'اختر عادة رقمية واحدة تريد تغييرها، واكتب حدًا واقعيًا وبديلًا نافعًا.',explanation:'تُقيّم الإجابة على كون الخطة محددة وقابلة للتطبيق دون مبالغة.'},
+  {key:'family-parents-reflect',lesson:'family-parents',title:'اذكر عمل بر تستطيع القيام به اليوم، وكيف تتصرف بأدب عند الاختلاف.',explanation:'تُقيّم الإجابة على احترام الوالدين ووضوح العمل الممكن.'},
+  {key:'duaa-meaning-reflect',lesson:'duaa-meaning',title:'اختر دعاءً تريد تعلمه، واذكر كيف تتحقق من لفظه ومصدره ومعناه.',explanation:'ينتظر من الطالب ذكر مصدر موثوق وفهم المعنى وعدم نسبة غير المتحقق إلى السنة.'}
+].map(x=>({...x,type:'short_answer',points:3,options:[],correct_answer:'',group_id:null}));
+
 function norm(s){ return String(s||'').trim().toLocaleLowerCase('ar'); }
 function uniqueId(rows, base){ let id=base, n=2; const used=new Set(rows.map(x=>x.id)); while(used.has(id)) id=base+'-'+n++; return id; }
 
@@ -272,7 +290,7 @@ function seedEducationalContent(db){
     }
     lessonIds[spec.key]=row.id;
   }
-  for(const spec of QUESTIONS){
+  for(const spec of [...QUESTIONS,...REFLECTION_QUESTIONS]){
     if(db.question_bank.some(x=>x.seed_key==='formation-question-'+spec.key)) continue;
     const lesson=LESSONS.find(x=>x.key===spec.lesson);
     const row={id:uniqueId(db.question_bank,'seed-q-'+spec.key),seed_key:'formation-question-'+spec.key,title:spec.title,type:spec.type,points:spec.points,options:spec.options,correct_answer:spec.correct_answer,explanation:spec.explanation,subject_id:subjectIds[lesson.subject],lesson_id:lessonIds[spec.lesson],group_id:null,active:true,created_by:null,created_at:new Date().toISOString()};
@@ -291,7 +309,7 @@ function seedEducationalContent(db){
     }
     changed=true;
   }
-  return {changed,subjects:SUBJECTS.length,lessons:LESSONS.length,questions:QUESTIONS.length,journey_items:5};
+  return {changed,subjects:SUBJECTS.length,lessons:LESSONS.length,questions:QUESTIONS.length+REFLECTION_QUESTIONS.length,journey_items:5};
 }
 
-module.exports={seedEducationalContent,SUBJECTS,LESSONS,QUESTIONS};
+module.exports={seedEducationalContent,SUBJECTS,LESSONS,QUESTIONS,REFLECTION_QUESTIONS};
