@@ -1185,8 +1185,8 @@ async function handler(req, res) {
       if(name.length<2||(suppliedEmail&&!/^\S+@\S+\.\S+$/.test(suppliedEmail))||(password&&password.length<8))fail(400,'أدخل الاسم والبريد الصحيح إن وُجد وكلمة مرور مناسبة');
       if(suppliedEmail&&db.users.some(x=>String(x.email).toLowerCase()===suppliedEmail))fail(409,'البريد مستخدم بالفعل');
       const email=suppliedEmail||('student-'+uid('mail')+'@no-email.invalid'),initialPassword=password||(name.trim().split(/\s+/)[0]+'123');
-      const nu=coreService.createUser({name,email,password:initialPassword,role:'student'});
       const group=db.groups.find(g=>g.id===t.group_id);if(!group)fail(404,'فوج الفريق غير موجود');
+      const nu=coreService.createUser({name,email,password:initialPassword,role:'student'});
       const st={id:uid('s'),user_id:nu.id,parent_id:null,name,group_name:group.name||'',level:'المستوى الأساسي',attendance_rate:0,progress:0,memorized:'—',review:0,group_id:t.group_id};
       db.students.push(st);addMembership(st.id,t.group_id);db.team_members.push({id:uid('tmem'),team_id:t.id,student_id:st.id});
       audit(user,'team.student.create',{student_id:st.id,team_id:t.id,group_id:t.group_id});await save();
@@ -1696,7 +1696,7 @@ async function handler(req, res) {
 
     /* ═══════════ تواصل ومكتبة الشيخ V23 ═══════════ */
     if (p === '/api/contacts' && req.method === 'GET') {
-      return json(res,200,db.users.filter(u=>u.active!==false&&u.id!==user.id).map(safeUser));
+      return json(res,200,db.users.filter(u=>u.active!==false&&u.id!==user.id).map(u=>({id:u.id,name:u.name,role:u.role,active:true})));
     }
     const mediaVisible=m=>m&&(user.role==='admin'||!m.group_id||visibleGroupIds(user).includes(m.group_id));
     if (p === '/api/media' && req.method === 'GET') {
