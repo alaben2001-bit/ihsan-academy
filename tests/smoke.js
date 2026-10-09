@@ -190,3 +190,7 @@ const legacyServiceConfig = renderSource.split('  # Replacement web service')[0]
 const canonicalServiceConfig = renderSource.split('name: ihsan-academy-frankfurt')[1] || '';
 assert.ok(legacyServiceConfig.includes('name: ihsan-academy') && legacyServiceConfig.includes('key: ACADEMY_REDIRECT_TO_FRANKFURT') && legacyServiceConfig.includes('value: "1"'), 'legacy Oregon service must redirect to Frankfurt');
 assert.doesNotMatch(canonicalServiceConfig, /key: ACADEMY_REDIRECT_TO_FRANKFURT/, 'canonical Frankfurt service must not redirect itself');
+
+assert.match(appSource, /const dailyTips = \[/, 'login should offer original daily educational guidance');
+
+assert.match(appSource, /data-theme-option/, 'theme swatches must support immediate selection');
