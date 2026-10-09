@@ -4,6 +4,7 @@ const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
 const { JsonStorageAdapter, createStorage } = require('../server/storage');
+const { ensureCoreCollections } = require('../server/storage/postgres');
 
 const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'ihsan-academy-test-'));
 try {
@@ -18,6 +19,12 @@ try {
   storage.save(fixture);
   assert.deepEqual(storage.load(), fixture, 'JSON storage must preserve all data');
   assert.equal(storage.health().healthy, true, 'JSON storage health check must pass');
+
+  const emptyPostgres = ensureCoreCollections({});
+  assert.deepEqual(emptyPostgres.users, [], 'a fresh PostgreSQL database must initialize users');
+  assert.deepEqual(emptyPostgres.groups, [], 'a fresh PostgreSQL database must initialize groups');
+  assert.deepEqual(emptyPostgres.students, [], 'a fresh PostgreSQL database must initialize students');
+  assert.equal(ensureCoreCollections({ users: [{ id: 'u1' }], groups: [{ id: 'g1' }] }).users.length, 1, 'existing records must be preserved');
 
   const previousMode = process.env.ACADEMY_STORAGE;
   const previousDbMode = process.env.ACADEMY_DB_MODE;
