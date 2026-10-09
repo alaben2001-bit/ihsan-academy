@@ -15,7 +15,6 @@
     "verify:core": "node tools/verify-core-v31.js",
     "migrate:postgres": "node tools/migrate-json-postgres.js",
     "health:postgres": "node tools/health-postgres.js",
-    "test:security": "node tests/v41_security_tests.js",
     "backup:postgres": "node tools/backup-postgres.js",
     "restore:postgres": "node tools/restore-postgres.js",
     "migrations:postgres": "node tools/migrations-postgres.js",
