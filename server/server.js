@@ -627,7 +627,10 @@ async function login(req, res) {
 }
 
 async function handler(req, res) {
-  await storageReady;
+  try { await storageReady; } catch (e) {
+    console.error('Storage initialization failed:', e && e.message ? e.message : e);
+    return json(res, 503, { ok: false, error: 'تهيئة قاعدة البيانات غير مكتملة؛ حاول لاحقًا.' });
+  }
   try { rateLimit(req); } catch(e) { return json(res,e.status||429,{error:e.message}); }
   db.app_metrics = Array.isArray(db.app_metrics) ? db.app_metrics : []; db.app_metrics.push({id:uid('mx'),path:new URL(req.url,'http://localhost').pathname,method:req.method,count:1,at:new Date().toISOString()}); if(db.app_metrics.length>5000) db.app_metrics.splice(0,db.app_metrics.length-5000);
   const u = new URL(req.url, 'http://localhost'), p = u.pathname, q = Object.fromEntries(u.searchParams);
