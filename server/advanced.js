@@ -148,9 +148,9 @@ async function handleAdvanced(ctx){
   }
 
   // V47 — الإعدادات والتفضيلات والخصوصية
-  if(p==='/api/settings'&&req.method==='GET') return json(res,200,{font_scale:Number(user.font_scale)||1,high_contrast:!!user.high_contrast,reduced_motion:!!user.reduced_motion,language:'ar'});
+  if(p==='/api/settings'&&req.method==='GET') return json(res,200,{font_scale:Number(user.font_scale)||1,high_contrast:!!user.high_contrast,reduced_motion:!!user.reduced_motion,theme:['emerald','sand','indigo','olive'].includes(user.theme)?user.theme:'emerald',language:'ar'});
   if(p==='/api/settings'&&req.method==='PATCH'){
-    const b=await body(req); if(b.font_scale!==undefined){const n=Number(b.font_scale);if(![.9,1,1.1,1.2,1.3].includes(n))fail(400,'حجم الخط غير صالح');user.font_scale=n;} if(b.high_contrast!==undefined)user.high_contrast=!!b.high_contrast;if(b.reduced_motion!==undefined)user.reduced_motion=!!b.reduced_motion;audit(user,'settings_update');await save();return json(res,200,{font_scale:user.font_scale||1,high_contrast:!!user.high_contrast,reduced_motion:!!user.reduced_motion});
+    const b=await body(req); if(b.font_scale!==undefined){const n=Number(b.font_scale);if(![.9,1,1.1,1.2,1.3].includes(n))fail(400,'حجم الخط غير صالح');user.font_scale=n;} if(b.high_contrast!==undefined)user.high_contrast=!!b.high_contrast;if(b.reduced_motion!==undefined)user.reduced_motion=!!b.reduced_motion;if(b.theme!==undefined){if(!['emerald','sand','indigo','olive'].includes(b.theme))fail(400,'لون الواجهة غير صالح');user.theme=b.theme;}audit(user,'settings_update');await save();return json(res,200,{font_scale:user.font_scale||1,high_contrast:!!user.high_contrast,reduced_motion:!!user.reduced_motion,theme:user.theme||'emerald'});
   }
   if(p==='/api/privacy/request'&&req.method==='POST'){
     const b=await body(req),type=String(b.type||'access');if(!['access','correct','delete'].includes(type))fail(400,'نوع الطلب غير صحيح');const row={id:uid('pr'),user_id:user.id,type,details:clean(b.details,1500),status:'pending',created_at:now(),handled_at:null,handled_by:null};db.privacy_requests.unshift(row);audit(user,'privacy_request',{id:row.id,type});await save();return json(res,201,row);
