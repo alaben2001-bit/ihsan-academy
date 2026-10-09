@@ -409,11 +409,32 @@ async function openGroupTeachers(id){
   const assigned=new Set(g.teachers.map(x=>x.id));
   openModal('إسناد شيوخ الفوج',html`<form data-form="admin-group-teachers" data-id="${id}" class="stack"><p class="muted">اختر الشيوخ المسؤولين عن هذا الفوج. الإسناد يؤثر مباشرة في نطاق الوصول للطلاب.</p><div class="chips">${teachers.map(t=>html`<label class="check"><input type="checkbox" name="teacher_ids" value="${t.id}"${assigned.has(t.id)?' checked':''}><span>${t.name}</span></label>`)}</div><button class="btn">حفظ الإسناد</button></form>`);
 }
+async function copyCredentialText(value) {
+  try {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(value);
+    } else {
+      const box=document.createElement('textarea'); box.value=value; box.setAttribute('readonly','');
+      box.style.position='fixed'; box.style.opacity='0'; document.body.appendChild(box); box.select();
+      const ok=document.execCommand('copy'); box.remove(); if(!ok) throw new Error('تعذر النسخ تلقائيًا');
+    }
+    toast('تم النسخ');
+  } catch (e) { toast('تعذر النسخ؛ يمكنك تحديد النص ونسخه يدويًا', true); }
+}
+function showLoginCredentials(name, email, password) {
+  openModal('بيانات الدخول — احفظها وأرسلها بأمان', html`<div class="stack">
+    <div class="card flat"><b>المستخدم</b><p>${name}</p></div>
+    <label class="field"><span>البريد الإلكتروني</span><div class="row"><input id="loginCredentialEmail" readonly value="${email}" dir="ltr"><button class="btn sec2 sm" type="button" data-act="copy-login-credential" data-target="loginCredentialEmail">نسخ البريد</button></div></label>
+    <label class="field"><span>كلمة المرور الأولية</span><div class="row"><input id="loginCredentialPassword" readonly value="${password}" dir="ltr" autocomplete="off"><button class="btn sec2 sm" type="button" data-act="copy-login-credential" data-target="loginCredentialPassword">نسخ كلمة المرور</button></div></label>
+    <button class="btn" type="button" data-act="copy-login-both">نسخ البريد وكلمة المرور</button>
+    <p class="muted small">تظهر كلمة المرور هنا مرة واحدة بعد الإنشاء أو إعادة التعيين فقط. تُحفظ في قاعدة البيانات بصيغة مجزّأة، ولا يمكن استرجاع كلمة المرور القديمة. أرسلها للمعني على قناة خاصة واطلب منه تغييرها بعد الدخول.</p>
+  </div>`);
+}
 function openAdminUserModal(id) {
   api('/api/admin/users').then(users => {
     const u = id ? users.find(x=>x.id===id) : null;
     const roles = [['admin','مدير عام'],['chief_supervisor','كبير المشرفين'],['teacher','شيخ / أستاذ'],['student','طالب'],['parent','ولي أمر']];
-    openModal(u?'إدارة المستخدم':'إنشاء مستخدم', html`<form data-form="admin-user" data-id="${u?.id||''}" class="stack"><label class="field"><span>الاسم</span><input name="name" required maxlength="120" value="${u?.name||''}"></label><label class="field"><span>البريد</span><input name="email" type="email" required value="${u?.email||''}" dir="ltr"></label><label class="field"><span>الدور</span><select name="role" data-ch="adminUserRole">${roles.map(r=>html`<option value="${r[0]}"${u?.role===r[0]?' selected':''}>${r[1]}</option>`)}</select></label><label class="field"><span>${u?'كلمة مرور جديدة (اختياري)':'كلمة المرور'}</span><input name="password" type="password" minlength="8" ${u?'':'required'} placeholder="8 أحرف على الأقل"></label>${!u?html`<div id="studentProvisionFields" class="stack"${u?.role==='student'?'':' style="display:none"'}><div class="card flat"><b>إعدادات الطالب عند الإنشاء</b><p class="muted small">هذه الخيارات تخص الطالب فقط. الشيخ أو الأستاذ لا يُضاف إلى أفواج الطلبة من هنا؛ إسناد الشيخ للفوج يتم من إدارة الأفواج.</p><div class="field"><span>إضافة الطالب إلى أفواج</span><div class="chips">${S.groups.map(g=>html`<label class="check"><input type="checkbox" name="group_ids" value="${g.id}"><span>${g.name}</span></label>`)}</div></div><label class="field"><span>مهمة أولى للطالب (اختياري)</span><input name="task_title" maxlength="160" placeholder="مثال: مراجعة سورة الملك"></label><div class="two"><label class="field"><span>وصف المهمة</span><input name="task_description" maxlength="800"></label><label class="field"><span>موعدها</span><input name="task_due" type="date"></label></div></div></div>`:''}${u?html`<label class="showpw"><input type="checkbox" name="active"${u.active?' checked':''}><span>الحساب نشط</span></label>`:''}<button class="btn" type="submit">حفظ</button></form>`);
+    openModal(u?'إدارة المستخدم':'إنشاء مستخدم', html`<form data-form="admin-user" data-id="${u?.id||''}" class="stack"><label class="field"><span>الاسم</span><input name="name" required maxlength="120" value="${u?.name||''}"></label><label class="field"><span>البريد</span><input name="email" type="email" required value="${u?.email||''}" dir="ltr"></label><label class="field"><span>الدور</span><select name="role" data-ch="adminUserRole">${roles.map(r=>html`<option value="${r[0]}"${u?.role===r[0]?' selected':''}>${r[1]}</option>`)}</select></label><label class="field"><span>${u?'كلمة مرور جديدة (اختياري)':'كلمة المرور'}</span><div class="row"><input name="password" id="adminUserPassword" type="password" minlength="8" ${u?'':'required'} placeholder="8 أحرف على الأقل" autocomplete="new-password"><label class="check"><input type="checkbox" data-ch="adminPasswordVisibility"><span>إظهار</span></label></div></label>${!u?html`<div id="studentProvisionFields" class="stack"${u?.role==='student'?'':' style="display:none"'}><div class="card flat"><b>إعدادات الطالب عند الإنشاء</b><p class="muted small">هذه الخيارات تخص الطالب فقط. الشيخ أو الأستاذ لا يُضاف إلى أفواج الطلبة من هنا؛ إسناد الشيخ للفوج يتم من إدارة الأفواج.</p><div class="field"><span>إضافة الطالب إلى أفواج</span><div class="chips">${S.groups.map(g=>html`<label class="check"><input type="checkbox" name="group_ids" value="${g.id}"><span>${g.name}</span></label>`)}</div></div><label class="field"><span>مهمة أولى للطالب (اختياري)</span><input name="task_title" maxlength="160" placeholder="مثال: مراجعة سورة الملك"></label><div class="two"><label class="field"><span>وصف المهمة</span><input name="task_description" maxlength="800"></label><label class="field"><span>موعدها</span><input name="task_due" type="date"></label></div></div></div>`:''}${u?html`<label class="showpw"><input type="checkbox" name="active"${u.active?' checked':''}><span>الحساب نشط</span></label>`:''}<button class="btn" type="submit">حفظ</button></form>`);
   }).catch(e=>toast(e.message,true));
 }
 
@@ -874,6 +895,7 @@ const INP = {
   gradeNote: el => { const r = G.rows.find(x => x.id === el.dataset.sid); if (r) r.note = el.value; }
 };
 const CHG = {
+  adminPasswordVisibility: el => { const input=$('#adminUserPassword'); if(input) input.type=el.checked?'text':'password'; },
   stuFilter: drawStudents,
   postAud: el => $('#postGroupWrap').classList.toggle('hidden', el.value !== 'group'),
   attGroup: el => guard(async () => { S.att.group_id = el.value; await loadSheet(); }),
@@ -911,7 +933,9 @@ const FORM = {
   'group-request': f => guard(async()=>{const v=fd(f);await post('/api/group-requests',{student_id:f.dataset.student,group_id:v.group_id,reason:v.reason,mode:'transfer'});closeOverlay();toast('تم رفع طلب النقل إلى المدير');showPage('groups');}),
   'admin-group': f => guard(async () => { const v=fd(f), id=f.dataset.id; const payload={name:v.name,level:v.level,description:v.description}; if(id){payload.active=f.querySelector('[name=active]')?.checked!==false;await api('/api/admin/groups/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify(payload)});}else await post('/api/admin/groups',payload); closeOverlay();toast('تم حفظ الفوج');showPage('admin'); }),
   'admin-group-teachers': f => guard(async () => { const ids=[...f.querySelectorAll('[name=teacher_ids]:checked')].map(x=>x.value); await api('/api/admin/groups/'+encodeURIComponent(f.dataset.id)+'/teachers',{method:'PUT',body:JSON.stringify({teacher_ids:ids})}); closeOverlay();toast('تم تحديث إسناد الشيوخ');showPage('admin'); }),
-  'admin-user': f => guard(async () => { const v=fd(f), id=f.dataset.id; const payload={name:v.name,email:v.email,role:v.role,group_ids:[...f.querySelectorAll('[name=group_ids]:checked')].map(x=>x.value),task_title:v.task_title,task_description:v.task_description,task_due:v.task_due}; if(v.password) payload.password=v.password; if(id) { payload.active=f.querySelector('[name=active]')?.checked !== false; await api('/api/admin/users/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify(payload)}); } else { if(!v.password) throw new Error('كلمة المرور مطلوبة'); await post('/api/admin/users',payload); } closeOverlay(); toast('تم حفظ المستخدم'); showPage('admin'); })
+  'copy-login-credential': el => { const input=$('#'+el.dataset.target); if(input) copyCredentialText(input.value); },
+  'copy-login-both': () => copyCredentialText('البريد الإلكتروني: '+($('#loginCredentialEmail')?.value||'')+'\nكلمة المرور: '+($('#loginCredentialPassword')?.value||'')),
+  'admin-user': f => guard(async () => { const v=fd(f), id=f.dataset.id; const payload={name:v.name,email:v.email,role:v.role,group_ids:[...f.querySelectorAll('[name=group_ids]:checked')].map(x=>x.value),task_title:v.task_title,task_description:v.task_description,task_due:v.task_due}; if(v.password) payload.password=v.password; if(id) { payload.active=f.querySelector('[name=active]')?.checked !== false; await api('/api/admin/users/'+encodeURIComponent(id),{method:'PATCH',body:JSON.stringify(payload)}); } else { if(!v.password) throw new Error('كلمة المرور مطلوبة'); await post('/api/admin/users',payload); } closeOverlay(); showPage('admin'); if(v.password) showLoginCredentials(v.name,v.email,v.password); else toast('تم حفظ المستخدم'); })
 };
 
 document.addEventListener('click', e => { const el = e.target.closest('[data-act]'); if (el && ACT[el.dataset.act]) { if (el.tagName === 'A') e.preventDefault(); ACT[el.dataset.act](el, e); } });
