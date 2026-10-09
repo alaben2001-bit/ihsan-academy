@@ -190,3 +190,18 @@ const legacyServiceConfig = renderSource.split('  # Replacement web service')[0]
 const canonicalServiceConfig = renderSource.split('name: ihsan-academy-frankfurt')[1] || '';
 assert.ok(legacyServiceConfig.includes('name: ihsan-academy') && legacyServiceConfig.includes('key: ACADEMY_REDIRECT_TO_FRANKFURT') && legacyServiceConfig.includes('value: "1"'), 'legacy Oregon service must redirect to Frankfurt');
 assert.doesNotMatch(canonicalServiceConfig, /key: ACADEMY_REDIRECT_TO_FRANKFURT/, 'canonical Frankfurt service must not redirect itself');
+
+
+// Student self-check practice must hide answers until submission, enforce lesson access,
+// persist attempts, and avoid awarding points repeatedly for the same correct answer.
+assert.match(serverSource, /\/api\/learning\/questions/, 'student practice question endpoint must exist');
+assert.match(serverSource, /\/api\/learning\/attempts/, 'student practice attempts must be recorded');
+assert.match(serverSource, /lessonAccessible\(user, lesson\)/, 'practice must respect lesson enrollment/access');
+assert.match(serverSource, /alreadyCorrect/, 'practice must avoid repeat point farming');
+assert.match(appSource, /openPractice/, 'lesson view must open self-check practice');
+assert.match(appSource, /submitPracticeAnswer/, 'practice must submit selected answers');
+assert.match(appSource, /اختبر فهمك/, 'lesson modal must offer a clear practice action');
+assert.match(appSource, /practice-feedback/, 'practice must show feedback after answering');
+assert.match(cssSource, /practice-option/, 'practice choices must have dedicated responsive styling');
+assert.match(htmlSource, /app\.css\?v=63\.0/, 'practice styles must bypass browser cache');
+assert.match(htmlSource, /app\.js\?v=63\.0/, 'practice script must bypass browser cache');
