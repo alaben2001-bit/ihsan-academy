@@ -198,3 +198,13 @@ V18: Android/AAB وPlay Store.
 
 ## التدقيق الخارجي
 للمراجع الخارجي: راجع `docs/testing/دليل_التدقيق_للمراجع.md`، ومعه صور الحسابات في `docs/testing/accounts/` ولوحة الحسابات `docs/testing/ACCOUNTS_CONTACT_SHEET.png`.
+
+
+## V56 — Student growth curriculum and assessments (2026-10-09)
+- Added an idempotent, non-destructive seed of 16 structured lessons across Quran, creed, hadith, fiqh, seerah, Arabic, remembrance, character, study skills, time management, attention, dialogue, and service.
+- Lessons include objectives, reading/explanation, practical examples, reflection prompts, an action step, memorization/review guidance, and source-review notes. Religious texts are not fabricated; the content explicitly directs teachers to verify and approve source-based additions.
+- Added 32 starter questions (single choice, multiple choice, true/false, and short-answer) to the existing question bank with explanations and automatic grading where appropriate; written answers remain pending teacher review.
+- Existing lessons, questions, students, groups, and progress records are preserved. Stable V56 keys prevent duplicate seeding on restarts.
+- Refreshed browser and service-worker cache versions.
+- Important: this is an initial content pack, not a claim that every course is fully written or religiously reviewed. Teachers must review and enrich subject-specific sources before treating the curriculum as approved.
+- Deployment note: the original Oregon Render service previously logged `getaddrinfo ENOTFOUND dpg-db42qpnlot8c73ch17qg-a`; resolve the cross-region database connection before declaring both endpoints healthy.
