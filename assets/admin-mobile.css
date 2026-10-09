@@ -1,0 +1,92 @@
+/* V55 — Mobile-first polish for the senior administration workspace.
+   Scoped to .admin-panel so student/teacher screens remain unchanged. */
+.admin-panel,
+.admin-panel * { min-width: 0; }
+.admin-panel .table-wrap { overflow-x: auto; }
+.admin-panel table { width: 100%; border-collapse: collapse; }
+.admin-panel .sec { align-items: flex-start; }
+.admin-panel .sec > div { flex: 1 1 220px; min-width: 0; }
+.admin-panel .sec > button { flex: 0 0 auto; }
+.admin-panel .chips { align-items: center; }
+.admin-panel .item p { overflow-wrap: anywhere; }
+.admin-panel .card { overflow-wrap: anywhere; }
+@media (max-width: 720px) {
+  .admin-panel { gap: 12px; }
+  .admin-panel > .card,
+  .admin-panel .card { border-radius: 14px; }
+  .admin-panel .hero-main { min-height: 0; gap: 10px; }
+  .admin-panel .hero-copy { min-width: 0; }
+  .admin-panel .hero h2 { font-size: 21px; line-height: 1.45; }
+  .admin-panel .hero p { font-size: 13px; line-height: 1.8; }
+  .admin-panel .hero-orbit { flex: 0 0 66px; width: 66px; height: 66px; }
+  .admin-panel .hero-orbit span { width: 46px; height: 46px; font-size: 25px; }
+  .admin-panel .hero-orbit i { inset: 3px; }
+  .admin-panel .hero-orbit i:last-child { inset: 12px; }
+  .admin-panel .grid.g4 { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 9px; }
+  .admin-panel .grid.g2 { grid-template-columns: minmax(0, 1fr); gap: 12px; }
+  .admin-panel .stat { display: flex; align-items: center; gap: 9px; padding: 12px 10px; }
+  .admin-panel .stat .ic { width: 34px; height: 34px; border-radius: 10px; }
+  .admin-panel .stat .ic svg.i { width: 18px; height: 18px; }
+  .admin-panel .stat .lbl { font-size: 11.5px; line-height: 1.5; }
+  .admin-panel .stat .num { font-size: 23px; line-height: 1.25; overflow-wrap: anywhere; }
+  .admin-panel .sec { flex-wrap: wrap; gap: 9px; margin-bottom: 12px; }
+  .admin-panel .sec h3 { font-size: 17px; }
+  .admin-panel .sec p { font-size: 12px; line-height: 1.7; }
+  .admin-panel .sec > button { min-height: 38px; max-width: 100%; white-space: normal; }
+  .admin-panel .row { align-items: flex-start; flex-wrap: wrap; }
+  .admin-panel .btn { min-height: 40px; max-width: 100%; white-space: normal; }
+  .admin-panel .btn.sm { min-height: 36px; }
+  .admin-panel .table-wrap { overflow: visible; }
+  .admin-panel .table-wrap table,
+  .admin-panel .table-wrap tbody { display: block; width: 100%; }
+  .admin-panel .table-wrap thead { display: none; }
+  .admin-panel .table-wrap tbody tr {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 7px 12px;
+    margin: 0 0 10px;
+    padding: 12px;
+    background: #fff;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    box-shadow: 0 3px 12px rgba(29,43,38,.035);
+  }
+  .admin-panel .table-wrap tbody td {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 0;
+    border: 0;
+    overflow-wrap: anywhere;
+  }
+  .admin-panel .table-wrap tbody td:first-child {
+    grid-column: 1 / -1;
+    display: block;
+    padding-bottom: 6px;
+    border-bottom: 1px solid var(--line);
+  }
+  .admin-panel .table-wrap tbody td:first-child b { display: block; }
+  .admin-panel .table-wrap tbody td:first-child small {
+    display: block;
+    margin-top: 2px;
+    overflow-wrap: anywhere;
+  }
+  .admin-panel .table-wrap tbody td:nth-child(2)::before { content: "الدور"; color: var(--muted); font-size: 12px; }
+  .admin-panel .table-wrap tbody td:nth-child(3)::before { content: "الحالة"; color: var(--muted); font-size: 12px; }
+  .admin-panel .table-wrap tbody td:nth-child(4) { grid-column: 1 / -1; justify-content: flex-start; padding-top: 4px; }
+  .admin-panel .table-wrap tbody td:nth-child(4)::before { content: "الإجراءات"; color: var(--muted); font-size: 12px; align-self: center; }
+  .admin-panel .table-wrap tbody td:nth-child(4) .btn { margin-inline-start: auto; }
+  .admin-panel .chips .chip { white-space: normal; overflow-wrap: anywhere; }
+  .admin-panel [data-act="admin-backup"] { width: 100%; }
+  .admin-panel .item .chips { gap: 6px; }
+  .admin-panel .item .chips .btn { flex: 1 1 130px; }
+  .admin-panel hr { border: 0; border-top: 1px solid var(--line); margin: 14px 0; }
+}
+@media (max-width: 360px) {
+  .admin-panel .grid.g4 { gap: 7px; }
+  .admin-panel .stat { padding: 10px 8px; gap: 7px; }
+  .admin-panel .stat .ic { width: 30px; height: 30px; }
+  .admin-panel .stat .num { font-size: 21px; }
+  .admin-panel .hero-orbit { display: none; }
+}
