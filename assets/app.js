@@ -918,6 +918,7 @@ const INP = {
 };
 const CHG = {
   adminPasswordVisibility: el => { const input=$('#adminUserPassword'); if(input) input.type=el.checked?'text':'password'; },
+  passwordVisibility: el => { const input=document.getElementById(el.dataset.target); if(input) input.type=el.checked?'text':'password'; },
   stuFilter: drawStudents,
   postAud: el => $('#postGroupWrap').classList.toggle('hidden', el.value !== 'group'),
   attGroup: el => guard(async () => { S.att.group_id = el.value; await loadSheet(); }),
