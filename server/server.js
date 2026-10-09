@@ -14,6 +14,7 @@ const { createStorage } = require('./storage');
 const { CoreRepository } = require('./repositories/core');
 const { CoreService } = require('./services/core');
 const { handleAdvanced } = require('./advanced');
+const { seedEducationalContent } = require('./educational-content');
 
 const ROOT = path.join(__dirname, '..');
 const DATA = process.env.ACADEMY_DB_FILE ? path.resolve(process.env.ACADEMY_DB_FILE) : path.join(ROOT, 'data', 'db.json');
@@ -220,6 +221,9 @@ function migrate() {
   });
   db.notifications.forEach(n => { set(n, 'group_id', null); set(n, 'read_by', []); });
   set(db, 'report_settings', { late_weight: 0.75, excused_counts_as_absence: false });
+  // V56: add missing starter curriculum and practice questions without overwriting existing records.
+  const educationalSeed = seedEducationalContent(db);
+  if (educationalSeed.changed) changed = true;
   if (changed) save();
 }
 const storageReady = Promise.resolve(storage.load()).then(async loaded => { db = loaded; migrate(); if (storage.kind === 'postgres') await storage.save(db); return db; });

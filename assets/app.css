@@ -468,3 +468,9 @@ html[data-role="parent"] .side{box-shadow:inset -3px 0 0 rgba(184,154,90,.60),-1
   .bottom button{min-width:0}
   .bottom button span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 }
+
+/* V56: gentle five-heart progress markers for the student's journey. */
+.journey-hearts { display:flex; align-items:center; justify-content:flex-start; gap:10px; margin-top:10px; direction:rtl; }
+.journey-heart { display:inline-flex; align-items:center; justify-content:center; width:34px; height:34px; border-radius:50%; border:1px solid var(--line); color:var(--muted); font-size:24px; line-height:1; background:var(--surface,#fff); }
+.journey-heart.filled { color:#b65d67; border-color:#e4b4b9; background:#fff3f4; }
+@media(max-width:420px){.journey-hearts{gap:6px}.journey-heart{width:30px;height:30px;font-size:21px}}

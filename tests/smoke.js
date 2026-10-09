@@ -123,3 +123,14 @@ assert.match(appSource, /name="confirm_password"/, 'student account creation mus
 assert.match(appSource, /كلمتا المرور غير متطابقتين/, 'student account creation must reject mismatched passwords');
 assert.match(appSource, /data-target="teamStudentConfirm"/, 'team supervisor must be able to reveal password confirmation');
 assert.match(appSource, /data-target="teacherStudentConfirm"/, 'teacher must be able to reveal password confirmation');
+
+
+const advancedSource = fs.readFileSync(path.join(__dirname, '..', 'server', 'advanced.js'), 'utf8');
+assert.match(advancedSource, /q\.created_by!==user\.id/, 'teachers must not edit questions authored by others');
+assert.match(advancedSource, /لا تملك صلاحية تعديل هذا السؤال/, 'question editing must enforce author scope');
+assert.match(advancedSource, /nextOptions\.length<2/, 'choice questions must keep at least two options on edit');
+assert.match(advancedSource, /الإجابة الصحيحة غير موجودة ضمن الخيارات/, 'choice question answers must match the available options');
+assert.match(serverSource, /seedEducationalContent\(db\)/, 'startup migration must safely seed missing curriculum content');
+
+assert.match(appSource, /journey-hearts/, 'student journey must display five visual progress hearts');
+assert.match(appSource, /كل قلب يذكّرك بالتقدم/, 'progress hearts must not be presented as a measure of student worth');
