@@ -205,7 +205,7 @@ const LESSONS = [
   }}
 ];
 
-
+const V58_LESSONS = [
   {key:'quran-vocabulary',subject:'quran',title:'مفردات القرآن: كيف أتعلم كلمة جديدة؟',description:'بناء عادة لفهم مفردات القرآن من تفسير موثوق.',learning_mode:'understand',study_method:'اختر كلمة من وردك، راجع معناها في مصدر موثوق، ثم اشرحها بسياق الآية.',content:{
     opening:'قد تمر علينا كلمة قرآنية نعرف صوتها ولا نعرف معناها؛ والتدرج في فهم المفردات يفتح باب التدبر.',
     ayahs:[{text:'أَفَلَا يَتَدَبَّرُونَ الْقُرْآنَ',reference:'سورة النساء، الآية 82'}],hadiths:[],
@@ -368,7 +368,9 @@ const REFLECTION_QUESTIONS = [
   {key:'duaa-meaning-reflect',lesson:'duaa-meaning',title:'اختر دعاءً تريد تعلمه، واذكر كيف تتحقق من لفظه ومصدره ومعناه.',explanation:'ينتظر من الطالب ذكر مصدر موثوق وفهم المعنى وعدم نسبة غير المتحقق إلى السنة.'}
 ].map(x=>({...x,type:'short_answer',points:3,options:[],correct_answer:'',group_id:null}));
 
+const ALL_LESSONS = [...LESSONS, ...V58_LESSONS];
 
+const V58_QUESTIONS = [
   {key:'quran-vocabulary-1',lesson:'quran-vocabulary',type:'single_choice',title:'ما الطريقة الأنسب لفهم مفردة قرآنية؟',options:['تخمين معناها من اللهجة فقط','الرجوع إلى تفسير أو معجم قرآني موثوق','اختيار أول معنى في تعليق مجهول','تعميم معنى واحد في كل السياقات'],correct_answer:'الرجوع إلى تفسير أو معجم قرآني موثوق',explanation:'السياق والمصدر المعتمد مهمان لفهم المفردة.',points:2},
   {key:'quran-vocabulary-2',lesson:'quran-vocabulary',type:'true_false',title:'قد يختلف معنى الكلمة بحسب سياقها.',options:[],correct_answer:'true',explanation:'يجب مراعاة السياق عند تفسير الألفاظ.',points:1},
   {key:'quran-vocabulary-3',lesson:'quran-vocabulary',type:'short_answer',title:'ما العناصر التي تكتبها في دفتر المفردات القرآنية؟',options:[],correct_answer:'',explanation:'إجابة مقترحة: الكلمة، موضعها، معناها من مصدر موثوق، وسياقها.',points:2},
@@ -406,7 +408,7 @@ const REFLECTION_QUESTIONS = [
   {key:'ask-help-2',lesson:'learning-ask-help',type:'true_false',title:'طلب المساعدة عند الحاجة قد يكون خطوة نافعة في التعلم.',options:[],correct_answer:'true',explanation:'السؤال الواضح يساعد المعلم والطالب.',points:1},
   {key:'ask-help-3',lesson:'learning-ask-help',type:'short_answer',title:'اكتب سؤالًا يتضمن ما فهمته والجزء الذي لم يتضح.',options:[],correct_answer:'',explanation:'يُقيّم السؤال على التحديد والوضوح.',points:2}
 
-function norm(s){ return String(s||'').trim().toLocaleLowerCase('ar'); }
+];\nconst ALL_QUESTIONS = [...QUESTIONS, ...V58_QUESTIONS];\n\nfunction norm(s){ return String(s||'').trim().toLocaleLowerCase('ar'); }
 function uniqueId(rows, base){ let id=base, n=2; const used=new Set(rows.map(x=>x.id)); while(used.has(id)) id=base+'-'+n++; return id; }
 
 function seedEducationalContent(db){
@@ -422,7 +424,7 @@ function seedEducationalContent(db){
     subjectIds[spec.key]=row.id;
   }
   const lessonIds={};
-  for(const spec of LESSONS){
+  for(const spec of ALL_LESSONS){
     let row=db.lessons.find(x=>x.seed_key==='formation-lesson-'+spec.key);
     if(!row){
       row={id:uniqueId(db.lessons,'seed-les-'+spec.key),seed_key:'formation-lesson-'+spec.key,subject_id:subjectIds[spec.subject],title:spec.title,description:spec.description,learning_mode:spec.learning_mode,study_method:spec.study_method,active:true,duration_minutes:15,objective:spec.description,content:JSON.parse(JSON.stringify(spec.content)),created_at:new Date().toISOString()};
@@ -432,7 +434,7 @@ function seedEducationalContent(db){
   }
   for(const spec of [...QUESTIONS,...REFLECTION_QUESTIONS]){
     if(db.question_bank.some(x=>x.seed_key==='formation-question-'+spec.key)) continue;
-    const lesson=LESSONS.find(x=>x.key===spec.lesson);
+    const lesson=ALL_LESSONS.find(x=>x.key===spec.lesson);
     const row={id:uniqueId(db.question_bank,'seed-q-'+spec.key),seed_key:'formation-question-'+spec.key,title:spec.title,type:spec.type,points:spec.points,options:spec.options,correct_answer:spec.correct_answer,explanation:spec.explanation,subject_id:subjectIds[lesson.subject],lesson_id:lessonIds[spec.lesson],group_id:null,active:true,created_by:null,created_at:new Date().toISOString()};
     db.question_bank.push(row); changed=true;
   }
@@ -449,7 +451,7 @@ function seedEducationalContent(db){
     }
     changed=true;
   }
-  return {changed,subjects:SUBJECTS.length,lessons:LESSONS.length,questions:QUESTIONS.length+REFLECTION_QUESTIONS.length,journey_items:5};
+  return {changed,subjects:SUBJECTS.length,lessons:ALL_LESSONS.length,questions:ALL_QUESTIONS.length+REFLECTION_QUESTIONS.length,journey_items:5};
 }
 
 module.exports={seedEducationalContent,SUBJECTS,LESSONS,QUESTIONS,REFLECTION_QUESTIONS};
