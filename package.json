@@ -1,8 +1,8 @@
 {
   "name": "academy-build-human",
-  "version": "49.0.0",
+  "version": "56.0.0",
   "private": true,
-  "description": "أكاديمية الإحسان في بناء الإنسان — V49 (Production, Quran submissions, assessments, community, PWA, ops)",
+  "description": "أكاديمية الإحسان في بناء الإنسان — V56 (student formation curriculum, lessons, question bank, safe content seeding)",
   "scripts": {
     "start": "node server/server.js",
     "backup": "node tools/backup-db.js",
@@ -22,7 +22,7 @@
     "backup:scheduler": "node tools/backup-scheduler.js",
     "backup:verify": "node tools/verify-backups.js",
     "prod:compose": "docker compose --env-file deploy/.env -f deploy/docker-compose.yml up -d --build",
-    "test": "node --check server/server.js && node --check server/advanced.js && node --check assets/app.js && node tests/smoke.js"
+    "test": "node --check server/server.js && node --check server/advanced.js && node --check server/educational-content.js && node --check assets/app.js && node tests/smoke.js && node tests/educational-content.test.js"
   },
   "engines": {
     "node": ">=18"
