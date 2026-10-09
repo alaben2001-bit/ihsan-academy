@@ -1,8 +1,8 @@
 {
   "name": "academy-build-human",
-  "version": "62.0.0",
+  "version": "62.1.0",
   "private": true,
-  "description": "أكاديمية الإحسان في بناء الإنسان — V62 (core Islamic learning paths)",
+  "description": "أكاديمية الإحسان في بناء الإنسان — V62.1 (actionable student curriculum paths)",
   "scripts": {
     "start": "node server/server.js",
     "backup": "node tools/backup-db.js",

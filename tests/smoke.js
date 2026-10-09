@@ -14,12 +14,15 @@ const htmlSource = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'ut
 const cssSource = fs.readFileSync(path.join(__dirname, '..', 'assets', 'app.css'), 'utf8');
 assert.match(htmlSource, /login-illustration/, 'welcome screen must include its dedicated illustration');
 assert.match(htmlSource, /\/assets\/ihsan-emblem\.svg/, 'navigation and welcome screen must use the academy emblem');
-assert.match(htmlSource, /app\.css\?v=61\.0/, 'refreshed visual styles must bypass the old browser cache');
-assert.match(htmlSource, /app\.js\?v=61\.0/, 'dashboard script changes must bypass the old browser cache');
+assert.match(htmlSource, /app\.css\?v=62\.1/, 'refreshed visual styles must bypass the old browser cache');
+assert.match(htmlSource, /app\.js\?v=62\.1/, 'dashboard script changes must bypass the old browser cache');
 assert.match(htmlSource, /مرحبًا بك في رحلتك/, 'welcome screen must orient students toward a learning journey');
 assert.match(appSource, /hero-orbit"><img src="\/assets\/ihsan-emblem\.svg"/, 'signed-in dashboard must use the academy emblem instead of a text placeholder');
 assert.match(appSource, /today-step-open/, 'daily learning steps must have direct actions into the relevant learning area');
 assert.match(appSource, /today-empty/, 'students with no assigned tasks must still see a helpful next step');
+assert.match(appSource, /view-subject-lessons/, 'students must be able to open a subject path from the curriculum map');
+assert.match(appSource, /openLearningSubjectLessons/, 'subject path action must open its lessons');
+assert.match(appSource, /ابدأ الدرس/, 'subject path modal must offer a direct start action for lessons');
 assert.match(cssSource, /today-step-open/, 'daily learning actions must be styled and keyboard-visible');
 assert.ok(fs.existsSync(path.join(__dirname, '..', 'assets', 'welcome-garden.svg')), 'welcome illustration asset must exist');
 assert.ok(fs.existsSync(path.join(__dirname, '..', 'assets', 'ihsan-emblem.svg')), 'academy emblem asset must exist');

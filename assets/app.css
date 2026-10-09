@@ -630,3 +630,13 @@ button,.btn,.field input,.field select,.field textarea{transition:background-col
 .today-empty .btn{margin-inline-start:auto;white-space:nowrap}
 @media(max-width:760px){.today-step{grid-template-columns:30px minmax(0,1fr) auto;gap:9px}.today-step .chip{grid-column:2;justify-self:start;margin-inline-start:0}.today-step-open{grid-column:3;grid-row:1/3;align-self:center;padding:7px 9px}.today-empty{align-items:flex-start;flex-wrap:wrap}.today-empty>div{flex:1;min-width:180px}.today-empty .btn{margin-inline-start:55px}}
 @media(max-width:420px){.today-step{grid-template-columns:28px minmax(0,1fr)}.today-step .chip{grid-column:2}.today-step-open{grid-column:2;grid-row:auto;justify-self:start}.today-empty .btn{margin-inline-start:0}}
+
+
+/* V62.1 — make curriculum paths discoverable and actionable for students. */
+.subject-open{margin-top:12px;width:100%;justify-content:space-between}
+.subject-open:focus-visible{outline:3px solid rgba(77,144,123,.38);outline-offset:3px}
+.subject-lesson-row{border:1px solid var(--line);border-radius:14px;padding:12px}
+.subject-lesson-copy{min-width:0;flex:1}
+.subject-lesson-copy b{display:block;margin-top:6px;line-height:1.65}
+.subject-lesson-copy p{margin:4px 0 0;line-height:1.7}
+@media(max-width:520px){.subject-lesson-row .row{align-items:flex-start}.subject-lesson-row .btn{flex:none}.subject-open{min-height:42px}}
