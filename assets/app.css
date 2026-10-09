@@ -490,3 +490,39 @@ html[data-role="parent"] .side{box-shadow:inset -3px 0 0 rgba(184,154,90,.60),-1
 .card{transition:box-shadow .18s,border-color .18s}
 .card:focus-within{border-color:color-mix(in srgb,var(--g500) 42%,var(--line))}
 @media(max-width:520px){.theme-options{grid-template-columns:1fr}.theme-swatch{min-height:48px}}
+
+
+/* واجهة دخول إحسان: هوية بصرية دافئة ومحتوى تربوي لا يبدو آليًا. */
+.login{background:var(--b50);min-height:100svh}
+.login-art{isolation:isolate;gap:32px;padding:clamp(28px,5vw,68px);background:radial-gradient(ellipse at 15% 12%,rgba(213,189,131,.17),transparent 34%),linear-gradient(145deg,#123f35,#0a2b25 76%);}
+.login-art:before,.login-art:after{content:"";position:absolute;z-index:-1;pointer-events:none;border:1px solid rgba(226,205,153,.16);transform:rotate(45deg)}
+.login-art:before{width:310px;height:310px;left:-155px;top:20%;border-radius:38px;box-shadow:0 0 0 22px rgba(226,205,153,.025),0 0 0 44px rgba(226,205,153,.025)}
+.login-art:after{width:170px;height:170px;right:-85px;bottom:5%;border-radius:28px}
+.login-brandline{display:flex;align-items:center;gap:14px}
+.login-logo{width:58px;height:58px;object-fit:contain;border-radius:17px;box-shadow:0 8px 28px #0002}
+.login-brandline b,.login-brandline small{display:block}
+.login-brandline b{font:800 21px var(--font-head);color:#fff}
+.login-brandline small{font-size:12px;color:#b8d2c6;margin-top:2px}
+.login-welcome{max-width:680px}
+.login-kicker{display:inline-flex;align-items:center;gap:9px;color:#e7d5a3;font-size:13px;font-weight:700;margin-bottom:16px}
+.login-kicker span{width:7px;height:7px;border-radius:50%;background:#d6bd7c;box-shadow:0 0 0 5px #d6bd7c20}
+.login-art .login-welcome h1{font-size:clamp(28px,3.2vw,43px);max-width:19ch;line-height:1.7;text-wrap:balance}
+.login-art .login-welcome p{max-width:48ch;margin-top:16px;line-height:2;color:#c8ddd3;font-size:16px}
+.login-pillars{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin-top:28px;max-width:490px}
+.login-pillars>div{display:grid;grid-template-columns:32px 1fr;column-gap:8px;align-items:center;padding:12px 10px;border:1px solid #ffffff20;border-radius:14px;background:#ffffff08}
+.login-pillars>div>span{grid-row:span 2;display:grid;place-items:center;width:30px;height:30px;border-radius:10px;background:#e8d6a6;color:#173f34;font-weight:800}
+.login-pillars b{font-size:13px;color:#fff}.login-pillars small{font-size:11px;color:#b9d1c7}
+.login-tip{display:flex;align-items:flex-start;gap:13px;padding:16px 18px;border:1px solid #e0cc8b45;background:#ffffff0a;border-radius:17px;max-width:590px}
+.tip-mark{display:grid;place-items:center;flex:none;width:30px;height:30px;border-radius:10px;background:#e5d19b;color:#163d33;font-size:18px}
+.login-tip b{font:700 14px var(--font-head);color:#e9d9ad}.login-tip p{margin-top:3px!important;font-size:13px!important;line-height:1.9!important;color:#d5e4dc!important}
+.login-form{padding:clamp(22px,4vw,56px);align-content:center;background:linear-gradient(180deg,#fffefa,var(--b50))}
+.login-form form{padding:clamp(20px,3vw,34px);border:1px solid var(--line);border-radius:24px;background:#fff;box-shadow:0 18px 55px rgba(29,43,38,.07)}
+.login-form h2{font-size:29px;letter-spacing:-.02em}
+.login-form form:before{content:"أهلًا بك في رحلتك";color:var(--g700);font-size:13px;font-weight:800;order:-1}
+.login-form .field input{min-height:48px;border-radius:12px}
+.login-form .btn{min-height:48px;border-radius:12px;font-weight:800}
+.login-form .portal-box{width:min(440px,100%);margin-top:18px;padding:20px;border:1px solid var(--line);border-radius:20px;background:#fff}
+.login-form .portal-box h3{font-size:18px}
+@media(max-width:900px){.login{grid-template-columns:1fr}.login-art{padding:28px 24px;gap:28px}.login-welcome{max-width:720px}.login-art .login-welcome h1{max-width:24ch}.login-tip{max-width:none}.login-form{padding:24px 16px 36px}.login-form form,.login-form .portal-box{max-width:520px}}
+@media(max-width:480px){.login-art{padding:22px 18px;gap:23px}.login-logo{width:48px;height:48px}.login-brandline b{font-size:18px}.login-art .login-welcome h1{font-size:27px;line-height:1.65}.login-art .login-welcome p{font-size:14px}.login-pillars{gap:6px}.login-pillars>div{grid-template-columns:1fr;text-align:center;justify-items:center;padding:10px 5px}.login-pillars>div>span{grid-row:auto;margin-bottom:5px}.login-pillars small{font-size:10px}.login-tip{padding:13px}.login-form form{padding:22px 17px;border-radius:19px}}
+@media(prefers-reduced-motion:reduce){.login *{transition:none!important}}
