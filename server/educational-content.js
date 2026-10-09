@@ -409,7 +409,10 @@ const V58_QUESTIONS = [
   {key:'ask-help-2',lesson:'learning-ask-help',type:'true_false',title:'طلب المساعدة عند الحاجة قد يكون خطوة نافعة في التعلم.',options:[],correct_answer:'true',explanation:'السؤال الواضح يساعد المعلم والطالب.',points:1},
   {key:'ask-help-3',lesson:'learning-ask-help',type:'short_answer',title:'اكتب سؤالًا يتضمن ما فهمته والجزء الذي لم يتضح.',options:[],correct_answer:'',explanation:'يُقيّم السؤال على التحديد والوضوح.',points:2}
 
-];\nconst ALL_QUESTIONS = [...QUESTIONS, ...V58_QUESTIONS];\n\nfunction norm(s){ return String(s||'').trim().toLocaleLowerCase('ar'); }
+];
+const ALL_QUESTIONS = [...QUESTIONS, ...V58_QUESTIONS];
+
+function norm(s){ return String(s||'').trim().toLocaleLowerCase('ar'); }
 function uniqueId(rows, base){ let id=base, n=2; const used=new Set(rows.map(x=>x.id)); while(used.has(id)) id=base+'-'+n++; return id; }
 
 function seedEducationalContent(db){
