@@ -209,3 +209,10 @@ assert.match(appSource, /practice-feedback/, 'practice must show feedback after 
 assert.match(cssSource, /practice-option/, 'practice choices must have dedicated responsive styling');
 assert.match(htmlSource, /app\.css\?v=64\.0/, 'practice styles must bypass browser cache');
 assert.match(htmlSource, /app\.js\?v=64\.0/, 'practice script must bypass browser cache');
+
+// V65 public learning experience: visible paths and student journey are present.
+assert.match(indexHtml, /id="exploreTitle"/, 'Public landing must introduce the academy learning paths');
+assert.match(indexHtml, /القرآن الكريم/, 'Public landing must feature Quran pathway');
+assert.match(indexHtml, /معرفة الله تعالى/, 'Public landing must feature knowing Allah pathway');
+assert.match(indexHtml, /الأربعون النووية/, 'Public landing must feature Nawawi Forty pathway');
+assert.match(indexHtml, /حسابات الطلبة ينشئها المشرف/, 'Public landing must explain supervised account creation');
