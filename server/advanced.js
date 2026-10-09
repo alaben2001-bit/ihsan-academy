@@ -112,8 +112,30 @@ async function handleAdvanced(ctx){
   }
   const qm=p.match(/^\/api\/question-bank\/([^/]+)$/);
   if(qm && req.method==='PATCH'){
-    if(!isStaff(user)) fail(403,'تعديل بنك الأسئلة للشيخ والإدارة'); const q=db.question_bank.find(x=>x.id===decodeURIComponent(qm[1])); if(!q) fail(404,'السؤال غير موجود'); const b=await body(req);
-    if(b.title!==undefined)q.title=clean(b.title,400); if(b.explanation!==undefined)q.explanation=clean(b.explanation,1200); if(b.points!==undefined)q.points=Math.max(1,Math.min(100,Number(b.points)||q.points)); if(b.active!==undefined)q.active=!!b.active; audit(user,'question_update',{id:q.id}); await save(); return json(res,200,sanitizeQuestion(q));
+    if(!isStaff(user)) fail(403,'تعديل بنك الأسئلة للشيخ والإدارة');
+    const q=db.question_bank.find(x=>x.id===decodeURIComponent(qm[1]));
+    if(!q) fail(404,'السؤال غير موجود');
+    // Teachers may edit only questions they created, and only within groups they manage.
+    if(user.role!=='admin' && (q.created_by!==user.id || (q.group_id && !ownsGroup(user,q.group_id)))) fail(403,'لا تملك صلاحية تعديل هذا السؤال');
+    const b=await body(req);
+    const nextType=b.type!==undefined?String(b.type):q.type;
+    if(!questionTypes.includes(nextType)) fail(400,'نوع السؤال غير صحيح');
+    const nextOptions=b.options!==undefined?(Array.isArray(b.options)?b.options.map(x=>clean(x,240)).filter(Boolean).slice(0,8):[]):(q.options||[]);
+    const nextCorrect=b.correct_answer!==undefined?(nextType==='multiple_choice'?(Array.isArray(b.correct_answer)?b.correct_answer.map(String):[]):clean(b.correct_answer,240)):q.correct_answer;
+    if(['single_choice','multiple_choice'].includes(nextType) && nextOptions.length<2) fail(400,'أضف خيارين على الأقل');
+    if(nextType==='true_false'&&!['true','false','صحيح','خطأ'].includes(nextCorrect)) fail(400,'إجابة الصواب والخطأ غير صحيحة');
+    if((nextType==='single_choice'||nextType==='multiple_choice') && (Array.isArray(nextCorrect)?nextCorrect.length<1||nextCorrect.some(x=>!nextOptions.includes(x)):!nextOptions.includes(nextCorrect))) fail(400,'الإجابة الصحيحة غير موجودة ضمن الخيارات');
+    if(b.subject_id!==undefined && b.subject_id && !db.subjects.some(x=>x.id===b.subject_id)) fail(400,'المادة غير موجودة');
+    const nextGroup=b.group_id!==undefined?(b.group_id||null):q.group_id;
+    if(nextGroup&&!ownsGroup(user,nextGroup)) fail(403,'الفوج خارج نطاقك');
+    if(b.title!==undefined){if(!clean(b.title,400))fail(400,'صياغة السؤال مطلوبة');q.title=clean(b.title,400);}
+    if(b.explanation!==undefined)q.explanation=clean(b.explanation,1200);
+    if(b.points!==undefined){const pts=Number(b.points);if(!Number.isInteger(pts)||pts<1||pts>100)fail(400,'الدرجة يجب أن تكون بين 1 و100');q.points=pts;}
+    if(b.type!==undefined||b.options!==undefined||b.correct_answer!==undefined){q.type=nextType;q.options=nextOptions;q.correct_answer=nextCorrect;}
+    if(b.subject_id!==undefined)q.subject_id=b.subject_id||null;
+    if(b.group_id!==undefined)q.group_id=nextGroup;
+    if(b.active!==undefined)q.active=!!b.active;
+    audit(user,'question_update',{id:q.id}); await save(); return json(res,200,sanitizeQuestion(q));
   }
   const qa=p.match(/^\/api\/question-bank\/([^/]+)\/attempt$/);
   if(qa && req.method==='POST'){
