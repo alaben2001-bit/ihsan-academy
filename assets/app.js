@@ -90,7 +90,41 @@ function mediaSrc(m){ return m?.url || (m?.file_path ? '/api/media/'+encodeURICo
 function showAudioDock(m){ const a=$('#academyPlayer'); if(!a)return; const src=mediaSrc(m); if(!src)return toast('لا يوجد تسجيل قابل للتشغيل',true); PLAYER.id=m.id; PLAYER.title=m.title; PLAYER.src=src; PLAYER.rate=Number(localStorage.getItem('academy_audio_rate')||'1')||1; $('#audioDockTitle').textContent=m.title||'تسجيل'; $('#audioDockMeta').textContent=(m.author_name||'مكتبة الأكاديمية')+' · استماع'; a.src=src; a.playbackRate=PLAYER.rate; const saved=JSON.parse(localStorage.getItem('academy_audio_'+m.id)||'null'); if(saved?.time>0){ try{a.currentTime=saved.time;}catch{} } $('#audioDock')?.classList.remove('hidden'); a.play().catch(()=>{}); post('/api/media/'+encodeURIComponent(m.id)+'/read',{}).catch(()=>{}); }
 function closeAudioDock(){ const a=$('#academyPlayer'); if(a){a.pause();a.removeAttribute('src');a.load();} PLAYER.id=null; $('#audioDock')?.classList.add('hidden'); }
 function setupAudioDock(){ const a=$('#academyPlayer'); if(!a)return; try{a.playbackRate=Number(localStorage.getItem('academy_audio_rate')||'1')||1;}catch{} a.addEventListener('timeupdate',()=>{ if(!PLAYER.id)return; try{localStorage.setItem('academy_audio_'+PLAYER.id,JSON.stringify({time:Math.floor(a.currentTime),rate:a.playbackRate}));}catch{} }); a.addEventListener('ratechange',()=>{ PLAYER.rate=a.playbackRate; try{localStorage.setItem('academy_audio_rate',String(a.playbackRate));}catch{} }); $('#audioDockClose')?.addEventListener('click',closeAudioDock); }
+
 window.addEventListener('DOMContentLoaded',setupAudioDock);
+// ومضات تربوية أصلية تتبدل بحسب اليوم، دون نسبتها إلى مصدر شرعي.
+const dailyTips = [
+  "لا تجعل كثرة البدايات تغريك؛ العبرة بحسن الإتمام والثبات.",
+  "إذا تعلمت مسألة، فاسأل نفسك: كيف أعمل بها؟ وكيف أعلّمها بأدب؟",
+  "ليس النجاح أن تسبق الناس كلهم؛ بل أن تتقدم اليوم على تقصير الأمس.",
+  "احفظ للعلم هيبته بالتواضع، وللمتعلم حقه بالرفق، وللوقت حرمته.",
+  "ابدأ بمهمة صغيرة تؤديها بإتقان؛ فالإتقان عادة تُبنى بالتكرار.",
+  "اجعل للقرآن نصيبًا ثابتًا من يومك، لا فضلة الوقت فقط.",
+  "إذا أخطأت في التعلم، صحح الخطأ وافهم سببه ثم أعد المحاولة.",
+  "العلم النافع يزيد صاحبه بصيرة وتواضعًا وحسن عمل."
+];
+function setDailyTip() {
+  const node = document.getElementById('dailyTip');
+  if (!node) return;
+  const day = Math.floor(Date.now() / 86400000);
+  node.textContent = dailyTips[((day % dailyTips.length) + dailyTips.length) % dailyTips.length];
+}
+setDailyTip();
+document.addEventListener('click', event => {
+  const button = event.target.closest('[data-theme-option]');
+  if (!button) return;
+  const form = button.closest('form[data-form="settings"]');
+  if (!form || !form.elements.theme) return;
+  const theme = button.dataset.themeOption;
+  form.elements.theme.value = theme;
+  document.documentElement.dataset.theme = theme;
+  form.querySelectorAll('[data-theme-option]').forEach(option => {
+    const selected = option === button;
+    option.classList.toggle('selected', selected);
+    option.setAttribute('aria-pressed', selected ? 'true' : 'false');
+  });
+});
+
 const ROLE = { admin: 'مدير الأكاديمية', chief_supervisor: 'المشرف الرئيسي', teacher: 'الشيخ / المعلم', student: 'الطالب', parent: 'ولي الأمر' };
 const ATT = [['present', 'حاضر', 'ok'], ['late', 'متأخر', 'late'], ['absent', 'غائب', 'bad'], ['excused', 'غائب بعذر', 'info']];
 const attLabel = k => (ATT.find(a => a[0] === k) || [k, k, ''])[1];
