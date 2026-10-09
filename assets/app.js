@@ -16,7 +16,8 @@ const THEME_NAMES = ['emerald','sand','indigo','olive'];
 function setupAcademyAtmosphere(){
   const epoch = Math.floor(new Date('2026-01-01T00:00:00Z').getTime()/86400000);
   const todayEpoch = Math.floor(Date.now()/86400000);
-  const theme = THEME_NAMES[Math.floor((todayEpoch-epoch)/14)%THEME_NAMES.length];
+  const storedTheme = localStorage.getItem('academy_theme');
+  const theme = THEME_NAMES.includes(storedTheme) ? storedTheme : THEME_NAMES[Math.floor((todayEpoch-epoch)/14)%THEME_NAMES.length];
   document.documentElement.dataset.theme = theme;
   const reduce = localStorage.getItem('academy_reduced_motion') === '1' || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   if(reduce) document.documentElement.classList.add('reduced-motion');
@@ -118,6 +119,7 @@ document.addEventListener('click', event => {
   const theme = button.dataset.themeOption;
   form.elements.theme.value = theme;
   document.documentElement.dataset.theme = theme;
+  localStorage.setItem('academy_theme', theme);
   form.querySelectorAll('[data-theme-option]').forEach(option => {
     const selected = option === button;
     option.classList.toggle('selected', selected);
@@ -234,7 +236,7 @@ async function pgJourney(){
   const [j,c]=await Promise.all([api('/api/journey'),api('/api/challenges')]);
   const done=j.items.filter(x=>x.status==='done').length;
   render(html`<div class="stack">
-    <div class="card hero"><span class="eyebrow">رحلتي</span><h2>أنت تبني نفسك خطوة خطوة</h2><p>هذه ليست لعبة ولا سباقًا. هي خريطة بسيطة ترى فيها ما قرأت وما حفظت وما فهمت وما أنجزت.</p><div class="progress" style="margin-top:16px"><i style="width:${j.progress}%"></i></div><div class="journey-hearts" role="img" aria-label="خمس محطات للتقدم؛ ${j.progress}% من الرحلة مكتمل">${[20,40,60,80,100].map((n,i)=>html`<span class="journey-heart ${j.progress>=n?'filled':''}" aria-hidden="true">${j.progress>=n?'♥':'♡'}</span>`)}</div><p class="muted small">${done} من ${j.items.length} عناصر مكتملة · ${j.progress}% · كل قلب يذكّرك بالتقدم، لا بقيمة الإنسان.</p></div>
+    <div class="card hero"><span class="eyebrow">رحلتي</span><h2>أنت تبني نفسك خطوة خطوة</h2><p>تعلم على دفعات صغيرة، واكتشف تقدمك من خلال إنجازاتك ومهامك الواضحة.</p><div class="progress" style="margin-top:16px"><i style="width:${j.progress}%"></i></div><div class="row wrap" style="margin-top:10px;justify-content:space-between"><span class="muted small">${done} من ${j.items.length} مهام مكتملة</span><b>${j.progress}%</b></div></div>
     <div class="grid g3">${j.items.map(x=>html`<div class="card"><div class="row"><span class="badge">${x.level}</span>${x.status==='done'?html`<span class="badge ok">مكتمل</span>`:html`<span class="badge gold">قادم</span>`}</div><h3 style="margin-top:12px">${x.title}</h3><p class="muted">${x.description||''}</p>${x.status!=='done'?html`<button class="btn sm" data-act="journey-done" data-id="${x.id}">أنجزت هذا</button>`:''}</div>`)}</div>
     <div class="card"><div class="sec"><div><h3>تحديات الزملاء</h3><p class="muted">تحدٍ اختياري للمنافسة النظيفة، دون ربط القيمة الشخصية بالنتيجة.</p></div></div>${c.length?c.map(x=>html`<div class="item"><div class="row wrap"><div><b>${x.title}</b><p>${x.description||''}</p></div><span class="badge">${x.participants} مشارك</span></div>${x.joined?html`<span class="badge ok">أنت مشارك</span>`:html`<button class="btn sm" data-act="challenge-join" data-id="${x.id}">أشارك</button>`}</div>`):empty('لا توجد تحديات حاليًا')}</div>
   </div>`);
@@ -351,8 +353,8 @@ function openModal(title, body, mount) {
 }
 function closeOverlay() { put($('#overlay'), ''); }
 function openMore() {
-  const items = navItems();
-  put($('#overlay'), html`<div class="more-sheet" data-act="close-modal-bg"><div>${items.map(([id, l, ic]) => html`<button data-act="nav" data-page="${id}" class="${id === navFor(S.page) ? 'active' : ''}">${ico(ic)}<span>${l}</span></button>`)}<button data-act="logout">${ico('out')}<span>تسجيل الخروج</span></button></div></div>`);
+  const groups = navGroups();
+  put($('#overlay'), html`<div class="more-sheet" data-act="close-modal-bg"><div class="more-panel"><div class="more-heading"><div><span class="eyebrow">مساحة الأكاديمية</span><h2>انتقل إلى ما تحتاجه</h2></div><button class="btn sec2 sm" data-act="close-modal" aria-label="إغلاق القائمة">×</button></div><div class="more-sections">${groups.map(g=>html`<section class="more-section"><h3>${g.label}</h3><div class="more-grid">${g.items.map(([id,l,ic])=>html`<button data-act="nav" data-page="${id}" class="${id===navFor(S.page)?'active':''}">${ico(ic)}<span>${l}</span><span class="more-arrow" aria-hidden="true">‹</span></button>`)}</div></section>`)}</div><button class="more-logout" data-act="logout">${ico('out')}<span>تسجيل الخروج</span></button></div></div>`);
 }
 
 /* ═══════════ الرئيسية ═══════════ */
@@ -417,7 +419,7 @@ async function openTeamMembers(id){
   if(!t.can_manage){return toast('لا تملك إدارة هذا الفريق',true)}
   const roster=S.students.filter(s=>(s.groups||[]).some(g=>g.id===t.group_id));
   const memberIds=new Set(t.members.map(x=>x.id)),supIds=new Set(t.supervisors.map(x=>x.id));
-  openModal('أعضاء الفريق ومشرفوه',html`<form data-form="team-members" data-id="${t.id}" class="stack"><p class="muted">اختر أعضاء الفريق، ثم حدّد من كبار الفوج ليكونوا مشرفين. لا تمنح هذه الصفة صلاحيات المعلم أو المدير.</p><div class="stack">${roster.map(s=>html`<label class="check"><input type="checkbox" name="student_ids" value="${s.id}"${memberIds.has(s.id)?' checked':''}><span>${s.name}</span></label>`)}${!roster.length?empty('لا يوجد طلاب في نطاقك لهذا الفوج'):''}</div><div class="card flat"><b>المشرفون</b><p class="muted small">لا يمكن اختيار مشرف إلا إذا كان عضوًا في الفريق.</p><div class="stack">${roster.map(s=>html`<label class="check"><input type="checkbox" name="supervisor_ids" value="${s.id}"${supIds.has(s.id)?' checked':''}><span>${s.name}</span></label>`)}</div></div><button class="btn">حفظ</button></form>`);
+  openModal('تعيين كبار الطلبة مشرفين للفريق',html`<form data-form="team-members" data-id="${t.id}" class="stack"><div class="card flat"><b>١. أعضاء الفريق</b><p class="muted small">اختر الطلبة الذين ينتمون إلى هذا الفريق.</p><div class="stack">${roster.map(s=>html`<label class="check"><input type="checkbox" name="student_ids" value="${s.id}"${memberIds.has(s.id)?' checked':''}><span>${s.name}</span></label>`)}${!roster.length?empty('لا يوجد طلاب في نطاقك لهذا الفوج'):''}</div></div><div class="card flat"><b>٢. كبير الطلبة / مشرف الفريق</b><p class="muted small">حدّد طالبًا أو أكثر ليتولّى تنظيم مهام الفريق ومتابعة أعضائه. هذه صلاحية إشراف على الفريق المحدد فقط، وليست صلاحية مدير أو معلم.</p><div class="stack">${roster.map(s=>html`<label class="check"><input type="checkbox" name="supervisor_ids" value="${s.id}"${supIds.has(s.id)?' checked':''}><span>${s.name}</span></label>`)}</div></div><button class="btn">حفظ أعضاء الفريق والمشرفين</button></form>`);
 }
 async function openTeamTaskModal(id){
   const teams=await api('/api/teams'),t=teams.find(x=>x.id===id);if(!t||!t.can_manage)return toast('لا تملك إدارة هذا الفريق',true);
@@ -1058,7 +1060,7 @@ const FORM = {
   'question-attempt': f=>guard(async()=>{let answer;if(f.elements.answer?.length&&f.elements.answer[0]?.type==='checkbox')answer=[...f.querySelectorAll('[name=answer]:checked')].map(x=>x.value);else answer=f.querySelector('[name=answer]')?.value||'';const r=await post('/api/question-bank/'+encodeURIComponent(f.dataset.id)+'/attempt',{answer});closeOverlay();toast(r.status==='graded'?`أحسنت، ${r.score}/${r.max_score}`:'وصلت إجابتك وسيتم التصحيح');showPage('question-bank');}),
   discussion: f=>guard(async()=>{const v=fd(f);await post('/api/discussions',{title:v.title,content:v.content,group_id:v.group_id||null});closeOverlay();toast('تم نشر الموضوع');showPage('community');}),
   'discussion-reply': f=>guard(async()=>{const v=fd(f);await post('/api/discussions/'+encodeURIComponent(f.dataset.id)+'/replies',{content:v.content});closeOverlay();toast('تم إضافة الرد');openDiscussion(f.dataset.id);}),
-  settings: f=>guard(async()=>{const v=fd(f);await api('/api/settings',{method:'PATCH',body:JSON.stringify({theme:v.theme,font_scale:Number(v.font_scale),high_contrast:f.elements.high_contrast.checked,reduced_motion:f.elements.reduced_motion.checked})});localStorage.setItem('academy_reduced_motion',f.elements.reduced_motion.checked?'1':'0');closeOverlay();document.documentElement.dataset.theme=v.theme||'emerald';document.documentElement.style.fontSize=(Number(v.font_scale)||1)+'em';document.documentElement.classList.toggle('high-contrast',f.elements.high_contrast.checked);document.documentElement.classList.toggle('reduced-motion',f.elements.reduced_motion.checked);toast('تم حفظ التفضيلات');showPage('settings');}),
+  settings: f=>guard(async()=>{const v=fd(f);await api('/api/settings',{method:'PATCH',body:JSON.stringify({theme:v.theme,font_scale:Number(v.font_scale),high_contrast:f.elements.high_contrast.checked,reduced_motion:f.elements.reduced_motion.checked})});localStorage.setItem('academy_theme',v.theme||'emerald');localStorage.setItem('academy_reduced_motion',f.elements.reduced_motion.checked?'1':'0');closeOverlay();document.documentElement.dataset.theme=v.theme||'emerald';document.documentElement.style.fontSize=(Number(v.font_scale)||1)+'em';document.documentElement.classList.toggle('high-contrast',f.elements.high_contrast.checked);document.documentElement.classList.toggle('reduced-motion',f.elements.reduced_motion.checked);toast('تم حفظ التفضيلات');showPage('settings');}),
   'change-password': f=>guard(async()=>{const v=fd(f);if(v.new_password!==v.confirm_password)throw new Error('تأكيد كلمة المرور غير مطابق');await post('/api/account/password',{current_password:v.current_password,new_password:v.new_password});toast('تم تغيير كلمة المرور بنجاح');showPage('settings');}),
   'privacy-request': f=>guard(async()=>{await post('/api/privacy/request',{type:f.dataset.type,details:fd(f).details});closeOverlay();toast('تم إرسال طلب الخصوصية');showPage('settings');}),
   assignment: f => guard(async()=>{const v=fd(f);await post('/api/assignments',{title:v.title,description:v.description,due_date:v.due_date,max_score:Number(v.max_score),group_id:v.group_id,subject_id:v.subject_id||null});closeOverlay();toast('تم نشر الواجب');showPage('assignments');}),
