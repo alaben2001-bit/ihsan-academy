@@ -24,7 +24,7 @@ for(const manifest of manifests){
       file=parsed.file;
     }else{
       // Format emitted by tools/backup-postgres.js: "<sha256>  <filename>"
-      const match=raw.match(/^([a-f0-9]{64})\\s+(.+)$/i);
+      const match=raw.match(/^([a-f0-9]{64})\s+(.+)$/i);
       if(!match)throw new Error('Unrecognized SHA-256 manifest format');
       expected=match[1].toLowerCase();
       file=match[2].trim();
