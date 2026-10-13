@@ -911,3 +911,27 @@ input:focus,select:focus,textarea:focus{outline:none!important;border-color:#58a
   #view .stat .num{font-size:25px}
   .home-quick-link{min-width:0;padding:10px}
 }
+
+
+/* V72 — make the student's next action unmistakable, especially on phones. */
+.today-plan .sec .eyebrow{display:inline-block;margin-bottom:3px}
+.today-plan .sec h3{font-size:clamp(19px,2vw,23px)}
+.today-step{gap:10px;transition:border-color .15s,background .15s}
+.today-step:hover{border-color:var(--g200);background:#fff}
+.today-step-copy{flex:1;min-width:140px}
+.today-step-open{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-width:88px;min-height:42px;padding:8px 13px;border-radius:11px;background:var(--g800);color:#fff;font-weight:800;white-space:nowrap}
+.today-step-open:hover{background:var(--g700)}
+.today-step-open:focus-visible{outline:3px solid var(--g500);outline-offset:3px}
+.today-step.urgent .today-step-open{background:#8d6a22}
+.today-empty{display:flex;align-items:center;gap:13px;flex-wrap:wrap;padding:16px;border:1px dashed var(--g200);border-radius:14px;background:rgba(255,255,255,.7)}
+.today-empty>div{flex:1;min-width:180px}
+.today-empty p{margin-top:3px;color:var(--muted);font-size:13px;line-height:1.8}
+.today-empty-mark{display:grid;place-items:center;width:38px;height:38px;border-radius:12px;background:var(--g100);color:var(--g800);font-size:22px;flex:none}
+@media(max-width:680px){
+ .today-step{display:grid;grid-template-columns:30px minmax(0,1fr);gap:8px 10px;padding:12px}
+ .today-step-copy{min-width:0}
+ .today-step .chip{grid-column:2;justify-self:start;margin:0}
+ .today-step-open{grid-column:1/-1;width:100%;min-height:44px}
+ .today-empty{align-items:flex-start}
+ .today-empty .btn{width:100%}
+}
