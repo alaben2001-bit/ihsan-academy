@@ -16,7 +16,7 @@ assert.match(htmlSource, /class="login-art"/, 'login page must retain its visual
 assert.match(htmlSource, /\/assets\/ihsan-emblem\.svg/, 'navigation and welcome screen must use the academy emblem');
 assert.match(htmlSource, /app\.css\?v=73\.0/, 'refreshed visual styles must bypass the old browser cache');
 assert.match(htmlSource, /app\.js\?v=70\.2/, 'dashboard script changes must bypass the old browser cache');
-assert.match(htmlSource, /مرحبًا بك في رحلتك/, 'welcome screen must orient students toward a learning journey');
+assert.doesNotMatch(htmlSource, /مرحبًا بك في رحلتك/, 'public login page must not show promotional welcome copy');
 assert.match(appSource, /hero-orbit"><img src="\/assets\/ihsan-emblem\.svg"/, 'signed-in dashboard must use the academy emblem instead of a text placeholder');
 assert.doesNotMatch(appSource.slice(appSource.indexOf('function pgDashboard'), appSource.indexOf('/* ═══════════ فرق المدرسة')), /today-step-open/, 'requested daily-step card must be removed from the dashboard');
 assert.doesNotMatch(appSource.slice(appSource.indexOf('function pgDashboard'), appSource.indexOf('/* ═══════════ فرق المدرسة')), /today-empty/, 'requested daily-step card must be removed from the dashboard');
