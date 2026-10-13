@@ -15,11 +15,11 @@ const cssSource = fs.readFileSync(path.join(__dirname, '..', 'assets', 'app.css'
 assert.match(htmlSource, /login-illustration/, 'welcome screen must include its dedicated illustration');
 assert.match(htmlSource, /\/assets\/ihsan-emblem\.svg/, 'navigation and welcome screen must use the academy emblem');
 assert.match(htmlSource, /app\.css\?v=73\.0/, 'refreshed visual styles must bypass the old browser cache');
-assert.match(htmlSource, /app\.js\?v=70\.0/, 'dashboard script changes must bypass the old browser cache');
+assert.match(htmlSource, /app\.js\?v=70\.2/, 'dashboard script changes must bypass the old browser cache');
 assert.match(htmlSource, /مرحبًا بك في رحلتك/, 'welcome screen must orient students toward a learning journey');
 assert.match(appSource, /hero-orbit"><img src="\/assets\/ihsan-emblem\.svg"/, 'signed-in dashboard must use the academy emblem instead of a text placeholder');
-assert.match(appSource, /today-step-open/, 'daily learning steps must have direct actions into the relevant learning area');
-assert.match(appSource, /today-empty/, 'students with no assigned tasks must still see a helpful next step');
+assert.doesNotMatch(appSource.slice(appSource.indexOf('function pgDashboard'), appSource.indexOf('/* ═══════════ فرق المدرسة')), /today-step-open/, 'requested daily-step card must be removed from the dashboard');
+assert.doesNotMatch(appSource.slice(appSource.indexOf('function pgDashboard'), appSource.indexOf('/* ═══════════ فرق المدرسة')), /today-empty/, 'requested daily-step card must be removed from the dashboard');
 assert.match(appSource, /view-subject-lessons/, 'students must be able to open a subject path from the curriculum map');
 assert.match(appSource, /openLearningSubjectLessons/, 'subject path action must open its lessons');
 assert.match(appSource, /ابدأ الدرس/, 'subject path modal must offer a direct start action for lessons');
@@ -208,7 +208,7 @@ assert.match(appSource, /اختبر فهمك/, 'lesson modal must offer a clear 
 assert.match(appSource, /practice-feedback/, 'practice must show feedback after answering');
 assert.match(cssSource, /practice-option/, 'practice choices must have dedicated responsive styling');
 assert.match(htmlSource, /app\.css\?v=73\.0/, 'practice styles must bypass browser cache');
-assert.match(htmlSource, /app\.js\?v=70\.0/, 'practice script must bypass browser cache');
+assert.match(htmlSource, /app\.js\?v=70\.2/, 'practice script must bypass browser cache');
 
 assert.match(htmlSource, /id="exploreTitle"/, 'Public landing must introduce academy learning paths');
 assert.match(htmlSource, /القرآن الكريم/, 'Public landing must feature Quran pathway');
