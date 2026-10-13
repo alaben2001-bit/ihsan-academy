@@ -210,8 +210,6 @@ assert.match(cssSource, /practice-option/, 'practice choices must have dedicated
 assert.match(htmlSource, /app\.css\?v=73\.0/, 'practice styles must bypass browser cache');
 assert.match(htmlSource, /app\.js\?v=70\.2/, 'practice script must bypass browser cache');
 
-assert.match(htmlSource, /id="exploreTitle"/, 'Public landing must introduce academy learning paths');
-assert.match(htmlSource, /القرآن الكريم/, 'Public landing must feature Quran pathway');
-assert.match(htmlSource, /معرفة الله تعالى/, 'Public landing must feature knowing Allah pathway');
-assert.match(htmlSource, /الأربعون النووية/, 'Public landing must feature Nawawi Forty pathway');
-assert.match(htmlSource, /حسابات الطلبة ينشئها المشرف/, 'Public landing must explain supervised account creation');
+assert.match(htmlSource, /id="exploreTitle"/, 'remaining public academy map section must have an accessible label');
+assert.doesNotMatch(htmlSource, /مسارات تبني الإنسان|معرفة الله تعالى|الأربعون النووية|حسابات الطلبة ينشئها المشرف|اعرف خطوتك|تعلّم وجرّب|راجع وتقدّم|أثمر علمك|ومضة اليوم/, 'removed public learning-path and promotional copy must stay off the login page');
+assert.match(htmlSource, /public-map-card/, 'public academy map must remain available');
