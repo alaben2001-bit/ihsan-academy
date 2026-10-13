@@ -935,3 +935,21 @@ input:focus,select:focus,textarea:focus{outline:none!important;border-color:#58a
  .today-empty{align-items:flex-start}
  .today-empty .btn{width:100%}
 }
+
+
+/* V73 — keep the golden surprise inviting and readable on small screens. */
+.golden-surprise-card{position:relative;isolation:isolate;overflow:hidden}
+.golden-surprise-content{position:relative;z-index:1;min-width:0}
+.golden-surprise-card h3{max-width:22ch;text-wrap:balance;line-height:1.5}
+.golden-surprise-card p{max-width:64ch;line-height:1.95}
+.golden-surprise-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:16px}
+.golden-surprise-actions .btn{min-height:44px}
+.golden-surprise-card .golden-surprise-star{pointer-events:none}
+@media(max-width:680px){
+ .golden-surprise-card{padding:clamp(18px,5vw,24px);border-radius:20px}
+ .golden-surprise-card h3{font-size:clamp(21px,6vw,27px);max-width:18ch}
+ .golden-surprise-card p{font-size:14px;line-height:1.9}
+ .golden-surprise-actions{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}
+ .golden-surprise-actions .btn{width:100%;justify-content:center}
+ .golden-surprise-star{opacity:.35;inset-inline-end:12px}
+}
