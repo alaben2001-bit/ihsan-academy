@@ -356,7 +356,8 @@ function openModal(title, body, mount) {
 }
 function closeOverlay() { put($('#overlay'), ''); }
 function openMore() {
-  const groups = navGroups();
+  // القائمة تعرض عناصر التنقل المسموح بها فقط؛ لا تُعيد العناصر المستبعدة من الواجهة.
+  const groups = navGroups().map(g => ({ ...g, items: g.items.filter(([id]) => !HIDDEN_NAV_IDS.has(id)) })).filter(g => g.items.length);
   put($('#overlay'), html`<div class="more-sheet" data-act="close-modal-bg"><div class="more-panel"><div class="more-heading"><div><span class="eyebrow">مساحة الأكاديمية</span><h2>انتقل إلى ما تحتاجه</h2></div><button class="btn sec2 sm" data-act="close-modal" aria-label="إغلاق القائمة">×</button></div><div class="more-sections">${groups.map(g=>html`<section class="more-section"><h3>${g.label}</h3><div class="more-grid">${g.items.map(([id,l,ic])=>html`<button data-act="nav" data-page="${id}" class="${id===navFor(S.page)?'active':''}">${ico(ic)}<span>${l}</span><span class="more-arrow" aria-hidden="true">‹</span></button>`)}</div></section>`)}</div><button class="more-logout" data-act="logout">${ico('out')}<span>تسجيل الخروج</span></button></div></div>`);
 }
 
