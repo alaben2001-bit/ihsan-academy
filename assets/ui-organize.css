@@ -1,0 +1,145 @@
+/* Ihsan Academy — interface organization layer
+   Layout-only refinements: preserve features, data, roles, and existing visual identity. */
+:root{
+  --layout-gap:clamp(12px,1.5vw,20px);
+  --layout-radius:18px;
+}
+html{scroll-behavior:smooth}
+body{overflow-x:hidden}
+#appView{min-height:100svh}
+.side{
+  width:264px;
+  padding:18px 12px 14px;
+  overflow:hidden;
+}
+.side .brand{flex:0 0 auto;padding:10px 12px 18px}
+.side .nav{
+  min-height:0;
+  overflow-y:auto;
+  overscroll-behavior:contain;
+  scrollbar-width:thin;
+  scrollbar-color:rgba(220,237,229,.3) transparent;
+  gap:15px;
+  padding:4px 0 14px;
+}
+.nav-group{gap:4px}
+.nav-group+.nav-group{margin-top:2px;padding-top:12px}
+.nav-label{
+  display:flex;
+  align-items:center;
+  font-size:11px;
+  letter-spacing:.035em;
+  padding:5px 13px 7px;
+}
+.nav button{
+  min-height:42px;
+  margin:0 4px;
+  width:calc(100% - 8px);
+  padding:9px 12px;
+  gap:10px;
+  border-radius:11px;
+  line-height:1.5;
+}
+.nav button span{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.account{flex:0 0 auto;padding-top:12px}
+.main{
+  width:calc(100% - 264px);
+  max-width:none;
+  margin-right:264px;
+  min-width:0;
+  padding:32px clamp(20px,3vw,42px) 64px;
+}
+.main::before{right:clamp(20px,3vw,42px);left:clamp(20px,3vw,42px)}
+.top{
+  align-items:center;
+  margin-bottom:28px;
+  min-width:0;
+}
+.top>div:first-child{min-width:0}
+.top h1{overflow-wrap:anywhere}
+.top .sub{max-width:72ch}
+.top .actions{flex-wrap:wrap;justify-content:flex-start}
+#view{min-width:0;width:100%}
+#view>.stack{gap:var(--layout-gap)}
+.stack>*+*{margin-top:0}
+.grid{gap:var(--layout-gap);grid-template-columns:repeat( min(4, var(--grid-columns, 1)), minmax(0,1fr))}
+.grid.g4{grid-template-columns:repeat(4,minmax(0,1fr))}
+.grid.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.grid.g2{grid-template-columns:repeat(2,minmax(0,1fr))}
+.cols{grid-template-columns:minmax(0,1.35fr) minmax(280px,1fr);gap:var(--layout-gap)}
+.card{min-width:0;overflow-wrap:anywhere}
+.card img,.card video,.card iframe{max-width:100%}
+.hero-main,.hero{min-width:0}
+.hero-main .hero-copy{min-width:0}
+.sec{align-items:flex-start}
+.sec>div{min-width:0}
+.row{min-width:0}
+.row>*{min-width:0}
+.toolbar{align-items:flex-end}
+.toolbar .field{min-width:min(190px,100%)}
+.scroll,.table-wrap{max-width:100%;overflow-x:auto;overscroll-behavior-inline:contain}
+.tbl{min-width:560px}
+.tbl.stack-m{min-width:0}
+.modalbox{overscroll-behavior:contain}
+#bottomNav{gap:2px}
+#bottomNav button{min-width:0;overflow:hidden}
+#bottomNav button svg.i{width:20px;height:20px}
+#bottomNav button span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+#bottomNav button.active{background:linear-gradient(180deg,rgba(226,238,233,.2),rgba(226,238,233,.75));border-radius:12px 12px 0 0}
+@media(max-width:1120px){
+ .side{width:236px}
+ .main{width:calc(100% - 236px);margin-right:236px;padding-inline:24px}
+ .main::before{right:24px;left:24px}
+ .grid.g4{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .grid.g3{grid-template-columns:repeat(2,minmax(0,1fr))}
+ .cols{grid-template-columns:minmax(0,1fr)}
+}
+@media(max-width:720px){
+ .side{display:none!important}
+ .main{width:100%;margin:0;padding:20px 14px calc(100px + env(safe-area-inset-bottom));}
+ .main::before{right:14px;left:14px}
+ .top{align-items:flex-start;gap:10px;margin-bottom:24px}
+ .top h1{font-size:clamp(23px,6vw,29px);line-height:1.4}
+ .top .sub{font-size:12.5px}
+ .top .actions{max-width:46%;gap:6px}
+ .top .actions .btn{padding:7px 10px;font-size:12px;min-height:36px}
+ .grid.g4,.grid.g3{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+ .grid.g2,.cols,.lists{grid-template-columns:minmax(0,1fr)}
+ .card{padding:15px;border-radius:16px}
+ .hero,.hero-main{padding:20px 17px;border-radius:18px}
+ .hero-main h2,.hero h2{font-size:clamp(22px,6vw,29px)}
+ .stat{min-width:0}
+ .stat .num{overflow-wrap:anywhere}
+ .sec{flex-wrap:wrap}
+ .sec>button,.sec>.row{max-width:100%}
+ .toolbar{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}
+ .toolbar .field{min-width:0;width:100%}
+ .form .two{grid-template-columns:minmax(0,1fr)}
+ .tbl{min-width:540px}
+ .tbl.stack-m{min-width:0}
+ #bottomNav{
+  display:flex!important;
+  align-items:stretch;
+  padding:6px 5px calc(5px + env(safe-area-inset-bottom));
+  background:rgba(255,253,248,.97);
+  backdrop-filter:blur(16px);
+  border-top:1px solid rgba(220,214,199,.9);
+  box-shadow:0 -8px 28px rgba(24,54,43,.08);
+ }
+ #bottomNav button{padding:7px 2px 5px;font-size:10px;gap:3px}
+ #bottomNav button svg.i{width:19px;height:19px}
+ .modal{padding:8px}
+ .modalbox{width:100%;padding:18px 14px;max-height:calc(100dvh - 16px)}
+}
+@media(max-width:380px){
+ .main{padding-inline:10px}
+ .grid.g4,.grid.g3{gap:8px}
+ .stat{padding:10px 8px}
+ .stat .ic{width:31px;height:31px}
+ .stat .num{font-size:21px}
+ #bottomNav button span{font-size:9px}
+}
+@media(prefers-reduced-motion:reduce){
+ html{scroll-behavior:auto}
+ *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
+}
