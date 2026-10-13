@@ -369,7 +369,7 @@ async function pgDashboard() {
   const hero = {
     admin: ['إدارة الأكاديمية', 'نظام منظم لبناء الإنسان تدريجيًا، مع متابعة واضحة وبدون إرهاق.'],
     teacher: ['أهلًا بك، ' + S.user.name, 'سجّل الحضور، أنشئ الاختبارات، وتابع طلابك من مكان واحد.'],
-    student: ['استمر خطوة بخطوة', 'هدفنا الإتقان والاستمرار، لا كثرة المهام.'],
+    student: ['', ''],
     parent: ['متابعة هادئة وواضحة', 'تابع تقدم أبنائك بصورة مختصرة ومطمئنة.']
   }[role];
   const stats = isStaff()
@@ -392,7 +392,7 @@ async function pgDashboard() {
     : role === 'parent' ? ['لولي الأمر', 'اسأل عن التقدم قبل أن تسأل عن النتيجة.', 'الدعم الهادئ يصنع بيئة أفضل للتعلم.']
     : ['فلسفة الأكاديمية', 'نبني الإنسان قبل أن نكدّس المعلومات.', 'علم نافع، خلق، عادة، صحة، وعلاقات متوازنة.'];
   render(html`<div class="stack">
-    <div class="card hero hero-main"><div class="hero-copy"><span class="eyebrow">${role === 'admin' ? 'لوحة الإدارة' : 'أكاديمية بناء الإنسان'}</span><h2>${hero[0]}</h2><p>${hero[1]}</p><span class="when">${fmtDate(today())}</span></div><div class="hero-orbit"><img src="/assets/ihsan-emblem.svg" alt="شعار أكاديمية الإحسان"><i></i><i></i></div></div>
+    ${role === 'student' ? '' : html`<div class="card hero hero-main"><div class="hero-copy"><span class="eyebrow">${role === 'admin' ? 'لوحة الإدارة' : 'أكاديمية بناء الإنسان'}</span><h2>${hero[0]}</h2><p>${hero[1]}</p><span class="when">${fmtDate(today())}</span></div><div class="hero-orbit"><img src="/assets/ihsan-emblem.svg" alt="شعار أكاديمية الإحسان"><i></i><i></i></div></div>`}
     
     <div class="grid g4">${stats.map((s, i) => { const page = s[0] === 'الطلاب' ? 'students' : s[0] === 'الأبناء' ? 'children' : s[0] === 'الأفواج' ? 'groups' : (s[0] === 'نسبة الحضور' || s[0] === 'الحضور') ? 'attendance' : null; return page && isStaff() ? html`<button type="button" class="card stat stat-link" data-act="nav" data-page="${page}" aria-label="فتح ${s[0]}" style="text-align:inherit;color:inherit;width:100%;cursor:pointer"><span class="ic">${ico(['user', 'group', 'check', 'trend'][i % 4])}</span><div><div class="lbl">${s[0]}</div><div class="num">${s[1]}</div></div></button>` : html`<div class="card stat"><span class="ic">${ico(['user', 'group', 'check', 'trend'][i % 4])}</span><div><div class="lbl">${s[0]}</div><div class="num">${s[1]}</div></div></div>`; })}</div>
     ${isStaff() ? html`<div class="card flat row wrap"><b>اختصارات سريعة</b><div class="chips"><button class="btn sm" data-act="nav" data-page="attendance">تسجيل الحضور</button><button class="btn sm sec2" data-act="new-test">إنشاء اختبار</button><button class="btn sm sec2" data-act="nav" data-page="tests">إدخال الدرجات</button></div></div>` : ''}
