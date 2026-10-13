@@ -12,7 +12,7 @@ const serverSource = fs.readFileSync(path.join(__dirname, '..', 'server', 'serve
 const appSource = fs.readFileSync(path.join(__dirname, '..', 'assets', 'app.js'), 'utf8');
 const htmlSource = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const cssSource = fs.readFileSync(path.join(__dirname, '..', 'assets', 'app.css'), 'utf8');
-assert.match(htmlSource, /login-illustration/, 'welcome screen must include its dedicated illustration');
+assert.match(htmlSource, /class="login-art"/, 'login page must retain its visual brand panel');
 assert.match(htmlSource, /\/assets\/ihsan-emblem\.svg/, 'navigation and welcome screen must use the academy emblem');
 assert.match(htmlSource, /app\.css\?v=73\.0/, 'refreshed visual styles must bypass the old browser cache');
 assert.match(htmlSource, /app\.js\?v=70\.2/, 'dashboard script changes must bypass the old browser cache');
@@ -191,7 +191,7 @@ const canonicalServiceConfig = renderSource.split('name: ihsan-academy-frankfurt
 assert.ok(legacyServiceConfig.includes('name: ihsan-academy') && legacyServiceConfig.includes('key: ACADEMY_REDIRECT_TO_FRANKFURT') && legacyServiceConfig.includes('value: "1"'), 'legacy Oregon service must redirect to Frankfurt');
 assert.doesNotMatch(canonicalServiceConfig, /key: ACADEMY_REDIRECT_TO_FRANKFURT/, 'canonical Frankfurt service must not redirect itself');
 
-assert.match(appSource, /const dailyTips = \[/, 'login should offer original daily educational guidance');
+assert.doesNotMatch(htmlSource, /login-tip|dailyTip|login-footer/, 'removed promotional and daily-tip blocks must stay off the login page');
 
 assert.match(appSource, /data-theme-option/, 'theme swatches must support immediate selection');
 
