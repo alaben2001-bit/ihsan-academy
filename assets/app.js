@@ -984,15 +984,14 @@ function pgAcademyMap(){
 }
 function pgLearningHub(){
   const domains=[
-    ['معرفة الله تعالى','أسماء الله وصفاته من الوحي الصحيح، ومعانٍ تقود إلى العبادة والعمل.','✧','curriculum'],
-    ['معرفة الرسول ﷺ','السيرة والهدي والشمائل، مع تطبيق خُلُق نبوي في الحياة.','ﷺ','curriculum'],
-    ['القرآن الكريم','حفظ وفهم وتجويد ومراجعة، ومسارات تناسب مستوى الطالب.','۞','quran'],
-    ['الحديث النبوي','الأربعون النووية: حفظ الحديث وفهمه ومعرفة مصدره والعمل به.','٤٠','curriculum'],
-    ['باقي العلوم والفوائد','آداب طلب العلم، اللغة، المتون، مهارات الحياة، وفوائد قصيرة موثقة.','✦','curriculum']
+    ['القرآن الكريم','حفظ مضبوط، مراجعة، تجويد، وأهداف أسبوعية تناسب مستواك.','۞','quran','تمهيدي · 15 · 30 · 45 · الخاتمون'],
+    ['معرفة الله تعالى','نتعلم من الوحي الصحيح، ونربط المعنى بعمل صالح في حياتنا.','✧','curriculum','علمٌ يثمر عبادةً وتعظيمًا'],
+    ['معرفة الرسول ﷺ','مواقف من الهدي النبوي، وأخلاق نتمرّن عليها في البيت والمدرسة.','ﷺ','curriculum','سيرة موثقة واقتداء عملي'],
+    ['الحديث النبوي','حديث مضبوط المصدر، ومعنى واضح، وتطبيق يراجعه الطالب مع شيخه.','٤٠','curriculum','الأربعون النووية · حفظ · فهم · عمل']
   ];
   render(html`<div class="stack">
-    <div class="card hero hero-main"><div class="hero-copy"><span class="eyebrow">برنامج التعلّم الممتع</span><h2>خمس بوابات، وخطوة واضحة في كل مرة</h2><p>اختر مجالًا واحدًا، تعلّم شيئًا قصيرًا، أجب عن سؤال، ثم طبّق فائدة واحدة. لا نقاط تُشعرك بالفشل ولا قلوب عقابية.</p></div><div class="hero-orbit"><span>ع</span><i></i><i></i></div></div>
-    <div class="grid g2">${domains.map((d,i)=>html`<article class="card learning-domain"><span class="learning-domain-symbol">${d[2]}</span><span class="eyebrow">المجال ${['الأول','الثاني','الثالث','الرابع','الخامس'][i]}</span><h3>${d[0]}</h3><p class="muted">${d[1]}</p><button class="btn sm" data-act="nav" data-page="${d[3]}">ادخل المجال <span aria-hidden="true">←</span></button></article>`)}</div>
+    <div class="card hero hero-main"><div class="hero-copy"><span class="eyebrow">مسارات تبني الإنسان</span><h2>ليس حفظًا فقط؛ علمٌ يُفهم، وخُلُقٌ يُعاش</h2><p>ابدأ من مستواك، وتقدّم مع شيخك بخطوات واضحة، ومراجعة منتظمة، وأثر يظهر في يومك.</p></div><div class="hero-orbit"><span>ع</span><i></i><i></i></div></div>
+    <div class="grid g2">${domains.map((d,i)=>html`<article class="card learning-domain"><span class="learning-domain-symbol">${d[2]}</span><span class="eyebrow">المسار ${['الأول','الثاني','الثالث','الرابع'][i]}</span><h3>${d[0]}</h3><p><b>${d[4]}</b></p><p class="muted">${d[1]}</p><button class="btn sm" data-act="nav" data-page="${d[3]}">ادخل المسار <span aria-hidden="true">←</span></button></article>`)}</div>
     <div class="card"><div class="sec"><div><h3>طريقة التعلّم</h3><p class="muted small">درس قصير ← سؤال تفاعلي ← تطبيق عملي ← مراجعة لاحقة</p></div></div><div class="learning-steps"><span>تعلّم</span><i>←</i><span>جرّب</span><i>←</i><span>طبّق</span><i>←</i><span>راجع</span></div></div>
   </div>`);
 }
