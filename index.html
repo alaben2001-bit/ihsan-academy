@@ -26,59 +26,35 @@
 <meta name="mobile-web-app-capable" content="yes">
 <link rel="stylesheet" href="/assets/app.css?v=73.0">
 <link rel="stylesheet" href="/assets/admin-mobile.css?v=70.0">
+<link rel="stylesheet" href="/assets/ui-organize.css?v=1.0">
 </head>
 <body>
-
 <section class="login hidden" id="loginView">
-  <div class="login-art">
-    <div class="login-brand"><img src="/assets/ihsan-emblem.svg" alt="شعار أكاديمية الإحسان"><div><b>أكاديمية الإحسان</b><small>في بناء الإنسان</small></div></div>
-  </div>
-  <div class="login-form">
-    <div class="login-form-inner">
-      <div class="form-brand"><img src="/assets/ihsan-emblem.svg" alt=""><div><strong>أكاديمية الإحسان</strong></div></div>
-      <form id="loginForm" autocomplete="on">
-        <h2>تسجيل الدخول</h2>
-        <label class="field"><span>اسمك ولقبك أو البريد الإلكتروني</span><input id="loginEmail" type="text" name="identity" autocomplete="username" required style="text-align:right"></label>
-        <label class="field"><span>كلمة المرور</span><input id="loginPass" type="password" name="password" autocomplete="current-password" required dir="ltr" style="text-align:right"></label>
-        <label class="showpw"><input type="checkbox" id="showPass"><span>إظهار كلمة المرور</span></label>
-        <div class="err-msg" id="loginErr" role="alert"></div>
-        <button class="btn" id="loginBtn" type="submit">دخول إلى الأكاديمية <span aria-hidden="true">←</span></button>
-      </form>
-      <div class="portal-box">
-        <div class="sec"><div><h3>المدارس القرآنية</h3><p class="muted small">اختر بوابة مدرستك بعد تسجيل الحساب.</p></div></div>
-        <div id="quranSchools" class="portal-grid"></div>
-      </div>
-    </div>
-  </div>
-
+  <div class="login-art"><div class="login-brand"><img src="/assets/ihsan-emblem.svg" alt="شعار أكاديمية الإحسان"><div><b>أكاديمية الإحسان</b><small>في بناء الإنسان</small></div></div></div>
+  <div class="login-form"><div class="login-form-inner">
+    <div class="form-brand"><img src="/assets/ihsan-emblem.svg" alt=""><div><strong>أكاديمية الإحسان</strong></div></div>
+    <form id="loginForm" autocomplete="on">
+      <h2>تسجيل الدخول</h2>
+      <label class="field"><span>اسمك ولقبك أو البريد الإلكتروني</span><input id="loginEmail" type="text" name="identity" autocomplete="username" required style="text-align:right"></label>
+      <label class="field"><span>كلمة المرور</span><input id="loginPass" type="password" name="password" autocomplete="current-password" required dir="ltr" style="text-align:right"></label>
+      <label class="showpw"><input type="checkbox" id="showPass"><span>إظهار كلمة المرور</span></label>
+      <div class="err-msg" id="loginErr" role="alert"></div>
+      <button class="btn" id="loginBtn" type="submit">دخول إلى الأكاديمية <span aria-hidden="true">←</span></button>
+    </form>
+    <div class="portal-box"><div class="sec"><div><h3>المدارس القرآنية</h3><p class="muted small">اختر بوابة مدرستك بعد تسجيل الحساب.</p></div></div><div id="quranSchools" class="portal-grid"></div></div>
+  </div></div>
 </section>
-
 <div class="app hidden" id="appView">
   <aside class="side">
     <div class="brand"><span class="brandmark"><img src="/assets/ihsan-emblem.svg" alt=""></span><div><b>أكاديمية الإحسان</b><small>في بناء الإنسان</small></div></div>
     <nav class="nav" id="nav" aria-label="القائمة الرئيسية"></nav>
-    <div class="account">
-      <div><b id="accName"></b><small id="accRole"></small></div>
-      <button data-act="logout" title="تسجيل الخروج" aria-label="تسجيل الخروج" id="logoutBtn"></button>
-    </div>
+    <div class="account"><div><b id="accName"></b><small id="accRole"></small></div><button data-act="logout" title="تسجيل الخروج" aria-label="تسجيل الخروج" id="logoutBtn"></button></div>
   </aside>
-  <main class="main">
-    <div class="top">
-      <div><h1 id="pgTitle"></h1><div class="sub" id="pgSub"></div></div>
-      <div class="actions" id="topActions"></div>
-    </div>
-    <div id="view" aria-live="polite"></div>
-  </main>
+  <main class="main"><div class="top"><div><h1 id="pgTitle"></h1><div class="sub" id="pgSub"></div></div><div class="actions" id="topActions"></div></div><div id="view" aria-live="polite"></div></main>
   <nav class="bottom" id="bottomNav" aria-label="التنقل السريع"></nav>
 </div>
-<div id="audioDock" class="audio-dock hidden" aria-label="مشغل الأكاديمية">
-  <div class="audio-dock-info"><span class="audio-dock-icon">♫</span><div><b id="audioDockTitle">لا يوجد تسجيل</b><small id="audioDockMeta">مشغل الأكاديمية</small></div></div>
-  <audio id="academyPlayer" controls preload="metadata"></audio>
-  <button class="btn sec2 sm" id="audioDockClose" type="button" aria-label="إغلاق المشغل">×</button>
-</div>
-
-<div id="overlay"></div>
-<div class="toast" id="toast" role="status"></div>
+<div id="audioDock" class="audio-dock hidden" aria-label="مشغل الأكاديمية"><div class="audio-dock-info"><span class="audio-dock-icon">♫</span><div><b id="audioDockTitle">لا يوجد تسجيل</b><small id="audioDockMeta">مشغل الأكاديمية</small></div></div><audio id="academyPlayer" controls preload="metadata"></audio><button class="btn sec2 sm" id="audioDockClose" type="button" aria-label="إغلاق المشغل">×</button></div>
+<div id="overlay"></div><div class="toast" id="toast" role="status"></div>
 <div class="install-prompt hidden" id="installPrompt"><div><b>ثبّت الأكاديمية على جهازك</b><span>تفتح بسرعة مثل تطبيق مستقل.</span></div><button class="btn sm" id="installBtn">تثبيت</button><button class="btn sec2 sm" id="installClose" aria-label="إغلاق">لاحقًا</button></div>
 <script src="/assets/app.js?v=70.2"></script>
 </body>
