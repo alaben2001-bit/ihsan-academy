@@ -221,7 +221,7 @@ function navGroups() {
   ];
 }
 function navItems() { return navGroups().flatMap(g => g.items); }
-const HIDDEN_NAV_IDS = new Set(['news','quran','journey','learning','tasks','tests','curriculum','program','assignments','question-bank','calendar','transport','learning-hub','media','community','notifications','reports','groups']);
+const HIDDEN_NAV_IDS = new Set(['news','quran','journey','learning','tasks','tests','curriculum','program','assignments','question-bank','calendar','transport','learning-hub','media','community','notifications','messages','profile','children','reports','groups']);
 function buildNav() {
   const groups = navGroups()
     .map(g => ({ ...g, items: g.items.filter(([id]) => !HIDDEN_NAV_IDS.has(id)) }))
