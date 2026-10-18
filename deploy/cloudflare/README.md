@@ -11,8 +11,9 @@ Use Workers Free and D1 Free only. Do not enable Workers Paid or Containers. If 
 - Static-asset preparation uses an explicit allowlist. It does not publish server source, migrations, or data files.
 - A real D1 database named `ihsan-academy-students` has been created in the EU jurisdiction (region EEUR), and the initial tables have been applied. Its ID is configured in `wrangler.jsonc`.
 - The database currently contains the public Quran-school seed only; the `users` table has zero accounts. No administrator credentials or student records exist yet.
-- The public Quran-school list endpoint is included.
-- **The full student platform is not ported yet.** Any other `/api/*` route deliberately returns HTTP 501 rather than pretending it works. Login, role-scoped records, attendance, tests, assignments, uploads, and the remaining app APIs must be ported and tested before this preview can replace Render.
+- The public Quran-school list endpoint, health check, login/session endpoints, and initial read-only dashboard endpoints are implemented in the Pages Function.
+- A separate Pages project `ihsan-academy-students-preview.pages.dev` has been created with the D1 binding. It is a staging deployment, not a replacement for Render.
+- **The full student platform is not ported yet.** Unsupported `/api/*` routes deliberately return HTTP 501 rather than pretending they work. Many app flows (attendance, grades, assignments, curriculum editing, file uploads, detailed Quran tracking, role-scoped management) still need equivalent implementations and security tests before this preview can replace Render.
 - No D1 database ID, administrator credentials, or secrets are embedded in source.
 - The previous Container configuration has been removed from this branch; Containers require a paid plan for this account.
 
@@ -31,8 +32,8 @@ npm run prepare:assets
 1. The D1 database is already created and its initial schema has been applied directly through the Cloudflare API. The migration file is committed for repeatable setup on a fresh database.
 2. Install dependencies, then run `npm run check` and `npm run prepare:assets`.
 3. Apply the committed migration to verify repeatability: `npx wrangler d1 migrations apply ihsan-academy-students --remote`.
-4. Wait for the GitHub Actions dry-run validation before attempting deployment.
-5. A deployment is not considered complete until the Worker is deployed and `/api/health` passes.
+4. GitHub Actions checks JavaScript syntax, prepares the allowlisted assets, and runs a Wrangler dry-run.
+5. The Pages project deploys from this branch; verify its deployment stages and `/api/health` before treating the preview as usable.
 
 Do not change the Render URL or shut down Render until all APIs used by the current frontend are implemented and the acceptance checklist passes.
 
