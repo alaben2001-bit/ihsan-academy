@@ -9,7 +9,8 @@ Use Workers Free and D1 Free only. Do not enable Workers Paid or Containers. If 
 ## Current implementation status
 
 - Static-asset preparation uses an explicit allowlist. It does not publish server source, migrations, or data files.
-- A D1 initial schema and health check are included.
+- A real D1 database named `ihsan-academy-students` has been created in the EU jurisdiction (region EEUR), and the initial tables have been applied. Its ID is configured in `wrangler.jsonc`.
+- The database currently contains the public Quran-school seed only; the `users` table has zero accounts. No administrator credentials or student records exist yet.
 - The public Quran-school list endpoint is included.
 - **The full student platform is not ported yet.** Any other `/api/*` route deliberately returns HTTP 501 rather than pretending it works. Login, role-scoped records, attendance, tests, assignments, uploads, and the remaining app APIs must be ported and tested before this preview can replace Render.
 - No D1 database ID, administrator credentials, or secrets are embedded in source.
@@ -27,11 +28,11 @@ npm run prepare:assets
 
 ## D1 setup and deploy
 
-1. Create a D1 database named `ihsan-academy-students` from the Cloudflare dashboard or with Wrangler. This is a new empty database; no old student records are imported.
-2. Replace `REPLACE_WITH_CREATED_D1_DATABASE_ID` in `wrangler.jsonc` with the real database ID.
-3. Apply schema: `npx wrangler d1 migrations apply ihsan-academy-students --remote`.
-4. Add seed content through a reviewed migration (no default administrator password is included).
-5. Run `npm run deploy` and test `/api/health`.
+1. The D1 database is already created and its initial schema has been applied directly through the Cloudflare API. The migration file is committed for repeatable setup on a fresh database.
+2. Install dependencies, then run `npm run check` and `npm run prepare:assets`.
+3. Apply the committed migration to verify repeatability: `npx wrangler d1 migrations apply ihsan-academy-students --remote`.
+4. Wait for the GitHub Actions dry-run validation before attempting deployment.
+5. A deployment is not considered complete until the Worker is deployed and `/api/health` passes.
 
 Do not change the Render URL or shut down Render until all APIs used by the current frontend are implemented and the acceptance checklist passes.
 
