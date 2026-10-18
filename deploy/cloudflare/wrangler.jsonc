@@ -1,0 +1,27 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "ihsan-academy-students-trial",
+  "main": "src/index.js",
+  "compatibility_date": "2026-10-18",
+  "containers": [
+    {
+      "class_name": "IhsanAcademyContainer",
+      "image": "../../Dockerfile",
+      "max_instances": 1
+    }
+  ],
+  "durable_objects": {
+    "bindings": [
+      {
+        "name": "IHSAN_CONTAINER",
+        "class_name": "IhsanAcademyContainer"
+      }
+    ]
+  },
+  "migrations": [
+    {
+      "tag": "v1",
+      "new_sqlite_classes": ["IhsanAcademyContainer"]
+    }
+  ]
+}
