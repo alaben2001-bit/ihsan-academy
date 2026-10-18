@@ -5,7 +5,7 @@ Updated: 2026-10-18
 ## Static sites
 
 - Academy curriculum site: https://ihsan-knowledge.pages.dev/
-- Quran school site: https://ihsan-quran-school.pages.dev/
+- Quran school site: https://ihsan-quran-school-live.pages.dev/
 - Student learning platform remains: https://ihsan-academy-frankfurt.onrender.com/
 
 ## Current implementation
@@ -19,7 +19,7 @@ Updated: 2026-10-18
 
 ## Important deployment caveat
 
-The attempt to connect these Pages projects to the GitHub repository failed with a Cloudflare API error relating to the Pages Git installation. The latest site versions were therefore uploaded directly as Pages deployments. Automatic deployment on future Git pushes is **not confirmed** and must not be assumed.
+The academy site is connected to GitHub. The Quran school uses the connected project `ihsan-quran-school-live` because the older direct-upload project cannot be converted to a Git-connected project; the older project has been left untouched.
 
 ## Not migrated / not changed
 
