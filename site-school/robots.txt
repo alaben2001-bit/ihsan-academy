@@ -1,3 +1,3 @@
 User-agent: *
 Allow: /
-Sitemap: https://ihsan-quran-school.pages.dev/sitemap.xml
+Sitemap: https://ihsan-quran-school-live.pages.dev/sitemap.xml
