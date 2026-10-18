@@ -37,8 +37,8 @@ function academyTone(kind='soft'){
 }
 window.addEventListener('DOMContentLoaded',setupAcademyAtmosphere);
 
-window.addEventListener('DOMContentLoaded',async()=>{try{const schools=await fetch('/api/public/quran-schools').then(r=>r.json());const box=$('#quranSchools');if(box&&Array.isArray(schools))put(box,html`${schools.map(x=>html`<button type="button" class="portal-card" data-entry="quran"><span class="brandmark">ق</span><span><b>${x.name}</b><small>${x.description||'حفظ ومراجعة وتجويد وتربية'}</small></span></button>`)}`);}catch{}});
-document.addEventListener('click',e=>{const tab=e.target.closest('[data-act="news-tab"]');if(tab){drawNewsTab(tab.dataset.tab);return;}const b=e.target.closest('[data-entry="quran"]');if(b){try{sessionStorage.setItem('academy_entry','quran')}catch{}} if(e.target.closest('button,.btn,.nav button,.portal-card')) academyTone('soft');});
+
+document.addEventListener('click',e=>{const tab=e.target.closest('[data-act="news-tab"]');if(tab){drawNewsTab(tab.dataset.tab);return;} if(e.target.closest('button,.btn,.nav button,.portal-card')) academyTone('soft');});
 
 const p2 = n => String(n).padStart(2, '0');
 const today = () => { const d = new Date(); return `${d.getFullYear()}-${p2(d.getMonth() + 1)}-${p2(d.getDate())}`; };
@@ -221,7 +221,7 @@ function navGroups() {
   ];
 }
 function navItems() { return navGroups().flatMap(g => g.items); }
-const HIDDEN_NAV_IDS = new Set(['news','quran','journey','learning','tasks','tests','curriculum','assignments','calendar','transport','learning-hub','media','community','notifications','reports','groups']);
+const HIDDEN_NAV_IDS = new Set(['news','quran','journey','learning','tasks','tests','curriculum','program','assignments','question-bank','calendar','transport','learning-hub','media','community','notifications','reports','groups']);
 function buildNav() {
   const groups = navGroups()
     .map(g => ({ ...g, items: g.items.filter(([id]) => !HIDDEN_NAV_IDS.has(id)) }))
