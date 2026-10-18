@@ -57,3 +57,7 @@ CREATE TABLE IF NOT EXISTS audit_log (
   created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
 );
 CREATE INDEX IF NOT EXISTS idx_audit_log_created ON audit_log(created_at);
+
+-- Minimal public portal seed; no accounts or private student records.
+INSERT OR IGNORE INTO quran_schools (id, name, description, active, sort_order)
+VALUES ('qs-rahman', 'مدرسة مسجد الرحمان القرآنية', 'حفظ ومراجعة وتجويد وتربية.', 1, 1);
