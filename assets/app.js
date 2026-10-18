@@ -186,7 +186,7 @@ async function startSession() {
 const isStaff = () => S.user && (S.user.role === 'admin' || S.user.role === 'teacher');
 function navGroups() {
   const n = (id, label, ic) => [id, label, ic];
-  const common = [n('academy-map', 'خريطة الأكاديمية والصلاحيات', 'chart'), n('learning-hub', 'برنامج التعلّم الممتع', 'brain'), n('school-directory', 'هيكلة المدرسة', 'users'), n('news', 'مكتبة الشيخ والمنشورات', 'news'), n('community', 'مجتمع التعلم', 'discuss'), n('notifications', 'الإشعارات', 'bell'), n('settings', 'الإعدادات والخصوصية', 'settings')];
+  const common = [n('academy-map', 'خريطة الأكاديمية والصلاحيات', 'chart'), n('learning-hub', 'برنامج التعلّم الممتع', 'brain'), n('school-directory', 'هيكلة المدرسة', 'users'), n('community', 'مجتمع التعلم', 'discuss'), n('notifications', 'الإشعارات', 'bell'), n('settings', 'الإعدادات والخصوصية', 'settings')];
   const group = (label, items) => ({ label, items });
   if (S.user.role === 'admin') return [
     group('الرئيسية', [n('dashboard', 'الرئيسية', 'home'), n('quran', 'المدرسة القرآنية', 'quran')]),
@@ -221,7 +221,7 @@ function navGroups() {
   ];
 }
 function navItems() { return navGroups().flatMap(g => g.items); }
-const HIDDEN_NAV_IDS = new Set(['quran','journey','learning','tasks','tests','curriculum','assignments','calendar','transport','learning-hub','media','community','notifications','reports','groups']);
+const HIDDEN_NAV_IDS = new Set(['news','quran','journey','learning','tasks','tests','curriculum','assignments','calendar','transport','learning-hub','media','community','notifications','reports','groups']);
 function buildNav() {
   const groups = navGroups()
     .map(g => ({ ...g, items: g.items.filter(([id]) => !HIDDEN_NAV_IDS.has(id)) }))
