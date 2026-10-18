@@ -77,3 +77,10 @@ CREATE TABLE IF NOT EXISTS academy_records (
 CREATE INDEX IF NOT EXISTS idx_records_collection_updated ON academy_records(collection, updated_at);
 CREATE INDEX IF NOT EXISTS idx_records_group ON academy_records(collection, group_id);
 CREATE INDEX IF NOT EXISTS idx_records_student ON academy_records(collection, student_id);
+
+CREATE TABLE IF NOT EXISTS login_attempts (
+  identity_normalized TEXT PRIMARY KEY,
+  failures INTEGER NOT NULL DEFAULT 0,
+  locked_until TEXT,
+  updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+);
