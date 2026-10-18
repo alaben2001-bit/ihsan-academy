@@ -1306,8 +1306,9 @@ async function handler(req, res) {
       audit(user,'group_request_cancel',{id:row.id}); await save(); return json(res,200,row);
     }
     if ((r=route(req,p,'POST','/api/group-requests/:id/review'))) {
-      if(user.role!=='admin') fail(403,'موافقة طلبات تغيير الأفواج من صلاحية المدير');
       const row=db.group_join_requests.find(x=>x.id===r.id); if(!row) fail(404,'الطلب غير موجود');
+      if(user.role!=='admin' && !(user.role==='teacher' && (teacherGroupIds(user).includes(row.current_group_id) || teacherGroupIds(user).includes(row.requested_group_id)))) fail(403,'الطلب خارج نطاق الأفواج المسندة إليك');
+      if(row.status!=='pending') fail(409,'تمت معالجة هذا الطلب بالفعل');
       const b=await body(req), decision=b.decision==='approve'?'approved':b.decision==='reject'?'rejected':null; if(!decision) fail(400,'القرار غير صحيح');
       row.status=decision; row.reviewed_by=user.id; row.reviewed_at=new Date().toISOString(); row.review_note=clean(b.note,500);
       if(decision==='approved'){ if(row.mode==='transfer') db.memberships=db.memberships.filter(m=>m.student_id!==row.student_id); addMembership(row.student_id,row.requested_group_id); const st=db.students.find(s=>s.id===row.student_id); if(st){st.group_id=row.requested_group_id;st.group_name=(db.groups.find(g=>g.id===row.requested_group_id)||{}).name||'';} }
