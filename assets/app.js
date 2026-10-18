@@ -186,7 +186,7 @@ async function startSession() {
 const isStaff = () => S.user && (S.user.role === 'admin' || S.user.role === 'teacher');
 function navGroups() {
   const n = (id, label, ic) => [id, label, ic];
-  const common = [n('academy-map', 'خريطة الأكاديمية والصلاحيات', 'chart'), n('learning-hub', 'برنامج التعلّم الممتع', 'brain'), n('school-directory', 'هيكلة المدرسة', 'users'), n('community', 'مجتمع التعلم', 'discuss'), n('notifications', 'الإشعارات', 'bell'), n('settings', 'الإعدادات والخصوصية', 'settings')];
+  const common = [n('academy-map', 'خريطة الأكاديمية والصلاحيات', 'chart'), n('learning-hub', 'برنامج التعلّم الممتع', 'brain'), n('community', 'مجتمع التعلم', 'discuss'), n('notifications', 'الإشعارات', 'bell'), n('settings', 'الإعدادات والخصوصية', 'settings')];
   const group = (label, items) => ({ label, items });
   if (S.user.role === 'admin') return [
     group('الرئيسية', [n('dashboard', 'الرئيسية', 'home'), n('quran', 'المدرسة القرآنية', 'quran')]),
@@ -197,7 +197,7 @@ function navGroups() {
     group('عام', common)
   ];
   if (S.user.role === 'chief_supervisor') return [
-    group('الإشراف', [n('dashboard', 'الرئيسية', 'home'), n('school-directory', 'هيكلة المدرسة', 'users'), n('teams', 'فرق المدرسة', 'group'), n('supervisor-requests', 'طلبات الإشراف', 'check')]),
+    group('الإشراف', [n('dashboard', 'الرئيسية', 'home'), n('teams', 'فرق المدرسة', 'group'), n('supervisor-requests', 'طلبات الإشراف', 'check')]),
     group('عام', [n('academy-map', 'خريطة الأكاديمية والصلاحيات', 'chart'), n('learning-hub', 'برنامج التعلّم الممتع', 'brain'), n('notifications', 'الإشعارات', 'bell'), n('settings', 'الإعدادات والخصوصية', 'settings')])
   ];
   if (S.user.role === 'teacher') return [
@@ -384,7 +384,7 @@ async function pgDashboard() {
       : role === 'admin'
         ? [['students','إدارة الطلبة','user'],['groups','الأفواج','group'],['curriculum','المناهج والدروس','book'],['hierarchy','الصلاحيات والهيكلة','group'],['ops','مركز التشغيل','trend'],['settings','الإعدادات','settings']]
         : role === 'chief_supervisor'
-          ? [['teams','فرق الإشراف','group'],['school-directory','هيكلة المدرسة','users'],['supervisor-requests','طلبات الإشراف','check'],['learning-hub','برنامج التعلّم','brain'],['media','مكتبة الشيخ','media'],['notifications','الإشعارات','bell']]
+          ? [['teams','فرق الإشراف','group'],['supervisor-requests','طلبات الإشراف','check'],['learning-hub','برنامج التعلّم','brain'],['media','مكتبة الشيخ','media'],['notifications','الإشعارات','bell']]
           : [['children','متابعة الأبناء','user'],['reports','تقارير التقدم','chart'],['calendar','التقويم','calendar'],['media','مكتبة الشيخ','media'],['messages','المراسلات','bell'],['notifications','الإشعارات','bell']];
   const visibleQuickLinks = quickLinks.filter(([id]) => !HIDDEN_NAV_IDS.has(id));
   const daily = role === 'teacher' ? ['رسالة اليوم', 'القليل المستمر خير من الكثير المنقطع.', 'اجعل متابعة الطالب خفيفة، واضحة، ومفيدة.']
