@@ -4,16 +4,12 @@ import { fileURLToPath } from "node:url";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const deployDir = path.resolve(here, "..");
-const repoRoot = path.resolve(deployDir, "../..");
+const siteDir = path.join(deployDir, "site");
 const out = path.join(deployDir, "public");
 
 await rm(out, { recursive: true, force: true });
-await mkdir(path.join(out, "assets"), { recursive: true });
-
-for (const file of ["index.html", "manifest.json", "offline.html"]) {
-  await cp(path.join(repoRoot, file), path.join(out, file));
+await mkdir(out, { recursive: true });
+for (const file of ["index.html", "app.js", "style.css"]) {
+  await cp(path.join(siteDir, file), path.join(out, file));
 }
-for (const file of ["app.js", "app.css", "admin-mobile.css", "ui-organize.css", "login-redesign.css", "icon.svg", "ihsan-emblem.svg"]) {
-  await cp(path.join(repoRoot, "assets", file), path.join(out, "assets", file));
-}
-console.log("Prepared an explicit static-asset allowlist. Server code and data files are not copied.");
+console.log("Prepared the simplified Cloudflare daily-use app. Only the three public site assets are published.");
