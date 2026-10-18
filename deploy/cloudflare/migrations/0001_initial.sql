@@ -61,3 +61,19 @@ CREATE INDEX IF NOT EXISTS idx_audit_log_created ON audit_log(created_at);
 -- Minimal public portal seed; no accounts or private student records.
 INSERT OR IGNORE INTO quran_schools (id, name, description, active, sort_order)
 VALUES ('qs-rahman', 'مدرسة مسجد الرحمان القرآنية', 'حفظ ومراجعة وتجويد وتربية.', 1, 1);
+
+-- Flexible records allow staged migration of the existing JSON-shaped domain model.
+-- Application code must enforce role and group scope before reading or writing records.
+CREATE TABLE IF NOT EXISTS academy_records (
+  collection TEXT NOT NULL,
+  id TEXT NOT NULL,
+  owner_user_id TEXT,
+  group_id TEXT,
+  student_id TEXT,
+  payload_json TEXT NOT NULL,
+  updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+  PRIMARY KEY (collection, id)
+);
+CREATE INDEX IF NOT EXISTS idx_records_collection_updated ON academy_records(collection, updated_at);
+CREATE INDEX IF NOT EXISTS idx_records_group ON academy_records(collection, group_id);
+CREATE INDEX IF NOT EXISTS idx_records_student ON academy_records(collection, student_id);
