@@ -1,27 +1,24 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  "name": "ihsan-academy-students-trial",
+  "name": "ihsan-academy-students-free",
   "main": "src/index.js",
   "compatibility_date": "2026-10-18",
-  "containers": [
-    {
-      "class_name": "IhsanAcademyContainer",
-      "image": "../../Dockerfile",
-      "max_instances": 1
-    }
-  ],
-  "durable_objects": {
-    "bindings": [
-      {
-        "name": "IHSAN_CONTAINER",
-        "class_name": "IhsanAcademyContainer"
-      }
+  "assets": {
+    "directory": "./public",
+    "binding": "ASSETS",
+    "run_worker_first": [
+      "/api/*"
     ]
   },
-  "migrations": [
+  "d1_databases": [
     {
-      "tag": "v1",
-      "new_sqlite_classes": ["IhsanAcademyContainer"]
+      "binding": "DB",
+      "database_name": "ihsan-academy-students",
+      "database_id": "REPLACE_WITH_CREATED_D1_DATABASE_ID",
+      "migrations_dir": "migrations"
     }
-  ]
+  ],
+  "vars": {
+    "APP_ENV": "production"
+  }
 }
