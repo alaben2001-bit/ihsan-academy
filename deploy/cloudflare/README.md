@@ -1,31 +1,43 @@
-# Cloudflare migration (student platform)
+# Ihsan Academy — Cloudflare Workers + D1 (free-plan migration)
 
-This deployment is intentionally separate from the existing Render service and the existing Pages school site.
+This is an isolated migration workspace for the student platform. It does not modify the existing Render deployment or either existing Pages website.
 
-## Target architecture
+## Cost target
 
-- Cloudflare Worker routes HTTP requests to a Cloudflare Container running the existing Node.js app.
-- The container listens on port 3000 and uses a **new, empty PostgreSQL database**.
-- Do not point this deployment at the Render production database.
-- Keep Render available until the Cloudflare test checklist passes.
+Use Workers Free and D1 Free only. Do not enable Workers Paid or Containers. If a service asks for billing or an upgrade, stop rather than continuing.
 
-## Current blockers before production deployment
+## Current implementation status
 
-1. A new PostgreSQL endpoint must be provisioned. Cloudflare Containers do not provide a PostgreSQL database automatically. The app currently requires `DATABASE_URL` when `ACADEMY_STORAGE=postgres`.
-2. The container needs that secret injected as `DATABASE_URL`, plus the bootstrap administrator values. Never commit secrets to this repository.
-3. The existing app stores sessions and rate-limit state in process memory. This is acceptable for a first single-container smoke test but needs review for restarts/scaling.
-4. Container usage and the database provider may incur charges. Verify account eligibility and estimate costs before enabling public use.
+- Static-asset preparation uses an explicit allowlist. It does not publish server source, migrations, or data files.
+- A D1 initial schema and health check are included.
+- The public Quran-school list endpoint is included.
+- **The full student platform is not ported yet.** Any other `/api/*` route deliberately returns HTTP 501 rather than pretending it works. Login, role-scoped records, attendance, tests, assignments, uploads, and the remaining app APIs must be ported and tested before this preview can replace Render.
+- No D1 database ID, administrator credentials, or secrets are embedded in source.
+- The previous Container configuration has been removed from this branch; Containers require a paid plan for this account.
 
-## Deploy steps
+## Prepare and validate locally
 
-1. Install current Node.js LTS and Docker locally.
-2. From repository root, install dependencies and run `npm test`.
-3. Create a new PostgreSQL database with a provider of your choice. Keep it empty. Use TLS and a least-privilege database user.
-4. Set container environment secrets in the Cloudflare deployment configuration supported by your account; do not place credentials in `wrangler.jsonc`.
-5. Deploy the Worker/container to a **new Worker name** (not the Pages project `ihsan-quran-school-live`).
-6. Verify `/api/health`, administrator bootstrap, login/logout, role-scoped API responses, create/edit/delete flows, and persistence after a container restart.
-7. Only then consider changing the canonical link. Render is the rollback option until the new platform has been accepted.
+From this directory, with Node.js installed:
 
-## Important
+```sh
+npm install
+npm run check
+npm run prepare:assets
+```
 
-The Dockerfile at repository root runs tests during image build. The container entrypoint is `node server/server.js`. The app already selects PostgreSQL through `ACADEMY_STORAGE=postgres` and `DATABASE_URL`; no student data import is planned.
+## D1 setup and deploy
+
+1. Create a D1 database named `ihsan-academy-students` from the Cloudflare dashboard or with Wrangler. This is a new empty database; no old student records are imported.
+2. Replace `REPLACE_WITH_CREATED_D1_DATABASE_ID` in `wrangler.jsonc` with the real database ID.
+3. Apply schema: `npx wrangler d1 migrations apply ihsan-academy-students --remote`.
+4. Add seed content through a reviewed migration (no default administrator password is included).
+5. Run `npm run deploy` and test `/api/health`.
+
+Do not change the Render URL or shut down Render until all APIs used by the current frontend are implemented and the acceptance checklist passes.
+
+## Free-plan guardrails
+
+- Worker daily request/CPU limits apply.
+- D1 read/write limits and database-size limits apply.
+- Uploaded student audio and other media need a separately designed storage solution; do not store large files as D1 rows.
+- Set budget/usage alerts where available, and never switch to a paid plan automatically.
