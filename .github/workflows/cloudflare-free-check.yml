@@ -1,0 +1,33 @@
+name: Cloudflare free migration checks
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "deploy/cloudflare/**"
+      - "assets/**"
+      - "index.html"
+      - "manifest.json"
+  push:
+    branches: ["migration/cloudflare-student-platform"]
+    paths:
+      - "deploy/cloudflare/**"
+      - "assets/**"
+      - "index.html"
+      - "manifest.json"
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: deploy/cloudflare
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: deploy/cloudflare/package.json
+      - run: npm install
+      - run: npm run check
+      - run: npm run prepare:assets
+      - run: npx wrangler deploy --dry-run
