@@ -1,45 +1,42 @@
-# Ihsan Academy — Cloudflare Workers + D1 (free-plan migration)
+# Ihsan Academy — Cloudflare Pages + D1
 
-This is an isolated migration workspace for the student platform. It does not modify the existing Render deployment or either existing Pages website.
+This is the Cloudflare-only student platform. It uses Pages Functions and D1; it does not require Workers Paid or Containers.
 
-## Cost target
+## Current daily-use scope
 
-Use Workers Free and D1 Free only. Do not enable Workers Paid or Containers. If a service asks for billing or an upgrade, stop rather than continuing.
+- Arabic, mobile-friendly interface.
+- One-time first administrator setup, gated by the private BOOTSTRAP_SECRET Pages environment secret.
+- Login sessions stored as token hashes; passwords use PBKDF2-SHA-256.
+- Login throttling after repeated failures.
+- Admin: create teachers, groups, and students; assign teachers to groups; disable students/groups.
+- Teacher: see only assigned groups, add students to assigned groups, record attendance, and log Quran memorization/review.
+- Student: see their own attendance and Quran progress.
+- D1 stores accounts, groups, student records, attendance, Quran progress, and audit events.
+- No old accounts or student records have been imported.
 
-## Current implementation status
+## Important limitations
 
-- Static-asset preparation uses an explicit allowlist. It does not publish server source, migrations, or data files.
-- A real D1 database named `ihsan-academy-students` has been created in the EU jurisdiction (region EEUR), and the initial tables have been applied. Its ID is configured in `wrangler.jsonc`.
-- The database currently contains the public Quran-school seed only; the `users` table has zero accounts. No administrator credentials or student records exist yet.
-- The public Quran-school list endpoint, health check, login/session endpoints, and initial read-only dashboard endpoints are implemented in the Pages Function.
-- A separate Pages project `ihsan-academy-students-preview.pages.dev` has been created with the D1 binding. It is a staging deployment, not a replacement for Render.
-- **The full student platform is not ported yet.** Unsupported `/api/*` routes deliberately return HTTP 501 rather than pretending they work. Many app flows (attendance, grades, assignments, curriculum editing, file uploads, detailed Quran tracking, role-scoped management) still need equivalent implementations and security tests before this preview can replace Render.
-- No D1 database ID, administrator credentials, or secrets are embedded in source.
-- The previous Container configuration has been removed from this branch; Containers require a paid plan for this account.
+This is a simplified rebuild, not a feature-for-feature port of the old app. The old posts/media library, messages, assignments, grading, tests, uploads, transport, and advanced curriculum tools are intentionally not included. Do not promise these features to users until separately implemented and tested.
 
-## Prepare and validate locally
+## Deploy and validate
 
-From this directory, with Node.js installed:
+The Pages project is ihsan-academy-students-preview, connected to the migration/cloudflare-student-platform branch. Its D1 binding is DB and points to the database ihsan-academy-students in the EU.
 
-```sh
-npm install
-npm run check
-npm run prepare:assets
-```
+    npm install
+    npm run check
+    npm run prepare:assets
+    npx wrangler deploy --dry-run
 
-## D1 setup and deploy
+The 0001_initial.sql migration creates the initial tables; 0002_daily_use.sql adds teacher ownership to groups. The currently connected D1 database was updated directly to add the teacher_id column and index.
 
-1. The D1 database is already created and its initial schema has been applied directly through the Cloudflare API. The migration file is committed for repeatable setup on a fresh database.
-2. Install dependencies, then run `npm run check` and `npm run prepare:assets`.
-3. Apply the committed migration to verify repeatability: `npx wrangler d1 migrations apply ihsan-academy-students --remote`.
-4. GitHub Actions checks JavaScript syntax, prepares the allowlisted assets, and runs a Wrangler dry-run.
-5. The Pages project deploys from this branch; verify its deployment stages and `/api/health` before treating the preview as usable.
+## First administrator setup
 
-Do not change the Render URL or shut down Render until all APIs used by the current frontend are implemented and the acceptance checklist passes.
+1. Set a private BOOTSTRAP_SECRET as a Pages production environment secret.
+2. Open the production Pages URL. The setup screen appears only when there is no active administrator and the secret is configured.
+3. Enter the setup secret and create the administrator using an email and a unique password of at least 14 characters.
+4. Immediately remove the BOOTSTRAP_SECRET environment variable after the administrator is created, then redeploy. This closes the setup route.
+5. Verify login, create a teacher and group, create a student, record attendance, and record Quran progress before sharing access.
 
-## Free-plan guardrails
+## Cost guardrails
 
-- Worker daily request/CPU limits apply.
-- D1 read/write limits and database-size limits apply.
-- Uploaded student audio and other media need a separately designed storage solution; do not store large files as D1 rows.
-- Set budget/usage alerts where available, and never switch to a paid plan automatically.
+Use Cloudflare free services only. Do not enable Workers Paid or Containers. D1 and Pages/Functions have free-plan limits. Keep a separate backup of essential records and review Cloudflare usage periodically.
