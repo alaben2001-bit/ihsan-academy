@@ -192,8 +192,8 @@ function navGroups() {
     group('الرئيسية', [n('dashboard', 'الرئيسية', 'home'), n('quran', 'المدرسة القرآنية', 'quran')]),
     group('القيادة والإدارة', [n('hierarchy', 'هيكلة المنصة', 'group'), n('admin', 'الإدارة العليا', 'tools'), n('ops', 'مركز التشغيل', 'trend')]),
     group('التعليم والمنهج', [n('program', 'البرامج', 'book'), n('curriculum', 'المواد والمنهج', 'book')]),
-    group('الطلبة والمتابعة', [n('students', 'الطلاب', 'user'), n('groups', 'الأفواج', 'group'), n('teams', 'فرق المدرسة', 'group'), n('attendance', 'الحضور', 'check'), n('tracking', 'المتابعة', 'trend'), n('tests', 'الاختبارات', 'doc'), n('assignments', 'الواجبات', 'doc')]),
-    group('الخدمات والتواصل', [n('calendar', 'التقويم', 'calendar'), n('transport', 'النقل الجماعي', 'bus'), n('messages', 'المراسلات', 'bell'), n('media', 'مكتبة الشيخ', 'media'), n('question-bank', 'بنك الأسئلة', 'doc')]),
+    group('الطلبة والمتابعة', [n('students', 'الطلاب', 'user'), n('groups', 'الأفواج', 'group'), n('attendance', 'الحضور', 'check'), n('tracking', 'المتابعة', 'trend'), n('tests', 'الاختبارات', 'doc'), n('assignments', 'الواجبات', 'doc')]),
+    group('أدوات مساعدة', [n('calendar', 'التقويم', 'calendar'), n('transport', 'النقل الجماعي', 'bus')]),
     group('عام', common)
   ];
   if (S.user.role === 'chief_supervisor') return [
@@ -201,16 +201,16 @@ function navGroups() {
     group('عام', [n('academy-map', 'خريطة الأكاديمية والصلاحيات', 'chart'), n('learning-hub', 'برنامج التعلّم الممتع', 'brain'), n('notifications', 'الإشعارات', 'bell'), n('settings', 'الإعدادات والخصوصية', 'settings')])
   ];
   if (S.user.role === 'teacher') return [
-    group('الرئيسية', [n('dashboard', 'الرئيسية', 'home'), n('teacher-tools', 'لوحة المعلم', 'tools'), n('quran', 'المدرسة القرآنية', 'quran')]),
-    group('طلبتي', [n('students', 'طلبتي', 'user'), n('groups', 'الأفواج', 'group'), n('teams', 'فرق المدرسة', 'group'), n('attendance', 'الحضور', 'check'), n('tracking', 'المتابعة', 'trend')]),
-    group('التعليم والتقويم', [n('curriculum', 'المواد والمنهج', 'book'), n('tests', 'الاختبارات', 'doc'), n('assignments', 'الواجبات', 'doc'), n('question-bank', 'بنك الأسئلة', 'doc')]),
-    group('الخدمات والتواصل', [n('calendar', 'التقويم', 'calendar'), n('transport', 'النقل الجماعي', 'bus'), n('messages', 'المراسلات', 'bell'), n('media', 'مكتبة الشيخ', 'media')]),
+    group('الرئيسية', [n('dashboard', 'الرئيسية', 'home'), n('quran', 'المدرسة القرآنية', 'quran')]),
+    group('طلبتي', [n('students', 'طلبتي', 'user'), n('groups', 'الأفواج', 'group'), n('attendance', 'الحضور', 'check'), n('tracking', 'المتابعة', 'trend')]),
+    group('الدراسة', [n('curriculum', 'المواد والمنهج', 'book'), n('tests', 'الاختبارات', 'doc'), n('assignments', 'الواجبات', 'doc')]),
+    group('أدوات مساعدة', [n('calendar', 'التقويم', 'calendar'), n('transport', 'النقل الجماعي', 'bus')]),
     group('عام', common)
   ];
   if (S.user.role === 'student') return [
     group('يومي', [n('dashboard', 'الرئيسية', 'home'), n('quran', 'المدرسة القرآنية', 'quran'), n('journey', 'رحلتي', 'trend'), n('learning', 'تعلّمي', 'brain'), n('tasks', 'مهامي', 'check'), n('profile', 'ملفي', 'user')]),
-    group('دراستي', [n('reports', 'تقاريري', 'chart'), n('tests', 'اختباراتي', 'doc'), n('curriculum', 'المواد والمنهج', 'book'), n('assignments', 'الواجبات', 'doc'), n('question-bank', 'اختبر نفسك', 'doc')]),
-    group('مدرستي', [n('groups', 'الأفواج والطلبات', 'group'), n('teams', 'فريقي', 'group'), n('calendar', 'التقويم', 'calendar'), n('transport', 'النقل الجماعي', 'bus'), n('messages', 'المراسلات', 'bell'), n('media', 'مكتبة الشيخ', 'media')]),
+    group('دراستي', [n('reports', 'تقاريري', 'chart'), n('tests', 'اختباراتي', 'doc'), n('curriculum', 'المواد والمنهج', 'book'), n('assignments', 'الواجبات', 'doc'), ]),
+    group('مدرستي', [n('groups', 'الأفواج والطلبات', 'group'), n('calendar', 'التقويم', 'calendar'), n('transport', 'النقل الجماعي', 'bus')]),
     group('عام', common)
   ];
   return [
