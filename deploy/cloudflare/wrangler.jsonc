@@ -14,7 +14,7 @@
     {
       "binding": "DB",
       "database_name": "ihsan-academy-students",
-      "database_id": "REPLACE_WITH_CREATED_D1_DATABASE_ID",
+      "database_id": "33123c73-73a0-4eba-9b48-d3ed5ac92266",
       "migrations_dir": "migrations"
     }
   ],
