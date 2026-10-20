@@ -16,6 +16,14 @@ assert.match(backend, /must_change_password=1/, "new/reset accounts must be mark
 assert.match(backend, /must_change_password=0/, "a successful password change must clear the first-login requirement");
 assert.match(backend, /if\(user\.must_change_password && !\["\/api\/me","\/api\/me\/password","\/api\/logout"\]\.includes\(path\)\)/, "protected API routes must be blocked until password change");
 assert.match(backend, /تهيئة حسابات الطلاب الجماعية للمدير العام فقط/, "bulk account setup must be admin-only");
+assert.match(backend, /if\(path==="\/api\/assignments"&&method==="GET"\)/, "assignment list API must exist");
+assert.match(backend, /if\(path==="\/api\/assignments"&&method==="POST"\)/, "assignment creation API must exist");
+assert.match(backend, /if\(path==="\/api\/assignment-submit"&&method==="POST"\)/, "student assignment submission API must exist");
+assert.match(backend, /if\(path==="\/api\/assignment-review"&&method==="POST"\)/, "teacher assignment review API must exist");
+assert.match(backend, /canManageGroup\(env,user,assignment\.group_id\)/, "assignment submissions and grading must be group-scoped");
+assert.match(app, /async function assignmentsPage\(v\)/, "the assignment workflow must have a UI page");
+assert.match(app, /"assignments","واجباتي"/, "students must have a visible navigation entry for assignments");
+
 assert.match(app, /function showPasswordChange\(forced=false\)/, "the UI must support a forced password-change dialog");
 assert.match(app, /if\(S\.user\?\.must_change_password\)\{renderTopActions\(\);showPasswordChange\(true\)\}/, "the UI must open the mandatory dialog after login");
 assert.doesNotMatch(app, /12345678/, "the interface must not encourage a shared student password");
