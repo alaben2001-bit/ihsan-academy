@@ -39,6 +39,8 @@ assert.match(app, /"gradebook","تقدمي ودرجاتي"/, "student navigation
 assert.match(backend, /if\(path==="\/api\/assignments"&&method==="POST"\)/, "assignment creation API must exist");
 assert.equal((backend.match(/!validDateOnly\(dueDate\)/g)||[]).length, 2, "assignment creation and edit must both validate real calendar dates");
 assert.match(backend, /if\(path==="\/api\/assignment-submit"&&method==="POST"\)/, "student assignment submission API must exist");
+assert.match(backend, /if\(previous\?\.status==="reviewed"\)return fail\(409,"تمت مراجعة هذا الواجب بالفعل/, "a student must not overwrite a reviewed grade by resubmitting");
+assert.match(app, /إن احتجت إلى تعديل الإجابة، تواصل مع معلمك ليعيد فتح الواجب/, "the student UI must explain why a reviewed response is locked");
 assert.match(backend, /assignmentMatch&&method==="PATCH"/, "assignment updates must be supported");
 assert.match(backend, /assignmentMatch&&method==="DELETE"/, "assignment deletion must be supported");
 assert.match(backend, /لا يمكن حذف واجب له تسليمات محفوظة/, "assignment deletion must preserve existing submissions");
