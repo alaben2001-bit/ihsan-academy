@@ -368,9 +368,46 @@ export default {
       await env.DB.prepare("DELETE FROM academy_records WHERE collection='tests' AND id=?").bind(test.id).run();
       await log(env,user.id,"test_delete",{test_id:test.id});return json({ok:true});
     }
-    if(path==="/api/notifications"&&method==="GET")return json([]);
-    if(path==="/api/posts"&&method==="GET")return json([]);
-    if(path==="/api/subjects"&&method==="GET")return json([]);
+    if(path==="/api/posts"&&method==="GET")return json(await scopedRecords(env,user,"posts",user.role==="student"));
+    if(path==="/api/posts"&&method==="POST"){
+      if(user.role!=="admin"&&user.role!=="teacher")return fail(403,"النشر للمعلم أو المدير");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      const title=clean(b.title,160),content=clean(b.content,6000),groupId=clean(b.group_id,80)||null;
+      if(!title||!content)return fail(400,"أدخل عنوان المنشور ومحتواه");
+      if(!groupId&&user.role!=="admin")return fail(403,"يمكن للمدير وحده نشر محتوى عام");
+      if(groupId&&!await canManageGroup(env,user,groupId))return fail(403,"لا تملك صلاحية هذا الفوج");
+      const post={id:uuid(),title,content,group_id:groupId,status:"published",created_by:user.id,created_at:nowIso()};
+      await saveRecord(env,"posts",post);await log(env,user.id,"post_create",{post_id:post.id,group_id:groupId});return json(post,201);
+    }
+    if(path==="/api/notifications"&&method==="GET")return json(await scopedRecords(env,user,"notifications",user.role==="student"));
+    if(path==="/api/notifications"&&method==="POST"){
+      if(user.role!=="admin"&&user.role!=="teacher")return fail(403,"إنشاء التنبيهات للمعلم أو المدير");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      const title=clean(b.title,160),content=clean(b.content,2000),groupId=clean(b.group_id,80)||null;
+      if(!title||!content)return fail(400,"أدخل عنوان التنبيه ومحتواه");
+      if(!groupId&&user.role!=="admin")return fail(403,"يمكن للمدير وحده إرسال تنبيه عام");
+      if(groupId&&!await canManageGroup(env,user,groupId))return fail(403,"لا تملك صلاحية هذا الفوج");
+      const notice={id:uuid(),title,content,group_id:groupId,status:"published",created_by:user.id,created_at:nowIso()};
+      await saveRecord(env,"notifications",notice);await log(env,user.id,"notification_create",{notification_id:notice.id,group_id:groupId});return json(notice,201);
+    }
+    if(path==="/api/subjects"&&method==="GET"){
+      const list=await scopedRecords(env,user,"subjects");
+      return json(list.length?list:[
+        {id:"allah",title:"معرفة الله تعالى",description:"الأسماء الحسنى ومعانيها وآثارها في القلب والعمل."},
+        {id:"prophet",title:"معرفة الرسول ﷺ",description:"السيرة النبوية والشمائل والاقتداء."},
+        {id:"quran",title:"القرآن الكريم",description:"حفظ وفهم ومراجعة وتدبر وعمل."},
+        {id:"sunnah",title:"السنة والمتون",description:"الأحاديث الجامعة والمتون التأسيسية."},
+        {id:"adab",title:"الأدب والعمل",description:"آداب طالب العلم والأخلاق والتطبيق."}
+      ]);
+    }
+    if(path==="/api/subjects"&&method==="POST"){
+      if(user.role!=="admin")return fail(403,"إدارة المقررات للمدير فقط");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      const title=clean(b.title,160),description=clean(b.description,2000);
+      if(!title||!description)return fail(400,"أدخل عنوان المقرر ووصفه");
+      const subject={id:uuid(),title,description,status:"published",created_by:user.id,created_at:nowIso()};
+      await saveRecord(env,"subjects",subject);await log(env,user.id,"subject_create",{subject_id:subject.id});return json(subject,201);
+    }
     if(path==="/api/quran"&&method==="GET")return json({levels:[],students:[],can_edit:user.role==="admin"||user.role==="teacher"});
     if(path==="/api/metrics"&&method==="GET"){
       if(user.role!=="admin")return fail(403,"forbidden");const counts=await env.DB.prepare("SELECT (SELECT COUNT(*) FROM users) AS users,(SELECT COUNT(*) FROM students WHERE active=1) AS students,(SELECT COUNT(*) FROM groups WHERE active=1) AS groups,(SELECT COUNT(*) FROM academy_records) AS records").first();return json({...counts,storage:"d1"});
