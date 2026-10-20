@@ -67,6 +67,7 @@ async function parseBody(request) {
 export default {
   async fetch(request, env) {
     const url = new URL(request.url), path = url.pathname, method = request.method.toUpperCase();
+    try {
     if (method === "OPTIONS") return new Response(null, { status:204, headers:{ ...JSON_HEADERS, "access-control-allow-methods":"GET, POST, PUT, PATCH, DELETE, OPTIONS", "access-control-allow-headers":"Content-Type, Authorization" }});
     if (path === "/api/health" && method === "GET") {
       try { const [db, users] = await Promise.all([env.DB.prepare("SELECT 1 AS ok").first(), env.DB.prepare("SELECT COUNT(*) AS n FROM users").first()]); return json({ok:db?.ok===1,app:"ihsan-academy",runtime:"cloudflare-pages-functions",storage:"d1",users:users?.n||0}); } catch { return fail(503,"database_unavailable"); }
@@ -219,5 +220,10 @@ export default {
       if(user.role!=="admin")return fail(403,"forbidden");const counts=await env.DB.prepare("SELECT (SELECT COUNT(*) FROM users) AS users,(SELECT COUNT(*) FROM students WHERE active=1) AS students,(SELECT COUNT(*) FROM groups WHERE active=1) AS groups,(SELECT COUNT(*) FROM academy_records) AS records").first();return json({...counts,storage:"d1"});
     }
     return fail(404,"المسار غير موجود");
+    } catch (error) {
+      console.error("Ihsan API request failed", { path, method, message: String(error?.message || error) });
+      if (path.startsWith("/api/")) return fail(500, "حدث خطأ داخلي أثناء معالجة الطلب. تم تسجيل الخطأ للتشخيص؛ أعد المحاولة.");
+      return new Response("Internal Server Error", { status: 500 });
+    }
   }
 };
