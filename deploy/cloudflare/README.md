@@ -31,7 +31,7 @@ This rebuild does **not** yet provide feature parity with the old application. T
 
 The bulk onboarding action targets a fixed list of full-name student records. It can create missing accounts **and reset passwords for already-linked accounts in that target list**. Review the admin confirmation, download the one-time CSV immediately, keep it private, deliver each student's credentials privately, and remove extra copies after delivery. Do not use one shared password for multiple students.
 
-At the database snapshot reviewed on 2026-10-20, D1 contained 64 active/inactive student profile rows and 12 active student-role accounts. Recheck the roster and linked-account counts immediately before and after bulk onboarding. Do not infer that unlinked profiles are accounts.
+At the latest database check on 2026-10-20, D1 contained 64 active student profiles, 40 linked to active student-role accounts, plus 1 active administrator and 1 active teacher account. All 40 active student-role accounts currently have `must_change_password=1`, so each is expected to choose a personal password at sign-in. This is a count only; it does not prove that each CSV credential was delivered or that each student has successfully signed in. Recheck the roster and linked-account counts before changing accounts again. Do not rerun bulk onboarding merely to refresh credentials, because it resets all target passwords.
 
 ## Deploy and validate
 
