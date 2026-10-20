@@ -32,7 +32,8 @@ const x=lessons[S.tab]||lessons.all;
 v.innerHTML='<div class="curriculum-banner"><span class="eyebrow">مَنْهَجُ الإِحْسَان</span><h2>'+x[0]+'</h2><p>'+x[1]+'</p></div><div class="card curriculum-card"><h3>خطوتك التعليمية</h3><p>'+x[2]+'</p><div class="notice">قاعدة المنهج: تعلّم قليلًا بإتقان، وطبّق ما تعلّمت، ثم راجع واستمر.</div></div><div class="curriculum-tiles"><button class="curriculum-tile" data-lesson="allah"><strong>الله تعالى</strong><span>الأسماء الحسنى والإيمان</span></button><button class="curriculum-tile" data-lesson="prophet"><strong>الرسول ﷺ</strong><span>السيرة والشمائل والاتباع</span></button><button class="curriculum-tile" data-lesson="quranpath"><strong>القرآن</strong><span>حفظ وفهم وتدبر وعمل</span></button><button class="curriculum-tile" data-lesson="sunnah"><strong>السنة والمتون</strong><span>حديث وعلم شرعي</span></button><button class="curriculum-tile" data-lesson="adab"><strong>الأدب والعمل</strong><span>أخلاق وتطبيق ومراجعة</span></button></div>';
 v.querySelectorAll("[data-lesson]").forEach(b=>b.onclick=()=>{S.tab=b.dataset.lesson;shell();page()})
 }
-\nconst head=(a,b)=>'<div class="section-head"><div><h2>'+a+'</h2><p>'+b+'</p></div></div>';
+
+const head=(a,b)=>'<div class="section-head"><div><h2>'+a+'</h2><p>'+b+'</p></div></div>';
 const field=(label,name,type="text",min="")=>'<label class="field">'+label+'<input name="'+name+'" type="'+type+'" '+(min?'minlength="'+min+'"':"")+' required></label>';
 const groupOpts=()=>S.groups.map(g=>'<option value="'+esc(g.id)+'">'+esc(g.name)+'</option>').join("");
 function go(id){S.tab=id;shell();page()}
