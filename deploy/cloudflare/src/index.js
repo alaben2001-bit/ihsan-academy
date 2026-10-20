@@ -363,6 +363,14 @@ export default {
       await saveRecord(env,"test_attempts",attempt);await log(env,user.id,"test_submit",{test_id:test.id,score,total:attempt.total});
       return json({ok:true,score,total:attempt.total,percent:attempt.total?Math.round(score*100/attempt.total):0,submitted_at:attempt.submitted_at});
     }
+    if(path==="/api/test-history"&&method==="GET"){
+      if(user.role!=="admin"&&user.role!=="teacher")return fail(403,"عرض نتائج الطالب للمعلم أو المدير");
+      const studentId=clean(url.searchParams.get("student_id"),80);
+      const student=await env.DB.prepare("SELECT id,group_id FROM students WHERE id=? AND active=1").bind(studentId).first();
+      if(!student||!await canManageGroup(env,user,student.group_id))return fail(403,"لا تملك صلاحية هذا الطالب");
+      const attempts=await records(env,"test_attempts");
+      return json(attempts.filter(a=>a.student_id===studentId).sort((a,b)=>String(b.submitted_at).localeCompare(String(a.submitted_at)).slice(0,100)).map(a=>({id:a.id,test_id:a.test_id,title:a.title,score:a.score,total:a.total,submitted_at:a.submitted_at})));
+    }
     if(path==="/api/test-results"&&method==="GET"){
       if(user.role!=="admin"&&user.role!=="teacher")return fail(403,"عرض النتائج للمعلم أو المدير");
       const testId=clean(url.searchParams.get("id"),80);
