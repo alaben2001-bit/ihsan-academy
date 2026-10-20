@@ -259,9 +259,9 @@ export default {
       if(!credential||!/^[a-f0-9]{48,96}$/i.test(nonce))return fail(400,"تعذر بدء التحقق من حساب Google. أعد المحاولة.");
       let claims;try{claims=await verifyGoogleIdToken(credential,nonce,clientId)}catch(error){if(String(error&&(error.message||error))==="google_keys_unavailable")return fail(503,"تعذر الاتصال بخدمة التحقق من Google. أعد المحاولة.");return fail(401,"لم نستطع التحقق من حساب Google. أعد المحاولة.")}
       const identity=clean(claims.email,200).toLowerCase();
-      const user=await env.DB.prepare("SELECT id,display_name,identity_normalized,role,active,must_change_password FROM users WHERE identity_normalized=? LIMIT 1").bind(identity).first();
-      if(!user||user.active!==1)return fail(403,"لا يوجد حساب مفعّل مرتبط بهذا البريد. اطلب من الإدارة إنشاء حسابك بالبريد نفسه.");
-      if(user.must_change_password===1)return fail(403,"لأول دخول، استخدم اسم الدخول وكلمة المرور المؤقتة المرسلة إليك وغيّرها أولًا؛ بعد ذلك يمكنك الدخول باستخدام Google.");
+      const user=await env.DB.prepare("SELECT u.id,u.display_name,u.identity_normalized,u.role,u.active,u.must_change_password FROM google_identities gi JOIN users u ON u.id=gi.user_id WHERE gi.google_sub=? LIMIT 1").bind(claims.sub).first();
+      if(!user||user.active!==1)return fail(403,"حساب Google غير مربوط بحساب الأكاديمية. سجّل الدخول باسم المستخدم وكلمة المرور أولًا، ثم افتح الإعدادات واختر «ربط حساب Google».");
+      if(user.must_change_password===1)return fail(403,"يجب تسجيل الدخول باسم المستخدم وتغيير كلمة المرور المؤقتة أولًا، ثم ربط Google من الإعدادات.");
       const token=hex(crypto.getRandomValues(new Uint8Array(32))),remember=b.remember===true,lifetime=(remember?30*24:12)*60*60*1000;
       await env.DB.prepare("INSERT INTO sessions(token_hash,user_id,expires_at) VALUES(?,?,?)").bind(await hashToken(token),user.id,new Date(Date.now()+lifetime).toISOString()).run();
       const student=user.role==="student"?await env.DB.prepare("SELECT id,group_id FROM students WHERE user_id=? AND active=1").bind(user.id).first():null;
@@ -296,6 +296,22 @@ export default {
     }
     const user=await currentUser(request,env); if(!user)return fail(401,"يرجى تسجيل الدخول");
     if(user.must_change_password && !["/api/me","/api/me/password","/api/logout"].includes(path))return fail(403,"يجب تغيير كلمة المرور المؤقتة قبل متابعة استخدام الأكاديمية.");
+    if(path==="/api/auth/google/link"&&method==="POST"){
+      if(user.must_change_password)return fail(403,"غيّر كلمة المرور المؤقتة قبل ربط Google.");
+      const clientId=clean(env.GOOGLE_CLIENT_ID,300);
+      if(!clientId.endsWith(".apps.googleusercontent.com"))return fail(503,"الدخول بجوجل غير مهيأ بعد.");
+      const parsed=await parseBody(request,18000);if(parsed.error)return parsed.error;
+      const b=parsed.value,credential=String(b.credential||""),nonce=String(b.nonce||"");
+      if(!credential||!/^[a-f0-9]{48,96}$/i.test(nonce))return fail(400,"تعذر بدء التحقق من حساب Google. أعد المحاولة.");
+      let claims;try{claims=await verifyGoogleIdToken(credential,nonce,clientId)}catch(error){if(String(error&&(error.message||error))==="google_keys_unavailable")return fail(503,"تعذر الاتصال بخدمة التحقق من Google. أعد المحاولة.");return fail(401,"لم نستطع التحقق من حساب Google. أعد المحاولة.");}
+      const existing=await env.DB.prepare("SELECT user_id FROM google_identities WHERE google_sub=? LIMIT 1").bind(claims.sub).first();
+      if(existing&&existing.user_id!==user.id)return fail(409,"حساب Google هذا مربوط بحساب آخر في الأكاديمية. تواصل مع الإدارة لفك الربط بأمان.");
+      try{
+        await env.DB.prepare("INSERT INTO google_identities (google_sub,user_id,email,linked_at) VALUES(?,?,?,?) ON CONFLICT(user_id) DO UPDATE SET google_sub=excluded.google_sub,email=excluded.email,linked_at=excluded.linked_at").bind(claims.sub,user.id,clean(claims.email,200).toLowerCase(),nowIso()).run();
+      }catch(error){return fail(409,"تعذر ربط حساب Google؛ قد يكون مرتبطًا بحساب آخر. لم تُحذف أي بيانات.");}
+      await log(env,user.id,"google_link",{email:clean(claims.email,200).toLowerCase()});
+      return json({ok:true,message:"تم ربط حساب Google بحساب الأكاديمية الحالي."});
+    }
     if(path==="/api/me/password"&&method==="POST"){
       const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
       const currentPassword=String(b.current_password||""),newPassword=String(b.new_password||"");
