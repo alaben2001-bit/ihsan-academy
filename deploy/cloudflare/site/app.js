@@ -347,7 +347,7 @@ renderRoster();
 $("#bulk-onboard-students")?.addEventListener("click",async()=>{
  const candidateIds=bulkAccountCandidates();
  if(!candidateIds.length)return toast("لا توجد أسماء مكتملة تحتاج إلى حساب دخول.");
- if(!confirm("سيتم إنشاء حسابات للأسماء الكاملة الـ"+candidateIds.length+" فقط. لكل طالب كلمة مرور مؤقتة قصيرة وفريدة، ويمكنه تغييرها من الإعدادات. ستُعرض بيانات الدخول مرة واحدة؛ نزّل الملف واحفظه بأمان. الأسماء المختصرة تبقى لائحة اسمية بلا حساب. متابعة؟"))return;
+ if(!confirm("سيتم تجهيز الأسماء الكاملة الـ"+candidateIds.length+" فقط: إنشاء حسابات للأسماء التي لا تملك حسابًا، وإعادة تعيين كلمة المرور للحسابات المرتبطة بهذه القائمة، ما يجعل كلمات المرور القديمة غير صالحة. سيحصل كل طالب على كلمة مرور عشوائية فريدة ويجب تغييرها عند أول دخول. ستُعرض بيانات الدخول مرة واحدة؛ نزّل الملف واحفظه بأمان. الأسماء المختصرة تبقى لائحة اسمية بلا حساب. متابعة؟"))return;
  const button=$("#bulk-onboard-students");if(button){button.disabled=true;button.textContent="جار إنشاء الحسابات…"}
  try{
   const result=await api("/admin/students/bulk-onboarding",{method:"POST",body:JSON.stringify({student_ids:candidateIds,reset_existing:true})});
