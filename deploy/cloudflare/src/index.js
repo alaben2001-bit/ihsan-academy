@@ -568,17 +568,30 @@ export default {
       if(!lesson.group_id&&user.role!=="admin")return fail(403,"يمكن للمدير وحده نشر درس عام");
       await saveRecord(env,"lessons",lesson);await log(env,user.id,"lesson_create",{lesson_id:lesson.id,subject_id:subjectId});return json(lesson,201);
     }
+    if(path==="/api/gamification/claim"&&method==="POST"){
+      if(user.role!=="student"||!user.student_id||!user.group_id)return fail(403,"المكافآت متاحة لحساب الطالب المرتبط بفوج");
+      const day=nowIso().slice(0,10),parsed=await parseBody(request);if(parsed.error)return parsed.error;
+      const challengeId=clean(parsed.value.challenge_id,80);
+      const allowed=["daily-quran","daily-review","daily-adab"];
+      if(!allowed.includes(challengeId))return fail(400,"هذا التحدي غير صالح");
+      const id=user.student_id+":"+day;
+      const old=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='daily_claims' AND id=?").bind(id).first();
+      if(old)return fail(409,"لقد استلمت مكافأة اليوم بالفعل");
+      const points=challengeId==="daily-adab"?5:10;
+      const claim={id,student_id:user.student_id,group_id:user.group_id,day,challenge_id:challengeId,points,claimed_at:nowIso()};
+      await saveRecord(env,"daily_claims",claim);await log(env,user.id,"daily_challenge_claim",{challenge_id:challengeId,points,day});return json({ok:true,claim},201);
+    }
     if(path==="/api/gamification"&&method==="GET"){
       if(user.role!=="student"||!user.student_id||!user.group_id)return fail(403,"لوحة الإنجاز متاحة لحساب الطالب المرتبط بفوج");
-      const [attendance,quran,attempts,plans]=await Promise.all([
-        records(env,"attendance"," AND group_id=?",[user.group_id]),records(env,"quran_progress"," AND student_id=?",[user.student_id]),records(env,"test_attempts"," AND student_id=?",[user.student_id]),records(env,"quran_plan"," AND student_id=?",[user.student_id])
+      const [attendance,quran,attempts,plans,claims]=await Promise.all([
+        records(env,"attendance"," AND group_id=?",[user.group_id]),records(env,"quran_progress"," AND student_id=?",[user.student_id]),records(env,"test_attempts"," AND student_id=?",[user.student_id]),records(env,"quran_plan"," AND student_id=?",[user.student_id]),records(env,"daily_claims"," AND student_id=?",[user.student_id])
       ]);
       const present=attendance.filter(a=>a.student_id===user.student_id&&a.status==="present").length;
       const days=new Set(quran.map(q=>q.date)).size,tests=attempts.length,score=attempts.reduce((n,a)=>n+(Number(a.score)||0),0);
       const badges=[];if(days>=1)badges.push({id:"first-step",name:"الخطوة الأولى",description:"سجلت متابعة قرآنية",icon:"🌱"});if(days>=7)badges.push({id:"steady",name:"ثبات أسبوع",description:"تابعت القرآن في سبعة أيام مختلفة",icon:"🌿"});if(tests>=1)badges.push({id:"exam",name:"همة المتعلم",description:"أكملت اختبارًا",icon:"📘"});if(present>=5)badges.push({id:"attendance",name:"مواظب",description:"سجلت حضورًا خمس مرات",icon:"⭐"});
       const day=nowIso().slice(0,10),daily=[{id:"daily-quran",title:"ورد اليوم",description:"اقرأ وردك المقرر ثم راجعه بإتقان",points:10},{id:"daily-review",title:"مراجعة ثابتة",description:"راجع محفوظًا سابقًا قبل إضافة الجديد",points:10},{id:"daily-adab",title:"عمل بالعلم",description:"طبّق فائدة تعلمتها اليوم",points:5}];
       const challenge= daily[Number(day.replace(/-/g,""))%daily.length];
-      return json({student_id:user.student_id,points:present*5+days*10+score*3,stats:{attendance:present,quran_days:days,tests,answers_correct:score},badges,daily_challenge:challenge,plan:plans[0]||null,hearts:5,updated_at:nowIso()});
+      return json({student_id:user.student_id,points:present*5+days*10+score*3+claims.reduce((n,c)=>n+(Number(c.points)||0),0),stats:{attendance:present,quran_days:days,tests,answers_correct:score},badges,daily_challenge:challenge,plan:plans[0]||null,hearts:Math.max(0,5-attempts.filter(a=>String(a.submitted_at||"").slice(0,10)===day).reduce((n,a)=>n+Math.max(0,Number(a.total||0)-Number(a.score||0)),0)),challenge_claimed:claims.some(c=>c.day===day),updated_at:nowIso()});
     }
     if(path==="/api/leaderboard"&&method==="GET"){
       const groupId=user.role==="student"?user.group_id:clean(url.searchParams.get("group_id"),80);
