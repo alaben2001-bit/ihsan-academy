@@ -9,7 +9,7 @@ const JSON_HEADERS = {
 const json = (data, status = 200, extra = {}) => new Response(JSON.stringify(data), { status, headers: { ...JSON_HEADERS, ...extra } });
 const fail = (status, error) => json({ error }, status);
 const nowIso = () => new Date().toISOString();
-const validDateOnly = value => {
+export const validDateOnly = value => {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ""));
   if (!match) return false;
   const year=Number(match[1]), month=Number(match[2]), day=Number(match[3]);
