@@ -1,0 +1,24 @@
+{
+  "name": "أكاديمية الإحسان في بناء الإنسان",
+  "short_name": "أكاديمية الإحسان",
+  "description": "منصة قرآنية وتربوية لحفظ القرآن ومراجعته وتعلّم العلم الشرعي وبناء الخلق.",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fbfdf9",
+  "theme_color": "#174b3b",
+  "icons": [
+    {
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ],
+  "categories": [
+    "education",
+    "productivity"
+  ]
+}
