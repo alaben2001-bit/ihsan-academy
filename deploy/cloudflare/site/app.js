@@ -10,15 +10,44 @@ const themes=[
 {name:"رملي",green:"#77542f",mint:"#f5ecdf",gold:"#c2a05e",paper:"#faf6ee",ink:"#463523",muted:"#86745e",line:"#eadfce",surface:"#fffefa",surface2:"#fbf5eb"}];
 function applyTheme(){let i=Number(safeStore.get("ihsan_theme_index")||0);if(!Number.isInteger(i)||i<0||i>=themes.length)i=0;const t=themes[i];for(const [k,v] of Object.entries({green:t.green,mint:t.mint,gold:t.gold,paper:t.paper,ink:t.ink,muted:t.muted,line:t.line,surface:t.surface,"surface-2":t.surface2,glow:t.green+"22"}))document.documentElement.style.setProperty("--"+k,v);document.documentElement.dataset.ihsanTheme=t.name;document.querySelector('meta[name="theme-color"]')?.setAttribute("content",t.green);}
 applyTheme();
+if(safeStore.get("ihsan_reduce_motion")==="1")document.documentElement.classList.add("ihsan-reduced-motion");
 const esc=v=>String(v==null?"":v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 async function api(path,opt={}){const h={"content-type":"application/json",...(S.token?{authorization:"Bearer "+S.token}:{}),...(opt.headers||{})};const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);try{const r=await fetch("/api"+path,{...opt,headers:h,signal:controller.signal});const raw=await r.text();let d;try{d=raw?JSON.parse(raw):{}}catch{const type=r.headers.get("content-type")||"غير محدد";const preview=raw.replace(/\\s+/g," ").slice(0,180);throw Error("رد غير صالح من الخادم — "+r.status+" — نوع المحتوى: "+type+(preview?" — "+preview:" — استجابة فارغة"))}if(!r.ok)throw Error(d.error||("فشل الطلب ("+r.status+")"));return d}catch(e){if(e.name==="AbortError")throw Error("انتهت مهلة الاتصال بالخادم بعد 12 ثانية أثناء انتظار الاستجابة. أعد المحاولة؛ إذا تكرر الأمر فالمشكلة في مسار API أو قاعدة البيانات.");if(e instanceof TypeError)throw Error("تعذّر الاتصال بخادم الأكاديمية. تحقق من الاتصال ثم أعد المحاولة.");throw e}finally{clearTimeout(timer)}}
 function toast(t,err=false){const old=$(".toast");if(old)old.remove();const e=document.createElement("div");e.className="toast"+(err?" error":"");e.textContent=t;document.body.append(e);setTimeout(()=>e.remove(),3500)}
 function renderTopActions(){
- $("#top-actions").innerHTML='<button class="btn secondary" id="theme-toggle" type="button">تغيير اللون</button> <button class="btn secondary" id="install-app" type="button">تثبيت التطبيق</button>'+(S.user?' <button class="btn secondary" id="password-change" type="button">كلمة المرور</button> <button class="btn secondary" id="logout">خروج</button>':"");
- $("#theme-toggle")?.addEventListener("click",()=>{const i=(Number(safeStore.get("ihsan_theme_index")||0)+1)%themes.length;safeStore.set("ihsan_theme_index",String(i));applyTheme();toast("تم تغيير ألوان الأكاديمية إلى "+themes[i].name)});
+ $("#top-actions").innerHTML='<button class="btn secondary" id="settings-open" type="button" aria-label="إعدادات الأكاديمية">الإعدادات</button> <button class="btn secondary" id="install-app" type="button">تثبيت التطبيق</button>'+(S.user?' <button class="btn secondary" id="logout" type="button">خروج</button>':"");
+ $("#settings-open")?.addEventListener("click",showSettings);
  $("#logout")?.addEventListener("click",logout);
- $("#password-change")?.addEventListener("click",showPasswordChange);
  $("#install-app")?.addEventListener("click",async()=>{if(ihsanInstallPrompt){ihsanInstallPrompt.prompt();try{await ihsanInstallPrompt.userChoice}catch{}ihsanInstallPrompt=null;return}const ua=navigator.userAgent||"";let msg="للتثبيت: افتح قائمة المتصفح ⋮ ثم اختر «تثبيت التطبيق» أو «إنشاء اختصار».";if(/iPhone|iPad|iPod/i.test(ua))msg="على iPhone/iPad: اضغط زر المشاركة في Safari ثم «إضافة إلى الشاشة الرئيسية».";else if(/Android/i.test(ua))msg="على Android: افتح القائمة ⋮ في Chrome ثم «تثبيت التطبيق» أو «إضافة إلى الشاشة الرئيسية».";else if(!/Chrome|Edg/i.test(ua))msg="افتح الرابط في Chrome أو Edge، ثم قائمة المتصفح واختر «تثبيت التطبيق» أو «تثبيت هذا الموقع كتطبيق».";alert(msg)})
+}
+function showSettings(){
+ const old=$("#settings-dialog");if(old)old.remove();
+ const rawIndex=Number(safeStore.get("ihsan_theme_index")||0);
+ const selectedIndex=Number.isInteger(rawIndex)&&rawIndex>=0&&rawIndex<themes.length?rawIndex:0;
+ const reduced=safeStore.get("ihsan_reduce_motion")==="1";
+ const notes=["اللون الأساسي للأكاديمية","أزرق هادئ وواضح","بنفسجي متوازن","رملي دافئ"];
+ const themeMarkup=themes.map((t,i)=>'<button type="button" class="theme-choice" data-theme-index="'+i+'" aria-pressed="'+(i===selectedIndex)+'"><span class="theme-swatch theme-swatch-'+i+'" aria-hidden="true"><i></i></span><span class="theme-choice-copy"><strong>'+esc(t.name)+'</strong><small>'+notes[i]+'</small></span><span class="theme-check" aria-hidden="true">✓</span></button>').join("");
+ const securityMarkup=S.user?'<section class="settings-section"><div class="settings-section-title"><span class="settings-icon" aria-hidden="true">⌑</span><div><h3>الحساب والأمان</h3><p>احمِ حسابك بكلمة مرور قوية لا تستخدمها في موقع آخر.</p></div></div><button type="button" class="btn" id="settings-password">تغيير كلمة المرور</button></section>':'<section class="settings-section"><h3>الحساب والأمان</h3><p class="muted small">سجّل الدخول لإدارة إعدادات حسابك وكلمة المرور.</p></section>';
+ const markup='<dialog id="settings-dialog" class="settings-dialog" aria-labelledby="settings-title"><div class="settings-head"><div><span class="eyebrow">تفضيلاتك الشخصية</span><h2 id="settings-title">إعدادات الأكاديمية</h2><p>اضبط الواجهة بما يريحك، وتُحفظ اختياراتك على هذا الجهاز.</p></div><button type="button" class="settings-close" id="settings-close" aria-label="إغلاق الإعدادات">×</button></div><div class="settings-body"><section class="settings-section"><div class="settings-section-title"><span class="settings-icon" aria-hidden="true">◈</span><div><h3>ألوان الواجهة</h3><p>اختر سمة، وستتغيّر ألوان الصفحات والبطاقات معًا.</p></div></div><div class="theme-options">'+themeMarkup+'</div></section><section class="settings-section"><div class="settings-section-title"><span class="settings-icon" aria-hidden="true">◌</span><div><h3>الحركة والراحة</h3><p>خفّف الحركات الانتقالية إذا فضّلت واجهة أكثر هدوءًا.</p></div></div><label class="settings-preference" for="settings-reduced-motion"><span><strong>تقليل الحركة</strong><small>إيقاف الحركات والزخارف المتحركة غير الضرورية.</small></span><input id="settings-reduced-motion" type="checkbox" '+(reduced?'checked':'')+'></label></section>'+securityMarkup+'</div><div class="settings-foot"><span>أكاديمية الإحسان في بناء الإنسان</span><button type="button" class="btn secondary" id="settings-done">تم</button></div></dialog>';
+ document.body.insertAdjacentHTML("beforeend",markup);
+ const dialog=$("#settings-dialog");
+ const close=()=>{try{if(dialog.open)dialog.close()}catch{}dialog.remove()};
+ $("#settings-close").onclick=close;$("#settings-done").onclick=close;
+ dialog.addEventListener("click",e=>{if(e.target===dialog)close()});
+ dialog.querySelectorAll("[data-theme-index]").forEach(button=>button.addEventListener("click",()=>{
+  const i=Number(button.dataset.themeIndex);if(!Number.isInteger(i)||i<0||i>=themes.length)return;
+  safeStore.set("ihsan_theme_index",String(i));applyTheme();
+  dialog.querySelectorAll("[data-theme-index]").forEach(b=>b.setAttribute("aria-pressed",String(Number(b.dataset.themeIndex)===i)));
+  toast("تم تطبيق سمة "+themes[i].name);
+ }));
+ $("#settings-reduced-motion").addEventListener("change",e=>{
+  const enabled=e.currentTarget.checked;
+  if(enabled)safeStore.set("ihsan_reduce_motion","1");else safeStore.remove("ihsan_reduce_motion");
+  document.documentElement.classList.toggle("ihsan-reduced-motion",enabled);
+  toast(enabled?"تم تقليل الحركة":"عادت الحركات إلى إعدادها الطبيعي");
+ });
+ $("#settings-password")?.addEventListener("click",()=>{close();showPasswordChange()});
+ if(typeof dialog.showModal==="function")dialog.showModal();else dialog.setAttribute("open","");
 }
 function showPasswordChange(){
  const old=document.querySelector("#password-dialog");if(old)old.remove();

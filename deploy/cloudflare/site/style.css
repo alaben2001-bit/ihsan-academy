@@ -722,3 +722,52 @@ body{color:#263f36;background:#f6f2f7}
  .nav-btn{font-size:12px;min-height:40px;padding:9px 12px}
  .hero,.module-welcome{margin-bottom:14px}
 }
+
+
+/* Settings: clear, accessible preferences and account security. */
+.settings-dialog{width:min(720px,calc(100% - 26px));max-width:calc(100% - 26px);max-height:min(88vh,900px);padding:0;border:1px solid var(--line);border-radius:24px;color:var(--ink);background:var(--paper);box-shadow:0 28px 90px #102d2050;overflow:auto}
+.settings-dialog::backdrop{background:#10251d80;backdrop-filter:blur(5px)}
+.settings-head{display:flex;align-items:flex-start;justify-content:space-between;gap:18px;padding:25px 26px 21px;background:linear-gradient(135deg,var(--mint),var(--surface-2,#fff));border-bottom:1px solid var(--line)}
+.settings-head h2{font-size:25px;margin:5px 0 4px}
+.settings-head p,.settings-section-title p{margin:0;color:var(--muted);font-size:13px;line-height:1.9}
+.settings-close{display:grid;place-items:center;flex:0 0 38px;width:38px;height:38px;border:1px solid var(--line);border-radius:12px;background:var(--surface,#fff);color:var(--ink);font-size:25px;line-height:1}
+.settings-body{display:grid;gap:0;padding:0 26px}
+.settings-section{padding:22px 0;border-bottom:1px solid var(--line)}
+.settings-section:last-child{border-bottom:0}
+.settings-section h3{margin:0 0 4px;font-size:17px}
+.settings-section-title{display:flex;align-items:flex-start;gap:12px;margin-bottom:15px}
+.settings-icon{display:grid;place-items:center;flex:0 0 42px;width:42px;height:42px;border:1px solid var(--line);border-radius:14px;background:var(--mint);color:var(--green);font-size:22px}
+.theme-options{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.theme-choice{display:flex;align-items:center;gap:12px;min-width:0;padding:13px;text-align:right;border:1px solid var(--line);border-radius:15px;background:var(--surface,#fff);color:var(--ink);transition:border-color .18s ease,transform .18s ease,box-shadow .18s ease}
+.theme-choice:hover{transform:translateY(-2px);box-shadow:0 8px 20px var(--glow,#123f3510)}
+.theme-choice[aria-pressed="true"]{border:2px solid var(--green);padding:12px;background:var(--mint)}
+.theme-swatch{display:grid;place-items:center;flex:0 0 44px;width:44px;height:44px;border-radius:13px;background:var(--swatch);border:1px solid #0000000c;box-shadow:inset 0 0 0 6px var(--swatch-bg)}
+.theme-swatch i{width:15px;height:15px;border-radius:50%;background:var(--swatch-gold);box-shadow:0 0 0 3px #ffffffa6}
+.theme-swatch-0{--swatch:#174b3b;--swatch-bg:#e8f3ec;--swatch-gold:#d4ad63}
+.theme-swatch-1{--swatch:#24558a;--swatch-bg:#e8f1fb;--swatch-gold:#d7b66c}
+.theme-swatch-2{--swatch:#68456f;--swatch-bg:#f2eaf5;--swatch-gold:#d2b171}
+.theme-swatch-3{--swatch:#77542f;--swatch-bg:#f5ecdf;--swatch-gold:#c2a05e}
+.theme-choice-copy{display:grid;gap:2px;flex:1;min-width:0}
+.theme-choice-copy strong{font-size:14px}
+.theme-choice-copy small,.settings-preference small{font-size:11px;color:var(--muted);line-height:1.7}
+.theme-check{display:grid;place-items:center;width:24px;height:24px;flex:0 0 24px;border-radius:50%;background:var(--mint);color:var(--green);font-size:13px;opacity:0}
+.theme-choice[aria-pressed="true"] .theme-check{opacity:1}
+.settings-preference{display:flex;align-items:center;justify-content:space-between;gap:14px;padding:14px 15px;border:1px solid var(--line);border-radius:14px;background:var(--surface,#fff);cursor:pointer}
+.settings-preference>span{display:grid;gap:3px}
+.settings-preference strong{font-size:13px}
+.settings-preference input{width:20px;height:20px;flex:0 0 auto;accent-color:var(--green)}
+.settings-foot{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:15px 26px;background:var(--surface-2,#f7fbf7);border-top:1px solid var(--line);color:var(--muted);font-size:11px}
+.settings-dialog .btn{white-space:nowrap}
+.ihsan-reduced-motion *, .ihsan-reduced-motion *::before, .ihsan-reduced-motion *::after{animation:none!important;transition:none!important;scroll-behavior:auto!important}
+#top-actions #settings-open{font-weight:700}
+@media(max-width:560px){
+ .settings-dialog{width:calc(100% - 16px);max-width:calc(100% - 16px);max-height:92vh;border-radius:19px}
+ .settings-head{padding:19px 17px 16px}
+ .settings-head h2{font-size:22px}
+ .settings-body{padding:0 17px}
+ .settings-section{padding:18px 0}
+ .theme-options{grid-template-columns:1fr}
+ .theme-choice{padding:11px}
+ .theme-choice[aria-pressed="true"]{padding:10px}
+ .settings-foot{padding:13px 17px}
+}
