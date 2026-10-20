@@ -382,6 +382,8 @@ export default {
       const today=nowIso().slice(0,10),storedTests=await records(env,"tests"),latestBySeries=new Map();
       for(const item of storedTests){if(!item.recurring||!item.series_id)continue;const prior=latestBySeries.get(item.series_id);if(!prior||Number(item.sequence||1)>Number(prior.sequence||1))latestBySeries.set(item.series_id,item);}
       for(const latest of latestBySeries.values()){
+        if(user.role==="student"&&latest.group_id&&latest.group_id!==user.group_id)continue;
+        if(user.role==="teacher"&&(!latest.group_id||!await canManageGroup(env,user,latest.group_id)))continue;
         if(!latest.due_date||latest.due_date>today)continue;
         const interval=Math.max(1,Number(latest.frequency_days)||14),elapsed=Math.floor((Date.parse(today+"T00:00:00Z")-Date.parse(latest.due_date+"T00:00:00Z"))/(interval*86400000))+1;
         const sequence=Number(latest.sequence||1)+elapsed,id=String(latest.series_id)+":"+sequence;
