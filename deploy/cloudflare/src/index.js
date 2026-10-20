@@ -857,6 +857,45 @@ export default {
       await saveRecord(env,"assignments",assignment);await log(env,user.id,"assignment_create",{assignment_id:assignment.id,group_id:groupId});
       return json(assignment,201);
     }
+    const assignmentMatch=path.match(/^\/api\/assignments\/([^/]+)$/);
+    if(assignmentMatch&&method==="PATCH"){
+      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"تعديل الواجبات للمعلم والإدارة فقط");
+      const assignmentId=clean(assignmentMatch[1],80);
+      const raw=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='assignments' AND id=?").bind(assignmentId).first();
+      if(!raw)return fail(404,"الواجب غير موجود");
+      let old;try{old=JSON.parse(raw.payload_json)}catch{return fail(500,"تعذّرت قراءة الواجب")};
+      if(old.group_id){if(!await canManageGroup(env,user,old.group_id))return fail(403,"لا تملك صلاحية هذا الواجب");}
+      else if(user.role!=="admin")return fail(403,"الواجب العام متاح للمدير العام وحده");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      const title=b.title===undefined?old.title:clean(b.title,180);
+      const description=b.description===undefined?old.description:clean(b.description,5000);
+      const dueDate=b.due_date===undefined?(old.due_date||""):clean(b.due_date,10);
+      const pointsTotal=b.points_total===undefined?Number(old.points_total||100):Number(b.points_total);
+      if(!title||!description)return fail(400,"العنوان والتعليمات مطلوبان");
+      if(dueDate&&(!/^\d{4}-\d{2}-\d{2}$/.test(dueDate)||new Date(dueDate+"T00:00:00Z").toISOString().slice(0,10)!==dueDate))return fail(400,"موعد التسليم غير صحيح");
+      if(!Number.isFinite(pointsTotal)||pointsTotal<1||pointsTotal>1000)return fail(400,"الدرجة الكلية يجب أن تكون من 1 إلى 1000");
+      if(pointsTotal!==Number(old.points_total||100)){
+        const count=await env.DB.prepare("SELECT COUNT(*) AS n FROM academy_records WHERE collection='assignment_submissions' AND json_extract(payload_json,'$.assignment_id')=?").bind(assignmentId).first();
+        if((count?.n||0)>0)return fail(409,"لا يمكن تغيير الدرجة الكلية بعد وجود تسليمات؛ حتى لا تتغير دلالة الدرجات السابقة");
+      }
+      const updated={...old,title,description,due_date:dueDate||null,points_total:pointsTotal,updated_by:user.id,updated_at:nowIso()};
+      await saveRecord(env,"assignments",updated);await log(env,user.id,"assignment_update",{assignment_id:assignmentId});
+      return json({ok:true,assignment:updated});
+    }
+    if(assignmentMatch&&method==="DELETE"){
+      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"حذف الواجبات للمعلم والإدارة فقط");
+      const assignmentId=clean(assignmentMatch[1],80);
+      const raw=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='assignments' AND id=?").bind(assignmentId).first();
+      if(!raw)return fail(404,"الواجب غير موجود");
+      let assignment;try{assignment=JSON.parse(raw.payload_json)}catch{return fail(500,"تعذّرت قراءة الواجب")};
+      if(assignment.group_id){if(!await canManageGroup(env,user,assignment.group_id))return fail(403,"لا تملك صلاحية هذا الواجب");}
+      else if(user.role!=="admin")return fail(403,"الواجب العام متاح للمدير العام وحده");
+      const count=await env.DB.prepare("SELECT COUNT(*) AS n FROM academy_records WHERE collection='assignment_submissions' AND json_extract(payload_json,'$.assignment_id')=?").bind(assignmentId).first();
+      if((count?.n||0)>0)return fail(409,"لا يمكن حذف واجب له تسليمات محفوظة؛ عدّله أو اترك سجله لحفظ أعمال الطلاب");
+      await env.DB.prepare("DELETE FROM academy_records WHERE collection='assignments' AND id=?").bind(assignmentId).run();
+      await log(env,user.id,"assignment_delete",{assignment_id:assignmentId});
+      return json({ok:true});
+    }
     if(path==="/api/assignment-submit"&&method==="POST"){
       if(user.role!=="student"||!user.student_id||!user.group_id)return fail(403,"تسليم الواجب متاح لحساب الطالب المرتبط بفوج");
       const assignmentId=clean(url.searchParams.get("id"),80);
