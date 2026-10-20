@@ -611,7 +611,12 @@ async function gradebookPage(v){
   const csv="\uFEFF"+csvRows.map(row=>row.map(value=>'"'+String(value??"").replace(/"/g,'""')+'"').join(",")).join("\r\n");
   host.innerHTML='<section class="card"><div class="section-head"><div><h3>سجل الفوج</h3><p class="muted small">'+rows.length+' طالبًا · آخر تحديث '+esc(data.updated_at||"")+'</p></div><button class="btn secondary" id="gradebook-csv" type="button">تصدير CSV</button></div><div class="stats">'+stat("متابعات القرآن",rows.reduce((n,s)=>n+s.quran.sessions,0))+stat("محاولات الاختبار",rows.reduce((n,s)=>n+s.tests.attempts,0))+stat("واجبات بانتظار المراجعة",rows.reduce((n,s)=>n+s.assignments.pending,0))+stat("سجلات الحضور",rows.reduce((n,s)=>n+s.attendance.sessions,0))+'</div><div class="table-wrap"><table><thead><tr><th>الطالب</th><th>الحضور</th><th>القرآن</th><th>الاختبارات</th><th>الواجبات</th><th>تفاصيل</th></tr></thead><tbody>'+rows.map(s=>'<tr><td><strong>'+esc(s.name)+'</strong></td><td>'+formatPercent(s.attendance.rate)+'<small>'+s.attendance.present+' حاضر · '+s.attendance.absent+' غائب</small></td><td>'+s.quran.sessions+' متابعة<small>متوسط '+(s.quran.average_grade===null?"—":esc(s.quran.average_grade)+"/10")+'</small></td><td>'+formatPercent(s.tests.percent)+'<small>'+s.tests.correct+'/'+s.tests.total+' إجابة · '+s.tests.attempts+' محاولات</small></td><td>'+s.assignments.reviewed+'/'+s.assignments.available+' مراجعة<small>'+s.assignments.pending+' بانتظار المعلم</small></td><td><button class="btn secondary" type="button" data-gradebook-student="'+esc(s.student_id)+'">ملف الطالب</button></td></tr>').join("")+'</tbody></table></div></section>';
   $("#gradebook-csv")?.addEventListener("click",()=>{const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));const link=document.createElement("a");link.href=url;link.download="ihsan-gradebook.csv";document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1500)});
-  host.querySelectorAll("[data-gradebook-student]").forEach(button=>button.addEventListener("click",()=>go("students")));
+  host.querySelectorAll("[data-gradebook-student]").forEach(button=>button.addEventListener("click",async()=>{
+   const id=button.dataset.gradebookStudent;
+   if(!S.students.some(student=>student.id===id)){toast("لا يظهر هذا الطالب ضمن الفوج الحالي.",true);return}
+   try{history.pushState({ihsanMode:"school",ihsanTab:"students",ihsanSubView:"student-profile",studentId:id},"",location.pathname+"#student-"+encodeURIComponent(id))}catch{}
+   S.tab="students";shell();await studentProfile($("#view"),id);
+  }));
  };
  const loadGroup=async id=>{
   if(!id){host.innerHTML='<div class="empty">اختر الفوج أولًا لعرض السجل التعليمي.</div>';return}
