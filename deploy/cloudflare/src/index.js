@@ -173,7 +173,7 @@ export default {
     if(path==="/api/teachers"&&method==="POST"){
       if(user.role!=="admin")return fail(403,"إضافة المعلمين للمدير فقط");const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
       const name=clean(b.name,120),identity=clean(b.username,100).toLowerCase(),password=String(b.password||"");
-      if(!name||!/^[a-z0-9._-]{3,100}$/.test(identity)||password.length<8||password.length>256)return fail(400,"أدخل الاسم واسم دخول لاتينيًا من 3 أحرف وكلمة مرور من 8 أحرف");
+      if(!name||!identity||identity.length>120||password.length<8||password.length>256)return fail(400,"أدخل الاسم وكلمة مرور من 8 أحرف على الأقل");
       const id=uuid();try{await env.DB.prepare("INSERT INTO users(id,display_name,identity_normalized,password_hash,role,active) VALUES(?,?,?,?, 'teacher',1)").bind(id,name,identity,await passwordHash(password)).run();}catch{return fail(409,"اسم الدخول مستخدم بالفعل");}
       await log(env,user.id,"teacher_create",{id,name});return json({id,name,username:identity},201);
     }
@@ -191,7 +191,7 @@ export default {
     if(path==="/api/students"&&method==="POST"){
       if(user.role!=="admin"&&user.role!=="teacher")return fail(403,"غير مسموح");const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
       const name=clean(b.name,120),identity=clean(b.username,100).toLowerCase(),password=String(b.password||""),groupId=clean(b.group_id,80);
-      if(!name||!/^[a-z0-9._-]{3,100}$/.test(identity)||password.length<8||password.length>256||!groupId)return fail(400,"أكمل الاسم واسم الدخول وكلمة المرور والفوج");
+      if(!name||!identity||identity.length>120||password.length<8||password.length>256||!groupId)return fail(400,"أكمل الاسم وكلمة المرور والفوج");
       if(!await canManageGroup(env,user,groupId))return fail(403,"لا تملك صلاحية هذا الفوج");
       const id=uuid(),studentId=uuid();
       try{await env.DB.prepare("INSERT INTO users(id,display_name,identity_normalized,password_hash,role,active) VALUES(?,?,?,?, 'student',1)").bind(id,name,identity,await passwordHash(password)).run();
