@@ -226,10 +226,11 @@ function buildNav() {
   const groups = navGroups()
     .map(g => ({ ...g, items: g.items.filter(([id]) => !HIDDEN_NAV_IDS.has(id)) }))
     .filter(g => g.items.length);
-  const items = groups.flatMap(g => g.items);
+  const items = navGroups().flatMap(g => g.items);
   put($('#nav'), html`${groups.map(g => html`<div class="nav-group"><div class="nav-label">${g.label}</div>${g.items.map(([id, l, ic]) => html`<button data-act="nav" data-page="${id}" title="${l}">${ico(ic)}<span>${l}</span></button>`)}</div>`)}`);
   const mainIds = S.user.role === 'student' ? ['dashboard', 'learning-hub', 'quran', 'media', 'journey'] : S.user.role === 'teacher' ? ['dashboard', 'learning-hub', 'students', 'curriculum', 'attendance'] : S.user.role === 'admin' ? ['dashboard', 'learning-hub', 'teams', 'school-directory', 'notifications'] : S.user.role === 'chief_supervisor' ? ['dashboard', 'learning-hub', 'teams', 'school-directory', 'notifications'] : S.user.role === 'parent' ? ['dashboard', 'learning-hub', 'children', 'media', 'notifications'] : ['dashboard', 'learning-hub', 'students', 'curriculum', 'school-directory'];
-  const main = mainIds.map(id => items.find(x => x[0] === id)).filter(Boolean);
+  const mainMeta = { dashboard:['الرئيسية','home'], 'learning-hub':['التعلّم','brain'], quran:['القرآن','quran'], media:['مكتبة الشيخ','media'], journey:['رحلتي','trend'], students:['الطلاب','user'], curriculum:['المنهج','book'], attendance:['الحضور','check'], teams:['فرق المدرسة','group'], 'school-directory':['مدرستي','group'], children:['أبنائي','user'], notifications:['الإشعارات','bell'] };
+  const main = mainIds.map(id => items.find(x => x[0] === id) || [id, (mainMeta[id] || [PAGES[id]?.[0] || id, 'home'])[0], (mainMeta[id] || ['', 'home'])[1]]).filter(([id]) => !!PAGES[id]);
   put($('#bottomNav'), html`${main.map(([id, l, ic]) => html`<button data-act="nav" data-page="${id}">${ico(ic)}<span>${l}</span></button>`)}<button data-act="more">${ico('more')}<span>المزيد</span></button>`);
 }
 
@@ -359,9 +360,17 @@ function openModal(title, body, mount) {
   if (mount) mount($('#overlay'));
 }
 function closeOverlay() { put($('#overlay'), ''); }
+function primaryNavIds(role = S.user?.role) {
+  if (role === 'student') return ['dashboard', 'learning-hub', 'quran', 'media', 'journey'];
+  if (role === 'teacher') return ['dashboard', 'learning-hub', 'students', 'curriculum', 'attendance'];
+  if (role === 'admin' || role === 'chief_supervisor') return ['dashboard', 'learning-hub', 'teams', 'school-directory', 'notifications'];
+  if (role === 'parent') return ['dashboard', 'learning-hub', 'children', 'media', 'notifications'];
+  return ['dashboard', 'learning-hub', 'students', 'curriculum', 'school-directory'];
+}
 function openMore() {
   // القائمة تعرض عناصر التنقل المسموح بها فقط؛ لا تُعيد العناصر المستبعدة من الواجهة.
-  const groups = navGroups().map(g => ({ ...g, items: g.items.filter(([id]) => !HIDDEN_NAV_IDS.has(id)) })).filter(g => g.items.length);
+  const primary = new Set(primaryNavIds(S.user.role));
+  const groups = navGroups().map(g => ({ ...g, items: g.items.filter(([id]) => !primary.has(id)) })).filter(g => g.items.length);
   put($('#overlay'), html`<div class="more-sheet" data-act="close-modal-bg"><div class="more-panel"><div class="more-heading"><div><span class="eyebrow">مساحة الأكاديمية</span><h2>انتقل إلى ما تحتاجه</h2></div><button class="btn sec2 sm" data-act="close-modal" aria-label="إغلاق القائمة">×</button></div><div class="more-sections">${groups.map(g=>html`<section class="more-section"><h3>${g.label}</h3><div class="more-grid">${g.items.map(([id,l,ic])=>html`<button data-act="nav" data-page="${id}" class="${id===navFor(S.page)?'active':''}">${ico(ic)}<span>${l}</span><span class="more-arrow" aria-hidden="true">‹</span></button>`)}</div></section>`)}</div><button class="more-logout" data-act="logout">${ico('out')}<span>تسجيل الخروج</span></button></div></div>`);
 }
 
