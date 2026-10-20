@@ -127,6 +127,32 @@ async function managedGroupIds(env, user) {
   }
   return user.role === "student" && user.group_id ? [user.group_id] : [];
 }
+async function messageRecipientRows(env,user) {
+  if(user.role==="admin"){
+    const result=await env.DB.prepare("SELECT id,display_name,role FROM users WHERE active=1 AND id<>? ORDER BY display_name").bind(user.id).all();
+    return result.results||[];
+  }
+  const output=[],seen=new Set();
+  const add=rows=>{for(const row of rows||[])if(row.id!==user.id&&!seen.has(row.id)){seen.add(row.id);output.push({id:row.id,name:row.display_name,role:row.role});}};
+  const admins=await env.DB.prepare("SELECT id,display_name,role FROM users WHERE active=1 AND role='admin' AND id<>? ORDER BY display_name").bind(user.id).all();
+  add(admins.results);
+  if(user.role==="student"){
+    if(user.group_id){
+      const teacher=await env.DB.prepare("SELECT u.id,u.display_name,u.role FROM groups g JOIN users u ON u.id=g.teacher_id WHERE g.id=? AND g.active=1 AND u.active=1").bind(user.group_id).all();
+      add(teacher.results);
+    }
+    return output.sort((a,b)=>a.name.localeCompare(b.name,"ar"));
+  }
+  if(!["teacher","director","supervisor"].includes(user.role))return output;
+  const groupIds=await managedGroupIds(env,user);
+  if(groupIds===null||!groupIds.length)return output.sort((a,b)=>a.name.localeCompare(b.name,"ar"));
+  const marks=groupIds.map(()=>"?").join(",");
+  const students=await env.DB.prepare("SELECT DISTINCT u.id,u.display_name,u.role FROM students s JOIN users u ON u.id=s.user_id WHERE s.active=1 AND u.active=1 AND s.group_id IN ("+marks+") ORDER BY u.display_name").bind(...groupIds).all();
+  add(students.results);
+  const teachers=await env.DB.prepare("SELECT DISTINCT u.id,u.display_name,u.role FROM groups g JOIN users u ON u.id=g.teacher_id WHERE g.active=1 AND u.active=1 AND g.id IN ("+marks+") ORDER BY u.display_name").bind(...groupIds).all();
+  add(teachers.results);
+  return output.sort((a,b)=>a.name.localeCompare(b.name,"ar"));
+}
 async function scopedRecords(env, user, collection, publishedOnly = false) {
   const rows = await records(env, collection);
   const visible = [];
@@ -792,6 +818,38 @@ export default {
       submission.grade=grade;submission.feedback=clean(b.feedback,2000);submission.status="reviewed";submission.reviewed_by=user.id;submission.reviewed_at=nowIso();
       await saveRecord(env,"assignment_submissions",submission);await log(env,user.id,"assignment_review",{assignment_id:assignmentId,student_id:studentId,grade});
       return json({ok:true,submission});
+    }
+    if(path==="/api/messages/recipients"&&method==="GET"){
+      return json(await messageRecipientRows(env,user));
+    }
+    if(path==="/api/messages"&&method==="GET"){
+      const all=await records(env,"messages");
+      const visible=all.filter(item=>item.sender_user_id===user.id||item.recipient_user_id===user.id);
+      const ids=[...new Set(visible.flatMap(item=>[item.sender_user_id,item.recipient_user_id]).filter(Boolean))];
+      const names=new Map();
+      if(ids.length){const marks=ids.map(()=>"?").join(",");const found=await env.DB.prepare("SELECT id,display_name FROM users WHERE id IN ("+marks+")").bind(...ids).all();for(const row of found.results||[])names.set(row.id,row.display_name);}
+      return json(visible.sort((a,b)=>String(b.created_at).localeCompare(String(a.created_at))).map(item=>({...item,sender_name:names.get(item.sender_user_id)||"حساب غير نشط",recipient_name:names.get(item.recipient_user_id)||"حساب غير نشط",outgoing:item.sender_user_id===user.id})));
+    }
+    if(path==="/api/messages"&&method==="POST"){
+      const parsed=await parseBody(request,12000);if(parsed.error)return parsed.error;const b=parsed.value;
+      const recipientId=clean(b.recipient_user_id,80),title=clean(b.title,160),content=clean(b.content,8000);
+      if(!recipientId||!title||!content)return fail(400,"اختر المستلم وأدخل عنوان الرسالة ومحتواها");
+      const recipient=(await messageRecipientRows(env,user)).find(item=>item.id===recipientId);
+      if(!recipient)return fail(403,"لا تملك صلاحية مراسلة هذا الحساب");
+      const message={id:uuid(),sender_user_id:user.id,recipient_user_id:recipientId,title,content,created_at:nowIso(),read_at:null};
+      await saveRecord(env,"messages",{...message,owner_user_id:recipientId});
+      await log(env,user.id,"message_send",{message_id:message.id,recipient_user_id:recipientId});
+      return json({ok:true,id:message.id,created_at:message.created_at},201);
+    }
+    if(path==="/api/messages/read"&&method==="POST"){
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;
+      const id=clean(parsed.value.id,80);
+      const raw=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='messages' AND id=?").bind(id).first();
+      if(!raw)return fail(404,"الرسالة غير موجودة");
+      let message;try{message=JSON.parse(raw.payload_json)}catch{return fail(500,"تعذّرت قراءة الرسالة")};
+      if(message.recipient_user_id!==user.id)return fail(403,"لا تملك صلاحية تحديث حالة هذه الرسالة");
+      if(!message.read_at){message.read_at=nowIso();await saveRecord(env,"messages",{...message,owner_user_id:user.id});}
+      return json({ok:true,read_at:message.read_at});
     }
     if(path==="/api/posts"&&method==="GET")return json(await scopedRecords(env,user,"posts",user.role==="student"));
     if(path==="/api/posts"&&method==="POST"){
