@@ -476,8 +476,16 @@ export default {
       let test;try{test=JSON.parse(raw.payload_json)}catch{return fail(500,"تعذّر قراءة الاختبار")}
       if(test.group_id&&!await canManageGroup(env,user,test.group_id))return fail(403,"لا تملك صلاحية هذا الاختبار");
       if(!test.group_id&&user.role!=="admin")return fail(403,"لا تملك صلاحية هذا الاختبار");
-      await env.DB.prepare("DELETE FROM academy_records WHERE collection='tests' AND id=?").bind(test.id).run();
-      await log(env,user.id,"test_delete",{test_id:test.id});return json({ok:true});
+      if(test.recurring&&test.series_id){
+        await env.DB.prepare("DELETE FROM academy_records WHERE collection='tests' AND id=?").bind(test.id).run();
+        const series=await records(env,"tests");
+        for(const item of series.filter(x=>x.series_id===test.series_id))await env.DB.prepare("DELETE FROM academy_records WHERE collection='tests' AND id=?").bind(item.id).run();
+        await log(env,user.id,"test_series_delete",{test_id:test.id,series_id:test.series_id});
+      }else{
+        await env.DB.prepare("DELETE FROM academy_records WHERE collection='tests' AND id=?").bind(test.id).run();
+        await log(env,user.id,"test_delete",{test_id:test.id});
+      }
+      return json({ok:true});
     }
     if(path==="/api/posts"&&method==="GET")return json(await scopedRecords(env,user,"posts",user.role==="student"));
     if(path==="/api/posts"&&method==="POST"){
