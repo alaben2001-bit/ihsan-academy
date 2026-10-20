@@ -13,6 +13,8 @@ const [backend, app, index, serviceWorker, migration] = await Promise.all([
 assert.ok(backend.includes('const temporaryPassword=()=>"Ih!"+hex(crypto.getRandomValues(new Uint8Array(10)))'), "temporary passwords must be randomly generated");
 assert.match(backend, /uniqueStudentIdentity\(env,st\.display_name/, "onboarding must resolve unique student usernames");
 assert.match(backend, /must_change_password=1/, "new/reset accounts must be marked for a first-login password change");
+assert.match(backend, /VALUES\(\?,\?,\?,\?, 'teacher',1,1\)/, "new teacher accounts must require a first-login password change");
+assert.match(backend, /VALUES\(\?,\?,\?,\?,\?,1,1\)/, "new director and supervisor accounts must require a first-login password change");
 assert.match(backend, /must_change_password=0/, "a successful password change must clear the first-login requirement");
 assert.match(backend, /if\(user\.must_change_password && !\["\/api\/me","\/api\/me\/password","\/api\/logout"\]\.includes\(path\)\)/, "protected API routes must be blocked until password change");
 assert.match(backend, /تهيئة حسابات الطلاب الجماعية للمدير العام فقط/, "bulk account setup must be admin-only");
@@ -27,6 +29,7 @@ assert.match(backend, /if\(path==="\/api\/messages\/recipients"&&method==="GET"\
 assert.match(backend, /if\(path==="\/api\/messages"&&method==="POST"\)/, "private message send API must exist");
 assert.match(backend, /if\(path==="\/api\/messages\/read"&&method==="POST"\)/, "private message read-state API must exist");
 assert.match(backend, /messageRecipientRows\(env,user\)/, "message recipients must be filtered by role and scope");
+assert.match(backend, /map\(row=>\(\{id:row\.id,name:row\.display_name,role:row\.role\}\)\)/, "admin recipient entries must expose the display name used by the inbox");
 assert.match(backend, /message\.recipient_user_id!==user\.id/, "only message recipients may mark messages read");
 assert.match(app, /async function messagesPage\(v\)/, "private messaging needs an inbox UI");
 assert.match(app, /"messages","الرسائل"/, "private messaging must be reachable in navigation");
