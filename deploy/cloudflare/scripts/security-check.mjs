@@ -47,6 +47,13 @@ assert.match(backend, /map\(row=>\(\{id:row\.id,name:row\.display_name,role:row\
 assert.match(backend, /message\.recipient_user_id!==user\.id/, "only message recipients may mark messages read");
 assert.match(app, /async function messagesPage\(v\)/, "private messaging needs an inbox UI");
 assert.match(app, /"messages","الرسائل"/, "private messaging must be reachable in navigation");
+assert.match(app, /data-week-part="memorization"/, "the Quran plan must let users set weekly memorization targets");
+assert.match(app, /data-week-part="revision"/, "the Quran plan must let users set weekly revision targets");
+assert.match(app, /data-week-part="understanding"/, "the Quran plan must let users set weekly understanding targets");
+assert.match(app, /data-week-part="application"/, "the Quran plan must let users set weekly application targets");
+assert.match(app, /weekly_targets:\[0,1,2,3\]\.map/, "the UI must save four structured weekly targets rather than one repeated field");
+assert.match(backend, /frequency_days:14,recurring,series_id:seriesId/, "recurring tests must record their two-week cadence");
+
 
 
 assert.match(app, /function showPasswordChange\(forced=false\)/, "the UI must support a forced password-change dialog");
