@@ -1,5 +1,6 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
+import { validDateOnly } from "../src/index.js";
 
 const [backend, app, index, serviceWorker, migration] = await Promise.all([
   readFile("src/index.js", "utf8"),
@@ -8,6 +9,14 @@ const [backend, app, index, serviceWorker, migration] = await Promise.all([
   readFile("site/service-worker.js", "utf8"),
   readFile("migrations/0003_temporary_student_passwords.sql", "utf8"),
 ]);
+
+assert.equal(validDateOnly("2024-02-29"), true, "valid leap-day due dates must be accepted");
+assert.equal(validDateOnly("2026-02-29"), false, "invalid leap-day due dates must be rejected");
+assert.equal(validDateOnly("2026-02-31"), false, "out-of-range calendar days must be rejected");
+assert.equal(validDateOnly("2026-13-01"), false, "out-of-range months must be rejected");
+assert.equal(validDateOnly("2026-00-10"), false, "zero months must be rejected");
+assert.equal(validDateOnly("not-a-date"), false, "non-date values must be rejected");
+assert.equal(validDateOnly(""), false, "empty dates must be rejected");
 
 // These are static regression guardrails, not a replacement for live role-by-role acceptance tests.
 assert.ok(backend.includes('const temporaryPassword=()=>"Ih!"+hex(crypto.getRandomValues(new Uint8Array(10)))'), "temporary passwords must be randomly generated");
@@ -28,6 +37,7 @@ assert.match(app, /"gradebook","السجل التعليمي"/, "staff navigation
 assert.match(app, /"gradebook","تقدمي ودرجاتي"/, "student navigation must expose personal progress");
 
 assert.match(backend, /if\(path==="\/api\/assignments"&&method==="POST"\)/, "assignment creation API must exist");
+assert.equal((backend.match(/!validDateOnly\(dueDate\)/g)||[]).length, 2, "assignment creation and edit must both validate real calendar dates");
 assert.match(backend, /if\(path==="\/api\/assignment-submit"&&method==="POST"\)/, "student assignment submission API must exist");
 assert.match(backend, /assignmentMatch&&method==="PATCH"/, "assignment updates must be supported");
 assert.match(backend, /assignmentMatch&&method==="DELETE"/, "assignment deletion must be supported");
