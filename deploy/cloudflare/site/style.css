@@ -1247,3 +1247,10 @@ dialog,.settings-dialog,.password-dialog{border:1px solid color-mix(in srgb,var(
 .submission-card{background:var(--surface);border:1px solid var(--line);box-shadow:none;}
 .assignment-card .pill,.submission-card .pill{white-space:nowrap;}
 @media(max-width:640px){.assignment-card>.section-head{flex-direction:column;}.assignment-card>.section-head>.btn{width:100%;}.assignment-card .form-grid,.assignment-review-form .form-grid{grid-template-columns:1fr;}}
+
+/* Private inbox and read-state cues */
+.message-card{border:1px solid var(--line);background:linear-gradient(160deg,var(--surface),var(--surface-2));}
+.message-card>.section-head{align-items:flex-start;gap:12px;flex-wrap:wrap;}
+.message-card .content-body{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.95;}
+.messages-inbox .section-head{gap:12px;align-items:center;}
+@media(max-width:640px){.message-card>.section-head{flex-direction:column;}.message-card>.section-head>.btn{width:100%;}}
