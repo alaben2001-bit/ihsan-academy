@@ -693,8 +693,12 @@ export default {
       const today=academyDate(),storedTests=await records(env,"tests"),latestBySeries=new Map();
       for(const item of storedTests){if(!item.recurring||!item.series_id)continue;const prior=latestBySeries.get(item.series_id);if(!prior||Number(item.sequence||1)>Number(prior.sequence||1))latestBySeries.set(item.series_id,item);}
       for(const latest of latestBySeries.values()){
-        if(user.role==="student"&&latest.group_id&&latest.group_id!==user.group_id)continue;
-        if(user.role==="teacher"&&(!latest.group_id||!await canManageGroup(env,user,latest.group_id)))continue;
+        // A request may roll forward only a series inside the caller's authorized scope.
+        if(user.role==="student"){
+          if(!latest.group_id||latest.group_id!==user.group_id)continue;
+        }else if(user.role!=="admin"){
+          if(!latest.group_id||!await canManageGroup(env,user,latest.group_id))continue;
+        }
         if(!latest.due_date||latest.due_date>today)continue;
         const interval=Math.max(1,Number(latest.frequency_days)||14),elapsed=Math.floor((Date.parse(today+"T00:00:00Z")-Date.parse(latest.due_date+"T00:00:00Z"))/(interval*86400000))+1;
         const sequence=Number(latest.sequence||1)+elapsed,id=String(latest.series_id)+":"+sequence;
@@ -733,6 +737,7 @@ export default {
         normalized.push({id:clean(q.id,80)||uuid(),prompt,choices,correct_index:correct,explanation:clean(q.explanation,500)});
       }
       const due=String(b.due_date||"");
+      if(due&&!validDateOnly(due))return fail(400,"موعد الاختبار غير صحيح");
       const defaultDue=addCalendarDays(academyDate(),14);
       const recurring=b.recurring!==false,seriesId=recurring?uuid():null;
       const test={id:uuid(),title,description,group_id:groupId,due_date:/^\d{4}-\d{2}-\d{2}$/.test(due)?due:defaultDue,frequency_days:14,recurring,series_id:seriesId,sequence:1,questions:normalized,status:"published",created_by:user.id,created_at:nowIso()};
