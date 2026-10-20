@@ -67,7 +67,7 @@ async function bodyJson(request, maxBytes = 32000) {
 async function currentUser(request, env) {
   const match = /^Bearer\s+([a-f0-9]{64})$/i.exec(request.headers.get("authorization") || "");
   if (!match) return null;
-  const row = await env.DB.prepare("SELECT u.id,u.display_name,u.identity_normalized,u.role,u.active FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=? AND s.expires_at>? AND u.active=1").bind(await hashToken(match[1]), nowIso()).first();
+  const row = await env.DB.prepare("SELECT u.id,u.display_name,u.identity_normalized,u.role,u.active,u.must_change_password FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=? AND s.expires_at>? AND u.active=1").bind(await hashToken(match[1]), nowIso()).first();
   if (!row) return null;
   const student = row.role === "student" ? await env.DB.prepare("SELECT id,group_id FROM students WHERE user_id=? AND active=1").bind(row.id).first() : null;
   let scope = null;
@@ -75,9 +75,9 @@ async function currentUser(request, env) {
     const storedScope = await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='staff_scopes' AND owner_user_id=? ORDER BY updated_at DESC LIMIT 1").bind(row.id).first();
     try { scope = storedScope ? JSON.parse(storedScope.payload_json) : null; } catch { scope = null; }
   }
-  return { id: row.id, name: row.display_name, email: row.identity_normalized, role: row.role, active: !!row.active, student_id: student?.id || null, group_id: student?.group_id || null, school_ids: Array.isArray(scope?.school_ids) ? scope.school_ids : [], group_ids: Array.isArray(scope?.group_ids) ? scope.group_ids : [] };
+  return { id: row.id, name: row.display_name, email: row.identity_normalized, role: row.role, active: !!row.active, must_change_password: row.must_change_password===1, student_id: student?.id || null, group_id: student?.group_id || null, school_ids: Array.isArray(scope?.school_ids) ? scope.school_ids : [], group_ids: Array.isArray(scope?.group_ids) ? scope.group_ids : [] };
 }
-const safeUser = u => ({ id:u.id, name:u.name, email:u.email, role:u.role, active:true, theme:"emerald", font_scale:1, high_contrast:false, reduced_motion:false, student_id:u.student_id || null, group_id:u.group_id || null });
+const safeUser = u => ({ id:u.id, name:u.name, email:u.email, role:u.role, active:true, must_change_password:!!u.must_change_password, theme:"emerald", font_scale:1, high_contrast:false, reduced_motion:false, student_id:u.student_id || null, group_id:u.group_id || null });
 const records = async (env, collection, where = "", binds = []) => {
   const result = await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection=?" + where + " ORDER BY updated_at DESC LIMIT 500").bind(collection, ...binds).all();
   return (result.results || []).flatMap(row => { try { return [JSON.parse(row.payload_json)]; } catch { return []; } });
@@ -135,6 +135,21 @@ async function scopedRecords(env, user, collection, publishedOnly = false) {
     if (await canViewGroup(env, user, row.group_id || null)) visible.push(row);
   }
   return visible;
+}
+async function uniqueStudentIdentity(env, value, exceptUserId = null, studentId = "") {
+  const base=clean(value,88).toLowerCase()||"student";
+  const suffix=String(studentId||"user").slice(-4)||"user";
+  for(let attempt=0;attempt<100;attempt++){
+    let candidate;
+    if(attempt===0)candidate=base;
+    else if(attempt<50)candidate=base+" ("+suffix+(attempt>1?"-"+attempt:"")+")";
+    else candidate="student-"+uuid().replace(/-/g,"").slice(0,12);
+    const occupied=exceptUserId
+      ? await env.DB.prepare("SELECT id FROM users WHERE identity_normalized=? AND id<>? LIMIT 1").bind(candidate,exceptUserId).first()
+      : await env.DB.prepare("SELECT id FROM users WHERE identity_normalized=? LIMIT 1").bind(candidate).first();
+    if(!occupied)return candidate;
+  }
+  throw new Error("تعذّر توليد اسم دخول فريد لهذا الطالب");
 }
 async function parseBody(request, maxBytes = 32000) {
   try { return { value: await bodyJson(request, maxBytes), error: null }; }
@@ -194,13 +209,13 @@ export default {
       if(!credential||!/^[a-f0-9]{48,96}$/i.test(nonce))return fail(400,"تعذر بدء التحقق من حساب Google. أعد المحاولة.");
       let claims;try{claims=await verifyGoogleIdToken(credential,nonce,clientId)}catch(error){if(String(error&&(error.message||error))==="google_keys_unavailable")return fail(503,"تعذر الاتصال بخدمة التحقق من Google. أعد المحاولة.");return fail(401,"لم نستطع التحقق من حساب Google. أعد المحاولة.")}
       const identity=clean(claims.email,200).toLowerCase();
-      const user=await env.DB.prepare("SELECT id,display_name,identity_normalized,role,active FROM users WHERE identity_normalized=? LIMIT 1").bind(identity).first();
+      const user=await env.DB.prepare("SELECT id,display_name,identity_normalized,role,active,must_change_password FROM users WHERE identity_normalized=? LIMIT 1").bind(identity).first();
       if(!user||user.active!==1)return fail(403,"لا يوجد حساب مفعّل مرتبط بهذا البريد. اطلب من الإدارة إنشاء حسابك بالبريد نفسه.");
       const token=hex(crypto.getRandomValues(new Uint8Array(32))),remember=b.remember===true,lifetime=(remember?30*24:12)*60*60*1000;
       await env.DB.prepare("INSERT INTO sessions(token_hash,user_id,expires_at) VALUES(?,?,?)").bind(await hashToken(token),user.id,new Date(Date.now()+lifetime).toISOString()).run();
       const student=user.role==="student"?await env.DB.prepare("SELECT id,group_id FROM students WHERE user_id=? AND active=1").bind(user.id).first():null;
       await log(env,user.id,"google_login");
-      return json({token,user:safeUser({id:user.id,name:user.display_name,email:user.identity_normalized,role:user.role,student_id:student&&student.id,group_id:student&&student.group_id})});
+      return json({token,user:safeUser({id:user.id,name:user.display_name,email:user.identity_normalized,role:user.role,must_change_password:user.must_change_password===1,student_id:student&&student.id,group_id:student&&student.group_id})});
     }
     if (path === "/api/login" && method === "POST") {
       const parsed=await parseBody(request); if(parsed.error)return parsed.error; const b=parsed.value;
@@ -208,7 +223,7 @@ export default {
       if(!identity||!password||password.length>1024)return fail(400,"أدخل اسم الدخول وكلمة المرور");
       const now=nowIso(), attempt=await env.DB.prepare("SELECT failures,locked_until FROM login_attempts WHERE identity_normalized=?").bind(identity).first();
       if(attempt?.locked_until && attempt.locked_until>now)return fail(429,"محاولات كثيرة. انتظر 15 دقيقة ثم أعد المحاولة.");
-      const user=await env.DB.prepare("SELECT id,display_name,identity_normalized,password_hash,role,active FROM users WHERE identity_normalized=? LIMIT 1").bind(identity).first();
+      const user=await env.DB.prepare("SELECT id,display_name,identity_normalized,password_hash,role,active,must_change_password FROM users WHERE identity_normalized=? LIMIT 1").bind(identity).first();
       const valid=!!user && user.active===1 && await verifyPassword(password,user.password_hash);
       if(!valid){
         const failures=(attempt?.failures||0)+1, locked=failures>=8?new Date(Date.now()+15*60*1000).toISOString():null;
@@ -222,13 +237,14 @@ export default {
       await env.DB.prepare("INSERT INTO sessions(token_hash,user_id,expires_at) VALUES(?,?,?)").bind(await hashToken(token),user.id,new Date(Date.now()+sessionLifetimeMs).toISOString()).run();
       await log(env,user.id,"login");
       const student=user.role==="student"?await env.DB.prepare("SELECT id,group_id FROM students WHERE user_id=? AND active=1").bind(user.id).first():null;
-      return json({token,user:safeUser({id:user.id,name:user.display_name,email:user.identity_normalized,role:user.role,student_id:student?.id,group_id:student?.group_id})});
+      return json({token,user:safeUser({id:user.id,name:user.display_name,email:user.identity_normalized,role:user.role,must_change_password:user.must_change_password===1,student_id:student?.id,group_id:student?.group_id})});
     }
     if (!path.startsWith("/api/")) return env.ASSETS.fetch(request);
     if (path === "/api/logout" && method === "POST") {
       const match=/^Bearer\s+([a-f0-9]{64})$/i.exec(request.headers.get("authorization")||""); if(match)await env.DB.prepare("DELETE FROM sessions WHERE token_hash=?").bind(await hashToken(match[1])).run(); return json({ok:true});
     }
     const user=await currentUser(request,env); if(!user)return fail(401,"يرجى تسجيل الدخول");
+    if(user.must_change_password && !["/api/me","/api/me/password","/api/logout"].includes(path))return fail(403,"يجب تغيير كلمة المرور المؤقتة قبل متابعة استخدام الأكاديمية.");
     if(path==="/api/me/password"&&method==="POST"){
       const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
       const currentPassword=String(b.current_password||""),newPassword=String(b.new_password||"");
@@ -236,7 +252,7 @@ export default {
       const stored=await env.DB.prepare("SELECT password_hash FROM users WHERE id=? AND active=1").bind(user.id).first();
       if(!stored||!await verifyPassword(currentPassword,stored.password_hash))return fail(401,"كلمة المرور الحالية غير صحيحة");
       if(currentPassword===newPassword)return fail(400,"اختر كلمة مرور جديدة مختلفة");
-      await env.DB.prepare("UPDATE users SET password_hash=? WHERE id=?").bind(await passwordHash(newPassword),user.id).run();
+      await env.DB.prepare("UPDATE users SET password_hash=?,must_change_password=0 WHERE id=?").bind(await passwordHash(newPassword),user.id).run();
       const match=/^Bearer\s+([a-f0-9]{64})$/i.exec(request.headers.get("authorization")||"");
       if(match)await env.DB.prepare("DELETE FROM sessions WHERE user_id=? AND token_hash<>?").bind(user.id,await hashToken(match[1])).run();
       await log(env,user.id,"password_change",{});
@@ -393,7 +409,7 @@ export default {
       if(!name||!identity||identity.length>120||password.length<8||password.length>256||!groupId)return fail(400,"أكمل الاسم وكلمة المرور والفوج");
       if(!await canManageGroup(env,user,groupId))return fail(403,"لا تملك صلاحية هذا الفوج");
       const id=uuid(),studentId=uuid();
-      try{await env.DB.prepare("INSERT INTO users(id,display_name,identity_normalized,password_hash,role,active) VALUES(?,?,?,?, 'student',1)").bind(id,name,identity,await passwordHash(password)).run();
+      try{await env.DB.prepare("INSERT INTO users(id,display_name,identity_normalized,password_hash,role,active,must_change_password) VALUES(?,?,?,?, 'student',1,1)").bind(id,name,identity,await passwordHash(password)).run();
         await env.DB.prepare("INSERT INTO students(id,user_id,display_name,group_id,active) VALUES(?,?,?,?,1)").bind(studentId,id,name,groupId).run();}
       catch{await env.DB.prepare("DELETE FROM users WHERE id=?").bind(id).run();return fail(409,"اسم الدخول مستخدم بالفعل");}
       await log(env,user.id,"student_create",{student_id:studentId,group_id:groupId});return json({id:studentId,user_id:id,name,username:identity,group_id:groupId},201);
@@ -412,7 +428,7 @@ export default {
       if(duplicate)return fail(409,"اسم الدخول مستخدم بالفعل؛ اختر اسمًا آخر");
       const userId=uuid();
       try{
-        await env.DB.prepare("INSERT INTO users(id,display_name,identity_normalized,password_hash,role,active) VALUES(?,?,?,?, 'student',1)").bind(userId,name,identity,await passwordHash(password)).run();
+        await env.DB.prepare("INSERT INTO users(id,display_name,identity_normalized,password_hash,role,active,must_change_password) VALUES(?,?,?,?, 'student',1,1)").bind(userId,name,identity,await passwordHash(password)).run();
         await env.DB.prepare("UPDATE students SET user_id=?,display_name=? WHERE id=?").bind(userId,name,s.id).run();
       }catch(error){
         await env.DB.prepare("DELETE FROM users WHERE id=?").bind(userId).run();
@@ -441,7 +457,7 @@ export default {
       const requested=requestedInput.filter(id=>!completedIds.has(id));
       if(!requested.length)return fail(409,"اكتملت أسماء هذه الدفعة سابقًا.");
       const credentials=[],skipped=[];let created=0,reset=0;
-      const temporaryPassword=()=>"12345678";
+      const temporaryPassword=()=>"Ih!"+hex(crypto.getRandomValues(new Uint8Array(10)));
       for(const studentId of requested){
         const st=await env.DB.prepare("SELECT id,display_name,group_id,user_id FROM students WHERE id=? AND active=1").bind(studentId).first();
         if(!st||!st.group_id){skipped.push({student_id:studentId,reason:"not_eligible"});continue}
@@ -451,22 +467,17 @@ export default {
           const existing=await env.DB.prepare("SELECT id,display_name,identity_normalized,role,active FROM users WHERE id=?").bind(st.user_id).first();
           if(!existing||existing.role!=="student"||existing.active!==1){skipped.push({student_id:studentId,reason:"invalid_linked_account"});continue}
           const password=temporaryPassword();
-          await env.DB.prepare("UPDATE users SET display_name=?,identity_normalized=?,password_hash=? WHERE id=?").bind(st.display_name,st.display_name.trim().toLowerCase(),await passwordHash(password),existing.id).run();
-          credentials.push({student_id:st.id,name:st.display_name,group_id:st.group_id,username:existing.identity_normalized,password,reset_existing:true});
+          const identity=await uniqueStudentIdentity(env,st.display_name,existing.id,st.id);
+          await env.DB.prepare("UPDATE users SET display_name=?,identity_normalized=?,password_hash=?,must_change_password=1 WHERE id=?").bind(st.display_name,identity,await passwordHash(password),existing.id).run();
+          credentials.push({student_id:st.id,name:st.display_name,group_id:st.group_id,username:identity,password,reset_existing:true});
           reset++;completedIds.add(st.id);
           await saveRecord(env,"platform_settings",{id:markerId,owner_user_id:user.id,completed:false,completed_student_ids:[...completedIds],target_student_ids:BULK_STUDENT_ONBOARDING_IDS,updated_at:nowIso()});
           continue;
         }
-        const base=st.display_name.trim().toLowerCase();
-        let identity=base,tryNo=0;
-        while(await env.DB.prepare("SELECT id FROM users WHERE identity_normalized=? LIMIT 1").bind(identity).first()){
-          tryNo++;identity=base+" ("+st.id.slice(-4)+")";
-          if(tryNo>1)identity=base+" ("+st.id.slice(-4)+"-"+tryNo+")";
-          if(tryNo>20){identity=base+" ("+uuid().replace(/-/g,"").slice(0,8)+")";break}
-        }
+        const identity=await uniqueStudentIdentity(env,st.display_name,null,st.id);
         const password=temporaryPassword(),userId=uuid();
         try{
-          await env.DB.prepare("INSERT INTO users(id,display_name,identity_normalized,password_hash,role,active) VALUES(?,?,?,?, 'student',1)").bind(userId,st.display_name,identity,await passwordHash(password)).run();
+          await env.DB.prepare("INSERT INTO users(id,display_name,identity_normalized,password_hash,role,active,must_change_password) VALUES(?,?,?,?, 'student',1,1)").bind(userId,st.display_name,identity,await passwordHash(password)).run();
           await env.DB.prepare("UPDATE students SET user_id=? WHERE id=? AND user_id IS NULL").bind(userId,st.id).run();
           const linked=await env.DB.prepare("SELECT user_id FROM students WHERE id=?").bind(st.id).first();
           if(!linked||linked.user_id!==userId){await env.DB.prepare("DELETE FROM users WHERE id=?").bind(userId).run();skipped.push({student_id:studentId,reason:"already_linked"});continue}
@@ -506,7 +517,7 @@ export default {
       }
       await env.DB.prepare("UPDATE students SET display_name=?,group_id=? WHERE id=?").bind(name,nextGroup,s.id).run();
       if(s.user_id&&identity!==null){
-        if(password)await env.DB.prepare("UPDATE users SET display_name=?,identity_normalized=?,password_hash=? WHERE id=?").bind(name,identity,await passwordHash(password),s.user_id).run();
+        if(password)await env.DB.prepare("UPDATE users SET display_name=?,identity_normalized=?,password_hash=?,must_change_password=1 WHERE id=?").bind(name,identity,await passwordHash(password),s.user_id).run();
         else await env.DB.prepare("UPDATE users SET display_name=?,identity_normalized=? WHERE id=?").bind(name,identity,s.user_id).run();
       }else if(s.user_id&&b.name!==undefined){
         await env.DB.prepare("UPDATE users SET display_name=? WHERE id=?").bind(name,s.user_id).run();
