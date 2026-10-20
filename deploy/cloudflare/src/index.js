@@ -16,12 +16,12 @@ const unhex = value => new Uint8Array((value.match(/.{1,2}/g) || []).map(x => pa
 const hashToken = async token => hex(await crypto.subtle.digest("SHA-256", new TextEncoder().encode(token)));
 async function passwordHash(password, saltHex = hex(crypto.getRandomValues(new Uint8Array(16)))) {
   const material = await crypto.subtle.importKey("raw", new TextEncoder().encode(password), "PBKDF2", false, ["deriveBits"]);
-  const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt: unhex(saltHex), iterations: 210000 }, material, 256);
-  return `pbkdf2-sha256$210000$${saltHex}$${hex(bits)}`;
+  const bits = await crypto.subtle.deriveBits({ name: "PBKDF2", hash: "SHA-256", salt: unhex(saltHex), iterations: 50000 }, material, 256);
+  return `pbkdf2-sha256$50000$${saltHex}$${hex(bits)}`;
 }
 async function verifyPassword(password, stored) {
   const [algorithm, roundsText, salt, expected] = String(stored || "").split("$");
-  if (algorithm !== "pbkdf2-sha256" || roundsText !== "210000" || !salt || !expected) return false;
+  if (algorithm !== "pbkdf2-sha256" || roundsText !== "50000" || !salt || !expected) return false;
   const actual = (await passwordHash(password, salt)).split("$")[3];
   if (actual.length !== expected.length) return false;
   let diff = 0; for (let i = 0; i < actual.length; i++) diff |= actual.charCodeAt(i) ^ expected.charCodeAt(i);
