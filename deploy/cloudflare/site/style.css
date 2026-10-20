@@ -26,3 +26,23 @@
 .curriculum-tile strong{font-size:16px}
 .curriculum-tile span{font-size:12px;color:var(--muted)}
 @media(max-width:650px){.module-grid{grid-template-columns:1fr}.module-card{min-height:210px}.curriculum-tiles{grid-template-columns:1fr}.module-welcome{padding:24px}.module-switch{width:100%}}
+
+
+/* Motion refresh: fluid and restrained, with no heavy animation libraries. */
+:root{--ease-ihsan:cubic-bezier(.2,.75,.25,1)}
+@keyframes ihsan-arrive{from{opacity:0;transform:translateY(12px) scale(.99)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes ihsan-shimmer{0%,70%{transform:translateX(-150%) skewX(-18deg)}92%,100%{transform:translateX(360%) skewX(-18deg)}}
+@keyframes ihsan-breathe{0%,100%{opacity:.55}50%{opacity:1}}
+#app>.auth-layout,#app>.module-welcome,#app>.module-grid,#app>.hero,#app>.layout{animation:ihsan-arrive 420ms var(--ease-ihsan) both}
+.panel,.card,.module-card,.curriculum-tile,.stat,.list-row{transition:transform 220ms var(--ease-ihsan),box-shadow 280ms ease,border-color 220ms ease,background-color 220ms ease}
+.card:hover,.stat:hover,.list-row:hover{transform:translateY(-2px);box-shadow:0 14px 32px #153e2c12}
+.module-card{position:relative;overflow:hidden}
+.module-card:after{content:"";position:absolute;inset:-40% auto -40% -45%;width:35%;pointer-events:none;background:linear-gradient(100deg,transparent,#ffffff25,transparent);transform:translateX(-150%) skewX(-18deg);animation:ihsan-shimmer 7.5s ease-in-out infinite}
+.module-card:hover{transform:translateY(-4px);box-shadow:0 18px 38px #153e2c1a}
+.btn{transition:transform 180ms var(--ease-ihsan),filter 180ms ease,box-shadow 180ms ease}
+.btn:hover{transform:translateY(-1px);box-shadow:0 7px 18px #153e2c18}
+.btn:active{transform:scale(.98)}
+.nav-btn,.curriculum-tile{transition:transform 180ms var(--ease-ihsan),background 180ms ease,color 180ms ease}
+.nav-btn:hover,.curriculum-tile:hover{transform:translateX(-2px)}
+.loading{animation:ihsan-breathe 1.4s ease-in-out infinite}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
