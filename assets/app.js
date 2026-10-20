@@ -332,12 +332,13 @@ const PAGES = {
 };
 function topActions(page) {
   const bell = html`<button class="btn sec2 hide-m" data-act="nav" data-page="notifications" aria-label="الإشعارات">${ico('bell')}<span>${S.notifications.filter(n => !n.read).length}</span></button>`;
+  const settings = html`<button class="btn sec2 hide-m" data-act="nav" data-page="settings" aria-label="الإعدادات">${ico('settings')}<span>الإعدادات</span></button>`;
   let extra = '';
   if (isStaff() && page === 'news') extra = html`<button class="btn" data-act="new-post">${ico('plus')}<span>منشور</span></button>`;
   if (isStaff() && page === 'media') extra = html`<button class="btn" data-act="new-media">${ico('plus')}<span>محتوى جديد</span></button>`;
   if (isStaff() && page === 'tests' && !S.grading) extra = html`<button class="btn" data-act="new-test">${ico('plus')}<span>اختبار</span></button>`;
   if (isStaff() && page === 'question-bank') extra = html`<button class="btn" data-act="new-question">${ico('plus')}<span>سؤال</span></button>`;
-  return html`${bell}${extra}`;
+  return html`${bell}${settings}${extra}`;
 }
 function navFor(page) { if (page === 'file') return S.user.role === 'student' ? 'profile' : S.user.role === 'parent' ? 'children' : 'students'; return page; }
 function showPage(id, opts = {}) {
