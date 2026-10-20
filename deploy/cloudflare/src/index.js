@@ -756,7 +756,7 @@ export default {
       const answerMap=new Map(submitted.map(a=>[String(a.question_id),Number(a.selected_index)]));
       let score=0;
       for(const q of (test.questions||[])){if(answerMap.get(String(q.id))===q.correct_index)score++;}
-      const attempt={id:uuid(),test_id:test.id,title:test.title,student_id:user.student_id,group_id:user.group_id,score,total:(test.questions||[]).length,submitted_at:nowIso()};
+      const attempt={id:uuid(),test_id:test.id,title:test.title,student_id:user.student_id,group_id:user.group_id,score,total:(test.questions||[]).length,day:academyDate(),submitted_at:nowIso()};
       await saveRecord(env,"test_attempts",attempt);await log(env,user.id,"test_submit",{test_id:test.id,score,total:attempt.total});
       return json({ok:true,score,total:attempt.total,percent:attempt.total?Math.round(score*100/attempt.total):0,submitted_at:attempt.submitted_at});
     }
@@ -1208,7 +1208,7 @@ export default {
       const badges=[];if(days>=1)badges.push({id:"first-step",name:"الخطوة الأولى",description:"سجلت متابعة قرآنية",icon:"🌱"});if(days>=7)badges.push({id:"steady",name:"ثبات أسبوع",description:"تابعت القرآن في سبعة أيام مختلفة",icon:"🌿"});if(tests>=1)badges.push({id:"exam",name:"همة المتعلم",description:"أكملت اختبارًا",icon:"📘"});if(present>=5)badges.push({id:"attendance",name:"مواظب",description:"سجلت حضورًا خمس مرات",icon:"⭐"});
       const day=academyDate(),daily=[{id:"daily-quran",title:"ورد اليوم",description:"اقرأ وردك المقرر ثم راجعه بإتقان",points:10},{id:"daily-review",title:"مراجعة ثابتة",description:"راجع محفوظًا سابقًا قبل إضافة الجديد",points:10},{id:"daily-adab",title:"عمل بالعلم",description:"طبّق فائدة تعلمتها اليوم",points:5}];
       const challenge= daily[Number(day.replace(/-/g,""))%daily.length];
-      return json({student_id:user.student_id,points:present*5+days*10+score*3+claims.reduce((n,c)=>n+(Number(c.points)||0),0),stats:{attendance:present,quran_days:days,tests,answers_correct:score},badges,daily_challenge:challenge,plan:plans[0]||null,hearts:Math.max(0,5-attempts.filter(a=>String(a.submitted_at||"").slice(0,10)===day).reduce((n,a)=>n+Math.max(0,Number(a.total||0)-Number(a.score||0)),0)),challenge_claimed:claims.some(c=>c.day===day),updated_at:nowIso()});
+      return json({student_id:user.student_id,points:present*5+days*10+score*3+claims.reduce((n,c)=>n+(Number(c.points)||0),0),stats:{attendance:present,quran_days:days,tests,answers_correct:score},badges,daily_challenge:challenge,plan:plans[0]||null,hearts:Math.max(0,5-attempts.filter(a=>(a.day||(a.submitted_at?academyDate(new Date(a.submitted_at)):""))===day).reduce((n,a)=>n+Math.max(0,Number(a.total||0)-Number(a.score||0)),0)),challenge_claimed:claims.some(c=>c.day===day),updated_at:nowIso()});
     }
     if(path==="/api/leaderboard"&&method==="GET"){
       const groupId=user.role==="student"?user.group_id:clean(url.searchParams.get("group_id"),80);
