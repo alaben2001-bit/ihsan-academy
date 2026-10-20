@@ -982,8 +982,82 @@ function pgAcademyMap(){
     <div class="card flat"><b>قاعدة الخصوصية</b><p>مشرف الفريق لا يطّلع على ملفات بقية المدرسة ولا يملك صلاحيات المعلم أو المدير. وإذا احتاج أمرًا خارج نطاقه، يرفعه إلى المعلم أو مدير المدرسة.</p></div>
   </div>`);
 }
-function pgLearningHub(){
-  render(html`<div class="stack"><div class="card"><h2>التعلّم</h2><p class="muted">اختر من القائمة ما تحتاج إليه.</p></div></div>`);
+async function pgLearningHub(){
+  const isStudent = S.user.role === 'student';
+  let data = { subjects: [], lessons: [], student: null };
+  try {
+    data = isStudent ? await api('/api/learning') : await api('/api/curriculum');
+  } catch (error) {
+    render(html`<div class="stack ihsan-learning-hub"><div class="card learning-hub-hero"><div><span class="eyebrow">بوابة التعلّم</span><h2>برنامج التعلّم الممتع</h2><p>تعذّر تحميل المواد الآن. تحقّق من الاتصال ثم أعد المحاولة.</p></div><button class="btn" data-act="nav" data-page="curriculum">فتح المنهج</button></div></div>`);
+    return;
+  }
+  const subjects = (data.subjects || []).filter(s => s.active !== false);
+  const lessons = data.lessons || [];
+  const domainDefs = [
+    { id:'allah', title:'معرفة الله تعالى', kicker:'الإيمان والمعرفة', description:'تعلّم ما ثبت في الوحي، وافهم معاني الإيمان وأسماء الله الحسنى على منهج أهل العلم.', icon:'spark', match:/معرفة الله|الله تعالى|التوحيد|العقيدة|الأسماء الحسنى/ },
+    { id:'prophet', title:'معرفة الرسول ﷺ', kicker:'السيرة والاقتداء', description:'تعرّف إلى سيرة النبي ﷺ وشمائله وهديه، واجعل المعرفة بابًا للتأسي وحسن الخلق.', icon:'heart', match:/معرفة الرسول|الرسول|النبي|السيرة|الشمائل/ },
+    { id:'quran', title:'القرآن الكريم', kicker:'تلاوة وحفظ وفهم', description:'رحلة متوازنة تجمع القراءة الصحيحة والحفظ المتدرج والمراجعة والفهم والعمل.', icon:'quran', match:/القرآن|قرآن|التجويد|التلاوة/ },
+    { id:'hadith', title:'السنة النبوية والحديث', kicker:'حفظ وفهم وعمل', description:'تعلّم الحديث من مصدر موثوق، وافهم معناه، وتثبّت من نسبته قبل نقله.', icon:'book', match:/الحديث|السنة النبوية|الأربعون النووية|الحديث الشريف/ },
+    { id:'other', title:'العلوم الشرعية والفوائد', kicker:'علم نافع وحياة متوازنة', description:'فقه العبادات، واللغة، والأخلاق، وطلب العلم، والآداب ومهارات الحياة النافعة.', icon:'brain', match:null }
+  ];
+  function domainFor(subject) {
+    const text = [subject.seed_key, subject.key, subject.name, subject.category, subject.description].filter(Boolean).join(' ');
+    for (const d of domainDefs) if (d.match && d.match.test(text)) return d.id;
+    return 'other';
+  }
+  function lessonCount(subject) {
+    return subject.lesson_count != null ? Number(subject.lesson_count) || 0 : lessons.filter(l => l.subject_id === subject.id).length;
+  }
+  function completedCount(subject) {
+    return subject.completed != null ? Number(subject.completed) || 0 : lessons.filter(l => l.subject_id === subject.id && l.completed).length;
+  }
+  const groups = domainDefs.map(d => {
+    const items = subjects.filter(s => domainFor(s) === d.id);
+    const count = items.reduce((n,s) => n + lessonCount(s), 0);
+    const done = items.reduce((n,s) => n + completedCount(s), 0);
+    return { ...d, subjects:items, lessonCount:count, completed:done, progress:count ? Math.round(done/count*100) : 0 };
+  });
+  const totalLessons = groups.reduce((n,g) => n + g.lessonCount, 0);
+  const completedLessons = groups.reduce((n,g) => n + g.completed, 0);
+  const overallProgress = totalLessons ? Math.round(completedLessons/totalLessons*100) : 0;
+  render(html`<div class="stack ihsan-learning-hub">
+    <section class="learning-hub-hero">
+      <div class="learning-hub-hero-copy">
+        <span class="eyebrow">أكاديمية الإحسان · رحلة علمية متدرجة</span>
+        <h2>برنامج التعلّم الممتع</h2>
+        <p>خمسة أبواب للعلم النافع، مرتبة لتعرف أين تبدأ، وماذا تتعلّم، وكيف تمضي بخطوة ثابتة كل يوم.</p>
+        <div class="learning-hub-tags"><span>فهم</span><span>حفظ</span><span>مراجعة</span><span>عمل</span></div>
+      </div>
+      <div class="learning-hub-seal" aria-hidden="true"><img src="/assets/ihsan-emblem.svg" alt=""></div>
+    </section>
+    ${isStudent ? html`<section class="learning-overview" aria-label="ملخص التقدم">
+      <div><span>المواد المتاحة</span><b>${subjects.length}</b></div>
+      <div><span>الدروس</span><b>${totalLessons}</b></div>
+      <div><span>دروس مكتملة</span><b>${completedLessons}</b></div>
+      <div class="learning-overview-progress"><span>تقدمك الإجمالي</span><b>${overallProgress}%</b><div class="progress"><i data-w="${overallProgress}"></i></div></div>
+    </section>` : ''}
+    ${isStudent && !data.student ? html`<div class="card learning-hub-notice"><b>لم يُربط حسابك بملف طالب بعد.</b><p class="muted">اطلب من إدارة الأكاديمية ربط الحساب بملفك حتى تظهر موادك ودروسك وتقدمك.</p></div>` : ''}
+    <div class="learning-domain-grid">
+      ${groups.map((d,index) => html`<article class="learning-domain-card domain-${d.id}">
+        <div class="learning-domain-top">
+          <span class="learning-domain-icon">${ico(d.icon)}</span>
+          <span class="learning-domain-kicker">${d.kicker}</span>
+          <span class="learning-domain-index">${String(index+1).padStart(2,'0')}</span>
+        </div>
+        <h3>${d.title}</h3>
+        <p class="learning-domain-description">${d.description}</p>
+        <div class="learning-domain-meta"><span>${d.subjects.length} مواد</span><span>${d.lessonCount} درس</span>${isStudent && d.lessonCount ? html`<span>${d.progress}% مكتمل</span>` : ''}</div>
+        ${isStudent && d.lessonCount ? html`<div class="progress learning-domain-progress" aria-label="اكتمل ${d.progress} بالمئة"><i data-w="${d.progress}"></i></div>` : ''}
+        ${d.subjects.length ? html`<div class="learning-subject-list">
+          ${d.subjects.slice(0,3).map(subject => html`<div class="learning-subject-row">
+            <div class="learning-subject-copy"><b>${subject.name}</b><span>${lessonCount(subject)} درس${isStudent && lessonCount(subject) ? ' · أتممت '+completedCount(subject) : ''}</span></div>
+            ${isStudent ? html`<button class="btn sm learning-subject-action" type="button" data-act="view-subject-lessons" data-id="${subject.id}">استكشف</button>` : html`<button class="btn sm sec2 learning-subject-action" type="button" data-act="nav" data-page="curriculum">المنهج</button>`}
+          </div>`)}
+        </div>${d.subjects.length>3 ? html`<button class="btn sm sec2 learning-more" data-act="nav" data-page="curriculum">عرض بقية المواد <span aria-hidden="true">←</span></button>` : ''}` : html`<div class="learning-domain-empty">سيظهر هذا المسار هنا عند تهيئة مواده ودروسه في المنهج.</div>`}
+      </article>`)}
+    </div>
+    <div class="learning-hub-footer"><div><span class="eyebrow">خطوتك التالية</span><h3>اختر مسارًا واحدًا وابدأ بهدوء</h3><p>ليس المطلوب أن تنهي كل شيء اليوم؛ المطلوب أن تعرف خطوتك التالية وتثبت عليها.</p></div><div class="learning-hub-actions"><button class="btn" data-act="nav" data-page="curriculum">استكشاف المنهج</button>${isStudent ? html`<button class="btn sec2" data-act="nav" data-page="journey">متابعة رحلتي</button>` : ''}</div></div>
+  </div>`);
 }
 async function pgHierarchy(){
   if(S.user.role!=='admin') return showPage('dashboard');
