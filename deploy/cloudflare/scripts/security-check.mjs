@@ -10,7 +10,7 @@ const [backend, app, index, serviceWorker, migration] = await Promise.all([
 ]);
 
 // These are static regression guardrails, not a replacement for live role-by-role acceptance tests.
-assert.match(backend, /const temporaryPassword\(\)=>"Ih!"\+hex\(crypto\.getRandomValues\(new Uint8Array\(10\)\)\)/, "temporary passwords must be randomly generated");
+assert.ok(backend.includes('const temporaryPassword=()=>"Ih!"+hex(crypto.getRandomValues(new Uint8Array(10)))'), "temporary passwords must be randomly generated");
 assert.match(backend, /uniqueStudentIdentity\(env,st\.display_name/, "onboarding must resolve unique student usernames");
 assert.match(backend, /must_change_password=1/, "new/reset accounts must be marked for a first-login password change");
 assert.match(backend, /must_change_password=0/, "a successful password change must clear the first-login requirement");
