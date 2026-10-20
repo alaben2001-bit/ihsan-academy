@@ -18,6 +18,21 @@ export const validDateOnly = value => {
   date.setUTCFullYear(year,month-1,day);
   return date.getUTCFullYear()===year && date.getUTCMonth()===month-1 && date.getUTCDate()===day;
 };
+export const academyDate = (value = new Date()) => {
+  const parts = new Intl.DateTimeFormat("en-US", {
+    timeZone: "Africa/Algiers",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).formatToParts(value);
+  const fields = Object.fromEntries(parts.map(part => [part.type, part.value]));
+  return fields.year+"-"+fields.month+"-"+fields.day;
+};
+export const addCalendarDays = (dateOnly, days) => {
+  if (!validDateOnly(dateOnly) || !Number.isInteger(days)) throw new Error("invalid_calendar_date");
+  const [year, month, day] = dateOnly.split("-").map(Number);
+  return new Date(Date.UTC(year, month-1, day+days)).toISOString().slice(0,10);
+};
 const BULK_STUDENT_ONBOARDING_IDS=["roster-20261020-01","roster-20261020-04","roster-20261020-05","roster-20261020-07","roster-20261020-09","roster-20261020-11","roster-20261020-13","roster-20261020-14","roster-20261020-15","roster-20261020-16","roster-20261020-18","roster-20261020-19","roster-20261020-20","roster-20261020-22","roster-20261020-23","roster-20261020-24","roster-20261020-26","roster-20261020-27","roster-20261020-28","roster-20261020-29","roster-20261020-30","roster-20261020-32","roster-20261020-33","roster-20261020-35","roster-20261020-36","roster-20261020-37","roster-20261020-38","roster-20261020-39","roster-20261020-42","roster-20261020-43","roster-20261020-44","roster-20261020-46","roster-20261020-47","roster-20261020-48","roster-20261020-49","roster-20261020-50","roster-20261020-51","roster-20261020-53","roster-20261020-54","roster-20261020-55"];
 const clean = (v, max = 200) => String(v ?? "").trim().slice(0, max);
 const uuid = () => crypto.randomUUID();
@@ -301,7 +316,7 @@ export default {
       const isStaff=staffRoles.includes(user.role);
       let groupIds=null;
       if(!isAdmin&&isStaff)groupIds=await managedGroupIds(env,user);
-      const today=nowIso().slice(0,10);
+      const today=academyDate();
       let groupsCount=0,studentsCount=0,attendanceRows=[],tests=[];
       if(isAdmin){
         const result=await Promise.all([
@@ -596,7 +611,7 @@ export default {
       await env.DB.prepare("UPDATE students SET active=0 WHERE id=?").bind(s.id).run();if(s.user_id)await env.DB.prepare("UPDATE users SET active=0 WHERE id=?").bind(s.user_id).run();await log(env,user.id,"student_deactivate",{student_id:s.id});return json({ok:true});
     }
     if(path==="/api/attendance"&&method==="GET"){
-      const date=clean(url.searchParams.get("date"),10)||nowIso().slice(0,10),groupId=clean(url.searchParams.get("group_id"),80),history=url.searchParams.get("history")==="1",studentId=clean(url.searchParams.get("student_id"),80);
+      const date=clean(url.searchParams.get("date"),10)||academyDate(),groupId=clean(url.searchParams.get("group_id"),80),history=url.searchParams.get("history")==="1",studentId=clean(url.searchParams.get("student_id"),80);
       if(user.role==="student"){
         const rows=await records(env,"attendance"," AND student_id=?",[user.student_id||""]);
         return json(history?rows.sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,120):rows.filter(x=>x.date===date));
@@ -629,7 +644,7 @@ export default {
     if(path==="/api/quran/progress"&&method==="POST"){
       if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"تسجيل التقدم للمعلم أو المدير");
       const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
-      const studentId=clean(b.student_id,80),date=clean(b.date,10)||nowIso().slice(0,10);
+      const studentId=clean(b.student_id,80),date=clean(b.date,10)||academyDate();
       const memorized=clean(b.memorized,300),reviewed=clean(b.reviewed,300),recitation=clean(b.recitation,500);
       const notes=clean(b.notes,500),feedback=clean(b.feedback,800),nextAssignment=clean(b.next_assignment,300);
       const activity=clean(b.activity,24)||"recitation",allowedActivities=["memorization","revision","recitation","correction"];
@@ -675,7 +690,7 @@ export default {
     if(path==="/api/tests"&&method==="GET"){
       // Recurring assessments roll forward in fixed 14-day intervals when the test area is next opened.
       // Deterministic IDs prevent duplicate instances if multiple requests arrive together.
-      const today=nowIso().slice(0,10),storedTests=await records(env,"tests"),latestBySeries=new Map();
+      const today=academyDate(),storedTests=await records(env,"tests"),latestBySeries=new Map();
       for(const item of storedTests){if(!item.recurring||!item.series_id)continue;const prior=latestBySeries.get(item.series_id);if(!prior||Number(item.sequence||1)>Number(prior.sequence||1))latestBySeries.set(item.series_id,item);}
       for(const latest of latestBySeries.values()){
         if(user.role==="student"&&latest.group_id&&latest.group_id!==user.group_id)continue;
@@ -718,7 +733,7 @@ export default {
         normalized.push({id:clean(q.id,80)||uuid(),prompt,choices,correct_index:correct,explanation:clean(q.explanation,500)});
       }
       const due=String(b.due_date||"");
-      const defaultDue=new Date(Date.now()+14*24*60*60*1000).toISOString().slice(0,10);
+      const defaultDue=addCalendarDays(academyDate(),14);
       const recurring=b.recurring!==false,seriesId=recurring?uuid():null;
       const test={id:uuid(),title,description,group_id:groupId,due_date:/^\d{4}-\d{2}-\d{2}$/.test(due)?due:defaultDue,frequency_days:14,recurring,series_id:seriesId,sequence:1,questions:normalized,status:"published",created_by:user.id,created_at:nowIso()};
       await saveRecord(env,"tests",test);await log(env,user.id,"test_create",{test_id:test.id,group_id:groupId,questions:normalized.length});
@@ -1157,7 +1172,7 @@ export default {
     }
     if(path==="/api/gamification/claim"&&method==="POST"){
       if(user.role!=="student"||!user.student_id||!user.group_id)return fail(403,"المكافآت متاحة لحساب الطالب المرتبط بفوج");
-      const day=nowIso().slice(0,10),parsed=await parseBody(request);if(parsed.error)return parsed.error;
+      const day=academyDate(),parsed=await parseBody(request);if(parsed.error)return parsed.error;
       const challengeId=clean(parsed.value.challenge_id,80);
       const daily=[{id:"daily-quran",points:10},{id:"daily-review",points:10},{id:"daily-adab",points:5}];
       const expected=daily[Number(day.replace(/-/g,""))%daily.length];
@@ -1177,7 +1192,7 @@ export default {
       const present=attendance.filter(a=>a.student_id===user.student_id&&a.status==="present").length;
       const days=new Set(quran.map(q=>q.date)).size,tests=attempts.length,score=attempts.reduce((n,a)=>n+(Number(a.score)||0),0);
       const badges=[];if(days>=1)badges.push({id:"first-step",name:"الخطوة الأولى",description:"سجلت متابعة قرآنية",icon:"🌱"});if(days>=7)badges.push({id:"steady",name:"ثبات أسبوع",description:"تابعت القرآن في سبعة أيام مختلفة",icon:"🌿"});if(tests>=1)badges.push({id:"exam",name:"همة المتعلم",description:"أكملت اختبارًا",icon:"📘"});if(present>=5)badges.push({id:"attendance",name:"مواظب",description:"سجلت حضورًا خمس مرات",icon:"⭐"});
-      const day=nowIso().slice(0,10),daily=[{id:"daily-quran",title:"ورد اليوم",description:"اقرأ وردك المقرر ثم راجعه بإتقان",points:10},{id:"daily-review",title:"مراجعة ثابتة",description:"راجع محفوظًا سابقًا قبل إضافة الجديد",points:10},{id:"daily-adab",title:"عمل بالعلم",description:"طبّق فائدة تعلمتها اليوم",points:5}];
+      const day=academyDate(),daily=[{id:"daily-quran",title:"ورد اليوم",description:"اقرأ وردك المقرر ثم راجعه بإتقان",points:10},{id:"daily-review",title:"مراجعة ثابتة",description:"راجع محفوظًا سابقًا قبل إضافة الجديد",points:10},{id:"daily-adab",title:"عمل بالعلم",description:"طبّق فائدة تعلمتها اليوم",points:5}];
       const challenge= daily[Number(day.replace(/-/g,""))%daily.length];
       return json({student_id:user.student_id,points:present*5+days*10+score*3+claims.reduce((n,c)=>n+(Number(c.points)||0),0),stats:{attendance:present,quran_days:days,tests,answers_correct:score},badges,daily_challenge:challenge,plan:plans[0]||null,hearts:Math.max(0,5-attempts.filter(a=>String(a.submitted_at||"").slice(0,10)===day).reduce((n,a)=>n+Math.max(0,Number(a.total||0)-Number(a.score||0)),0)),challenge_claimed:claims.some(c=>c.day===day),updated_at:nowIso()});
     }
