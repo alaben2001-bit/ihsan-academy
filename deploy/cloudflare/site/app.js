@@ -45,8 +45,15 @@ const $=s=>document.querySelector(s), app=$("#app");
 const safeStore={get(k){try{return localStorage.getItem(k)||""}catch{return ""}},set(k,v){try{localStorage.setItem(k,v)}catch{}},remove(k){try{localStorage.removeItem(k)}catch{}},getSession(k){try{return sessionStorage.getItem(k)||""}catch{return ""}},setSession(k,v){try{sessionStorage.setItem(k,v)}catch{}},removeSession(k){try{sessionStorage.removeItem(k)}catch{}}};
 function storeSessionToken(token,remember){if(remember){safeStore.set("ihsan_token",token);safeStore.removeSession("ihsan_token")}else{safeStore.remove("ihsan_token");safeStore.setSession("ihsan_token",token)}}
 function clearSessionToken(){safeStore.remove("ihsan_token");safeStore.removeSession("ihsan_token")}
-const localDateISO=(value=new Date())=>[value.getFullYear(),String(value.getMonth()+1).padStart(2,"0"),String(value.getDate()).padStart(2,"0")].join("-");
-const shiftLocalDateISO=(dateOnly,days)=>{const [y,m,d]=dateOnly.split("-").map(Number);return localDateISO(new Date(y,m-1,d+days))};
+const localDateISO=(value=new Date())=>{
+ const parts=new Intl.DateTimeFormat("en-US",{timeZone:"Africa/Algiers",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(value);
+ const fields=Object.fromEntries(parts.map(part=>[part.type,part.value]));
+ return fields.year+"-"+fields.month+"-"+fields.day;
+};
+const shiftLocalDateISO=(dateOnly,days)=>{
+ const [y,m,d]=dateOnly.split("-").map(Number),shifted=new Date(Date.UTC(y,m-1,d+days));
+ return shifted.getUTCFullYear()+"-"+String(shifted.getUTCMonth()+1).padStart(2,"0")+"-"+String(shifted.getUTCDate()).padStart(2,"0");
+};
 const S={token:safeStore.get("ihsan_token")||safeStore.getSession("ihsan_token"),user:null,tab:"home",mode:"hub",groups:[],students:[],teachers:[],staff:[],schools:[],date:localDateISO()};
 const themes=[
 {name:"زمردي",green:"#087f5b",mint:"#ddfaed",gold:"#f5b942",paper:"#f2fbf7",ink:"#0d2b22",muted:"#456b5a",line:"#bfe5d1",surface:"#ffffff",surface2:"#eaf8f0"},
