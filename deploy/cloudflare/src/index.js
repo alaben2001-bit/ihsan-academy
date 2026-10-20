@@ -371,7 +371,7 @@ export default {
       }
       const id=uuid();
       try{
-        await env.DB.prepare("INSERT INTO users(id,display_name,identity_normalized,password_hash,role,active) VALUES(?,?,?,?,?,1)").bind(id,name,identity,await passwordHash(password),role).run();
+        await env.DB.prepare("INSERT INTO users(id,display_name,identity_normalized,password_hash,role,active,must_change_password) VALUES(?,?,?,?,?,1,1)").bind(id,name,identity,await passwordHash(password),role).run();
         await saveRecord(env,"staff_scopes",{id:"scope:"+id,owner_user_id:id,role,school_ids:schoolIds,group_ids:groupIds,created_by:user.id,created_at:nowIso()});
       }catch(error){
         await env.DB.prepare("DELETE FROM academy_records WHERE collection='staff_scopes' AND id=?").bind("scope:"+id).run();
@@ -397,7 +397,7 @@ export default {
       if(user.role!=="admin")return fail(403,"إضافة المعلمين للمدير فقط");const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
       const name=clean(b.name,120),identity=clean(b.username,100).toLowerCase(),password=String(b.password||"");
       if(!name||!identity||identity.length>120||password.length<8||password.length>256)return fail(400,"أدخل الاسم وكلمة مرور من 8 أحرف على الأقل");
-      const id=uuid();try{await env.DB.prepare("INSERT INTO users(id,display_name,identity_normalized,password_hash,role,active) VALUES(?,?,?,?, 'teacher',1)").bind(id,name,identity,await passwordHash(password)).run();}catch{return fail(409,"اسم الدخول مستخدم بالفعل");}
+      const id=uuid();try{await env.DB.prepare("INSERT INTO users(id,display_name,identity_normalized,password_hash,role,active,must_change_password) VALUES(?,?,?,?, 'teacher',1,1)").bind(id,name,identity,await passwordHash(password)).run();}catch{return fail(409,"اسم الدخول مستخدم بالفعل");}
       await log(env,user.id,"teacher_create",{id,name});return json({id,name,username:identity},201);
     }
     const teacherMatch=path.match(/^\/api\/teachers\/([^/]+)$/);
