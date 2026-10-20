@@ -159,7 +159,7 @@ const post = (url, data) => api(url, { method: 'POST', body: JSON.stringify(data
 async function guard(fn) { try { return await fn(); } catch (e) { toast(e.message, true); } }
 
 /* ── الجلسة ── */
-function endSession() { S.token = null; S.user = null; try { sessionStorage.removeItem('ab_token'); sessionStorage.removeItem('academy_entry'); } catch { /* */ } try { history.replaceState({ academy: true, page: 'login' }, '', location.pathname); } catch { /* */ } closeOverlay(); showLogin(); }
+function endSession() { S.token = null; S.user = null; try { localStorage.removeItem('ab_token'); sessionStorage.removeItem('ab_token'); sessionStorage.removeItem('academy_entry'); } catch { /* */ } try { history.replaceState({ academy: true, page: 'login' }, '', location.pathname); } catch { /* */ } closeOverlay(); showLogin(); }
 function showLogin() { $('#appView').classList.add('hidden'); $('#loginView').classList.remove('hidden'); $('#loginPass').value = ''; }
 function establishHistoryGuard(page = 'dashboard') {
   const url = location.pathname + '#' + encodeURIComponent(page);
@@ -1140,13 +1140,13 @@ $('#loginForm').addEventListener('submit', async e => {
   e.preventDefault(); const btn = $('#loginBtn'), err = $('#loginErr'); err.textContent = ''; btn.disabled = true;
   try {
     const r = await api('/api/login', { method: 'POST', body: JSON.stringify({ identity: $('#loginEmail').value, password: $('#loginPass').value }) });
-    S.token = r.token; try { sessionStorage.setItem('ab_token', r.token); } catch { /* */ }
+    S.token = r.token; try { localStorage.setItem('ab_token', r.token); sessionStorage.removeItem('ab_token'); } catch { try { sessionStorage.setItem('ab_token', r.token); } catch { /* storage unavailable */ } }
     await startSession();
   } catch (ex) { err.textContent = ex.message; } finally { btn.disabled = false; }
 });
 
 (async function boot() {
-  try { S.token = sessionStorage.getItem('ab_token'); } catch { S.token = null; }
+  try { S.token = localStorage.getItem('ab_token') || sessionStorage.getItem('ab_token'); if (S.token) localStorage.setItem('ab_token', S.token); } catch { try { S.token = sessionStorage.getItem('ab_token'); } catch { S.token = null; } }
   if (!S.token) return showLogin();
   try { await startSession(); } catch { endSession(); }
 })();
