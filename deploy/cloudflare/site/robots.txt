@@ -1,4 +1,4 @@
 User-agent: *
 Allow: /
 Disallow: /api/
-Sitemap: https://ihsan-academy.pages.dev/sitemap.xml
+Sitemap: https://ihsan-academy-students-preview.pages.dev/sitemap.xml
