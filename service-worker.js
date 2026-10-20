@@ -1,5 +1,72 @@
-const CACHE='ihsan-academy-v49-ui-final-2026-10-08-1345';
-const SHELL=['/','/index.html','/assets/app.css','/assets/app.js','/assets/icon.svg','/manifest.json','/offline.html'];
-self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting())));
-self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
-self.addEventListener('fetch',e=>{const u=new URL(e.request.url); if(u.origin!==location.origin||e.request.method!=='GET'||u.pathname.startsWith('/api/'))return; if(e.request.mode==='navigate') e.respondWith(fetch(e.request).then(r=>{const copy=r.clone();caches.open(CACHE).then(c=>c.put(e.request,copy));return r}).catch(()=>caches.match(e.request).then(r=>r||caches.match('/offline.html')))); else e.respondWith(fetch(e.request).then(r=>{const copy=r.clone();caches.open(CACHE).then(c=>c.put(e.request,copy));return r}).catch(()=>caches.match(e.request))); });
+const CACHE = 'ihsan-academy-shell-v76-2026-10-20';
+const SHELL = [
+  '/',
+  '/index.html',
+  '/assets/app.css?v=73.0',
+  '/assets/admin-mobile.css?v=70.0',
+  '/assets/ui-organize.css?v=1.0',
+  '/assets/login-redesign.css?v=2.0',
+  '/assets/premium-interface.css?v=76.0',
+  '/assets/app.js?v=70.2',
+  '/assets/icon.svg',
+  '/assets/ihsan-emblem.svg',
+  '/manifest.json',
+  '/offline.html'
+];
+
+self.addEventListener('install', event => {
+  event.waitUntil(
+    caches.open(CACHE)
+      .then(cache => cache.addAll(SHELL))
+      .then(() => self.skipWaiting())
+  );
+});
+
+self.addEventListener('activate', event => {
+  event.waitUntil(
+    caches.keys()
+      .then(keys => Promise.all(
+        keys.filter(key => key !== CACHE).map(key => caches.delete(key))
+      ))
+      .then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener('fetch', event => {
+  const request = event.request;
+  const url = new URL(request.url);
+
+  // API responses may contain private or changing records; never cache them here.
+  if (url.origin !== self.location.origin ||
+      request.method !== 'GET' ||
+      url.pathname.startsWith('/api/')) {
+    return;
+  }
+
+  const cachedFallback = () => caches.match(request, { ignoreSearch: true });
+
+  if (request.mode === 'navigate') {
+    event.respondWith(
+      fetch(request).then(response => {
+        if (response && response.ok) {
+          const copy = response.clone();
+          caches.open(CACHE).then(cache => cache.put(request, copy)).catch(() => {});
+        }
+        return response;
+      }).catch(async () => {
+        return (await cachedFallback()) || (await caches.match('/offline.html'));
+      })
+    );
+    return;
+  }
+
+  event.respondWith(
+    fetch(request).then(response => {
+      if (response && response.ok) {
+        const copy = response.clone();
+        caches.open(CACHE).then(cache => cache.put(request, copy)).catch(() => {});
+      }
+      return response;
+    }).catch(() => cachedFallback())
+  );
+});
