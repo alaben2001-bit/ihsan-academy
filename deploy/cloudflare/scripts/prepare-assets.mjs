@@ -9,7 +9,7 @@ const out = path.join(deployDir, "public");
 
 await rm(out, { recursive: true, force: true });
 await mkdir(out, { recursive: true });
-for (const file of ["index.html", "app.js", "startup.js", "style.css", "manifest.json", "service-worker.js", "icon.svg", "_headers"]) {
+for (const file of ["index.html", "app.js", "startup.js", "style.css", "manifest.json", "service-worker.js", "icon.svg", "icon-192.svg", "icon-512.svg", "robots.txt", "sitemap.xml", "about.html", "privacy.html", "_headers"]) {
   await cp(path.join(siteDir, file), path.join(out, file));
 }
 console.log("Prepared the simplified Cloudflare daily-use app. Static site assets and security headers prepared for Cloudflare Pages.");
