@@ -236,3 +236,125 @@ input:focus,select:focus,textarea:focus{
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
+
+
+/* V75 — the learning hub: a real five-domain entry point, using existing student progress. */
+.ihsan-learning-hub{gap:17px!important}
+.learning-hub-hero{
+  position:relative;isolation:isolate;overflow:hidden;
+  display:flex;align-items:center;justify-content:space-between;gap:22px;
+  min-height:205px;padding:clamp(22px,3vw,34px);
+  border:1px solid rgba(255,255,255,.10);
+  border-radius:17px;
+  color:#fff;
+  background:radial-gradient(circle at 12% 18%,rgba(184,154,90,.18),transparent 34%),linear-gradient(128deg,#103b32 0%,var(--g800) 62%,#255b49 100%);
+  box-shadow:0 12px 30px rgba(16,59,50,.12);
+}
+.learning-hub-hero:after{
+  content:"";position:absolute;z-index:-1;left:-52px;bottom:-105px;
+  width:280px;height:280px;border:1px solid rgba(238,219,164,.20);border-radius:50%;
+  box-shadow:0 0 0 24px rgba(255,255,255,.018),0 0 0 49px rgba(255,255,255,.014);
+}
+.learning-hub-hero-copy{position:relative;z-index:1;max-width:700px;min-width:0}
+.learning-hub-hero .eyebrow{color:#dfc98d;font-size:12px}
+.learning-hub-hero h2{font-size:clamp(25px,3vw,35px);line-height:1.4;margin:4px 0 8px;color:#fff;text-wrap:balance}
+.learning-hub-hero p{max-width:65ch;color:#e0eae4;font-size:14px;line-height:1.9}
+.learning-hub-tags{display:flex;flex-wrap:wrap;gap:7px;margin-top:17px}
+.learning-hub-tags span{padding:5px 11px;border:1px solid rgba(255,255,255,.17);border-radius:8px;color:#f0e8d0;background:rgba(255,255,255,.055);font-size:12px}
+.learning-hub-seal{
+  flex:0 0 110px;width:110px;height:110px;display:grid;place-items:center;
+  border:1px solid rgba(237,218,165,.30);border-radius:50%;
+  background:radial-gradient(circle,rgba(255,255,255,.09),rgba(255,255,255,.018));
+  box-shadow:inset 0 0 0 8px rgba(255,255,255,.025),0 8px 24px rgba(0,0,0,.08);
+}
+.learning-hub-seal img{width:70px;height:70px;object-fit:contain;filter:drop-shadow(0 4px 10px rgba(0,0,0,.12))}
+.learning-overview{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.learning-overview>div{
+  min-width:0;display:flex;flex-direction:column;justify-content:center;gap:3px;
+  padding:13px 15px;border:1px solid var(--line);border-radius:12px;background:var(--white);
+  box-shadow:0 2px 9px rgba(28,55,43,.03);
+}
+.learning-overview span{color:var(--muted);font-size:12px}
+.learning-overview b{font-size:25px;line-height:1.35;font-weight:800;color:var(--g900);font-variant-numeric:tabular-nums}
+.learning-overview .learning-overview-progress{gap:5px}
+.learning-overview-progress .progress{height:5px;margin-top:5px;background:var(--g100)}
+.learning-overview-progress .progress i{background:var(--g500)}
+.learning-hub-notice{border-inline-start:3px solid var(--b400)}
+.learning-hub-notice p{margin-top:4px;line-height:1.8}
+.learning-domain-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px;align-items:stretch}
+.learning-domain-card{
+  --domain-accent:var(--g700);--domain-wash:var(--g50);
+  min-width:0;display:flex;flex-direction:column;gap:0;
+  padding:19px;border:1px solid var(--line);border-top:3px solid var(--domain-accent);
+  border-radius:14px;background:linear-gradient(155deg,var(--white) 0%,var(--domain-wash) 185%);
+  box-shadow:0 3px 14px rgba(31,50,43,.035);
+  transition:transform .18s ease,box-shadow .18s ease,border-color .18s ease;
+}
+.learning-domain-card:hover{transform:translateY(-2px);box-shadow:0 10px 24px rgba(31,50,43,.065)}
+.learning-domain-card.domain-allah{--domain-accent:#a7894b;--domain-wash:#f7f2e6}
+.learning-domain-card.domain-prophet{--domain-accent:#477461;--domain-wash:#edf4ee}
+.learning-domain-card.domain-quran{--domain-accent:var(--g700);--domain-wash:var(--g50)}
+.learning-domain-card.domain-hadith{--domain-accent:#5d7891;--domain-wash:#eef3f7}
+.learning-domain-card.domain-other{--domain-accent:#81734b;--domain-wash:#f5f2e8}
+.learning-domain-top{display:flex;align-items:center;gap:9px;min-width:0;margin-bottom:12px}
+.learning-domain-icon{flex:0 0 40px;width:40px;height:40px;display:grid;place-items:center;border-radius:11px;background:var(--domain-wash);color:var(--domain-accent);border:1px solid color-mix(in srgb,var(--domain-accent) 14%,transparent)}
+.learning-domain-icon svg.i{width:21px;height:21px}
+.learning-domain-kicker{min-width:0;color:var(--muted);font-size:11.5px;font-weight:700}
+.learning-domain-index{margin-inline-start:auto;color:var(--domain-accent);font:700 12px var(--font);font-variant-numeric:tabular-nums;opacity:.72}
+.learning-domain-card h3{font-size:19px;line-height:1.5;color:var(--ink);text-wrap:balance}
+.learning-domain-description{color:var(--muted);font-size:12.5px;line-height:1.85;margin-top:6px;min-height:68px}
+.learning-domain-meta{display:flex;align-items:center;flex-wrap:wrap;gap:6px 12px;margin-top:13px;padding-top:11px;border-top:1px solid color-mix(in srgb,var(--line) 76%,transparent);color:var(--muted);font-size:11.5px}
+.learning-domain-meta span+span:before{content:"·";margin-inline-end:11px;color:var(--domain-accent);font-weight:800}
+.learning-domain-progress{height:5px;margin-top:8px;background:color-mix(in srgb,var(--domain-accent) 12%,white);border-radius:999px;overflow:hidden}
+.learning-domain-progress i{display:block;height:100%;border-radius:inherit;background:var(--domain-accent);transition:width .35s ease}
+.learning-subject-list{display:grid;gap:7px;margin-top:12px}
+.learning-subject-row{display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:9px;padding:9px 0;border-bottom:1px solid color-mix(in srgb,var(--line) 72%,transparent)}
+.learning-subject-row:last-child{border-bottom:0}
+.learning-subject-copy{min-width:0;display:flex;flex-direction:column;gap:2px}
+.learning-subject-copy b{font-size:12.5px;line-height:1.6;overflow-wrap:anywhere}
+.learning-subject-copy span{font-size:11px;color:var(--muted)}
+.learning-subject-action{white-space:nowrap;min-height:32px!important;padding:6px 10px!important;font-size:11.5px}
+.learning-more{align-self:flex-start;margin-top:6px}
+.learning-domain-empty{margin-top:13px;padding:12px;border:1px dashed color-mix(in srgb,var(--domain-accent) 26%,var(--line));border-radius:9px;background:rgba(255,255,255,.55);color:var(--muted);font-size:12px;line-height:1.8}
+.learning-domain-card:last-child:nth-child(3n+2){grid-column:span 2}
+.learning-hub-footer{
+  display:flex;align-items:center;justify-content:space-between;gap:18px;flex-wrap:wrap;
+  padding:20px 22px;border:1px solid var(--line);border-radius:14px;background:var(--white);
+}
+.learning-hub-footer>div:first-child{flex:1;min-width:220px}
+.learning-hub-footer .eyebrow{font-size:11px}
+.learning-hub-footer h3{font-size:19px;line-height:1.5;margin-top:3px}
+.learning-hub-footer p{color:var(--muted);font-size:12.5px;line-height:1.85;margin-top:4px}
+.learning-hub-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+@media(max-width:1100px){
+  .learning-domain-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .learning-domain-card:last-child:nth-child(3n+2){grid-column:auto}
+  .learning-domain-card:last-child:nth-child(odd){grid-column:1/-1}
+}
+@media(max-width:720px){
+  .learning-hub-hero{min-height:0;padding:22px 18px;border-radius:14px;gap:12px}
+  .learning-hub-seal{flex-basis:70px;width:70px;height:70px}
+  .learning-hub-seal img{width:48px;height:48px}
+  .learning-hub-hero p{font-size:12.5px}
+  .learning-hub-tags{margin-top:12px;gap:5px}
+  .learning-hub-tags span{padding:4px 8px;font-size:11px}
+  .learning-overview{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .learning-overview>div{padding:11px}
+  .learning-overview b{font-size:23px}
+  .learning-domain-grid{grid-template-columns:minmax(0,1fr);gap:10px}
+  .learning-domain-card:last-child:nth-child(odd){grid-column:auto}
+  .learning-domain-card{padding:16px;border-radius:12px}
+  .learning-domain-description{min-height:0}
+  .learning-domain-card h3{font-size:18px}
+  .learning-hub-footer{align-items:flex-start;padding:17px}
+  .learning-hub-actions{width:100%}
+  .learning-hub-actions .btn{flex:1}
+}
+@media(max-width:390px){
+  .learning-hub-seal{display:none}
+  .learning-subject-row{grid-template-columns:minmax(0,1fr) auto;gap:6px}
+  .learning-subject-action{padding-inline:7px!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .learning-domain-card,.learning-domain-progress i{transition:none!important}
+}
