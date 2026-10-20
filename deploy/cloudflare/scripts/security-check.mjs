@@ -56,6 +56,7 @@ assert.match(app, /data-assignment-delete=/, "staff must have an assignment dele
 assert.match(backend, /if\(path==="\/api\/assignment-review"&&method==="POST"\)/, "teacher assignment review API must exist");
 assert.match(backend, /if\(b\.reopen===true\)/, "authorized staff must be able to reopen a reviewed assignment");
 assert.match(backend, /review_history:|submission\.review_history=history\.slice\(-10\)/, "reopening must preserve the previous review history");
+assert.match(backend, /review_history:Array\.isArray\(previous\?\.review_history\)\?previous\.review_history:\[\]/, "resubmitting a reopened assignment must retain earlier reviews");
 assert.match(app, /data-assignment-reopen=/, "staff must have a visible reopen control for reviewed submissions");
 
 assert.match(backend, /canManageGroup\(env,user,assignment\.group_id\)/, "assignment submissions and grading must be group-scoped");
