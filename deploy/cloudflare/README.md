@@ -10,6 +10,8 @@ The active Cloudflare build is a lightweight Arabic RTL Progressive Web App back
 - Student/group records, account creation and reset, attendance, and Quran memorization/revision records.
 - Quran plans and progress, curriculum/subjects and student curriculum progress, multiple-choice tests, submitted test attempts/results, and recurring test records.
 - Text-based posts and notifications, daily challenge claims, leaderboard/metrics, admin audit view, and manual D1 backup export/restore endpoints.
+- Assignment workflow: authorized staff create assignments, students submit written responses, and authorized teachers/staff review submissions with a grade and feedback.
+- Private text messaging with role/group-scoped recipient lists, participant-only inbox visibility, and recipient read receipts. Thread views, attachments, and push/email delivery are not included yet.
 - Unique, randomly generated temporary passwords for newly issued/reset student accounts; affected accounts must change the password before using protected platform functions. Credentials from bulk onboarding are returned once for the authorized admin to download and deliver securely.
 - D1 stores active accounts, group/student records, education records, and audit events.
 
@@ -17,7 +19,8 @@ The active Cloudflare build is a lightweight Arabic RTL Progressive Web App back
 
 This rebuild does **not** yet provide feature parity with the old application. The following remain absent or require a full acceptance test before they should be presented as complete:
 
-- Full inbox/messaging conversations, assignment lifecycle, a dedicated gradebook, transport management, file/media uploads, and an integrated media library backed by object storage.
+- A dedicated gradebook with assessment weighting and historical summaries; transport management; file/media uploads; and an integrated media library backed by object storage.
+- Private messaging is currently one-to-one text, without attachments, search, push/email delivery, or threaded conversation views. Assignments need interactive tests across student/teacher/director/supervisor roles before broad use.
 - A complete end-to-end test suite for every role and school/group boundary. The current `npm run check` is primarily syntax/build validation, not proof that all business flows work.
 - Automated scheduled/off-site backups and a verified restore drill. Admin export/restore endpoints are manual safety tools, not a backup schedule.
 - Final end-to-end verification of all Quran pathways, weekly goals, two-week assessments, progress calculations, and student-facing daily guidance.
