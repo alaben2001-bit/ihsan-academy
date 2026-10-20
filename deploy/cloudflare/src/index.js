@@ -823,7 +823,7 @@ export default {
       return json(await messageRecipientRows(env,user));
     }
     if(path==="/api/messages"&&method==="GET"){
-      const all=await records(env,"messages");
+      const all=await records(env,"messages"," AND (owner_user_id=? OR json_extract(payload_json,'$.sender_user_id')=?)",[user.id,user.id]);
       const visible=all.filter(item=>item.sender_user_id===user.id||item.recipient_user_id===user.id);
       const ids=[...new Set(visible.flatMap(item=>[item.sender_user_id,item.recipient_user_id]).filter(Boolean))];
       const names=new Map();
