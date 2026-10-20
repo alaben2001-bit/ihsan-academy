@@ -691,7 +691,7 @@ export default {
       // Recurring assessments roll forward in fixed 14-day intervals when the test area is next opened.
       // Deterministic IDs prevent duplicate instances if multiple requests arrive together.
       const today=academyDate(),storedTests=await records(env,"tests"),latestBySeries=new Map();
-      for(const item of storedTests){if(!item.recurring||!item.series_id)continue;const prior=latestBySeries.get(item.series_id);if(!prior||Number(item.sequence||1)>Number(prior.sequence||1))latestBySeries.set(item.series_id,item);}
+      for(const item of storedTests){if(item.status==="archived"||!item.recurring||!item.series_id)continue;const prior=latestBySeries.get(item.series_id);if(!prior||Number(item.sequence||1)>Number(prior.sequence||1))latestBySeries.set(item.series_id,item);}
       for(const latest of latestBySeries.values()){
         // A request may roll forward only a series inside the caller's authorized scope.
         if(user.role==="student"){
@@ -792,16 +792,25 @@ export default {
       let test;try{test=JSON.parse(raw.payload_json)}catch{return fail(500,"تعذّر قراءة الاختبار")}
       if(test.group_id&&!await canManageGroup(env,user,test.group_id))return fail(403,"لا تملك صلاحية هذا الاختبار");
       if(!test.group_id&&user.role!=="admin")return fail(403,"لا تملك صلاحية هذا الاختبار");
-      if(test.recurring&&test.series_id){
-        await env.DB.prepare("DELETE FROM academy_records WHERE collection='tests' AND id=?").bind(test.id).run();
-        const series=await records(env,"tests");
-        for(const item of series.filter(x=>x.series_id===test.series_id))await env.DB.prepare("DELETE FROM academy_records WHERE collection='tests' AND id=?").bind(item.id).run();
-        await log(env,user.id,"test_series_delete",{test_id:test.id,series_id:test.series_id});
-      }else{
-        await env.DB.prepare("DELETE FROM academy_records WHERE collection='tests' AND id=?").bind(test.id).run();
-        await log(env,user.id,"test_delete",{test_id:test.id});
+      const series=await records(env,"tests");
+      const targets=test.recurring&&test.series_id?series.filter(item=>item.series_id===test.series_id):[test];
+      for(const item of targets){
+        if(item.group_id){if(!await canManageGroup(env,user,item.group_id))return fail(403,"تتضمن السلسلة اختبارًا خارج صلاحيتك");}
+        else if(user.role!=="admin")return fail(403,"السلسلة العامة متاحة للمدير العام وحده");
       }
-      return json({ok:true});
+      if(parsed.value.action==="archive"){
+        const archivedAt=nowIso();
+        for(const item of targets)await saveRecord(env,"tests",{...item,status:"archived",archived_at:archivedAt,archived_by:user.id});
+        await log(env,user.id,"test_archive",{test_id:test.id,series_id:test.series_id||null,archived_count:targets.length});
+        return json({ok:true,archived:true,archived_count:targets.length});
+      }
+      const attempts=await records(env,"test_attempts");
+      const targetIds=new Set(targets.map(item=>item.id));
+      const savedAttempts=attempts.filter(item=>targetIds.has(item.test_id));
+      if(savedAttempts.length)return fail(409,"لهذا الاختبار نتائج طلاب محفوظة؛ استخدم الأرشفة بدل الحذف حتى تبقى النتائج وسياق الاختبار محفوظين.");
+      for(const item of targets)await env.DB.prepare("DELETE FROM academy_records WHERE collection='tests' AND id=?").bind(item.id).run();
+      await log(env,user.id,"test_delete",{test_id:test.id,series_id:test.series_id||null,deleted_count:targets.length});
+      return json({ok:true,deleted_count:targets.length});
     }
     if(path==="/api/gradebook"&&method==="GET"){
       let groupId=clean(url.searchParams.get("group_id"),80);
