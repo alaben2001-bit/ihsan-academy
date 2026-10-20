@@ -1,0 +1,142 @@
+/* Ihsan Academy — Enterprise shell refinement, V77
+   Visual-only layer: keeps existing application logic, permissions and records intact. */
+:root{
+  --ui-emerald:#064e3b;
+  --ui-emerald-deep:#022c22;
+  --ui-champagne:#c5a880;
+  --ui-surface:#ffffff;
+  --ui-canvas:#f4f5f6;
+  --ui-radius-tight:6px;
+  --ui-radius-control:8px;
+  --ui-radius-card:10px;
+  --ui-shadow-card:0 1px 3px rgba(16,38,29,.035),0 8px 22px rgba(16,38,29,.035);
+  --ui-shadow-hover:0 3px 8px rgba(16,38,29,.045),0 14px 30px rgba(16,38,29,.075);
+}
+body{
+  background:var(--ui-canvas);
+  color:var(--ink);
+  font-family:"IBM Plex Sans Arabic","Noto Sans Arabic","Segoe UI",Tahoma,sans-serif;
+}
+.app{
+  display:flex;
+  width:100%;
+  min-height:100vh;
+  min-height:100dvh;
+  overflow:clip;
+  background:var(--ui-canvas);
+}
+.side{
+  position:fixed;
+  inset:0 0 0 auto;
+  width:260px;
+  height:100vh;
+  height:100dvh;
+  padding:22px 14px 14px;
+  background:linear-gradient(180deg,var(--ui-emerald-deep) 0%,var(--ui-emerald) 100%);
+  border-left:1px solid rgba(255,255,255,.09);
+  box-shadow:-5px 0 22px rgba(4,35,26,.07);
+}
+.side .brand{padding:8px 10px 20px;border-bottom:1px solid rgba(255,255,255,.11)}
+.side .brandmark{border-radius:9px;background:rgba(255,255,255,.09)}
+.nav{gap:10px;padding-top:12px}
+.nav-label{font-size:10px;letter-spacing:.04em;color:#c8d9d1}
+.nav button{
+  min-height:40px;
+  border:1px solid transparent;
+  border-radius:7px;
+  margin:0 2px;
+  width:calc(100% - 4px);
+  padding:9px 11px;
+  transition:background .16s ease,border-color .16s ease,color .16s ease;
+}
+.nav button:hover{transform:none;background:rgba(255,255,255,.075)}
+.nav button.active{
+  background:#f1eadb;
+  border-color:rgba(197,168,128,.36);
+  color:var(--ui-emerald-deep);
+  box-shadow:inset -3px 0 0 var(--ui-champagne);
+}
+.account{margin-top:10px;padding:14px 8px 4px;border-top:1px solid rgba(255,255,255,.13)}
+.main{
+  width:calc(100% - 260px);
+  max-width:none;
+  min-width:0;
+  height:100vh;
+  height:100dvh;
+  margin-right:260px;
+  padding:0 clamp(24px,3vw,48px) 42px;
+  overflow-y:auto;
+  overflow-x:hidden;
+  overscroll-behavior:contain;
+  scrollbar-gutter:stable;
+}
+.main::before{display:none}
+.top{
+  position:sticky;
+  top:0;
+  z-index:4;
+  display:flex;
+  align-items:center;
+  min-height:82px;
+  margin:0 0 26px;
+  padding:15px 0;
+  background:rgba(244,245,246,.94);
+  border-bottom:1px solid #e3e6e4;
+  backdrop-filter:blur(14px);
+}
+.top h1{font-size:clamp(23px,1.8vw,30px);font-weight:700;letter-spacing:0}
+.top .sub{font-size:12px}
+#view{width:100%;max-width:none;min-width:0;padding-bottom:28px}
+#view>.stack{gap:18px}
+#view .card,#view .panel,#view .box,#view article.card,#view .q-home-card,#view .home-pulse{
+  border-radius:10px;
+  border:1px solid #e5e8e5;
+  box-shadow:var(--ui-shadow-card);
+}
+#view .card:hover,#view .panel:hover,#view article.card:hover{box-shadow:var(--ui-shadow-hover)}
+#view .btn,#view button.btn,#view .top .actions .btn{
+  border-radius:7px;
+  box-shadow:none;
+  transition:background .16s ease,border-color .16s ease,transform .16s ease;
+}
+#view .btn:hover,#view button.btn:hover{transform:translateY(-1px)}
+#view input,#view select,#view textarea,.field input,.field select,.field textarea{
+  border-radius:7px;
+}
+#view .hero-main,#view .hero{
+  border-radius:11px;
+  background-color:var(--ui-emerald);
+  background-image:linear-gradient(115deg,rgba(2,44,34,.98),rgba(6,78,59,.96)),var(--pattern);
+  box-shadow:0 8px 24px rgba(2,44,34,.12);
+}
+#view .hero-main h2,#view .hero h2{letter-spacing:0}
+#view .badge{border-radius:5px}
+#view .tbl th{font-weight:700}
+#view .tbl td,#view .tbl th{padding:12px 14px}
+#bottomNav button{border-radius:7px}
+#bottomNav button.active{border-radius:7px 7px 0 0}
+/* Requested menu cleanup: these destinations remain implemented but are not shown in navigation. */
+#nav button[data-page="media"],
+#nav button[data-page="notifications"],
+#nav button[data-page="ops"],
+#bottomNav button[data-page="media"],
+#bottomNav button[data-page="notifications"],
+#bottomNav button[data-page="ops"]{display:none!important}
+@media(min-width:1500px){
+  .main{padding-inline:clamp(38px,3.2vw,64px)}
+  #view>.stack{gap:20px}
+}
+@media(max-width:1120px){
+  .side{width:236px}
+  .main{width:calc(100% - 236px);margin-right:236px;padding-inline:24px}
+}
+@media(max-width:720px){
+  .app{display:block;overflow:visible;min-height:100dvh}
+  .side{display:none!important}
+  .main{width:100%;height:auto;min-height:100dvh;margin:0;padding:0 14px calc(100px + env(safe-area-inset-bottom));overflow:visible}
+  .top{position:relative;top:auto;min-height:0;margin-bottom:20px;padding:18px 0 13px;background:transparent;backdrop-filter:none}
+  #view>.stack{gap:13px}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}
+}
