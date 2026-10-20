@@ -421,13 +421,14 @@ export default {
       await saveRecord(env,"notifications",notice);await log(env,user.id,"notification_create",{notification_id:notice.id,group_id:groupId});return json(notice,201);
     }
     if(path==="/api/subjects"&&method==="GET"){
-      const list=await scopedRecords(env,user,"subjects");
-      return json(list.length?list:[
-        {id:"allah",title:"معرفة الله تعالى",description:"الأسماء الحسنى ومعانيها وآثارها في القلب والعمل."},
-        {id:"prophet",title:"معرفة الرسول ﷺ",description:"السيرة النبوية والشمائل والاقتداء."},
-        {id:"quran",title:"القرآن الكريم",description:"حفظ وفهم ومراجعة وتدبر وعمل."},
-        {id:"sunnah",title:"السنة والمتون",description:"الأحاديث الجامعة والمتون التأسيسية."},
-        {id:"adab",title:"الأدب والعمل",description:"آداب طالب العلم والأخلاق والتطبيق."}
+      const custom=await scopedRecords(env,user,"subjects");
+      return json([
+        {id:"allah",title:"معرفة الله تعالى",description:"الأسماء الحسنى ومعانيها وآثارها في القلب والعمل.",builtin:true},
+        {id:"prophet",title:"معرفة الرسول ﷺ",description:"السيرة النبوية والشمائل والاقتداء.",builtin:true},
+        {id:"quran",title:"القرآن الكريم",description:"حفظ وفهم ومراجعة وتدبر وعمل.",builtin:true},
+        {id:"sunnah",title:"السنة والمتون",description:"الأحاديث الجامعة والمتون التأسيسية.",builtin:true},
+        {id:"adab",title:"الأدب والعمل",description:"آداب طالب العلم والأخلاق والتطبيق.",builtin:true},
+        ...custom
       ]);
     }
     if(path==="/api/subjects"&&method==="POST"){
