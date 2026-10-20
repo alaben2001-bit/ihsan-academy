@@ -918,6 +918,7 @@ export default {
       const submissionId=assignmentId+":"+user.student_id;
       const old=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='assignment_submissions' AND id=?").bind(submissionId).first();
       let previous=null;try{previous=old?JSON.parse(old.payload_json):null}catch{}
+      if(previous?.status==="reviewed")return fail(409,"تمت مراجعة هذا الواجب بالفعل. تواصل مع معلمك إذا احتجت إلى إعادة فتحه للتعديل.");
       const submission={id:submissionId,assignment_id:assignmentId,student_id:user.student_id,group_id:user.group_id,response_text:responseText,status:"submitted",submitted_at:nowIso(),created_at:previous?.created_at||nowIso(),revision_number:Number(previous?.revision_number||0)+1,grade:null,feedback:"",reviewed_by:null,reviewed_at:null};
       await saveRecord(env,"assignment_submissions",submission);await log(env,user.id,"assignment_submit",{assignment_id:assignmentId});
       return json({ok:true,submission},201);
