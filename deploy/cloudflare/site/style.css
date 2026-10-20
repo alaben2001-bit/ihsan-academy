@@ -80,3 +80,9 @@ html{scroll-behavior:smooth}
 .leaderboard-self{background:var(--mint)}
 .leaderboard-self td{font-weight:bold}
 @media(max-width:650px){.student-dashboard .stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Quran path and weekly goal card */
+.quran-plan-card{border-inline-start:4px solid var(--gold)}
+.quran-plan-card h3{margin:7px 0 10px}
+.quran-plan-form{max-width:760px}
+.quran-plan-card .notice{line-height:1.8}
