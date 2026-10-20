@@ -699,12 +699,14 @@ export default {
         }else if(user.role!=="admin"){
           if(!latest.group_id||!await canManageGroup(env,user,latest.group_id))continue;
         }
-        if(!latest.due_date||latest.due_date>today)continue;
+        if(!latest.due_date||latest.due_date>=today)continue;
         const interval=Math.max(1,Number(latest.frequency_days)||14),elapsed=Math.floor((Date.parse(today+"T00:00:00Z")-Date.parse(latest.due_date+"T00:00:00Z"))/(interval*86400000))+1;
         const sequence=Number(latest.sequence||1)+elapsed,id=String(latest.series_id)+":"+sequence;
         if(storedTests.some(item=>item.id===id))continue;
         const nextDue=new Date(Date.parse(latest.due_date+"T00:00:00Z")+elapsed*interval*86400000).toISOString().slice(0,10);
-        await saveRecord(env,"tests",{...latest,id,sequence,due_date:nextDue,previous_test_id:latest.id,created_at:nowIso()});
+        const rolloverAt=nowIso();
+        await saveRecord(env,"tests",{...latest,status:"archived",archived_at:rolloverAt,archived_by:"system",archive_reason:"recurring_rollover"});
+        await saveRecord(env,"tests",{...latest,id,sequence,due_date:nextDue,previous_test_id:latest.id,status:"published",archived_at:null,archived_by:null,archive_reason:null,created_at:rolloverAt});
       }
       let all=await scopedRecords(env,user,"tests",user.role==="student");
       if(user.role==="student"){
