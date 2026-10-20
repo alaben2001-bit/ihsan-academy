@@ -1231,3 +1231,9 @@ dialog,.settings-dialog,.password-dialog{border:1px solid color-mix(in srgb,var(
   .curriculum-banner>p{font-size:14px}
   .curriculum-tile{min-height:120px;padding:17px}
 }
+
+/* Session-random theme controls */
+.theme-mode-controls{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:16px;padding-top:14px;border-top:1px solid color-mix(in srgb,var(--green) 16%,var(--line))}
+.theme-mode-controls #settings-theme-random[aria-pressed="true"]{background:linear-gradient(135deg,var(--green),color-mix(in srgb,var(--green) 76%,#071c2a));color:#fff;border-color:var(--green);box-shadow:0 8px 18px color-mix(in srgb,var(--green) 20%,transparent)}
+.theme-mode-controls .pill{font-size:12px;line-height:1.7}
+@media(max-width:520px){.theme-mode-controls{align-items:stretch}.theme-mode-controls .btn{width:100%}.theme-mode-controls .pill{white-space:normal;text-align:center;justify-content:center}}
