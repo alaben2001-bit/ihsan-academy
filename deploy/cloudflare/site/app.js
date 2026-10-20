@@ -14,10 +14,10 @@ async function loadGoogleIdentityLibrary(){
 async function initGoogleSignIn(){
  const host=$("#google-signin"),note=$("#google-login-note");if(!host)return;
  const setNote=(t,err=false)=>{if(note){note.textContent=t;note.classList.toggle("google-note-error",err)}};
- host.innerHTML='<button class="google-signin-placeholder" type="button" disabled><span class="google-letter" aria-hidden="true">G</span><span>الدخول باستخدام Google</span></button>';
+ host.innerHTML='<button class="google-signin-placeholder" type="button"><span class="google-letter" aria-hidden="true">G</span><span>الدخول باستخدام Google</span></button>';
  try{
   const cfg=await api("/auth/google/config");
-  if(!cfg.enabled||!cfg.client_id){setNote("يحتاج الدخول بجوجل إلى ربط معرّف OAuth في إعدادات Cloudflare أولًا.");return}
+  if(!cfg.enabled||!cfg.client_id){setNote("يحتاج الدخول بجوجل إلى ربط معرّف OAuth في إعدادات Cloudflare أولًا.");host.querySelector("button")?.addEventListener("click",()=>setNote("لم يُفعّل الدخول بجوجل بعد. يلزم إنشاء Web OAuth Client ID في Google Cloud وإضافة GOOGLE_CLIENT_ID إلى إعدادات Cloudflare Pages.",true));return}
   await loadGoogleIdentityLibrary();
   ihsanGoogleNonce=Array.from(crypto.getRandomValues(new Uint8Array(24)),b=>b.toString(16).padStart(2,"0")).join("");
   window.google.accounts.id.initialize({client_id:cfg.client_id,nonce:ihsanGoogleNonce,callback:async res=>{
