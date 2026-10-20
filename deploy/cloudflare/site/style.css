@@ -967,3 +967,12 @@ button,input,select,textarea{font-family:inherit}
 @media(prefers-reduced-motion:reduce){
  .nav-btn,.nav-chevron,.workspace-search{transition:none!important}
 }
+
+/* Full-viewport authenticated workspace: the right sidebar begins at the top edge. */
+.app-authenticated{height:100vh;height:100dvh;overflow:hidden}
+.app-authenticated .topbar{display:none}
+.app-authenticated #app.shell{height:100vh;height:100dvh;min-height:0}
+.app-authenticated .workspace-head #top-actions{display:flex;align-items:center;justify-content:flex-end;gap:6px;flex:none}
+.app-authenticated .workspace-head #top-actions .btn{min-height:34px;padding:7px 10px;font-size:11px;border-radius:8px}
+@media(max-width:1100px){.workspace-head{gap:10px}.workspace-search{width:min(24vw,250px);min-width:140px}.app-authenticated .workspace-head #top-actions .btn{padding:6px 8px;font-size:10px}}
+@media(max-width:760px){.app-authenticated .topbar{display:none}.app-authenticated #app.shell{height:100vh;height:100dvh}.app-authenticated .workspace-head{flex-wrap:wrap}.app-authenticated .workspace-head #top-actions{gap:4px}.app-authenticated .workspace-head #top-actions .btn{min-height:30px;padding:5px 7px;font-size:9px}}
