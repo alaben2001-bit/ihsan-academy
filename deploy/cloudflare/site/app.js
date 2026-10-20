@@ -74,7 +74,7 @@ function navigationGroups(){
  const list=items();
  if(S.mode==="ihsan")return [{title:"منهج الإحسان",items:list}];
  const makeGroup=(title,ids)=>({title,items:list.filter(x=>ids.includes(x[0]))});
- if(S.user.role==="admin")return [makeGroup("إدارة الأكاديمية",["home","groups","teachers","students"]),makeGroup("التعليم والمتابعة",["attendance","reports","quran","tests"]),makeGroup("المحتوى والسجلات",["posts","notifications","audit","backup"])].filter(g=>g.items.length);
+ if(S.user.role==="admin")return [makeGroup("إدارة الأكاديمية",["home","groups","teachers","students"]),makeGroup("التعليم والمتابعة",["attendance","reports","quran","tests"]),makeGroup("المحتوى والسجلات",["posts","notifications","system-check","audit","backup"])].filter(g=>g.items.length);
  if(S.user.role==="teacher")return [makeGroup("التدريس والمتابعة",["home","students","attendance","reports","quran","tests"]),makeGroup("المحتوى",["posts","notifications"])].filter(g=>g.items.length);
  return [makeGroup("رحلتي التعليمية",["home","profile","quran","attendance","tests"]),makeGroup("المعرفة والتقدم",["posts","notifications","leaderboard"])].filter(g=>g.items.length);
 }
