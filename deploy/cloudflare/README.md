@@ -36,7 +36,7 @@ Connected production branch: `migration/cloudflare-student-platform`
 Build command: `npm install && npm run prepare:assets`  
 Build output directory: `public`
 
-The build checks JavaScript syntax and prepares the static assets. Database schema changes are versioned under `migrations/`; apply each migration to the correct D1 database before deploying code that depends on it. Migration `0003_temporary_student_passwords.sql` adds the first-login password-change flag.
+The build checks JavaScript syntax, runs the static security-regression guardrails in `scripts/security-check.mjs`, and prepares assets; these guardrails do not replace interactive acceptance tests. Database schema changes are versioned under `migrations/`; apply each migration to the correct D1 database before deploying code that depends on it. Migration `0003_temporary_student_passwords.sql` adds the first-login password-change flag.
 
 ## First administrator setup
 
