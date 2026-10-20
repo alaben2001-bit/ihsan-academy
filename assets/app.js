@@ -399,7 +399,7 @@ async function pgDashboard() {
         : role === 'chief_supervisor'
           ? [['teams','فرق الإشراف','group'],['supervisor-requests','طلبات الإشراف','check'],['learning-hub','برنامج التعلّم','brain'],['media','مكتبة الشيخ','media'],['notifications','الإشعارات','bell']]
           : [['children','متابعة الأبناء','user'],['reports','تقارير التقدم','chart'],['calendar','التقويم','calendar'],['media','مكتبة الشيخ','media'],['messages','المراسلات','bell'],['notifications','الإشعارات','bell']];
-  const visibleQuickLinks = quickLinks.filter(([id]) => !HIDDEN_NAV_IDS.has(id));
+  const visibleQuickLinks = quickLinks.filter(([id]) => !!PAGES[id]);
   const daily = role === 'teacher' ? ['رسالة اليوم', 'القليل المستمر خير من الكثير المنقطع.', 'اجعل متابعة الطالب خفيفة، واضحة، ومفيدة.']
     : role === 'student' ? ['خطوة اليوم', 'ثبّت عادة صغيرة قبل أن تضيف مهمة جديدة.', 'الاستمرار أهم من الضغط على نفسك.']
     : role === 'parent' ? ['لولي الأمر', 'اسأل عن التقدم قبل أن تسأل عن النتيجة.', 'الدعم الهادئ يصنع بيئة أفضل للتعلم.']
@@ -408,8 +408,13 @@ async function pgDashboard() {
     ${role === 'student' ? '' : html`<div class="card hero hero-main"><div class="hero-copy"><span class="eyebrow">${role === 'admin' ? 'لوحة الإدارة' : 'أكاديمية بناء الإنسان'}</span><h2>${hero[0]}</h2><p>${hero[1]}</p><span class="when">${fmtDate(today())}</span></div><div class="hero-orbit"><img src="/assets/ihsan-emblem.svg" alt="شعار أكاديمية الإحسان"><i></i><i></i></div></div>`}
     
     <div class="grid g4">${stats.map((s, i) => { const page = s[0] === 'الطلاب' ? 'students' : s[0] === 'الأبناء' ? 'children' : s[0] === 'الأفواج' ? 'groups' : (s[0] === 'نسبة الحضور' || s[0] === 'الحضور') ? 'attendance' : null; return page && isStaff() ? html`<button type="button" class="card stat stat-link" data-act="nav" data-page="${page}" aria-label="فتح ${s[0]}" style="text-align:inherit;color:inherit;width:100%;cursor:pointer"><span class="ic">${ico(['user', 'group', 'check', 'trend'][i % 4])}</span><div><div class="lbl">${s[0]}</div><div class="num">${s[1]}</div></div></button>` : html`<div class="card stat"><span class="ic">${ico(['user', 'group', 'check', 'trend'][i % 4])}</span><div><div class="lbl">${s[0]}</div><div class="num">${s[1]}</div></div></div>`; })}</div>
-    ${isStaff() ? html`<div class="card flat row wrap"><b>اختصارات سريعة</b><div class="chips"><button class="btn sm sec2" data-act="new-test">إنشاء اختبار</button><button class="btn sm sec2" data-act="nav" data-page="tests">إدخال الدرجات</button></div></div>` : ''}
-    </div></div>`);
+    ${visibleQuickLinks.length ? html`<section class="dashboard-shortcuts"><div class="sec"><div><h3>اختصاراتك</h3><p class="muted small">افتح أهم ما تحتاجه دون البحث في القوائم.</p></div></div><div class="home-quick-grid">${visibleQuickLinks.map(([id,label,icon])=>html`<button class="home-quick-link" type="button" data-act="nav" data-page="${id}"><span class="home-quick-icon">${ico(icon)}</span><span>${label}</span><span class="home-quick-arrow" aria-hidden="true">‹</span></button>`)}</div></section>` : ''}
+    <div class="dashboard-support-grid">
+      <section class="card dashboard-daily-note"><div class="dashboard-daily-mark">${ico('spark')}</div><div><span class="eyebrow">${daily[0]}</span><h3>${daily[1]}</h3><p>${daily[2]}</p></div></section>
+      ${up.length ? html`<section class="card dashboard-upcoming"><div class="sec"><div><h3>الاختبارات القادمة</h3><p class="muted small">مواعيد قريبة لتستعد لها في وقت مناسب.</p></div><button class="btn sm sec2" data-act="nav" data-page="tests">كل الاختبارات</button></div>${up.map(t=>html`<button class="dashboard-test-row" type="button" data-act="nav" data-page="tests"><span><b>${t.title}</b><small>${[t.subject_name,t.group_name].filter(Boolean).join(' · ')}</small></span><time datetime="${t.date}">${fmtDate(t.date)}</time></button>`)}</section>` : ''}
+    </div>
+    ${isStaff() ? html`<div class="card flat row wrap dashboard-staff-actions"><b>إجراءات سريعة</b><div class="chips"><button class="btn sm sec2" data-act="new-test">إنشاء اختبار</button><button class="btn sm sec2" data-act="nav" data-page="tests">إدخال الدرجات</button></div></div>` : ''}
+    </div>`);
 }
 
 /* ═══════════ فرق المدرسة ═══════════ */
