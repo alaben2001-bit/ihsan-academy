@@ -230,6 +230,29 @@ export default {
       catch{await env.DB.prepare("DELETE FROM users WHERE id=?").bind(id).run();return fail(409,"اسم الدخول مستخدم بالفعل");}
       await log(env,user.id,"student_create",{student_id:studentId,group_id:groupId});return json({id:studentId,user_id:id,name,username:identity,group_id:groupId},201);
     }
+    const rosterAccountMatch=path.match(/^\/api\/students\/([^/]+)\/account$/);
+    if(rosterAccountMatch&&method==="POST"){
+      if(user.role!=="admin"&&user.role!=="teacher")return fail(403,"غير مسموح");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      const s=await env.DB.prepare("SELECT id,user_id,display_name,group_id FROM students WHERE id=? AND active=1").bind(rosterAccountMatch[1]).first();
+      if(!s)return fail(404,"الطالب غير موجود");
+      if(!await canManageGroup(env,user,s.group_id))return fail(403,"لا تملك صلاحية هذا الطالب");
+      if(s.user_id)return fail(409,"لدى الطالب حساب دخول بالفعل");
+      const name=clean(b.name||s.display_name,120),identity=clean(b.username,120).toLowerCase(),password=String(b.password||"");
+      if(!name||!identity||password.length<8||password.length>256)return fail(400,"أدخل اسم الدخول وكلمة مرور من 8 أحرف على الأقل");
+      const duplicate=await env.DB.prepare("SELECT id FROM users WHERE identity_normalized=? LIMIT 1").bind(identity).first();
+      if(duplicate)return fail(409,"اسم الدخول مستخدم بالفعل؛ اختر اسمًا آخر");
+      const userId=uuid();
+      try{
+        await env.DB.prepare("INSERT INTO users(id,display_name,identity_normalized,password_hash,role,active) VALUES(?,?,?,?, 'student',1)").bind(userId,name,identity,await passwordHash(password)).run();
+        await env.DB.prepare("UPDATE students SET user_id=?,display_name=? WHERE id=?").bind(userId,name,s.id).run();
+      }catch(error){
+        await env.DB.prepare("DELETE FROM users WHERE id=?").bind(userId).run();
+        return fail(409,"تعذّر إنشاء الحساب؛ تحقّق من اسم الدخول ثم أعد المحاولة");
+      }
+      await log(env,user.id,"student_account_created",{student_id:s.id,group_id:s.group_id});
+      return json({ok:true,id:s.id,user_id:userId,name,username:identity,group_id:s.group_id},201);
+    }
     const studentMatch=path.match(/^\/api\/students\/([^/]+)$/);
     if(studentMatch&&method==="PATCH"){
       if(user.role!=="admin"&&user.role!=="teacher")return fail(403,"غير مسموح");
