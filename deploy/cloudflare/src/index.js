@@ -607,20 +607,31 @@ export default {
       const students=await env.DB.prepare("SELECT id,display_name FROM students WHERE group_id=? AND active=1 ORDER BY display_name").bind(groupId).all();
       const roster=students.results||[];
       const parseStored=rows=>(rows.results||[]).flatMap(row=>{try{return [JSON.parse(row.payload_json)]}catch{return []}});
-      const [attendanceResult,quranResult,testResult]=await Promise.all([
+      const [attendanceResult,quranResult,testResult,claimResult]=await Promise.all([
         env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='attendance' AND group_id=?").bind(groupId).all(),
         env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='quran_progress' AND group_id=?").bind(groupId).all(),
-        env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='test_attempts' AND group_id=?").bind(groupId).all()
+        env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='test_attempts' AND group_id=?").bind(groupId).all(),
+        env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='daily_claims' AND group_id=?").bind(groupId).all()
       ]);
-      const attendanceRows=parseStored(attendanceResult),quranRows=parseStored(quranResult),testRows=parseStored(testResult);
+      const attendanceRows=parseStored(attendanceResult),quranRows=parseStored(quranResult),testRows=parseStored(testResult),claimRows=parseStored(claimResult);
+      const activeDays=new Set(attendanceRows.map(a=>String(a.date||"")).filter(Boolean)).size||1;
       const bestTests=new Map();
-      for(const attempt of testRows){const key=String(attempt.student_id)+":"+String(attempt.test_id);if(!bestTests.has(key)||Number(attempt.score)>Number(bestTests.get(key)))bestTests.set(key,Number(attempt.score)||0);}
+      for(const attempt of testRows){const key=String(attempt.student_id)+":"+String(attempt.test_id),ratio=Number(attempt.total)>0?Number(attempt.score)/Number(attempt.total):0;if(!bestTests.has(key)||ratio>bestTests.get(key))bestTests.set(key,ratio);}
       const ranked=roster.map(st=>{
-        const present=attendanceRows.filter(a=>a.student_id===st.id&&a.status==="present").length;
+        const mineAttendance=attendanceRows.filter(a=>a.student_id===st.id);
+        const present=mineAttendance.filter(a=>a.status==="present").length;
         const quran=quranRows.filter(q=>q.student_id===st.id).length;
-        let quizCorrect=0;for(const [key,score] of bestTests){if(key.startsWith(String(st.id)+":"))quizCorrect+=score;}
-        return {name:st.display_name,points:present*5+quran*10+quizCorrect*3,present_days:present,quran_records:quran,quiz_correct:quizCorrect,is_self:user.role==="student"&&st.id===user.student_id};
-      }).sort((a,b)=>b.points-a.points||a.name.localeCompare(b.name,"ar"));
+        const attendanceRate=Math.min(100,Math.round(present/activeDays*100));
+        const quranRate=Math.min(100,Math.round(quran/Math.max(1,activeDays)*100));
+        const quizValues=[...bestTests.entries()].filter(([key])=>key.startsWith(String(st.id)+":")).map(([,ratio])=>ratio);
+        const quizRate=quizValues.length?Math.round(quizValues.reduce((n,x)=>n+x,0)/quizValues.length*100):0;
+        const challengeCount=claimRows.filter(c=>c.student_id===st.id).length;
+        const challengeRate=Math.min(100,Math.round(challengeCount/14*100));
+        // Normalized 0–100 score rewards steady participation and mastery, not raw memorization volume.
+        const points=Math.round(attendanceRate*.25+quranRate*.35+quizRate*.30+challengeRate*.10);
+        const quizCorrect=testRows.filter(a=>a.student_id===st.id).reduce((n,a)=>n+(Number(a.score)||0),0);
+        return {name:st.display_name,points,attendance_rate:attendanceRate,quran_rate:quranRate,quiz_rate:quizRate,challenge_rate:challengeRate,present_days:present,quran_records:quran,quiz_correct:quizCorrect,is_self:user.role==="student"&&st.id===user.student_id};
+      }).sort((a,b)=>b.points-a.points||b.attendance_rate-a.attendance_rate||a.name.localeCompare(b.name,"ar"));
       return json(ranked.map((r,i)=>({...r,rank:i+1})));
     }
     if(path==="/api/metrics"&&method==="GET"){
