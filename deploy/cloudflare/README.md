@@ -40,3 +40,17 @@ The 0001_initial.sql migration creates the initial tables; 0002_daily_use.sql ad
 ## Cost guardrails
 
 Use Cloudflare free services only. Do not enable Workers Paid or Containers. D1 and Pages/Functions have free-plan limits. Keep a separate backup of essential records and review Cloudflare usage periodically.
+
+
+## Mobile installation and browser password saving
+
+- The app is a Progressive Web App (PWA): on supported Android/Desktop browsers, use **تثبيت التطبيق** and accept the browser prompt. On iPhone/iPad, open the website in Safari, use Share, then **Add to Home Screen**. The app cannot force an installation; the user confirms it.
+- The login screen uses browser password manager hints and the Credential Management API where supported. The database stores a PBKDF2 password hash, not the original password.
+- “تذكّر دخولي” controls session-token persistence independently. It is unchecked by default; enabling it stores the token on this device for up to 30 days.
+
+## Google sign-in setup and launch gates
+
+- Create a Google Cloud **Web application OAuth client ID**, configure the actual HTTPS origin and the OAuth consent screen, then set Cloudflare Pages variable `GOOGLE_CLIENT_ID` in each target project. Do not place client secrets in frontend code or Git.
+- The server verifies the Google ID token signature and its issuer, audience, expiry, nonce, and verified email. It links only to an existing active account whose login identity equals the verified email; it never creates accounts or changes roles automatically.
+- Until the client ID is configured, the UI explains the missing setup and password login remains available.
+- Public SEO pages now include `about.html`, `privacy.html`, `robots.txt`, and `sitemap.xml`. Submit the live sitemap through Google Search Console; this code change itself does not prove that Google has indexed the site.
