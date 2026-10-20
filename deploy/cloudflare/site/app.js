@@ -1,3 +1,4 @@
+window.addEventListener("error",function(e){var a=document.getElementById("app");if(a&&a.querySelector(".loading")){a.innerHTML="<section class=\"panel\"><h2>خطأ في تشغيل الواجهة</h2><p class=\"muted\"></p></section>";a.querySelector("p").textContent=(e.message||"JavaScript error")+" — "+(e.filename||"")+(e.lineno?":"+e.lineno:"");}});window.addEventListener("unhandledrejection",function(e){var a=document.getElementById("app");if(a&&a.querySelector(".loading"))a.textContent="تعذّر بدء الأكاديمية: "+String(e.reason&&e.reason.message||e.reason||"خطأ غير معروف");});
 const $=s=>document.querySelector(s), app=$("#app");
 const safeStore={get(k){try{return localStorage.getItem(k)||""}catch{return ""}},set(k,v){try{localStorage.setItem(k,v)}catch{}},remove(k){try{localStorage.removeItem(k)}catch{}}};
 const S={token:safeStore.get("ihsan_token"),user:null,tab:"home",groups:[],students:[],teachers:[],date:new Date().toISOString().slice(0,10)};
