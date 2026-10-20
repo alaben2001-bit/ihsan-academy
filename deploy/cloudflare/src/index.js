@@ -773,6 +773,68 @@ export default {
       }
       return json({ok:true});
     }
+    if(path==="/api/gradebook"&&method==="GET"){
+      let groupId=clean(url.searchParams.get("group_id"),80);
+      let studentRows=[],attendanceRows=[],quranRows=[],testAttempts=[],submissions=[];
+      if(user.role==="student"){
+        if(!user.student_id||!user.group_id)return fail(403,"ملف الدرجات متاح لحساب الطالب المرتبط بفوج");
+        const me=await env.DB.prepare("SELECT id,display_name,group_id FROM students WHERE id=? AND user_id=? AND active=1").bind(user.student_id,user.id).first();
+        if(!me)return fail(403,"لم يتم ربط حسابك بملف طالب فعال");
+        groupId=me.group_id;studentRows=[me];
+        [attendanceRows,quranRows,testAttempts,submissions]=await Promise.all([
+          records(env,"attendance"," AND student_id=?",[me.id]),
+          records(env,"quran_progress"," AND student_id=?",[me.id]),
+          records(env,"test_attempts"," AND student_id=?",[me.id]),
+          records(env,"assignment_submissions"," AND student_id=?",[me.id])
+        ]);
+      }else{
+        if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"السجل التعليمي غير متاح لهذا الدور");
+        if(!groupId)return fail(400,"اختر الفوج لعرض سجله التعليمي");
+        if(!await canManageGroup(env,user,groupId))return fail(403,"هذا الفوج خارج صلاحيتك");
+        const group=await groupRow(env,groupId);
+        if(!group||group.active!==1)return fail(404,"الفوج غير موجود أو غير نشط");
+        const found=await env.DB.prepare("SELECT id,display_name,group_id FROM students WHERE group_id=? AND active=1 ORDER BY display_name").bind(groupId).all();
+        studentRows=found.results||[];
+        [attendanceRows,quranRows,testAttempts,submissions]=await Promise.all([
+          records(env,"attendance"," AND group_id=?",[groupId]),
+          records(env,"quran_progress"," AND group_id=?",[groupId]),
+          records(env,"test_attempts"," AND group_id=?",[groupId]),
+          records(env,"assignment_submissions"," AND group_id=?",[groupId])
+        ]);
+      }
+      const [assignments,tests]=await Promise.all([records(env,"assignments"),records(env,"tests")]);
+      const visibleAssignments=assignments.filter(item=>item.status==="published"&&(!item.group_id||item.group_id===groupId));
+      const visibleTests=tests.filter(item=>item.status==="published"&&(!item.group_id||item.group_id===groupId));
+      const students=studentRows.map(student=>{
+        const att=attendanceRows.filter(item=>item.student_id===student.id);
+        const present=att.filter(item=>item.status==="present").length;
+        const absent=att.filter(item=>item.status==="absent").length;
+        const late=att.filter(item=>item.status==="late").length;
+        const excused=att.filter(item=>item.status==="excused").length;
+        const quran=quranRows.filter(item=>item.student_id===student.id);
+        const quranGrades=quran.filter(item=>item.grade!==null&&item.grade!==undefined&&item.grade!==""&&Number.isFinite(Number(item.grade))).map(item=>Number(item.grade));
+        const attempts=testAttempts.filter(item=>item.student_id===student.id);
+        const correct=attempts.reduce((sum,item)=>sum+Math.max(0,Number(item.score)||0),0);
+        const total=attempts.reduce((sum,item)=>sum+Math.max(0,Number(item.total)||0),0);
+        const ownSubmissions=submissions.filter(item=>item.student_id===student.id);
+        const reviewed=ownSubmissions.filter(item=>item.status==="reviewed"&&item.grade!==null&&item.grade!==undefined&&item.grade!=="");
+        const pending=ownSubmissions.filter(item=>item.status!=="reviewed");
+        const assignmentPercents=reviewed.map(item=>{
+          const assignment=assignments.find(value=>value.id===item.assignment_id);
+          const maximum=Math.max(1,Number(assignment?.points_total)||100);
+          return Math.max(0,Math.min(100,Number(item.grade)/maximum*100));
+        });
+        const submittedIds=new Set(ownSubmissions.map(item=>item.assignment_id));
+        return {
+          student_id:student.id,name:student.display_name,
+          attendance:{sessions:att.length,present,absent,late,excused,rate:att.length?Math.round(present/att.length*100):null},
+          quran:{sessions:quran.length,memorization:quran.filter(item=>item.activity==="memorization"||!!item.memorized).length,revision:quran.filter(item=>item.activity==="revision"||!!item.reviewed).length,average_grade:quranGrades.length?Math.round(quranGrades.reduce((sum,value)=>sum+value,0)/quranGrades.length*10)/10:null},
+          tests:{available:visibleTests.length,attempts:attempts.length,correct,total,percent:total?Math.round(correct/total*1000)/10:null},
+          assignments:{available:visibleAssignments.length,submitted:submittedIds.size,reviewed:reviewed.length,pending:pending.length,average_percent:assignmentPercents.length?Math.round(assignmentPercents.reduce((sum,value)=>sum+value,0)/assignmentPercents.length*10)/10:null}
+        };
+      });
+      return json({group_id:groupId,students,updated_at:nowIso()});
+    }
     if(path==="/api/assignments"&&method==="GET"){
       const rows=await scopedRecords(env,user,"assignments",user.role==="student");
       if(user.role!=="student")return json(rows);
