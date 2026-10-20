@@ -711,7 +711,7 @@ export default {
         env.DB.prepare("SELECT id,name,description,active,sort_order,created_at FROM quran_schools ORDER BY sort_order,name").all(),
         env.DB.prepare("SELECT id,user_id,action,metadata_json,created_at FROM audit_log ORDER BY created_at DESC LIMIT 5000").all()
       ]);
-      const payload={format:"ihsan-academy-operational-backup-v1",created_at:nowIso(),notice:"نسخة تشغيلية من البيانات؛ لا تتضمن كلمات المرور أو الجلسات ولا تُعد وحدها نسخة كاملة قابلة لإعادة إنشاء الحسابات.",data:{users:users.results||[],groups:groups.results||[],students:students.results||[],academy_records:(recordsResult.results||[]).map(r=>({...r,payload: (()=>{try{return JSON.parse(r.payload_json)}catch{return null}})()})),quran_schools:schools.results||[],audit_log:audit.results||[]}};
+      const payload={format:"ihsan-academy-operational-backup-v1",created_at:nowIso(),notice:"نسخة تشغيلية من البيانات؛ لا تتضمن كلمات المرور أو الجلسات ولا تُعد وحدها نسخة كاملة قابلة لإعادة إنشاء الحسابات.",data:{users:users.results||[],groups:groups.results||[],students:students.results||[],academy_records:(recordsResult.results||[]).map(r=>{let payload=null;try{payload=JSON.parse(r.payload_json)}catch{}const {payload_json,...metadata}=r;return {...metadata,payload}}),quran_schools:schools.results||[],audit_log:audit.results||[]}};
       await log(env,user.id,"admin_backup_export",{users:payload.data.users.length,groups:payload.data.groups.length,students:payload.data.students.length,records:payload.data.academy_records.length});
       return json(payload,200,{"content-disposition":'attachment; filename="ihsan-academy-backup.json"',"cache-control":"no-store"});
     }
