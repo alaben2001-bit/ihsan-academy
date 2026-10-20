@@ -292,11 +292,17 @@ export default {
         const rows=await records(env,"attendance"," AND student_id=?",[user.student_id||""]);
         return json(history?rows.sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,120):rows.filter(x=>x.date===date));
       }
+      if(studentId){
+        const student=await env.DB.prepare("SELECT group_id FROM students WHERE id=? AND active=1").bind(studentId).first();
+        if(!student||!await canManageGroup(env,user,student.group_id))return fail(403,"لا تملك صلاحية ملف هذا الطالب");
+        if(groupId&&groupId!==student.group_id)return fail(400,"الفوج المحدد لا يطابق فوج الطالب الحالي");
+        let rows=await records(env,"attendance"," AND student_id=?",[studentId]);
+        rows.sort((a,b)=>String(b.date).localeCompare(String(a.date)));
+        return json(history?rows.slice(0,500):rows.filter(x=>x.date===date));
+      }
       if(!groupId||!await canManageGroup(env,user,groupId))return fail(403,"اختر فوجًا ضمن صلاحيتك");
-      let rows=await records(env,"attendance"," AND group_id=?",[groupId]);
-      if(studentId)rows=rows.filter(x=>x.student_id===studentId);
-      if(history)return json(rows.sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,500));
-      return json(rows.filter(x=>x.date===date));
+      const rows=await records(env,"attendance"," AND group_id=?",[groupId]);
+      return json(history?rows.sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,500):rows.filter(x=>x.date===date));
     }
     if(path==="/api/attendance"&&method==="POST"){
       if(user.role!=="admin"&&user.role!=="teacher")return fail(403,"تسجيل الحضور للمعلم أو المدير");const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value,groupId=clean(b.group_id,80),date=clean(b.date,10),items=Array.isArray(b.items)?b.items:[];
