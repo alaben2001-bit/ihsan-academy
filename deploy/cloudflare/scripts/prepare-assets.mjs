@@ -9,7 +9,7 @@ const out = path.join(deployDir, "public");
 
 await rm(out, { recursive: true, force: true });
 await mkdir(out, { recursive: true });
-for (const file of ["index.html", "app.js", "style.css"]) {
+for (const file of ["index.html", "app.js", "style.css", "manifest.json", "service-worker.js", "icon.svg"]) {
   await cp(path.join(siteDir, file), path.join(out, file));
 }
 console.log("Prepared the simplified Cloudflare daily-use app. Only the three public site assets are published.");
