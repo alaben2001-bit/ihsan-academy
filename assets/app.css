@@ -953,3 +953,23 @@ input:focus,select:focus,textarea:focus{outline:none!important;border-color:#58a
  .golden-surprise-actions .btn{width:100%;justify-content:center}
  .golden-surprise-star{opacity:.35;inset-inline-end:12px}
 }
+
+
+/* V74 — motion with purpose: quick, smooth, and respectful of reduced-motion preferences. */
+:root{--motion-fast:180ms;--motion-mid:320ms;--motion-spring:cubic-bezier(.2,.75,.25,1)}
+@keyframes ihsan-enter{from{opacity:0;transform:translateY(10px) scale(.992)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes ihsan-soft-glow{0%,100%{box-shadow:0 8px 24px rgba(18,63,53,.06)}50%{box-shadow:0 12px 32px rgba(18,63,53,.12)}}
+#view>.stack,#view>.grid,#view>.cols{animation:ihsan-enter 420ms var(--motion-spring) both}
+#view .card{transition:transform var(--motion-fast) var(--motion-spring),box-shadow var(--motion-mid) ease,border-color var(--motion-fast) ease}
+#view .card:not(.hero):hover{transform:translateY(-2px);box-shadow:0 10px 26px rgba(18,63,53,.075)}
+#view .hero{position:relative;overflow:hidden;isolation:isolate}
+#view .hero:after{content:"";position:absolute;inset:-45% auto -45% -35%;width:38%;z-index:-1;background:linear-gradient(100deg,transparent,rgba(255,255,255,.085),transparent);transform:translateX(-140%) skewX(-18deg);animation:ihsan-sheen 8s ease-in-out infinite}
+@keyframes ihsan-sheen{0%,65%{transform:translateX(-140%) skewX(-18deg)}85%,100%{transform:translateX(360%) skewX(-18deg)}}
+.btn,.nav button,.bottom button,.portal-card{transition:transform var(--motion-fast) var(--motion-spring),background-color var(--motion-fast) ease,color var(--motion-fast) ease,box-shadow var(--motion-fast) ease}
+.btn:hover{box-shadow:0 6px 16px rgba(18,63,53,.13)}
+.progress i{transition:width 850ms var(--motion-spring)}
+.skel i{animation:ihsan-pulse 1.25s ease-in-out infinite}
+.skel i:nth-child(3){animation-delay:140ms}.skel i:nth-child(4){animation-delay:280ms}
+@keyframes ihsan-pulse{0%,100%{opacity:.38;transform:scaleX(.94)}50%{opacity:.9;transform:scaleX(1)}}
+html.reduced-motion *,html.reduced-motion *:before,html.reduced-motion *:after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}
+@media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
