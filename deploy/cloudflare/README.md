@@ -1,56 +1,53 @@
 # Ihsan Academy — Cloudflare Pages + D1
 
-This is the Cloudflare-only student platform. It uses Pages Functions and D1; it does not require Workers Paid or Containers.
+The active Cloudflare build is a lightweight Arabic RTL Progressive Web App backed by Pages Functions and D1. It is a staged rebuild of the earlier Render application, not an automatic continuation of its PostgreSQL database.
 
-## Current daily-use scope
+## Implemented in the current code
 
-- Arabic, mobile-friendly interface.
-- One-time first administrator setup, gated by the private BOOTSTRAP_SECRET Pages environment secret.
-- Login sessions stored as token hashes; passwords use PBKDF2-SHA-256.
-- Login throttling after repeated failures.
-- Admin: create teachers, groups, and students; assign teachers to groups; disable students/groups.
-- Teacher: see only assigned groups, add students to assigned groups, record attendance, and log Quran memorization/review.
-- Student: see their own attendance and Quran progress.
-- D1 stores accounts, groups, student records, attendance, Quran progress, and audit events.
-- No old accounts or student records have been imported.
+- RTL Arabic interface, mobile layouts, installable PWA shell, random-per-session palettes, and a fixed-palette option.
+- One-time administrator bootstrap protected by the `BOOTSTRAP_SECRET` Pages secret.
+- Password login with PBKDF2-SHA-256 hashes, hashed session tokens, login throttling, and role/group scope checks in API handlers.
+- Student/group records, account creation and reset, attendance, and Quran memorization/revision records.
+- Quran plans and progress, curriculum/subjects and student curriculum progress, multiple-choice tests, submitted test attempts/results, and recurring test records.
+- Text-based posts and notifications, daily challenge claims, leaderboard/metrics, admin audit view, and manual D1 backup export/restore endpoints.
+- Unique, randomly generated temporary passwords for newly issued/reset student accounts; affected accounts must change the password before using protected platform functions. Credentials from bulk onboarding are returned once for the authorized admin to download and deliver securely.
+- D1 stores active accounts, group/student records, education records, and audit events.
 
-## Important limitations
+## Known gaps and launch cautions
 
-This is a simplified rebuild, not a feature-for-feature port of the old app. The old posts/media library, messages, assignments, grading, tests, uploads, transport, and advanced curriculum tools are intentionally not included. Do not promise these features to users until separately implemented and tested.
+This rebuild does **not** yet provide feature parity with the old application. The following remain absent or require a full acceptance test before they should be presented as complete:
+
+- Full inbox/messaging conversations, assignment lifecycle, a dedicated gradebook, transport management, file/media uploads, and an integrated media library backed by object storage.
+- A complete end-to-end test suite for every role and school/group boundary. The current `npm run check` is primarily syntax/build validation, not proof that all business flows work.
+- Automated scheduled/off-site backups and a verified restore drill. Admin export/restore endpoints are manual safety tools, not a backup schedule.
+- Final end-to-end verification of all Quran pathways, weekly goals, two-week assessments, progress calculations, and student-facing daily guidance.
+- Historical migration of the former Render/PostgreSQL accounts and records. The existence of current D1 records does not mean the historical database has been imported.
+
+### Temporary-account warning
+
+The bulk onboarding action targets a fixed list of full-name student records. It can create missing accounts **and reset passwords for already-linked accounts in that target list**. Review the admin confirmation, download the one-time CSV immediately, keep it private, deliver each student's credentials privately, and remove extra copies after delivery. Do not use one shared password for multiple students.
+
+At the database snapshot reviewed on 2026-10-20, D1 contained 64 active/inactive student profile rows and 12 active student-role accounts. Recheck the roster and linked-account counts immediately before and after bulk onboarding. Do not infer that unlinked profiles are accounts.
 
 ## Deploy and validate
 
-The Pages project is ihsan-academy-students-preview, connected to the migration/cloudflare-student-platform branch. Its D1 binding is DB and points to the database ihsan-academy-students in the EU.
+Cloudflare Pages project: `ihsan-academy-students-preview`  
+Connected production branch: `migration/cloudflare-student-platform`  
+Build command: `npm install && npm run prepare:assets`  
+Build output directory: `public`
 
-    npm install
-    npm run check
-    npm run prepare:assets
-    npx wrangler deploy --dry-run
-
-The 0001_initial.sql migration creates the initial tables; 0002_daily_use.sql adds teacher ownership to groups. The currently connected D1 database was updated directly to add the teacher_id column and index.
+The build checks JavaScript syntax and prepares the static assets. Database schema changes are versioned under `migrations/`; apply each migration to the correct D1 database before deploying code that depends on it. Migration `0003_temporary_student_passwords.sql` adds the first-login password-change flag.
 
 ## First administrator setup
 
-1. Set a private BOOTSTRAP_SECRET as a Pages production environment secret.
-2. Open the production Pages URL. The setup screen appears only when there is no active administrator and the secret is configured.
-3. Enter the setup secret and create the administrator using an email and a unique password of at least 14 characters.
-4. Immediately remove the BOOTSTRAP_SECRET environment variable after the administrator is created, then redeploy. This closes the setup route.
-5. Verify login, create a teacher and group, create a student, record attendance, and record Quran progress before sharing access.
+1. Configure `BOOTSTRAP_SECRET` as a private Cloudflare Pages environment secret.
+2. Open the Pages URL. The setup screen appears only when there is no active administrator and the secret is configured.
+3. Create the administrator with a unique password of at least 14 characters.
+4. Remove `BOOTSTRAP_SECRET` from the production environment and redeploy after successful setup.
+5. Test one admin, one teacher, and one student account; verify assigned-group boundaries, password change, attendance, Quran progress, tests, and backup export before inviting a larger cohort.
 
-## Cost guardrails
+Never put passwords, session tokens, database credentials, or private bootstrap secrets in source control or issue reports.
 
-Use Cloudflare free services only. Do not enable Workers Paid or Containers. D1 and Pages/Functions have free-plan limits. Keep a separate backup of essential records and review Cloudflare usage periodically.
+## Cost and data-retention guardrails
 
-
-## Mobile installation and browser password saving
-
-- The app is a Progressive Web App (PWA): on supported Android/Desktop browsers, use **تثبيت التطبيق** and accept the browser prompt. On iPhone/iPad, open the website in Safari, use Share, then **Add to Home Screen**. The app cannot force an installation; the user confirms it.
-- The login screen uses browser password manager hints and the Credential Management API where supported. The database stores a PBKDF2 password hash, not the original password.
-- “تذكّر دخولي” controls session-token persistence independently. It is unchecked by default; enabling it stores the token on this device for up to 30 days.
-
-## Google sign-in setup and launch gates
-
-- Create a Google Cloud **Web application OAuth client ID**, configure the actual HTTPS origin and the OAuth consent screen, then set Cloudflare Pages variable `GOOGLE_CLIENT_ID` in each target project. Do not place client secrets in frontend code or Git.
-- The server verifies the Google ID token signature and its issuer, audience, expiry, nonce, and verified email. It links only to an existing active account whose login identity equals the verified email; it never creates accounts or changes roles automatically.
-- Until the client ID is configured, the UI explains the missing setup and password login remains available.
-- Public SEO pages now include `about.html`, `privacy.html`, `robots.txt`, and `sitemap.xml`. Submit the live sitemap through Google Search Console; this code change itself does not prove that Google has indexed the site.
+Stay on Cloudflare's free services for now; do not enable paid Workers or Containers without a deliberate cost review. D1 and Pages have usage limits. Keep a separate, protected export of essential data and validate a restore before any hosting migration or deletion of the old source. Keep the GitHub repository as the code source of truth.
