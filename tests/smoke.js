@@ -13,7 +13,7 @@ const appSource = fs.readFileSync(path.join(__dirname, '..', 'assets', 'app.js')
 const htmlSource = fs.readFileSync(path.join(__dirname, '..', 'index.html'), 'utf8');
 const cssSource = fs.readFileSync(path.join(__dirname, '..', 'assets', 'app.css'), 'utf8');
 const serviceWorkerSource = fs.readFileSync(path.join(__dirname, '..', 'service-worker.js'), 'utf8');
-assert.match(serviceWorkerSource, /const CACHE = 'ihsan-academy-shell-v\\d+-\\d{4}-\\d{2}-\\d{2}'/, 'offline shell cache must be versioned');
+assert.match(serviceWorkerSource, /const CACHE = 'ihsan-academy-shell-v\d+-\d{4}-\d{2}-\d{2}'/, 'offline shell cache must be versioned');
 for (const shellAsset of [
   '/assets/app.css?v=73.0',
   '/assets/admin-mobile.css?v=70.0',
@@ -26,10 +26,10 @@ for (const shellAsset of [
   '/manifest.json',
   '/offline.html'
 ]) {
-  assert.ok(serviceWorkerSource.includes(`'${shellAsset}'`), `offline shell must pre-cache ${shellAsset}`);
+  assert.ok(serviceWorkerSource.includes("'" + shellAsset + "'"), 'offline shell must pre-cache ' + shellAsset);
 }
-assert.match(serviceWorkerSource, /ignoreSearch:\\s*true/, 'offline asset lookup must survive query-string version changes');
-assert.match(serviceWorkerSource, /url\\.pathname\\.startsWith\\('\/api\\/'\\)/, 'private and changing API responses must stay out of the offline cache');
+assert.match(serviceWorkerSource, /ignoreSearch:\s*true/, 'offline asset lookup must survive query-string version changes');
+assert.match(serviceWorkerSource, /url\.pathname\.startsWith\('\/api\/'\)/, 'private and changing API responses must stay out of the offline cache');
 assert.match(htmlSource, /class="login-art"/, 'login page must retain its visual brand panel');
 assert.match(htmlSource, /\/assets\/ihsan-emblem\.svg/, 'navigation and welcome screen must use the academy emblem');
 assert.match(htmlSource, /app\.css\?v=73\.0/, 'refreshed visual styles must bypass the old browser cache');
