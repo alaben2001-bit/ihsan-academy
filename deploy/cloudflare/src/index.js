@@ -148,6 +148,19 @@ export default {
       const match=/^Bearer\s+([a-f0-9]{64})$/i.exec(request.headers.get("authorization")||""); if(match)await env.DB.prepare("DELETE FROM sessions WHERE token_hash=?").bind(await hashToken(match[1])).run(); return json({ok:true});
     }
     const user=await currentUser(request,env); if(!user)return fail(401,"يرجى تسجيل الدخول");
+    if(path==="/api/me/password"&&method==="POST"){
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      const currentPassword=String(b.current_password||""),newPassword=String(b.new_password||"");
+      if(!currentPassword||newPassword.length<10||newPassword.length>256)return fail(400,"أدخل كلمة المرور الحالية، واجعل الجديدة 10 أحرف على الأقل");
+      const stored=await env.DB.prepare("SELECT password_hash FROM users WHERE id=? AND active=1").bind(user.id).first();
+      if(!stored||!await verifyPassword(currentPassword,stored.password_hash))return fail(401,"كلمة المرور الحالية غير صحيحة");
+      if(currentPassword===newPassword)return fail(400,"اختر كلمة مرور جديدة مختلفة");
+      await env.DB.prepare("UPDATE users SET password_hash=? WHERE id=?").bind(await passwordHash(newPassword),user.id).run();
+      const match=/^Bearer\s+([a-f0-9]{64})$/i.exec(request.headers.get("authorization")||"");
+      if(match)await env.DB.prepare("DELETE FROM sessions WHERE user_id=? AND token_hash<>?").bind(user.id,await hashToken(match[1])).run();
+      await log(env,user.id,"password_change",{});
+      return json({ok:true,message:"تم تغيير كلمة المرور وإبطال الجلسات الأخرى"});
+    }
     if(path==="/api/me"&&method==="GET")return json(safeUser(user));
     if(path==="/api/dashboard"&&method==="GET"){
       const isStaff=user.role==="admin"||user.role==="teacher";
