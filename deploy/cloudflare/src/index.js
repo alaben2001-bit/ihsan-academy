@@ -60,6 +60,21 @@ async function canManageGroup(env, user, groupId) {
   const g = await groupRow(env, groupId);
   return !!g && g.teacher_id === user.id && g.active === 1;
 }
+async function canViewGroup(env, user, groupId) {
+  if (!groupId || user.role === "admin") return true;
+  if (user.role === "teacher") return canManageGroup(env, user, groupId);
+  if (user.role === "student") return user.group_id === groupId;
+  return false;
+}
+async function scopedRecords(env, user, collection, publishedOnly = false) {
+  const rows = await records(env, collection);
+  const visible = [];
+  for (const row of rows) {
+    if (publishedOnly && row.status !== "published") continue;
+    if (await canViewGroup(env, user, row.group_id || null)) visible.push(row);
+  }
+  return visible;
+}
 async function parseBody(request) {
   try { return { value: await bodyJson(request), error: null }; }
   catch (e) { return { value: null, error: fail(e.message === "payload_too_large" ? 413 : 400, e.message) }; }
@@ -121,7 +136,9 @@ export default {
       }
       await env.DB.prepare("DELETE FROM login_attempts WHERE identity_normalized=?").bind(identity).run();
       const token=hex(crypto.getRandomValues(new Uint8Array(32)));
-      await env.DB.prepare("INSERT INTO sessions(token_hash,user_id,expires_at) VALUES(?,?,?)").bind(await hashToken(token),user.id,new Date(Date.now()+12*60*60*1000).toISOString()).run();
+      const remember=b.remember===true;
+      const sessionLifetimeMs=(remember?30*24:12)*60*60*1000;
+      await env.DB.prepare("INSERT INTO sessions(token_hash,user_id,expires_at) VALUES(?,?,?)").bind(await hashToken(token),user.id,new Date(Date.now()+sessionLifetimeMs).toISOString()).run();
       await log(env,user.id,"login");
       const student=user.role==="student"?await env.DB.prepare("SELECT id,group_id FROM students WHERE user_id=? AND active=1").bind(user.id).first():null;
       return json({token,user:safeUser({id:user.id,name:user.display_name,email:user.identity_normalized,role:user.role,student_id:student?.id,group_id:student?.group_id})});
