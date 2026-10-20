@@ -46,3 +46,26 @@
 .nav-btn:hover,.curriculum-tile:hover{transform:translateX(-2px)}
 .loading{animation:ihsan-breathe 1.4s ease-in-out infinite}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
+
+/* Core workflow polish: remembered login, rosters, quizzes and responsive actions. */
+.remember-option{display:flex;align-items:flex-start;gap:9px;font-size:12px;line-height:1.8;color:var(--muted)}
+.remember-option input{margin-top:4px;accent-color:var(--green);flex:0 0 auto}
+#top-actions{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+#top-actions .btn{padding:9px 12px;font-size:12px}
+.student-row{align-items:flex-start}
+.student-row>div:first-child{min-width:150px;flex:1}
+.student-actions,.move-control{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
+.move-control select{max-width:180px;border:1px solid var(--line);border-radius:9px;padding:8px;background:#fff;color:var(--ink)}
+.question-builder{border:1px solid var(--line);border-radius:14px;padding:16px;margin:10px 0;background:var(--paper)}
+.question-builder h4{margin:0 0 12px;color:var(--green)}
+.question-view{border:1px solid var(--line);border-radius:13px;padding:14px;margin:12px 0;min-width:0}
+.question-view legend{font-weight:bold;padding:0 5px}
+.quiz-option{display:flex;align-items:flex-start;gap:8px;padding:9px;margin:5px 0;border-radius:9px;background:var(--paper);line-height:1.7}
+.quiz-option input{margin-top:5px;accent-color:var(--green)}
+.quiz-form>button{margin-top:10px}
+.content-body{white-space:pre-wrap;line-height:2;margin:12px 0 18px}
+.result-list{display:grid;gap:7px;margin-top:12px}
+html{scroll-behavior:smooth}
+@media(max-width:820px){.layout{grid-template-columns:1fr}.sidebar{position:static;display:flex;overflow-x:auto;gap:5px;padding:7px}.sidebar .nav-btn{white-space:nowrap;flex:0 0 auto;padding:10px}.student-row{display:grid}.student-actions{width:100%}.move-control{width:100%}.move-control select{flex:1;max-width:none}.section-head{align-items:flex-start}}
+@media(max-width:520px){.topbar{padding:10px 12px;gap:8px}.brand-mark{width:37px;height:37px}.brand strong{font-size:13px}.brand small{font-size:10px}#top-actions{gap:4px}#top-actions .btn{font-size:10px;padding:8px}.shell{width:calc(100% - 20px);margin:18px auto 36px}.panel,.card{padding:16px;border-radius:15px}.form-grid{grid-template-columns:1fr}.wide{grid-column:auto}.student-actions .btn{font-size:11px;padding:9px 10px}.question-builder{padding:12px}}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
