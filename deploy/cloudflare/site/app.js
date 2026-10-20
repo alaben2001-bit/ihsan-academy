@@ -94,23 +94,42 @@ quranpath:["القرآن الكريم","حفظٌ ومراجعةٌ وفهمٌ و�
 sunnah:["السنة والمتون","أحاديث مختارة ومتون تأسيسية في العلم الشرعي.","ابدأ بالأحاديث الجامعة والمتون المناسبة لمستواك. احفظ النص مضبوطًا، وافهم ألفاظه، وتحقّق من شرحه ومصدره، ثم حوّل العلم إلى سلوك."],
 adab:["الأدب والعمل","تزكية النفس، آداب طالب العلم، ومهارات الحياة النافعة.","من علامات العلم النافع التواضع والصدق والرفق واحترام الوقت. اختر خُلُقًا واحدًا لهذا الأسبوع، وراقب تطبيقه، وراجع نفسك برفق."]
 };
-let subjects=[];
+let subjects=[],progress=[];
 try{subjects=await api("/subjects")}catch{}
+try{progress=await api("/curriculum/progress")}catch(e){v.innerHTML=head("منهج الإحسان","تعذّر تحميل تقدمك المحفوظ.")+'<div class="notice error">'+esc(e.message)+'</div><button class="btn" id="retry-curriculum">إعادة المحاولة</button>';$("#retry-curriculum")?.addEventListener("click",()=>curriculumPage(v));return}
 const custom=subjects.filter(x=>!x.builtin);
-let x=lessons[S.tab]||lessons.all;
-if(S.tab.startsWith("custom-")){
- const item=custom.find(q=>q.id===S.tab.slice(7));
- if(item)x=[item.title,item.description,"هذا محور تعليمي أضافه مدير الأكاديمية. يلزم استكمال دروسه ومراجعه وأسئلته قبل اعتماده منهجًا مكتملًا."];
+const currentTab=S.tab||"all";
+let x=lessons[currentTab]||lessons.all;
+let subjectId=currentTab==="quranpath"?"quran":currentTab;
+if(currentTab.startsWith("custom-")){
+ const item=custom.find(q=>q.id===currentTab.slice(7));
+ if(item){x=[item.title,item.description,"هذا محور تعليمي أضافه مدير الأكاديمية. ادرس مادته ومراجعه بإتقان، ثم سجّل فهمك وتطبيقك ومراجعتك."];subjectId=item.id}
 }
-let html='<div class="curriculum-banner"><span class="eyebrow">مَنْهَجُ الإِحْسَان</span><h2>'+esc(x[0])+'</h2><p>'+esc(x[1])+'</p></div><div class="card curriculum-card"><h3>خطوتك التعليمية</h3><p>'+esc(x[2])+'</p><div class="notice">قاعدة المنهج: تعلّم قليلًا بإتقان، وطبّق ما تعلّمت، ثم راجع واستمر.</div></div><div class="curriculum-tiles"><button class="curriculum-tile" data-lesson="allah"><strong>الله تعالى</strong><span>الأسماء الحسنى والإيمان</span></button><button class="curriculum-tile" data-lesson="prophet"><strong>الرسول ﷺ</strong><span>السيرة والشمائل والاتباع</span></button><button class="curriculum-tile" data-lesson="quranpath"><strong>القرآن</strong><span>حفظ وفهم وتدبر وعمل</span></button><button class="curriculum-tile" data-lesson="sunnah"><strong>السنة والمتون</strong><span>حديث وعلم شرعي</span></button><button class="curriculum-tile" data-lesson="adab"><strong>الأدب والعمل</strong><span>أخلاق وتطبيق ومراجعة</span></button>'+custom.map(q=>'<button class="curriculum-tile" data-custom-lesson="'+esc(q.id)+'"><strong>'+esc(q.title)+'</strong><span>'+esc(q.description)+'</span></button>').join("")+'</div>';
-if(S.user.role==="admin")html+='<section class="card" style="margin-top:16px"><h3>إضافة محور تعليمي</h3><form id="subject-form" class="stack"><label class="field">اسم المحور<input name="title" required maxlength="160" placeholder="مثال: فقه العبادات"></label><label class="field">وصفه وهدفه<textarea name="description" required maxlength="2000" rows="3" placeholder="بيّن ما سيتعلمه الطالب"></textarea></label><button class="btn">حفظ المحور</button><p class="muted small">هذا يحفظ محورًا ووصفه؛ إضافة الدروس التفصيلية والمصادر والاختبارات تحتاج إدخالها لاحقًا.</p></form></section>';
+const trackable=currentTab!=="all"&&(Object.prototype.hasOwnProperty.call(lessons,currentTab)||currentTab.startsWith("custom-"));
+const saved=progress.find(p=>p.subject_id===subjectId)||{steps:[],reflection:""};
+const savedSteps=Array.isArray(saved.steps)?saved.steps:[];
+const completionCount=subjects.filter(s=>!s.builtin||["allah","prophet","quran","sunnah","adab"].includes(s.id)).filter(s=>{const p=progress.find(q=>q.subject_id===s.id);return !!p&&p.completed}).length;
+const totalAreas=5+custom.length;
+let html='<div class="curriculum-banner"><span class="eyebrow">مَنْهَجُ الإِحْسَان</span><h2>'+esc(x[0])+'</h2><p>'+esc(x[1])+'</p><div class="curriculum-overall"><span>محاور أتممتها</span><strong>'+completionCount+' / '+totalAreas+'</strong><span class="curriculum-overall-meter"><i style="width:'+Math.min(100,completionCount/Math.max(1,totalAreas)*100)+'%"></i></span></div></div><div class="card curriculum-card"><h3>خطوتك التعليمية</h3><p>'+esc(x[2])+'</p><div class="notice">قاعدة المنهج: تعلّم قليلًا بإتقان، وطبّق ما تعلّمت، ثم راجع واستمر.</div></div>';
+if(trackable)html+='<section class="card curriculum-progress-card"><div class="section-head"><div><h3>متابعة تعلّمك في هذا المحور</h3><p>سجّل الخطوات التي أنجزتها؛ سيُحفظ تقدمك في حسابك.</p></div><span class="progress-count">'+savedSteps.length+' / 3</span></div><form id="curriculum-progress-form" class="stack"><label class="progress-step"><input type="checkbox" name="steps" value="understood" '+(savedSteps.includes("understood")?"checked":"")+'><span><strong>فهمت أصل المسألة</strong><small>أستطيع شرح الفكرة بكلامي.</small></span></label><label class="progress-step"><input type="checkbox" name="steps" value="applied" '+(savedSteps.includes("applied")?"checked":"")+'><span><strong>طبّقت فائدة عملية</strong><small>ربطت ما تعلمته بعمل أو سلوك.</small></span></label><label class="progress-step"><input type="checkbox" name="steps" value="reviewed" '+(savedSteps.includes("reviewed")?"checked":"")+'><span><strong>راجعت ما تعلمته</strong><small>عدت إلى الدرس أو المصدر وثبّت الفائدة.</small></span></label><label class="field">فائدة أريد تذكّرها <textarea name="reflection" maxlength="1200" rows="3" placeholder="اكتب خلاصة قصيرة أو عملًا تنوي المحافظة عليه...">'+esc(saved.reflection||"")+'</textarea></label><div class="student-actions"><button class="btn" type="submit">حفظ تقدمي</button><span class="muted small" id="curriculum-save-status" aria-live="polite">'+(saved.updated_at?"آخر حفظ: "+esc(saved.updated_at):"لم يُسجّل تقدم في هذا المحور بعد.")+'</span></div></form></section>';
+html+='<div class="curriculum-tiles"><button class="curriculum-tile" data-lesson="allah"><strong>الله تعالى</strong><span>الأسماء الحسنى والإيمان</span>'+progressBadge(progress,"allah")+'</button><button class="curriculum-tile" data-lesson="prophet"><strong>الرسول ﷺ</strong><span>السيرة والشمائل والاتباع</span>'+progressBadge(progress,"prophet")+'</button><button class="curriculum-tile" data-lesson="quranpath"><strong>القرآن</strong><span>حفظ وفهم وتدبر وعمل</span>'+progressBadge(progress,"quran")+'</button><button class="curriculum-tile" data-lesson="sunnah"><strong>السنة والمتون</strong><span>حديث وعلم شرعي</span>'+progressBadge(progress,"sunnah")+'</button><button class="curriculum-tile" data-lesson="adab"><strong>الأدب والعمل</strong><span>أخلاق وتطبيق ومراجعة</span>'+progressBadge(progress,"adab")+'</button>'+custom.map(q=>'<button class="curriculum-tile" data-custom-lesson="'+esc(q.id)+'"><strong>'+esc(q.title)+'</strong><span>'+esc(q.description)+'</span>'+progressBadge(progress,q.id)+'</button>').join("")+'</div>';
+if(S.user.role==="admin")html+='<section class="card" style="margin-top:16px"><h3>إضافة محور تعليمي</h3><form id="subject-form" class="stack"><label class="field">اسم المحور<input name="title" required maxlength="160" placeholder="مثال: فقه العبادات"></label><label class="field">وصفه وهدفه<textarea name="description" required maxlength="2000" rows="3" placeholder="بيّن ما سيتعلمه الطالب"></textarea></label><button class="btn">حفظ المحور</button><p class="muted small">يُحفظ عنوان المحور ووصفه. لا يُعدّ ذلك وحده منهجًا كاملًا؛ يلزم إضافة الدروس التفصيلية والمراجع والأسئلة.</p></form></section>';
 v.innerHTML=html;
-
-
 v.querySelectorAll("[data-lesson]").forEach(b=>b.onclick=()=>{S.tab=b.dataset.lesson;shell();page()});
 v.querySelectorAll("[data-custom-lesson]").forEach(b=>b.onclick=()=>{S.tab="custom-"+b.dataset.customLesson;shell();page()});
 $("#subject-form")?.addEventListener("submit",async e=>{e.preventDefault();const f=new FormData(e.currentTarget);try{await api("/subjects",{method:"POST",body:JSON.stringify({title:f.get("title"),description:f.get("description")})});toast("تم حفظ المحور التعليمي");await curriculumPage(v)}catch(err){toast(err.message,true)}});
+$("#curriculum-progress-form")?.addEventListener("submit",async e=>{
+ e.preventDefault();const form=e.currentTarget,button=form.querySelector('button[type="submit"]'),status=$("#curriculum-save-status");
+ const steps=[...form.querySelectorAll('input[name="steps"]:checked')].map(input=>input.value);
+ const reflection=form.elements.reflection.value;
+ if(steps.length===0&&!reflection.trim()){toast("اختر خطوة أنجزتها أو اكتب فائدة تريد تذكّرها.",true);return}
+ button.disabled=true;if(status)status.textContent="جارٍ حفظ تقدمك…";
+ try{const saved=await api("/curriculum/progress",{method:"POST",body:JSON.stringify({subject_id:subjectId,steps,reflection})});toast(saved.completed?"أحسنت؛ أتممت خطوات هذا المحور.":"تم حفظ تقدمك.");await curriculumPage(v)}
+ catch(err){if(status)status.textContent="تعذّر الحفظ؛ لم يتغير تقدمك المحفوظ.";toast(err.message,true)}
+ finally{if(button.isConnected)button.disabled=false}
+});
 }
+function progressBadge(rows,id){const p=rows.find(x=>x.subject_id===id);return '<small class="curriculum-progress-badge">'+(p&&p.completed?"أُنجزت الخطوات الثلاث":p&&p.steps?.length?"أُنجزت "+p.steps.length+" من 3":"لم يبدأ بعد")+'</small>'}
 
 const head=(a,b)=>'<div class="section-head"><div><h2>'+a+'</h2><p>'+b+'</p></div></div>';
 const field=(label,name,type="text",min="")=>'<label class="field">'+label+'<input name="'+name+'" type="'+type+'" '+(min?'minlength="'+min+'"':"")+' required></label>';

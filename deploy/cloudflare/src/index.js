@@ -509,6 +509,24 @@ export default {
       const notice={id:uuid(),title,content,group_id:groupId,status:"published",created_by:user.id,created_at:nowIso()};
       await saveRecord(env,"notifications",notice);await log(env,user.id,"notification_create",{notification_id:notice.id,group_id:groupId});return json(notice,201);
     }
+    if(path==="/api/curriculum/progress"&&method==="GET"){
+      const result=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='curriculum_progress' AND owner_user_id=? ORDER BY updated_at DESC LIMIT 100").bind(user.id).all();
+      return json((result.results||[]).flatMap(row=>{try{return [JSON.parse(row.payload_json)]}catch{return []}}));
+    }
+    if(path==="/api/curriculum/progress"&&method==="POST"){
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      const subjectId=clean(b.subject_id,80);
+      const builtinIds=["allah","prophet","quran","sunnah","adab"];
+      const customSubjects=await records(env,"subjects");
+      if(!builtinIds.includes(subjectId)&&!customSubjects.some(subject=>subject.id===subjectId&&subject.status==="published"))return fail(400,"المحور التعليمي غير موجود");
+      const allowedSteps=new Set(["understood","applied","reviewed"]);
+      const steps=Array.isArray(b.steps)?[...new Set(b.steps.map(step=>clean(step,30)).filter(step=>allowedSteps.has(step)))]:[];
+      const reflection=clean(b.reflection,1200);
+      const record={id:user.id+":"+subjectId,owner_user_id:user.id,group_id:user.group_id||null,student_id:user.student_id||null,subject_id:subjectId,steps,completed:steps.length===3,reflection,updated_at:nowIso()};
+      await saveRecord(env,"curriculum_progress",record);
+      await log(env,user.id,"curriculum_progress_save",{subject_id:subjectId,completed:record.completed});
+      return json(record);
+    }
     if(path==="/api/subjects"&&method==="GET"){
       const custom=await scopedRecords(env,user,"subjects");
       return json([

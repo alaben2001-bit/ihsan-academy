@@ -787,3 +787,23 @@ body{color:#263f36;background:#f6f2f7}
  .nav-section-title{display:none}
  .sidebar .nav-btn{width:auto;flex:0 0 auto}
 }
+
+
+/* Student journey: progress cards and clear, saveable learning milestones. */
+.curriculum-overall{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px 14px;margin-top:20px;padding:13px 15px;border:1px solid #ffffff45;border-radius:15px;background:#ffffff1c;color:inherit}
+.curriculum-overall>span:first-child{font-size:12px;opacity:.88}
+.curriculum-overall>strong{font-size:15px}
+.curriculum-overall-meter{grid-column:1/-1;height:6px;border-radius:99px;overflow:hidden;background:#ffffff45}
+.curriculum-overall-meter i{display:block;height:100%;border-radius:inherit;background:var(--gold);transition:width .25s ease}
+.curriculum-progress-card{margin:16px 0;border-color:color-mix(in srgb,var(--green) 22%,var(--line))}
+.curriculum-progress-card .section-head{margin-bottom:16px}
+.progress-count{padding:6px 10px;border-radius:999px;background:var(--mint);color:var(--green);font-size:12px;font-weight:800;white-space:nowrap}
+.progress-step{display:flex;align-items:flex-start;gap:12px;padding:13px 14px;border:1px solid var(--line);border-radius:13px;background:var(--surface,#fff);cursor:pointer}
+.progress-step:has(input:checked){border-color:var(--green);background:var(--mint)}
+.progress-step input{width:19px;height:19px;flex:0 0 auto;margin-top:3px;accent-color:var(--green)}
+.progress-step>span{display:grid;gap:2px}
+.progress-step strong{font-size:13px}
+.progress-step small{color:var(--muted);font-size:11px;line-height:1.7}
+.curriculum-progress-badge{display:block;margin-top:7px;font-size:11px;color:var(--muted);line-height:1.7}
+.curriculum-tile:focus-visible,.theme-choice:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+@media(max-width:560px){.curriculum-progress-card .section-head{gap:8px}.curriculum-overall{margin-top:15px}}
