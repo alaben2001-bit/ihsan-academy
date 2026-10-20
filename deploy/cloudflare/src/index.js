@@ -403,7 +403,8 @@ export default {
         normalized.push({id:clean(q.id,80)||uuid(),prompt,choices,correct_index:correct,explanation:clean(q.explanation,500)});
       }
       const due=String(b.due_date||"");
-      const test={id:uuid(),title,description,group_id:groupId,due_date:due.length===10?due:null,questions:normalized,status:"published",created_by:user.id,created_at:nowIso()};
+      const defaultDue=new Date(Date.now()+14*24*60*60*1000).toISOString().slice(0,10);
+      const test={id:uuid(),title,description,group_id:groupId,due_date:/^\\d{4}-\\d{2}-\\d{2}$/.test(due)?due:defaultDue,frequency_days:14,questions:normalized,status:"published",created_by:user.id,created_at:nowIso()};
       await saveRecord(env,"tests",test);await log(env,user.id,"test_create",{test_id:test.id,group_id:groupId,questions:normalized.length});
       return json(test,201);
     }
