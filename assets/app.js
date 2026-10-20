@@ -159,7 +159,7 @@ const post = (url, data) => api(url, { method: 'POST', body: JSON.stringify(data
 async function guard(fn) { try { return await fn(); } catch (e) { toast(e.message, true); } }
 
 /* ── الجلسة ── */
-function endSession() { S.token = null; S.user = null; try { sessionStorage.removeItem('ab_token'); sessionStorage.removeItem('academy_entry'); } catch { /* */ } try { history.replaceState({ academy: true, page: 'login' }, '', location.pathname); } catch { /* */ } closeOverlay(); showLogin(); }
+function endSession() { S.token = null; S.user = null; try { localStorage.removeItem('ab_token'); sessionStorage.removeItem('academy_entry'); } catch { /* */ } try { history.replaceState({ academy: true, page: 'login' }, '', location.pathname); } catch { /* */ } closeOverlay(); showLogin(); }
 function showLogin() { $('#appView').classList.add('hidden'); $('#loginView').classList.remove('hidden'); $('#loginPass').value = ''; }
 function establishHistoryGuard(page = 'dashboard') {
   const url = location.pathname + '#' + encodeURIComponent(page);
@@ -231,8 +231,18 @@ function buildNav() {
   const mainIds = S.user.role === 'student' ? ['dashboard', 'learning-hub', 'quran', 'media', 'journey'] : S.user.role === 'teacher' ? ['dashboard', 'learning-hub', 'students', 'curriculum', 'attendance'] : S.user.role === 'admin' ? ['dashboard', 'learning-hub', 'teams', 'school-directory', 'notifications'] : S.user.role === 'chief_supervisor' ? ['dashboard', 'learning-hub', 'teams', 'school-directory', 'notifications'] : S.user.role === 'parent' ? ['dashboard', 'learning-hub', 'children', 'media', 'notifications'] : ['dashboard', 'learning-hub', 'students', 'curriculum', 'school-directory'];
   const mainMeta = { dashboard:['الرئيسية','home'], 'learning-hub':['التعلّم','brain'], quran:['القرآن','quran'], media:['مكتبة الشيخ','media'], journey:['رحلتي','trend'], students:['الطلاب','user'], curriculum:['المنهج','book'], attendance:['الحضور','check'], teams:['فرق المدرسة','group'], 'school-directory':['مدرستي','group'], children:['أبنائي','user'], notifications:['الإشعارات','bell'] };
   const main = mainIds.map(id => items.find(x => x[0] === id) || [id, (mainMeta[id] || [PAGES[id]?.[0] || id, 'home'])[0], (mainMeta[id] || ['', 'home'])[1]]).filter(([id]) => !!PAGES[id]);
-  /* Mobile: keep the most useful four destinations visible; expose More and Sign out directly. */
-  const mobileMain = main.slice(0, 4);
+  /* Mobile: choose role-relevant destinations instead of blindly taking the first four. */
+  const mobilePriority = S.user.role === 'student'
+    ? ['dashboard','journey','learning-hub','quran']
+    : S.user.role === 'teacher'
+      ? ['dashboard','students','attendance','learning-hub']
+      : S.user.role === 'admin'
+        ? ['dashboard','students','groups','ops']
+        : S.user.role === 'chief_supervisor'
+          ? ['dashboard','teams','learning-hub','notifications']
+          : ['dashboard','children','notifications','media'];
+  const mobileMain = mobilePriority.map(id => main.find(item => item[0] === id)).filter(Boolean).slice(0,4);
+  for (const item of main) if (mobileMain.length < 4 && !mobileMain.some(x => x[0] === item[0])) mobileMain.push(item);
   put($('#bottomNav'), html`${mobileMain.map(([id, l, ic]) => html`<button data-act="nav" data-page="${id}" aria-label="${l}">${ico(ic)}<span>${l}</span></button>`)}<button data-act="more" aria-label="المزيد">${ico('more')}<span>المزيد</span></button><button class="mobile-logout" data-act="logout" aria-label="تسجيل الخروج">${ico('out')}<span>خروج</span></button>`);
 }
 
@@ -1235,13 +1245,13 @@ $('#loginForm').addEventListener('submit', async e => {
   e.preventDefault(); const btn = $('#loginBtn'), err = $('#loginErr'); err.textContent = ''; btn.disabled = true;
   try {
     const r = await api('/api/login', { method: 'POST', body: JSON.stringify({ identity: $('#loginEmail').value, password: $('#loginPass').value }) });
-    S.token = r.token; try { sessionStorage.setItem('ab_token', r.token); } catch { /* */ }
+    S.token = r.token; try { localStorage.setItem('ab_token', r.token); } catch { /* */ }
     await startSession();
   } catch (ex) { err.textContent = ex.message; } finally { btn.disabled = false; }
 });
 
 (async function boot() {
-  try { S.token = sessionStorage.getItem('ab_token'); } catch { S.token = null; }
+  try { S.token = localStorage.getItem('ab_token'); } catch { S.token = null; }
   if (!S.token) return showLogin();
   try { await startSession(); } catch { endSession(); }
 })();
