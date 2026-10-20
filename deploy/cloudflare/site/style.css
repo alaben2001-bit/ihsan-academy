@@ -807,3 +807,24 @@ body{color:#263f36;background:#f6f2f7}
 .curriculum-progress-badge{display:block;margin-top:7px;font-size:11px;color:var(--muted);line-height:1.7}
 .curriculum-tile:focus-visible,.theme-choice:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
 @media(max-width:560px){.curriculum-progress-card .section-head{gap:8px}.curriculum-overall{margin-top:15px}}
+
+
+/* Admin system diagnostics and student-account readiness. */
+.system-check-stats .stat{min-width:0}
+.system-check-list,.system-role-list{display:grid;gap:8px;margin-top:14px}
+.system-check-item{display:flex;align-items:center;gap:12px;padding:13px;border:1px solid var(--line);border-radius:13px;background:var(--surface,#fff);min-width:0}
+.system-check-item>div{display:grid;gap:2px;flex:1;min-width:0}
+.system-check-item strong{font-size:13px}
+.system-check-item small{font-size:11px;color:var(--muted);line-height:1.8}
+.system-check-item.is-ok{border-inline-start:3px solid #4e9870}
+.system-check-item.is-warning{border-inline-start:3px solid #c28b37;background:color-mix(in srgb,#c28b37 6%,var(--surface,#fff))}
+.system-check-mark{display:grid;place-items:center;width:30px;height:30px;flex:0 0 30px;border-radius:50%;background:var(--mint);color:var(--green);font-weight:900}
+.is-warning .system-check-mark{background:#f8ead4;color:#83591a}
+.system-check-value{font-size:12px;font-weight:800;white-space:nowrap}
+.system-role-row{display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 12px;border:1px solid var(--line);border-radius:11px;background:var(--surface,#fff);font-size:13px}
+.roster-account-stats{grid-template-columns:repeat(3,minmax(0,1fr));margin-top:0}
+.roster-account-stats .stat{padding:12px}
+.roster-account-stats .stat strong{font-size:24px}
+.roster-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:15px}
+.roster-filters .field{min-width:0}
+@media(max-width:560px){.roster-filters{grid-template-columns:1fr}.system-check-item{align-items:flex-start}.system-check-value{padding-top:5px}.roster-account-stats .stat{padding:9px}.roster-account-stats .stat strong{font-size:20px}}

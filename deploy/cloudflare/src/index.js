@@ -703,6 +703,15 @@ export default {
     if(path==="/api/metrics"&&method==="GET"){
       if(user.role!=="admin")return fail(403,"forbidden");const counts=await env.DB.prepare("SELECT (SELECT COUNT(*) FROM users) AS users,(SELECT COUNT(*) FROM students WHERE active=1) AS students,(SELECT COUNT(*) FROM groups WHERE active=1) AS groups,(SELECT COUNT(*) FROM academy_records) AS records").first();return json({...counts,storage:"d1"});
     }
+    if(path==="/api/admin/system-check"&&method==="GET"){
+      if(user.role!=="admin")return fail(403,"forbidden");
+      const [counts,roles,collections]=await Promise.all([
+        env.DB.prepare("SELECT (SELECT COUNT(*) FROM users WHERE role='admin' AND active=1) AS active_admins,(SELECT COUNT(*) FROM users WHERE active=1) AS active_users,(SELECT COUNT(*) FROM students WHERE active=1) AS active_students,(SELECT COUNT(*) FROM students s LEFT JOIN users u ON u.id=s.user_id AND u.active=1 AND u.role='student' WHERE s.active=1 AND u.id IS NULL) AS students_without_login,(SELECT COUNT(*) FROM students s LEFT JOIN groups g ON g.id=s.group_id AND g.active=1 WHERE s.active=1 AND g.id IS NULL) AS students_without_active_group,(SELECT COUNT(*) FROM groups g LEFT JOIN users u ON u.id=g.teacher_id AND u.active=1 AND u.role IN ('teacher','admin') WHERE g.active=1 AND (g.teacher_id IS NULL OR u.id IS NULL)) AS groups_without_valid_teacher,(SELECT COUNT(*) FROM sessions WHERE expires_at<=strftime('%Y-%m-%dT%H:%M:%fZ','now')) AS expired_sessions,(SELECT COUNT(*) FROM academy_records) AS saved_records,(SELECT COUNT(*) FROM users WHERE active=1 AND role IN ('director','supervisor')) AS active_director_supervisor_accounts").first(),
+        env.DB.prepare("SELECT role,COUNT(*) AS total FROM users WHERE active=1 GROUP BY role ORDER BY role").all(),
+        env.DB.prepare("SELECT collection,COUNT(*) AS total FROM academy_records GROUP BY collection ORDER BY collection").all()
+      ]);
+      return json({checked_at:nowIso(),storage:"cloudflare-d1",bootstrap_setup_enabled:!!env.BOOTSTRAP_SECRET,counts:counts||{},roles:roles.results||[],collections:collections.results||[]});
+    }
     if(path==="/api/admin/audit"&&method==="GET"){
       if(user.role!=="admin")return fail(403,"forbidden");
       const rows=await env.DB.prepare("SELECT a.id,a.user_id,u.display_name AS actor,a.action,a.metadata_json,a.created_at FROM audit_log a LEFT JOIN users u ON u.id=a.user_id ORDER BY a.created_at DESC LIMIT 200").all();
