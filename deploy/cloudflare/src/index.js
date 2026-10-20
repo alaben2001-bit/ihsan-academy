@@ -384,7 +384,7 @@ export default {
       if(!name||!identity||identity.length>120||(password&&(password.length<8||password.length>256)))return fail(400,"تحقق من الاسم واسم الدخول وكلمة المرور (8 أحرف على الأقل)");
       const duplicate=await env.DB.prepare("SELECT id FROM users WHERE identity_normalized=? AND id<>? LIMIT 1").bind(identity,target.id).first();
       if(duplicate)return fail(409,"اسم الدخول مستخدم بالفعل");
-      if(password)await env.DB.prepare("UPDATE users SET display_name=?,identity_normalized=?,password_hash=? WHERE id=?").bind(name,identity,await passwordHash(password),target.id).run();
+      if(password)await env.DB.prepare("UPDATE users SET display_name=?,identity_normalized=?,password_hash=?,must_change_password=1 WHERE id=?").bind(name,identity,await passwordHash(password),target.id).run();
       else await env.DB.prepare("UPDATE users SET display_name=?,identity_normalized=? WHERE id=?").bind(name,identity,target.id).run();
       await log(env,user.id,"teacher_update",{id:target.id,name});return json({ok:true,name,username:identity});
     }
