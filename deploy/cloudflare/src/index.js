@@ -717,6 +717,83 @@ export default {
       }
       return json({ok:true});
     }
+    if(path==="/api/assignments"&&method==="GET"){
+      const rows=await scopedRecords(env,user,"assignments",user.role==="student");
+      if(user.role!=="student")return json(rows);
+      const submitted=await records(env,"assignment_submissions"," AND student_id=?",[user.student_id||""]);
+      const byAssignment=new Map(submitted.map(item=>[item.assignment_id,item]));
+      return json(rows.map(item=>({...item,my_submission:byAssignment.get(item.id)||null})));
+    }
+    if(path==="/api/assignments"&&method==="POST"){
+      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"إنشاء الواجبات للمعلم والإدارة فقط");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      const title=clean(b.title,180),description=clean(b.description,5000),groupId=clean(b.group_id,80)||null,dueDate=clean(b.due_date,10);
+      const pointsTotal=Number(b.points_total??100);
+      if(!title||!description)return fail(400,"أدخل عنوان الواجب وتعليماته");
+      if(!groupId&&user.role!=="admin")return fail(403,"يمكن للمدير العام وحده إنشاء واجب عام");
+      if(groupId&&!await canManageGroup(env,user,groupId))return fail(403,"لا تملك صلاحية هذا الفوج");
+      if(dueDate&&!/^\\d{4}-\\d{2}-\\d{2}$/.test(dueDate))return fail(400,"صيغة موعد التسليم غير صحيحة");
+      if(!Number.isFinite(pointsTotal)||pointsTotal<1||pointsTotal>1000)return fail(400,"الدرجة الكلية يجب أن تكون من 1 إلى 1000");
+      const assignment={id:uuid(),title,description,group_id:groupId,due_date:dueDate||null,points_total:pointsTotal,status:"published",created_by:user.id,created_at:nowIso()};
+      await saveRecord(env,"assignments",assignment);await log(env,user.id,"assignment_create",{assignment_id:assignment.id,group_id:groupId});
+      return json(assignment,201);
+    }
+    if(path==="/api/assignment-submit"&&method==="POST"){
+      if(user.role!=="student"||!user.student_id||!user.group_id)return fail(403,"تسليم الواجب متاح لحساب الطالب المرتبط بفوج");
+      const assignmentId=clean(url.searchParams.get("id"),80);
+      const raw=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='assignments' AND id=?").bind(assignmentId).first();
+      if(!raw)return fail(404,"الواجب غير موجود");
+      let assignment;try{assignment=JSON.parse(raw.payload_json)}catch{return fail(500,"تعذّرت قراءة الواجب")};
+      if(assignment.status!=="published"||(assignment.group_id&&assignment.group_id!==user.group_id))return fail(403,"هذا الواجب غير متاح لفوجك");
+      const parsed=await parseBody(request,12000);if(parsed.error)return parsed.error;
+      const responseText=clean(parsed.value.response_text,8000);
+      if(!responseText)return fail(400,"اكتب إجابتك أو ما أنجزته قبل التسليم");
+      const submissionId=assignmentId+":"+user.student_id;
+      const old=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='assignment_submissions' AND id=?").bind(submissionId).first();
+      let previous=null;try{previous=old?JSON.parse(old.payload_json):null}catch{}
+      const submission={id:submissionId,assignment_id:assignmentId,student_id:user.student_id,group_id:user.group_id,response_text:responseText,status:"submitted",submitted_at:nowIso(),created_at:previous?.created_at||nowIso(),grade:null,feedback:"",reviewed_by:null,reviewed_at:null};
+      if(previous){submission.grade=previous.grade??null;submission.feedback=previous.feedback||"";submission.reviewed_by=previous.reviewed_by||null;submission.reviewed_at=previous.reviewed_at||null;}
+      await saveRecord(env,"assignment_submissions",submission);await log(env,user.id,"assignment_submit",{assignment_id:assignmentId});
+      return json({ok:true,submission},201);
+    }
+    if(path==="/api/assignment-submissions"&&method==="GET"){
+      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"عرض تسليمات الواجب للمعلم والإدارة فقط");
+      const assignmentId=clean(url.searchParams.get("id"),80);
+      const raw=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='assignments' AND id=?").bind(assignmentId).first();
+      if(!raw)return fail(404,"الواجب غير موجود");
+      let assignment;try{assignment=JSON.parse(raw.payload_json)}catch{return fail(500,"تعذّرت قراءة الواجب")};
+      if(assignment.group_id){if(!await canManageGroup(env,user,assignment.group_id))return fail(403,"لا تملك صلاحية هذا الواجب");}
+      else if(user.role!=="admin")return fail(403,"الواجب العام متاح للمدير العام وحده");
+      let result;
+      if(assignment.group_id)result=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='assignment_submissions' AND group_id=? ORDER BY updated_at DESC LIMIT 500").bind(assignment.group_id).all();
+      else result=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='assignment_submissions' ORDER BY updated_at DESC LIMIT 500").all();
+      const submissions=(result.results||[]).flatMap(row=>{try{return [JSON.parse(row.payload_json)]}catch{return []}}).filter(row=>row.assignment_id===assignmentId);
+      const students=assignment.group_id
+        ? await env.DB.prepare("SELECT id,display_name FROM students WHERE group_id=? AND active=1").bind(assignment.group_id).all()
+        : await env.DB.prepare("SELECT id,display_name FROM students WHERE active=1").all();
+      const names=new Map((students.results||[]).map(row=>[row.id,row.display_name]));
+      return json(submissions.map(row=>({...row,student_name:names.get(row.student_id)||"طالب غير نشط"})));
+    }
+    if(path==="/api/assignment-review"&&method==="POST"){
+      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"مراجعة الواجبات للمعلم والإدارة فقط");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      const assignmentId=clean(b.assignment_id,80),studentId=clean(b.student_id,80);
+      const raw=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='assignments' AND id=?").bind(assignmentId).first();
+      if(!raw)return fail(404,"الواجب غير موجود");
+      let assignment;try{assignment=JSON.parse(raw.payload_json)}catch{return fail(500,"تعذّرت قراءة الواجب")};
+      if(assignment.group_id){if(!await canManageGroup(env,user,assignment.group_id))return fail(403,"لا تملك صلاحية هذا الواجب");}
+      else if(user.role!=="admin")return fail(403,"الواجب العام متاح للمدير العام وحده");
+      const submissionId=assignmentId+":"+studentId;
+      const row=await env.DB.prepare("SELECT payload_json,group_id FROM academy_records WHERE collection='assignment_submissions' AND id=?").bind(submissionId).first();
+      if(!row)return fail(404,"لا يوجد تسليم لهذا الطالب");
+      let submission;try{submission=JSON.parse(row.payload_json)}catch{return fail(500,"تعذّرت قراءة التسليم")};
+      if(submission.assignment_id!==assignmentId||(assignment.group_id&&submission.group_id!==assignment.group_id))return fail(403,"هذا التسليم لا يتبع هذا الواجب");
+      const grade=b.grade===""||b.grade===null||b.grade===undefined?null:Number(b.grade);
+      if(grade!==null&&(!Number.isFinite(grade)||grade<0||grade>Number(assignment.points_total||100)))return fail(400,"الدرجة خارج النطاق المسموح");
+      submission.grade=grade;submission.feedback=clean(b.feedback,2000);submission.status="reviewed";submission.reviewed_by=user.id;submission.reviewed_at=nowIso();
+      await saveRecord(env,"assignment_submissions",submission);await log(env,user.id,"assignment_review",{assignment_id:assignmentId,student_id:studentId,grade});
+      return json({ok:true,submission});
+    }
     if(path==="/api/posts"&&method==="GET")return json(await scopedRecords(env,user,"posts",user.role==="student"));
     if(path==="/api/posts"&&method==="POST"){
       if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"النشر للمعلم أو المدير");
