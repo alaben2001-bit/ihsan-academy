@@ -75,6 +75,8 @@ assert.match(app, /data-week-part="understanding"/, "the Quran plan must let use
 assert.match(app, /data-week-part="application"/, "the Quran plan must let users set weekly application targets");
 assert.match(app, /weekly_targets:\[0,1,2,3\]\.map/, "the UI must save four structured weekly targets rather than one repeated field");
 assert.match(backend, /frequency_days:14,recurring,series_id:seriesId/, "recurring tests must record their two-week cadence");
+assert.match(backend, /day:academyDate\(\),submitted_at:nowIso\(\)/, "quiz attempts must store the school-local day for heart penalties");
+assert.match(backend, /a\.day\|\|\(a\.submitted_at\?academyDate\(new Date\(a\.submitted_at\)\):""\)/, "older quiz attempts must be classified by school-local date when calculating daily hearts");
 
 
 
