@@ -377,7 +377,24 @@ export default {
       return json({ok:true});
     }
     if(path==="/api/tests"&&method==="GET"){
-      const all=await scopedRecords(env,user,"tests",user.role==="student");
+      // Recurring assessments roll forward in fixed 14-day intervals when the test area is next opened.
+      // Deterministic IDs prevent duplicate instances if multiple requests arrive together.
+      const today=nowIso().slice(0,10),storedTests=await records(env,"tests"),latestBySeries=new Map();
+      for(const item of storedTests){if(!item.recurring||!item.series_id)continue;const prior=latestBySeries.get(item.series_id);if(!prior||Number(item.sequence||1)>Number(prior.sequence||1))latestBySeries.set(item.series_id,item);}
+      for(const latest of latestBySeries.values()){
+        if(!latest.due_date||latest.due_date>today)continue;
+        const interval=Math.max(1,Number(latest.frequency_days)||14),elapsed=Math.floor((Date.parse(today+"T00:00:00Z")-Date.parse(latest.due_date+"T00:00:00Z"))/(interval*86400000))+1;
+        const sequence=Number(latest.sequence||1)+elapsed,id=String(latest.series_id)+":"+sequence;
+        if(storedTests.some(item=>item.id===id))continue;
+        const nextDue=new Date(Date.parse(latest.due_date+"T00:00:00Z")+elapsed*interval*86400000).toISOString().slice(0,10);
+        await saveRecord(env,"tests",{...latest,id,sequence,due_date:nextDue,previous_test_id:latest.id,created_at:nowIso()});
+      }
+      let all=await scopedRecords(env,user,"tests",user.role==="student");
+      if(user.role==="student"){
+        const latestSequence=new Map();
+        for(const item of all){if(!item.recurring||!item.series_id)continue;latestSequence.set(item.series_id,Math.max(latestSequence.get(item.series_id)||0,Number(item.sequence||1)));}
+        all=all.filter(item=>!item.recurring||!item.series_id||Number(item.sequence||1)===latestSequence.get(item.series_id));
+      }
       if(user.role==="student"){
         const attempts=await records(env,"test_attempts");
         return json(all.map(t=>{
@@ -404,7 +421,8 @@ export default {
       }
       const due=String(b.due_date||"");
       const defaultDue=new Date(Date.now()+14*24*60*60*1000).toISOString().slice(0,10);
-      const test={id:uuid(),title,description,group_id:groupId,due_date:/^\d{4}-\d{2}-\d{2}$/.test(due)?due:defaultDue,frequency_days:14,questions:normalized,status:"published",created_by:user.id,created_at:nowIso()};
+      const recurring=b.recurring!==false,seriesId=recurring?uuid():null;
+      const test={id:uuid(),title,description,group_id:groupId,due_date:/^\d{4}-\d{2}-\d{2}$/.test(due)?due:defaultDue,frequency_days:14,recurring,series_id:seriesId,sequence:1,questions:normalized,status:"published",created_by:user.id,created_at:nowIso()};
       await saveRecord(env,"tests",test);await log(env,user.id,"test_create",{test_id:test.id,group_id:groupId,questions:normalized.length});
       return json(test,201);
     }
