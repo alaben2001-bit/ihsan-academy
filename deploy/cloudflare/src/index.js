@@ -9,6 +9,7 @@ const JSON_HEADERS = {
 const json = (data, status = 200, extra = {}) => new Response(JSON.stringify(data), { status, headers: { ...JSON_HEADERS, ...extra } });
 const fail = (status, error) => json({ error }, status);
 const nowIso = () => new Date().toISOString();
+const BULK_STUDENT_ONBOARDING_IDS=["roster-20261020-01","roster-20261020-04","roster-20261020-05","roster-20261020-07","roster-20261020-09","roster-20261020-11","roster-20261020-13","roster-20261020-14","roster-20261020-15","roster-20261020-16","roster-20261020-18","roster-20261020-19","roster-20261020-20","roster-20261020-22","roster-20261020-23","roster-20261020-24","roster-20261020-26","roster-20261020-27","roster-20261020-28","roster-20261020-29","roster-20261020-30","roster-20261020-32","roster-20261020-33","roster-20261020-35","roster-20261020-36","roster-20261020-37","roster-20261020-38","roster-20261020-39","roster-20261020-42","roster-20261020-43","roster-20261020-44","roster-20261020-46","roster-20261020-47","roster-20261020-49","roster-20261020-50","roster-20261020-51","roster-20261020-53","roster-20261020-54","roster-20261020-55"];
 const clean = (v, max = 200) => String(v ?? "").trim().slice(0, max);
 const uuid = () => crypto.randomUUID();
 const hex = bytes => [...new Uint8Array(bytes)].map(b => b.toString(16).padStart(2, "0")).join("");
@@ -420,16 +421,28 @@ export default {
       await log(env,user.id,"student_account_created",{student_id:s.id,group_id:s.group_id});
       return json({ok:true,id:s.id,user_id:userId,name,username:identity,group_id:s.group_id},201);
     }
+    if(path==="/api/admin/students/bulk-onboarding/status"&&method==="GET"){
+      if(user.role!=="admin")return fail(403,"تهيئة حسابات الطلاب الجماعية للمدير العام فقط");
+      const raw=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='platform_settings' AND id='student_bulk_onboarding_v1'").first();
+      let state={};try{state=raw?JSON.parse(raw.payload_json):{}}catch{}
+      const done=Array.isArray(state.completed_student_ids)?state.completed_student_ids:[];
+      return json({completed:state.completed===true&&BULK_STUDENT_ONBOARDING_IDS.every(id=>done.includes(id)),completed_count:done.length,total:BULK_STUDENT_ONBOARDING_IDS.length});
+    }
     if(path==="/api/admin/students/bulk-onboarding"&&method==="POST"){
       if(user.role!=="admin")return fail(403,"تهيئة حسابات الطلاب الجماعية للمدير العام فقط");
       const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
-      let requested=Array.isArray(b.student_ids)?[...new Set(b.student_ids.map(x=>clean(x,80)).filter(Boolean))]:[];
-      if(b.all_missing===true){
-        const missing=await env.DB.prepare("SELECT id FROM students WHERE active=1 AND user_id IS NULL AND group_id IN (SELECT id FROM groups WHERE active=1) ORDER BY display_name LIMIT 100").all();
-        requested=(missing.results||[]).map(x=>x.id);
-      }
-      if(!requested.length||requested.length>100)return fail(400,"اختر من طالب واحد إلى 100 طالب");
+      const requestedInput=Array.isArray(b.student_ids)?[...new Set(b.student_ids.map(x=>clean(x,80)).filter(Boolean))]:[];
+      if(!requestedInput.length||requestedInput.length>BULK_STUDENT_ONBOARDING_IDS.length||requestedInput.some(id=>!BULK_STUDENT_ONBOARDING_IDS.includes(id)))return fail(400,"اختر أسماء الفوج المحددة في إجراء التهيئة فقط");
+      const markerId="student_bulk_onboarding_v1";
+      const rawState=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='platform_settings' AND id=?").bind(markerId).first();
+      let state={};try{state=rawState?JSON.parse(rawState.payload_json):{}}catch{}
+      const completedIds=new Set(Array.isArray(state.completed_student_ids)?state.completed_student_ids:[]);
+      if(state.completed===true&&BULK_STUDENT_ONBOARDING_IDS.every(id=>completedIds.has(id)))return fail(409,"تم تجهيز حسابات الأسماء الكاملة بالفعل. أُخفي هذا الإجراء من المنصة.");
+      const requested=requestedInput.filter(id=>!completedIds.has(id));
+      if(!requested.length)return fail(409,"اكتملت أسماء هذه الدفعة سابقًا.");
       const credentials=[],skipped=[];let created=0,reset=0;
+      const passwordAlphabet="ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
+      const temporaryPassword=()=>Array.from(crypto.getRandomValues(new Uint8Array(8)),b=>passwordAlphabet[b%passwordAlphabet.length]).join("");
       for(const studentId of requested){
         const st=await env.DB.prepare("SELECT id,display_name,group_id,user_id FROM students WHERE id=? AND active=1").bind(studentId).first();
         if(!st||!st.group_id){skipped.push({student_id:studentId,reason:"not_eligible"});continue}
@@ -438,25 +451,29 @@ export default {
           if(b.reset_existing!==true){skipped.push({student_id:studentId,reason:"already_linked"});continue}
           const existing=await env.DB.prepare("SELECT id,display_name,identity_normalized,role,active FROM users WHERE id=?").bind(st.user_id).first();
           if(!existing||existing.role!=="student"||existing.active!==1){skipped.push({student_id:studentId,reason:"invalid_linked_account"});continue}
-          const password=hex(crypto.getRandomValues(new Uint8Array(24)));
+          const password=temporaryPassword();
           await env.DB.prepare("UPDATE users SET display_name=?,password_hash=? WHERE id=?").bind(st.display_name,await passwordHash(password),existing.id).run();
           credentials.push({student_id:st.id,name:st.display_name,group_id:st.group_id,username:existing.identity_normalized,password,reset_existing:true});
-          reset++;
+          reset++;completedIds.add(st.id);
+          await saveRecord(env,"platform_settings",{id:markerId,owner_user_id:user.id,completed:false,completed_student_ids:[...completedIds],target_student_ids:BULK_STUDENT_ONBOARDING_IDS,updated_at:nowIso()});
           continue;
         }
-        const base="talib-"+st.id.replace(/[^a-z0-9]/gi,"").slice(0,10).toLowerCase();
+        const base=st.display_name.trim().toLowerCase();
         let identity=base,tryNo=0;
         while(await env.DB.prepare("SELECT id FROM users WHERE identity_normalized=? LIMIT 1").bind(identity).first()){
-          tryNo++;identity=base+"-"+tryNo;if(tryNo>20){identity="talib-"+uuid().replace(/-/g,"").slice(0,12).toLowerCase();break}
+          tryNo++;identity=base+" ("+st.id.slice(-4)+")";
+          if(tryNo>1)identity=base+" ("+st.id.slice(-4)+"-"+tryNo+")";
+          if(tryNo>20){identity=base+" ("+uuid().replace(/-/g,"").slice(0,8)+")";break}
         }
-        const password=hex(crypto.getRandomValues(new Uint8Array(24))),userId=uuid();
+        const password=temporaryPassword(),userId=uuid();
         try{
           await env.DB.prepare("INSERT INTO users(id,display_name,identity_normalized,password_hash,role,active) VALUES(?,?,?,?, 'student',1)").bind(userId,st.display_name,identity,await passwordHash(password)).run();
           await env.DB.prepare("UPDATE students SET user_id=? WHERE id=? AND user_id IS NULL").bind(userId,st.id).run();
           const linked=await env.DB.prepare("SELECT user_id FROM students WHERE id=?").bind(st.id).first();
           if(!linked||linked.user_id!==userId){await env.DB.prepare("DELETE FROM users WHERE id=?").bind(userId).run();skipped.push({student_id:studentId,reason:"already_linked"});continue}
           credentials.push({student_id:st.id,name:st.display_name,group_id:st.group_id,username:identity,password,reset_existing:false});
-          created++;
+          created++;completedIds.add(st.id);
+          await saveRecord(env,"platform_settings",{id:markerId,owner_user_id:user.id,completed:false,completed_student_ids:[...completedIds],target_student_ids:BULK_STUDENT_ONBOARDING_IDS,updated_at:nowIso()});
         }catch(error){
           await env.DB.prepare("UPDATE students SET user_id=NULL WHERE id=? AND user_id=?").bind(st.id,userId).run().catch(()=>{});
           await env.DB.prepare("DELETE FROM users WHERE id=?").bind(userId).run().catch(()=>{});
@@ -464,8 +481,10 @@ export default {
           console.error("Ihsan bulk student onboarding failed",{student_id:studentId,message:String(error?.message||error)});
         }
       }
-      await log(env,user.id,"student_bulk_onboarding",{created,reset_existing:reset,skipped:skipped.length});
-      return json({ok:true,created,reset,skipped:skipped.length,credentials,skipped_rows:skipped.map(x=>({student_id:x.student_id,reason:x.reason}))},201);
+      const completed=BULK_STUDENT_ONBOARDING_IDS.every(id=>completedIds.has(id));
+      await saveRecord(env,"platform_settings",{id:markerId,owner_user_id:user.id,completed,completed_student_ids:[...completedIds],target_student_ids:BULK_STUDENT_ONBOARDING_IDS,completed_at:completed?nowIso():null,updated_at:nowIso()});
+      await log(env,user.id,"student_bulk_onboarding",{created,reset_existing:reset,skipped:skipped.length,completed});
+      return json({ok:true,created,reset,skipped:skipped.length,completed,completed_count:completedIds.size,total:BULK_STUDENT_ONBOARDING_IDS.length,credentials,skipped_rows:skipped.map(x=>({student_id:x.student_id,reason:x.reason}))},201);
     }
     const studentMatch=path.match(/^\/api\/students\/([^/]+)$/);
     if(studentMatch&&method==="PATCH"){
