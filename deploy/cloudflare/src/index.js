@@ -480,7 +480,7 @@ export default {
         if(!studentId)return fail(400,"حدد الطالب");
       }
       const st=await env.DB.prepare("SELECT group_id FROM students WHERE id=? AND active=1").bind(studentId).first();
-      if(!st||!await canManageGroup(env,user,st.group_id))return fail(403,"لا تملك صلاحية هذا الطالب");
+      if(!st||(user.role!=="student"&&!await canManageGroup(env,user,st.group_id)))return fail(403,"لا تملك صلاحية هذا الطالب");
       const pathId=clean(b.path_id,40),allowed=["khatma","45","30","15","starter"];
       if(!allowed.includes(pathId))return fail(400,"اختر مسارًا قرآنيًا صحيحًا");
       const weeklyGoal=clean(b.weekly_goal,250);
