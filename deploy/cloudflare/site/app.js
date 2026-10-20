@@ -251,7 +251,7 @@ async function auditPage(v){
  v.innerHTML=head("سجل العمليات","مراجعة أحدث العمليات الإدارية لتسهيل تتبع التغييرات.")+'<div class="loading">جار تحميل السجل…</div>';
  try{
   const rows=await api("/admin/audit");
-  const labels={login:"تسجيل دخول",logout:"تسجيل خروج",admin_bootstrap:"إنشاء المدير",password_change:"تغيير كلمة المرور",group_create:"إنشاء فوج",group_update:"تعديل فوج",teacher_create:"إنشاء معلم",teacher_update:"تعديل معلم",student_create:"إنشاء طالب",student_update:"تعديل طالب",attendance_save:"حفظ الحضور",quran_progress_add:"إضافة متابعة قرآنية",quran_progress_update:"تعديل متابعة قرآنية",quran_progress_delete:"حذف متابعة قرآنية",test_create:"إنشاء اختبار",test_submit:"تقديم اختبار",post_create:"نشر محتوى",notification_create:"نشر تنبيه",admin_backup_export:"تصدير نسخة احتياطية",lesson_create:"إضافة درس",lesson_update:"تعديل درس",lesson_delete:"حذف درس"};
+  const labels={login:"تسجيل دخول",logout:"تسجيل خروج",admin_bootstrap:"إنشاء المدير",password_change:"تغيير كلمة المرور",group_create:"إنشاء فوج",group_update:"تعديل فوج",teacher_create:"إنشاء معلم",teacher_update:"تعديل معلم",student_create:"إنشاء طالب",student_update:"تعديل طالب",attendance_save:"حفظ الحضور",quran_progress_add:"إضافة متابعة قرآنية",quran_progress_update:"تعديل متابعة قرآنية",quran_progress_delete:"حذف متابعة قرآنية",test_create:"إنشاء اختبار",test_submit:"تقديم اختبار",post_create:"نشر محتوى",notification_create:"نشر تنبيه",admin_backup_export:"تصدير نسخة احتياطية",admin_backup_full_export:"تصدير نسخة كاملة",admin_backup_restore:"استعادة نسخة",lesson_create:"إضافة درس",lesson_update:"تعديل درس",lesson_delete:"حذف درس"};
   v.innerHTML=head("سجل العمليات","أحدث 200 عملية محفوظة في سجل التدقيق.")+'<section class="card"><div class="student-actions"><button class="btn secondary" id="audit-refresh">تحديث السجل</button><span class="muted small">'+rows.length+' عملية معروضة</span></div>'+
   (rows.length?'<div class="table-wrap"><table><thead><tr><th>الوقت</th><th>الحساب</th><th>العملية</th><th>تفاصيل</th></tr></thead><tbody>'+rows.map(r=>'<tr><td>'+esc(r.created_at||"")+'</td><td>'+esc(r.actor||"")+'</td><td>'+esc(labels[r.action]||r.action||"عملية")+'</td><td><details><summary>عرض التفاصيل</summary><pre class="audit-metadata">'+esc(JSON.stringify(r.metadata||{},null,2))+'</pre></details></td></tr>').join("")+'</tbody></table></div>':'<div class="empty">لا توجد عمليات مسجلة بعد.</div>')+
  '<p class="muted small">سجل التدقيق يساعد على التتبع ولا يغني عن النسخ الاحتياطي. لا تعرض هذه الصفحة كلمات المرور أو رموز الجلسات.</p></section>';
@@ -264,7 +264,7 @@ async function backupPage(v){
  let summary;
  try{summary=await api("/admin/backup/summary")}catch(e){v.innerHTML=head("النسخ الاحتياطي","تعذّر فحص بيانات الأكاديمية.")+'<div class="notice error">'+esc(e.message)+'</div><button class="btn" id="backup-retry">إعادة المحاولة</button>';$("#backup-retry")?.addEventListener("click",()=>backupPage(v));return}
  const counts=summary.counts||{};
- v.innerHTML=head("النسخ الاحتياطي","أنشئ نسخة JSON محلية من بيانات التشغيل المهمة، واحتفظ بها في مكان آمن.")+
+ v.innerHTML=head("النسخ الاحتياطي","نسختان مختلفتان: نسخة تشغيلية خفيفة، ونسخة كاملة قابلة للدمج والاستعادة.")+
  '<section class="card"><h3>ملخص البيانات الحالية</h3><div class="stats">'+
  '<div class="stat"><small>الحسابات النشطة</small><strong>'+Number(counts.users||0)+'</strong></div>'+
  '<div class="stat"><small>الأفواج النشطة</small><strong>'+Number(counts.groups||0)+'</strong></div>'+
@@ -272,22 +272,25 @@ async function backupPage(v){
  '<div class="stat"><small>السجلات التعليمية</small><strong>'+Number(counts.records||0)+'</strong></div>'+
  '<div class="stat"><small>سجل العمليات</small><strong>'+Number(counts.audit_entries||0)+'</strong></div></div>'+
  '<p class="muted small">آخر فحص: '+esc(summary.created_at||"")+'</p></section>'+
- '<section class="card stack"><h3>تصدير نسخة البيانات</h3><p>تشمل النسخة الحسابات الأساسية دون كلمات المرور، والأفواج، والطلاب، وسجلات الحضور والتقدم والاختبارات والمحتوى، والمدارس القرآنية، وآخر 5000 عملية إدارية.</p>'+
- '<div class="notice">النسخة تحتوي بيانات طلاب خاصة. احفظها على جهاز موثوق، ولا ترسلها في مجموعات أو ترفعها إلى موقع عام.</div>'+
- '<div class="notice error">تنبيه: هذه نسخة تصدير تشغيلية وليست أداة استعادة تلقائية. لا تتضمن كلمات المرور أو الجلسات، لذلك لا يمكنها وحدها إعادة إنشاء الحسابات كما هي.</div>'+
- '<button class="btn" id="backup-export">تنزيل نسخة البيانات JSON</button><p class="muted small">أنشئ نسخة دورية واحتفظ بنسختين في مكانين آمنين. يلزم اختبار استعادة مستقل قبل الاعتماد على النسخ الاحتياطي للطوارئ.</p></section>';
- $("#backup-export")?.addEventListener("click",async e=>{
-  const button=e.currentTarget;button.disabled=true;button.textContent="جار تجهيز النسخة…";
-  try{
-   const data=await api("/admin/backup/export");
-   const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json;charset=utf-8"});
-   const url=URL.createObjectURL(blob),a=document.createElement("a");
-   const date=new Date().toISOString().slice(0,10);a.href=url;a.download="ihsan-academy-backup-"+date+".json";
-   document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);
-   toast("تم تجهيز ملف النسخة وتنزيله؛ احفظه في مكان آمن.");
-  }catch(err){toast(err.message||"تعذّر إنشاء النسخة",true)}
-  finally{if(button.isConnected){button.disabled=false;button.textContent="تنزيل نسخة البيانات JSON"}}
- });
+ '<section class="card stack"><h3>١. تصدير نسخة تشغيلية</h3><p>تتضمن بيانات الحسابات دون بصمات كلمات المرور، والأفواج، والطلاب، والسجلات التطبيقية، والمدارس القرآنية، وآخر 5000 عملية.</p>'+
+ '<button class="btn secondary" id="backup-export">تنزيل النسخة التشغيلية JSON</button></section>'+
+ '<section class="card stack"><h3>٢. النسخة الكاملة للاستعادة</h3><p>تتضمن كل المستخدمين مع بصمات كلمات المرور، وكل الأفواج والطلاب والسجلات والمدارس وسجل التدقيق. لا تتضمن رموز الجلسات ومحاولات الدخول.</p>'+
+ '<div class="notice error">ملف النسخة الكاملة سرّي جدًا: يحوي بصمات كلمات المرور وبيانات الطلاب. لا ترسله لأحد، ولا ترفعه إلى GitHub أو أي موقع عام.</div>'+
+ '<button class="btn" id="backup-full-export">تنزيل النسخة الكاملة القابلة للاستعادة</button>'+
+ '<p class="muted small">الاستعادة أدناه تدمج البيانات وتحدّث السجلات ذات المعرّفات المطابقة؛ لا تحذف سجلات موجودة خارج الملف. جرّبها أولًا في بيئة منفصلة قبل الاعتماد عليها للطوارئ.</p></section>'+
+ '<section class="card stack"><h3>٣. دمج نسخة كاملة محفوظة</h3>'+
+ '<label class="field">ملف النسخة الكاملة v2<input id="restore-file" type="file" accept=".json,application/json"></label>'+
+ '<div id="restore-preview" class="notice hidden">اختر ملفًا لمعاينة محتوياته.</div>'+
+ '<label class="field">اكتب «استعادة» للتأكيد<input id="restore-confirm" autocomplete="off" maxlength="20" placeholder="استعادة"></label>'+
+ '<label class="remember-option"><input id="restore-approve" type="checkbox"> أفهم أن الاستعادة تحدّث السجلات المطابقة، ولا تحذف سجلات أخرى.</label>'+
+ '<button class="btn" id="restore-submit" disabled>دمج النسخة في قاعدة البيانات</button>'+
+ '<p class="muted small">الحد الأقصى للملف 8 ميغابايت. إذا توقفت الاستعادة بعد جزء من الدفعات، أعد المحاولة بالملف نفسه؛ الدمج بمعرّفات ثابتة قابل لإعادة المحاولة.</p></section>';
+ const download=(data,name)=>{const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json;charset=utf-8"});const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)};
+ $("#backup-export")?.addEventListener("click",async e=>{const b=e.currentTarget;b.disabled=true;b.textContent="جار تجهيز النسخة…";try{const data=await api("/admin/backup/export");download(data,"ihsan-academy-operational-backup-"+new Date().toISOString().slice(0,10)+".json");toast("تم تنزيل النسخة التشغيلية؛ احفظها في مكان آمن.")}catch(err){toast(err.message||"تعذّر إنشاء النسخة",true)}finally{if(b.isConnected){b.disabled=false;b.textContent="تنزيل النسخة التشغيلية JSON"}}});
+ $("#backup-full-export")?.addEventListener("click",async e=>{const b=e.currentTarget;if(!confirm("النسخة الكاملة تتضمن بصمات كلمات المرور وبيانات الطلاب. هل تريد تنزيلها إلى هذا الجهاز؟"))return;b.disabled=true;b.textContent="جار تجهيز النسخة الكاملة…";try{const data=await api("/admin/backup/full-export");download(data,"ihsan-academy-full-backup-"+new Date().toISOString().slice(0,10)+".json");toast("تم تنزيل النسخة الكاملة. احفظها بعيدًا عن المشاركة العامة.")}catch(err){toast(err.message||"تعذّر إنشاء النسخة",true)}finally{if(b.isConnected){b.disabled=false;b.textContent="تنزيل النسخة الكاملة القابلة للاستعادة"}}});
+ let restoreBackup=null;
+ $("#restore-file")?.addEventListener("change",async e=>{const file=e.currentTarget.files?.[0],info=$("#restore-preview"),submit=$("#restore-submit");restoreBackup=null;submit.disabled=true;info.classList.remove("hidden","error");if(!file){info.textContent="اختر ملفًا لمعاينة محتوياته.";return}if(file.size>8*1024*1024){info.textContent="حجم الملف أكبر من 8 ميغابايت.";info.classList.add("error");return}try{const data=JSON.parse(await file.text());if(data.format!=="ihsan-academy-full-backup-v2"||!data.data){throw Error("هذه ليست نسخة كاملة v2؛ لن يتم إرسال الملف.")}restoreBackup=data;const d=data.data;info.textContent="النسخة صالحة مبدئيًا — الحسابات: "+(d.users?.length||0)+"، الأفواج: "+(d.groups?.length||0)+"، الطلاب: "+(d.students?.length||0)+"، السجلات: "+(d.academy_records?.length||0)+"، المدارس: "+(d.quran_schools?.length||0)+"، عمليات التدقيق: "+(d.audit_log?.length||0)+". فحص العلاقات يتم على الخادم قبل الحفظ.";submit.disabled=false}catch(err){info.textContent=err.message||"تعذر قراءة ملف النسخة.";info.classList.add("error")}});
+ $("#restore-submit")?.addEventListener("click",async e=>{e.preventDefault();const b=e.currentTarget;if(!restoreBackup)return toast("اختر نسخة كاملة صالحة أولًا.",true);if($("#restore-confirm")?.value.trim()!=="استعادة")return toast("اكتب كلمة «استعادة» لتأكيد العملية.",true);if(!$("#restore-approve")?.checked)return toast("ضع علامة الموافقة قبل الدمج.",true);if(!confirm("سيُدمج الملف في قاعدة البيانات. السجلات ذات المعرّفات المطابقة ستُحدّث من النسخة، ولن تُحذف بقية السجلات. المتابعة؟"))return;b.disabled=true;b.textContent="جار التحقق والدمج…";try{const result=await api("/admin/backup/restore",{method:"POST",body:JSON.stringify({...restoreBackup,confirm_restore:"RESTORE-IHSAN-ACADEMY"})});toast("تم الدمج: "+(result.restored?.students||0)+" سجل طالب و"+(result.restored?.records||0)+" سجلًا تطبيقيًا.");await backupPage(v)}catch(err){toast(err.message||"تعذّرت الاستعادة",true);b.disabled=false;b.textContent="دمج النسخة في قاعدة البيانات"}});
 }
 function questionEditor(n){return '<div class="question-builder" data-question><h4>السؤال '+n+'</h4><label class="field">نص السؤال<textarea data-q-prompt required maxlength="500" placeholder="اكتب السؤال هنا"></textarea></label><div class="form-grid">'+[0,1,2,3].map(i=>'<label class="field">الخيار '+(i+1)+'<input data-q-choice="'+i+'" required maxlength="250" placeholder="نص الخيار"></label>').join("")+'</div><label class="field">الإجابة الصحيحة<select data-q-correct><option value="0">الخيار الأول</option><option value="1">الخيار الثاني</option><option value="2">الخيار الثالث</option><option value="3">الخيار الرابع</option></select></label></div>'}
 async function testsPage(v){
