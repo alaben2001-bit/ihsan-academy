@@ -86,3 +86,8 @@ html{scroll-behavior:smooth}
 .quran-plan-card h3{margin:7px 0 10px}
 .quran-plan-form{max-width:760px}
 .quran-plan-card .notice{line-height:1.8}
+
+.password-dialog{width:min(520px,calc(100% - 28px));max-width:calc(100% - 28px);border:1px solid var(--line);border-radius:20px;padding:24px;color:var(--ink);background:var(--paper);box-shadow:0 24px 80px #0b241a35}
+.password-dialog::backdrop{background:#10251d80;backdrop-filter:blur(4px)}
+.password-dialog h2{margin:0;font-size:21px}
+.password-dialog .student-actions{justify-content:flex-start}
