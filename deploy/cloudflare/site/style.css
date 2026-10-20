@@ -1083,3 +1083,41 @@ body:has(.auth-layout) footer{margin-top:auto}
 @media(prefers-reduced-motion:reduce){
   .app-authenticated .nav-btn{transition:none!important}
 }
+
+/* Launch polish: public Google Identity Services, PWA installation and phone layouts. */
+#top-actions #install-app{display:inline-flex;align-items:center;justify-content:center;white-space:nowrap}
+#top-actions #install-app:disabled{opacity:.72;cursor:default}
+.login-divider{display:flex;align-items:center;gap:12px;margin:4px 0 0;color:#839087;font-size:11px}
+.login-divider:before,.login-divider:after{content:"";height:1px;flex:1;background:#e5ebe6}
+.google-login-section{display:grid;justify-items:center;gap:8px;width:100%;margin-top:2px}
+#google-signin{display:flex;justify-content:center;width:100%;min-height:42px}
+#google-login-note{margin:0;max-width:380px;text-align:center;line-height:1.8;font-size:11px}
+#google-login-note.google-note-error{color:#a63232}
+.google-signin-placeholder{display:flex;align-items:center;justify-content:center;gap:10px;width:min(100%,320px);min-height:42px;padding:8px 13px;border:1px solid #dadce0;border-radius:5px;background:#fff;color:#5f6368;font-weight:600;font-size:13px;opacity:.78}
+.google-letter{font-family:Arial,sans-serif;font-size:19px;font-weight:800;color:#4285f4}
+.password-manager-note{margin:-5px 0 0;color:#7a8980;font-size:11px;line-height:1.8}
+.install-guide-dialog{width:min(460px,calc(100% - 28px));max-width:460px;max-height:min(86dvh,680px);padding:0;border:1px solid #dce6df;border-radius:16px;background:#fff;color:#1d3029;box-shadow:0 24px 80px rgba(0,0,0,.25);overflow:auto}
+.install-guide-dialog::backdrop{background:rgba(2,24,16,.56);backdrop-filter:blur(3px)}
+.install-guide-head{display:flex;align-items:flex-start;gap:12px;padding:22px 22px 18px;border-bottom:1px solid #e8eee9;background:#f8faf8}
+.install-guide-mark{display:grid;place-items:center;flex:0 0 40px;width:40px;height:40px;border-radius:10px;background:#e8f1ea;color:#064e3b;font-size:25px;font-weight:700}
+.install-guide-head>div{flex:1;min-width:0}
+.install-guide-head h2{margin:0 0 6px;font-size:17px;line-height:1.6;color:#143d2d}
+.install-guide-head p{margin:0;font-size:12px;line-height:1.8;color:#6c7b73}
+.install-guide-x{display:grid;place-items:center;flex:0 0 30px;width:30px;height:30px;border:0;border-radius:8px;background:transparent;color:#75847b;font-size:24px}
+.install-guide-content{padding:18px 24px 8px}
+.install-guide-content ol{display:grid;gap:11px;padding-inline-start:25px;margin:0;line-height:1.9;font-size:13px}
+.install-guide-content li{padding-inline-start:4px}
+.install-guide-content li::marker{color:#47745a;font-weight:800}
+.install-guide-note{margin:18px 0 8px;padding:11px 12px;border-radius:9px;background:#f1f6f2;color:#5c7063;font-size:11px;line-height:1.8}
+.install-guide-footer{display:flex;justify-content:flex-start;padding:14px 22px 20px}
+.install-guide-footer .btn{min-width:110px}
+@media(max-width:680px){
+ #top-actions{max-width:none;gap:4px}
+ #top-actions #install-app,.app-authenticated #top-actions #install-app{display:inline-flex!important;flex:0 0 auto;min-height:34px;padding:6px 8px;font-size:10px;white-space:nowrap}
+ .app-authenticated .workspace-head #top-actions{max-width:100%;width:auto;flex-wrap:wrap;gap:4px}
+ .app-authenticated .workspace-head #top-actions .btn{min-height:32px;padding:5px 7px;font-size:10px}
+ .install-guide-head{padding:17px 16px 14px;gap:9px}
+ .install-guide-head h2{font-size:15px}
+ .install-guide-content{padding:15px 18px 6px}
+}
+@media(prefers-reduced-motion:reduce){.install-guide-dialog *{transition:none!important}}
