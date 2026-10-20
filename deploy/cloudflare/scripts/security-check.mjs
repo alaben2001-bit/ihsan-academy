@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
-import { validDateOnly } from "../src/index.js";
+import { validDateOnly, academyDate, addCalendarDays } from "../src/index.js";
 
 const [backend, app, index, serviceWorker, migration] = await Promise.all([
   readFile("src/index.js", "utf8"),
@@ -17,6 +17,10 @@ assert.equal(validDateOnly("2026-13-01"), false, "out-of-range months must be re
 assert.equal(validDateOnly("2026-00-10"), false, "zero months must be rejected");
 assert.equal(validDateOnly("not-a-date"), false, "non-date values must be rejected");
 assert.equal(validDateOnly(""), false, "empty dates must be rejected");
+assert.equal(academyDate(new Date("2026-10-20T22:30:00.000Z")), "2026-10-20", "Algeria local date must remain the same before local midnight");
+assert.equal(academyDate(new Date("2026-10-20T23:30:00.000Z")), "2026-10-21", "Algeria local date must advance after midnight even when UTC is still on the prior date");
+assert.equal(addCalendarDays("2026-10-20", 14), "2026-11-03", "two-week test due dates must advance by calendar days");
+
 
 // These are static regression guardrails, not a replacement for live role-by-role acceptance tests.
 assert.ok(backend.includes('const temporaryPassword=()=>"Ih!"+hex(crypto.getRandomValues(new Uint8Array(10)))'), "temporary passwords must be randomly generated");
