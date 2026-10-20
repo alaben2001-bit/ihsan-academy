@@ -231,7 +231,9 @@ function buildNav() {
   const mainIds = S.user.role === 'student' ? ['dashboard', 'learning-hub', 'quran', 'media', 'journey'] : S.user.role === 'teacher' ? ['dashboard', 'learning-hub', 'students', 'curriculum', 'attendance'] : S.user.role === 'admin' ? ['dashboard', 'learning-hub', 'teams', 'school-directory', 'notifications'] : S.user.role === 'chief_supervisor' ? ['dashboard', 'learning-hub', 'teams', 'school-directory', 'notifications'] : S.user.role === 'parent' ? ['dashboard', 'learning-hub', 'children', 'media', 'notifications'] : ['dashboard', 'learning-hub', 'students', 'curriculum', 'school-directory'];
   const mainMeta = { dashboard:['الرئيسية','home'], 'learning-hub':['التعلّم','brain'], quran:['القرآن','quran'], media:['مكتبة الشيخ','media'], journey:['رحلتي','trend'], students:['الطلاب','user'], curriculum:['المنهج','book'], attendance:['الحضور','check'], teams:['فرق المدرسة','group'], 'school-directory':['مدرستي','group'], children:['أبنائي','user'], notifications:['الإشعارات','bell'] };
   const main = mainIds.map(id => items.find(x => x[0] === id) || [id, (mainMeta[id] || [PAGES[id]?.[0] || id, 'home'])[0], (mainMeta[id] || ['', 'home'])[1]]).filter(([id]) => !!PAGES[id]);
-  put($('#bottomNav'), html`${main.map(([id, l, ic]) => html`<button data-act="nav" data-page="${id}">${ico(ic)}<span>${l}</span></button>`)}<button data-act="more">${ico('more')}<span>المزيد</span></button>`);
+  /* Mobile: keep the most useful four destinations visible; expose More and Sign out directly. */
+  const mobileMain = main.slice(0, 4);
+  put($('#bottomNav'), html`${mobileMain.map(([id, l, ic]) => html`<button data-act="nav" data-page="${id}" aria-label="${l}">${ico(ic)}<span>${l}</span></button>`)}<button data-act="more" aria-label="المزيد">${ico('more')}<span>المزيد</span></button><button class="mobile-logout" data-act="logout" aria-label="تسجيل الخروج">${ico('out')}<span>خروج</span></button>`);
 }
 
 
