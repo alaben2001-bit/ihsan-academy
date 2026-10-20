@@ -565,14 +565,33 @@ export default {
       return json([...lessons,...custom]);
     }
     if(path==="/api/curriculum"&&method==="POST"){
-      if(user.role!=="admin"&&user.role!=="teacher")return fail(403,"إضافة الدروس للمعلم أو المدير");
+      if(user.role!=="admin"&&user.role!=="teacher")return fail(403,"إدارة الدروس للمعلم أو المدير");
       const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
-      const title=clean(b.title,180),content=clean(b.content,5000),subjectId=clean(b.subject_id,80);
+      const title=clean(b.title,180),content=clean(b.content,5000),subjectId=clean(b.subject_id,80),lessonId=clean(b.id,80);
       if(!title||!content||!subjectId)return fail(400,"أدخل عنوان الدرس ومحتواه والمقرر");
-      const lesson={id:uuid(),title,content,subject_id:subjectId,objective:clean(b.objective,500),references:Array.isArray(b.references)?b.references.slice(0,10).map(r=>({kind:clean(r?.kind,30),text:clean(r?.text,300)})):[],activities:Array.isArray(b.activities)?b.activities.slice(0,10).map(x=>clean(x,300)):[],stages:["فهم","حفظ","مراجعة","تطبيق"],group_id:clean(b.group_id,80)||null,status:"published",created_by:user.id,created_at:nowIso()};
+      let previous=null;
+      if(lessonId){
+        const old=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='lessons' AND id=?").bind(lessonId).first();
+        if(!old)return fail(404,"الدرس المراد تعديله غير موجود");
+        try{previous=JSON.parse(old.payload_json)}catch{return fail(500,"تعذّرت قراءة الدرس")};
+        if(previous.builtin)return fail(403,"لا يمكن تعديل الدروس الأساسية من هنا");
+        if(user.role!=="admin"&&(!previous.group_id||!await canManageGroup(env,user,previous.group_id)))return fail(403,"لا تملك صلاحية تعديل هذا الدرس");
+      }
+      const lesson={id:lessonId||uuid(),title,content,subject_id:subjectId,objective:clean(b.objective,500),references:Array.isArray(b.references)?b.references.slice(0,10).map(r=>({kind:clean(r?.kind,30),text:clean(r?.text,300)})):[],activities:Array.isArray(b.activities)?b.activities.slice(0,10).map(x=>clean(x,300)):[],stages:["فهم","حفظ","مراجعة","تطبيق"],group_id:clean(b.group_id,80)||null,status:"published",created_by:previous?.created_by||user.id,created_at:previous?.created_at||nowIso(),updated_at:nowIso()};
       if(lesson.group_id&&!await canManageGroup(env,user,lesson.group_id))return fail(403,"لا تملك صلاحية هذا الفوج");
       if(!lesson.group_id&&user.role!=="admin")return fail(403,"يمكن للمدير وحده نشر درس عام");
-      await saveRecord(env,"lessons",lesson);await log(env,user.id,"lesson_create",{lesson_id:lesson.id,subject_id:subjectId});return json(lesson,201);
+      await saveRecord(env,"lessons",lesson);await log(env,user.id,previous?"lesson_update":"lesson_create",{lesson_id:lesson.id,subject_id:subjectId});return json(lesson,previous?200:201);
+    }
+    if(path==="/api/curriculum/delete"&&method==="POST"){
+      if(user.role!=="admin"&&user.role!=="teacher")return fail(403,"حذف الدروس للمعلم أو المدير");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const id=clean(parsed.value.id,80);
+      const raw=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='lessons' AND id=?").bind(id).first();
+      if(!raw)return fail(404,"الدرس غير موجود");
+      let lesson;try{lesson=JSON.parse(raw.payload_json)}catch{return fail(500,"تعذّرت قراءة الدرس")};
+      if(lesson.builtin)return fail(403,"لا يمكن حذف الدروس الأساسية");
+      if(user.role!=="admin"&&(!lesson.group_id||!await canManageGroup(env,user,lesson.group_id)))return fail(403,"لا تملك صلاحية حذف هذا الدرس");
+      await env.DB.prepare("DELETE FROM academy_records WHERE collection='lessons' AND id=?").bind(id).run();
+      await log(env,user.id,"lesson_delete",{lesson_id:id});return json({ok:true});
     }
     if(path==="/api/gamification/claim"&&method==="POST"){
       if(user.role!=="student"||!user.student_id||!user.group_id)return fail(403,"المكافآت متاحة لحساب الطالب المرتبط بفوج");
