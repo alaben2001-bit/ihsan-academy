@@ -33,7 +33,11 @@ assert.match(backend, /VALUES\(\?,\?,\?,\?, 'teacher',1,1\)/, "new teacher accou
 assert.match(backend, /VALUES\(\?,\?,\?,\?,\?,1,1\)/, "new director and supervisor accounts must require a first-login password change");
 assert.match(backend, /must_change_password=0/, "a successful password change must clear the first-login requirement");
 assert.match(backend, /if\(user\.must_change_password && !\["\/api\/me","\/api\/me\/password","\/api\/logout"\]\.includes\(path\)\)/, "protected API routes must be blocked until password change");
-assert.match(backend, /if\(user\.must_change_password===1\)return fail\(403,"لأول دخول، استخدم اسم الدخول وكلمة المرور المؤقتة المرسلة إليك وغيّرها أولًا؛ بعد ذلك يمكنك الدخول باستخدام Google\."\)/, "Google sign-in must not trap a first-login user in a password dialog without their temporary password");
+assert.match(backend, /حساب Google غير مربوط بحساب الأكاديمية/, "Google sign-in must require explicit account linking");
+assert.match(backend, /if\(path==="\/api\/auth\/google\/link"&&method==="POST"\)/, "authenticated users must have an explicit Google linking endpoint");
+assert.match(backend, /FROM google_identities gi JOIN users u ON u.id=gi.user_id WHERE gi.google_sub=\?/, "Google login must resolve an already-linked Google subject, not create duplicate accounts");
+assert.match(app, /id="settings-google-link"/, "users must be able to link Google from account settings");
+assert.match(app, /api\("\/auth\/google\/link"/, "the UI must send Google linking to the authenticated endpoint");
 assert.match(backend, /تهيئة حسابات الطلاب الجماعية للمدير العام فقط/, "bulk account setup must be admin-only");
 assert.match(backend, /if\(path==="\/api\/assignments"&&method==="GET"\)/, "assignment list API must exist");
 assert.match(backend, /if\(path==="\/api\/gradebook"&&method==="GET"\)/, "gradebook endpoint must exist");
