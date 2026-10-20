@@ -9,6 +9,15 @@ const JSON_HEADERS = {
 const json = (data, status = 200, extra = {}) => new Response(JSON.stringify(data), { status, headers: { ...JSON_HEADERS, ...extra } });
 const fail = (status, error) => json({ error }, status);
 const nowIso = () => new Date().toISOString();
+const validDateOnly = value => {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ""));
+  if (!match) return false;
+  const year=Number(match[1]), month=Number(match[2]), day=Number(match[3]);
+  const date=new Date(0);
+  date.setUTCHours(0,0,0,0);
+  date.setUTCFullYear(year,month-1,day);
+  return date.getUTCFullYear()===year && date.getUTCMonth()===month-1 && date.getUTCDate()===day;
+};
 const BULK_STUDENT_ONBOARDING_IDS=["roster-20261020-01","roster-20261020-04","roster-20261020-05","roster-20261020-07","roster-20261020-09","roster-20261020-11","roster-20261020-13","roster-20261020-14","roster-20261020-15","roster-20261020-16","roster-20261020-18","roster-20261020-19","roster-20261020-20","roster-20261020-22","roster-20261020-23","roster-20261020-24","roster-20261020-26","roster-20261020-27","roster-20261020-28","roster-20261020-29","roster-20261020-30","roster-20261020-32","roster-20261020-33","roster-20261020-35","roster-20261020-36","roster-20261020-37","roster-20261020-38","roster-20261020-39","roster-20261020-42","roster-20261020-43","roster-20261020-44","roster-20261020-46","roster-20261020-47","roster-20261020-48","roster-20261020-49","roster-20261020-50","roster-20261020-51","roster-20261020-53","roster-20261020-54","roster-20261020-55"];
 const clean = (v, max = 200) => String(v ?? "").trim().slice(0, max);
 const uuid = () => crypto.randomUUID();
@@ -851,7 +860,7 @@ export default {
       if(!title||!description)return fail(400,"أدخل عنوان الواجب وتعليماته");
       if(!groupId&&user.role!=="admin")return fail(403,"يمكن للمدير العام وحده إنشاء واجب عام");
       if(groupId&&!await canManageGroup(env,user,groupId))return fail(403,"لا تملك صلاحية هذا الفوج");
-      if(dueDate&&!/^\d{4}-\d{2}-\d{2}$/.test(dueDate))return fail(400,"صيغة موعد التسليم غير صحيحة");
+      if(dueDate&&!validDateOnly(dueDate))return fail(400,"صيغة موعد التسليم غير صحيحة");
       if(!Number.isFinite(pointsTotal)||pointsTotal<1||pointsTotal>1000)return fail(400,"الدرجة الكلية يجب أن تكون من 1 إلى 1000");
       const assignment={id:uuid(),title,description,group_id:groupId,due_date:dueDate||null,points_total:pointsTotal,status:"published",created_by:user.id,created_at:nowIso()};
       await saveRecord(env,"assignments",assignment);await log(env,user.id,"assignment_create",{assignment_id:assignment.id,group_id:groupId});
@@ -872,7 +881,7 @@ export default {
       const dueDate=b.due_date===undefined?(old.due_date||""):clean(b.due_date,10);
       const pointsTotal=b.points_total===undefined?Number(old.points_total||100):Number(b.points_total);
       if(!title||!description)return fail(400,"العنوان والتعليمات مطلوبان");
-      if(dueDate&&(!/^\d{4}-\d{2}-\d{2}$/.test(dueDate)||new Date(dueDate+"T00:00:00Z").toISOString().slice(0,10)!==dueDate))return fail(400,"موعد التسليم غير صحيح");
+      if(dueDate&&!validDateOnly(dueDate))return fail(400,"موعد التسليم غير صحيح");
       if(!Number.isFinite(pointsTotal)||pointsTotal<1||pointsTotal>1000)return fail(400,"الدرجة الكلية يجب أن تكون من 1 إلى 1000");
       if(pointsTotal!==Number(old.points_total||100)){
         const count=await env.DB.prepare("SELECT COUNT(*) AS n FROM academy_records WHERE collection='assignment_submissions' AND json_extract(payload_json,'$.assignment_id')=?").bind(assignmentId).first();
