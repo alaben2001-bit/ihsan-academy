@@ -1263,3 +1263,24 @@ dialog,.settings-dialog,.password-dialog{border:1px solid color-mix(in srgb,var(
 .message-card .content-body{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.95;}
 .messages-inbox .section-head{gap:12px;align-items:center;}
 @media(max-width:640px){.message-card>.section-head{flex-direction:column;}.message-card>.section-head>.btn{width:100%;}}
+
+
+/* 2026-10-20 — mobile usability: a persistent, obvious exit and interface switch. */
+#switch-module-top{white-space:nowrap}
+.mobile-logout{display:none}
+@media(max-width:760px){
+  .app-authenticated .workspace-head{align-items:flex-start;gap:10px;flex-wrap:wrap}
+  .app-authenticated .workspace-heading{min-width:0;flex:1 1 100%}
+  .app-authenticated #top-actions{width:100%;max-width:none;justify-content:flex-start;gap:6px}
+  .app-authenticated #top-actions .btn{min-height:38px;padding:8px 11px;font-size:11px}
+  .app-authenticated #top-actions #install-app,
+  .app-authenticated #top-actions #logout{display:none!important}
+  .app-authenticated #top-actions #switch-module-top{display:inline-flex}
+  .app-authenticated .sidebar{position:fixed;isolation:isolate}
+  .app-authenticated .sidebar-navigation{width:calc(100% - 68px);padding-inline:3px 0}
+  .app-authenticated .mobile-logout{display:flex!important;position:absolute;right:4px;bottom:5px;z-index:3;width:62px;min-width:62px;height:64px;min-height:64px;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:5px 2px;border:1px solid #f0d8d8;border-radius:12px!important;background:#fff6f5;color:#9c3434;text-align:center;font-size:10px;box-shadow:0 3px 12px #5420200b}
+  .app-authenticated .mobile-logout .nav-icon-wrap{width:21px;height:21px;flex:0 0 21px;font-size:20px;line-height:1}
+  .app-authenticated .mobile-logout .nav-label{font-size:10px;line-height:1.2}
+  .app-authenticated .mobile-logout:hover{background:#fbe8e7;color:#8d2727}
+}
+@media(min-width:761px){.mobile-logout{display:none!important}}
