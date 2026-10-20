@@ -130,7 +130,7 @@ async function managedGroupIds(env, user) {
 async function messageRecipientRows(env,user) {
   if(user.role==="admin"){
     const result=await env.DB.prepare("SELECT id,display_name,role FROM users WHERE active=1 AND id<>? ORDER BY display_name").bind(user.id).all();
-    return result.results||[];
+    return (result.results||[]).map(row=>({id:row.id,name:row.display_name,role:row.role}));
   }
   const output=[],seen=new Set();
   const add=rows=>{for(const row of rows||[])if(row.id!==user.id&&!seen.has(row.id)){seen.add(row.id);output.push({id:row.id,name:row.display_name,role:row.role});}};
