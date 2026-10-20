@@ -51,7 +51,32 @@ const themes=[
 {name:"أزرق",green:"#1456c0",mint:"#e2efff",gold:"#ffc857",paper:"#f4f8ff",ink:"#102548",muted:"#49658d",line:"#c5daf9",surface:"#ffffff",surface2:"#edf4ff"},
 {name:"بنفسجي",green:"#7440c8",mint:"#f1eaff",gold:"#f3c257",paper:"#faf7ff",ink:"#2e164e",muted:"#70568e",line:"#ddcff7",surface:"#ffffff",surface2:"#f5efff"},
 {name:"رملي",green:"#8a4c10",mint:"#fff0dc",gold:"#e9ac32",paper:"#fffbf4",ink:"#3b2917",muted:"#795c3c",line:"#ebd4b5",surface:"#fffefa",surface2:"#fff5e7"}];
-function applyTheme(){let i=Number(safeStore.get("ihsan_theme_index")||0);if(!Number.isInteger(i)||i<0||i>=themes.length)i=0;const t=themes[i];for(const [k,v] of Object.entries({green:t.green,mint:t.mint,gold:t.gold,paper:t.paper,ink:t.ink,muted:t.muted,line:t.line,surface:t.surface,"surface-2":t.surface2,glow:t.green+"22"}))document.documentElement.style.setProperty("--"+k,v);document.documentElement.dataset.ihsanTheme=t.name;document.querySelector('meta[name="theme-color"]')?.setAttribute("content",t.green);}
+function applyTheme(){
+ const validIndex=value=>{const i=Number(value);return Number.isInteger(i)&&i>=0&&i<themes.length?i:-1};
+ const mode=safeStore.get("ihsan_theme_mode")||"random";
+ let i=-1;
+ if(mode==="fixed"){
+  i=validIndex(safeStore.get("ihsan_theme_index"));
+  if(i<0)i=0;
+ }else{
+  i=validIndex(safeStore.getSession("ihsan_session_theme_index"));
+  if(i<0){
+   const previousRaw=safeStore.get("ihsan_last_random_theme_index");
+   const previous=previousRaw===""?-1:validIndex(previousRaw);
+   const all=themes.map((theme,index)=>index);
+   const choices=all.filter(index=>index!==previous);
+   const candidates=choices.length?choices:all;
+   i=candidates[Math.floor(Math.random()*candidates.length)];
+   safeStore.setSession("ihsan_session_theme_index",String(i));
+   safeStore.set("ihsan_last_random_theme_index",String(i));
+  }
+ }
+ const t=themes[i];
+ for(const [k,v] of Object.entries({green:t.green,mint:t.mint,gold:t.gold,paper:t.paper,ink:t.ink,muted:t.muted,line:t.line,surface:t.surface,"surface-2":t.surface2,glow:t.green+"22"}))document.documentElement.style.setProperty("--"+k,v);
+ document.documentElement.dataset.ihsanTheme=t.name;
+ document.documentElement.dataset.ihsanThemeMode=mode;
+ document.querySelector('meta[name="theme-color"]')?.setAttribute("content",t.green);
+}
 applyTheme();
 if(safeStore.get("ihsan_reduce_motion")==="1")document.documentElement.classList.add("ihsan-reduced-motion");
 const esc=v=>String(v==null?"":v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
@@ -65,24 +90,45 @@ function renderTopActions(){
 }
 function showSettings(){
  const old=$("#settings-dialog");if(old)old.remove();
- const rawIndex=Number(safeStore.get("ihsan_theme_index")||0);
+ const themeMode=safeStore.get("ihsan_theme_mode")||"random";
+ const storedIndex=themeMode==="fixed"?safeStore.get("ihsan_theme_index"):safeStore.getSession("ihsan_session_theme_index");
+ const rawIndex=Number(storedIndex||0);
  const selectedIndex=Number.isInteger(rawIndex)&&rawIndex>=0&&rawIndex<themes.length?rawIndex:0;
  const reduced=safeStore.get("ihsan_reduce_motion")==="1";
  const notes=["اللون الأساسي للأكاديمية","أزرق هادئ وواضح","بنفسجي متوازن","رملي دافئ"];
  const themeMarkup=themes.map((t,i)=>'<button type="button" class="theme-choice" data-theme-index="'+i+'" aria-pressed="'+(i===selectedIndex)+'"><span class="theme-swatch theme-swatch-'+i+'" aria-hidden="true"><i></i></span><span class="theme-choice-copy"><strong>'+esc(t.name)+'</strong><small>'+notes[i]+'</small></span><span class="theme-check" aria-hidden="true">✓</span></button>').join("");
  const securityMarkup=S.user?'<section class="settings-section"><div class="settings-section-title"><span class="settings-icon" aria-hidden="true">⌑</span><div><h3>الحساب والأمان</h3><p>احمِ حسابك بكلمة مرور قوية لا تستخدمها في موقع آخر.</p></div></div><button type="button" class="btn" id="settings-password">تغيير كلمة المرور</button></section>':'<section class="settings-section"><h3>الحساب والأمان</h3><p class="muted small">سجّل الدخول لإدارة إعدادات حسابك وكلمة المرور.</p></section>';
- const markup='<dialog id="settings-dialog" class="settings-dialog" aria-labelledby="settings-title"><div class="settings-head"><div><span class="eyebrow">تفضيلاتك الشخصية</span><h2 id="settings-title">إعدادات الأكاديمية</h2><p>اضبط الواجهة بما يريحك، وتُحفظ اختياراتك على هذا الجهاز.</p></div><button type="button" class="settings-close" id="settings-close" aria-label="إغلاق الإعدادات">×</button></div><div class="settings-body"><section class="settings-section"><div class="settings-section-title"><span class="settings-icon" aria-hidden="true">◈</span><div><h3>ألوان الواجهة</h3><p>اختر سمة، وستتغيّر ألوان الصفحات والبطاقات معًا.</p></div></div><div class="theme-options">'+themeMarkup+'</div></section><section class="settings-section"><div class="settings-section-title"><span class="settings-icon" aria-hidden="true">◌</span><div><h3>الحركة والراحة</h3><p>خفّف الحركات الانتقالية إذا فضّلت واجهة أكثر هدوءًا.</p></div></div><label class="settings-preference" for="settings-reduced-motion"><span><strong>تقليل الحركة</strong><small>إيقاف الحركات والزخارف المتحركة غير الضرورية.</small></span><input id="settings-reduced-motion" type="checkbox" '+(reduced?'checked':'')+'></label></section>'+securityMarkup+'</div><div class="settings-foot"><span>أكاديمية الإحسان في بناء الإنسان</span><button type="button" class="btn secondary" id="settings-done">تم</button></div></dialog>';
+ const markup='<dialog id="settings-dialog" class="settings-dialog" aria-labelledby="settings-title"><div class="settings-head"><div><span class="eyebrow">تفضيلاتك الشخصية</span><h2 id="settings-title">إعدادات الأكاديمية</h2><p>اضبط الواجهة بما يريحك، وتُحفظ اختياراتك على هذا الجهاز.</p></div><button type="button" class="settings-close" id="settings-close" aria-label="إغلاق الإعدادات">×</button></div><div class="settings-body"><section class="settings-section"><div class="settings-section-title"><span class="settings-icon" aria-hidden="true">◈</span><div><h3>ألوان الواجهة</h3><p>اختر سمة، وستتغيّر ألوان الصفحات والبطاقات معًا.</p></div></div><div class="theme-options">'+themeMarkup+'</div><div class="theme-mode-controls"><button type="button" id="settings-theme-random" class="btn secondary" aria-pressed="'+(themeMode!=="fixed")+'">🎲 عشوائي كل جلسة</button><span class="pill" id="theme-mode-status">'+(themeMode==="fixed"?'السمة المثبتة: '+esc(themes[selectedIndex].name):'يتغيّر اللون تلقائيًا مع كل جلسة جديدة')+'</span></div></section><section class="settings-section"><div class="settings-section-title"><span class="settings-icon" aria-hidden="true">◌</span><div><h3>الحركة والراحة</h3><p>خفّف الحركات الانتقالية إذا فضّلت واجهة أكثر هدوءًا.</p></div></div><label class="settings-preference" for="settings-reduced-motion"><span><strong>تقليل الحركة</strong><small>إيقاف الحركات والزخارف المتحركة غير الضرورية.</small></span><input id="settings-reduced-motion" type="checkbox" '+(reduced?'checked':'')+'></label></section>'+securityMarkup+'</div><div class="settings-foot"><span>أكاديمية الإحسان في بناء الإنسان</span><button type="button" class="btn secondary" id="settings-done">تم</button></div></dialog>';
  document.body.insertAdjacentHTML("beforeend",markup);
  const dialog=$("#settings-dialog");
  const close=()=>{try{if(dialog.open)dialog.close()}catch{}dialog.remove()};
  $("#settings-close").onclick=close;$("#settings-done").onclick=close;
  dialog.addEventListener("click",e=>{if(e.target===dialog)close()});
+ const refreshThemeChoices=()=>{
+  const mode=safeStore.get("ihsan_theme_mode")||"random";
+  const current=themes.findIndex(t=>t.name===document.documentElement.dataset.ihsanTheme);
+  dialog.querySelectorAll("[data-theme-index]").forEach(b=>b.setAttribute("aria-pressed",String(Number(b.dataset.themeIndex)===current)));
+  $("#settings-theme-random")?.setAttribute("aria-pressed",String(mode!=="fixed"));
+  const status=$("#theme-mode-status");
+  if(status)status.textContent=mode==="fixed"?"السمة المثبتة: "+(themes[current]?.name||"مخصصة"):"عشوائي لهذه الجلسة؛ سيتغيّر عند بدء جلسة جديدة";
+ };
  dialog.querySelectorAll("[data-theme-index]").forEach(button=>button.addEventListener("click",()=>{
   const i=Number(button.dataset.themeIndex);if(!Number.isInteger(i)||i<0||i>=themes.length)return;
-  safeStore.set("ihsan_theme_index",String(i));applyTheme();
-  dialog.querySelectorAll("[data-theme-index]").forEach(b=>b.setAttribute("aria-pressed",String(Number(b.dataset.themeIndex)===i)));
-  toast("تم تطبيق سمة "+themes[i].name);
+  safeStore.set("ihsan_theme_mode","fixed");
+  safeStore.set("ihsan_theme_index",String(i));
+  safeStore.removeSession("ihsan_session_theme_index");
+  applyTheme();
+  refreshThemeChoices();
+  toast("تم تثبيت سمة "+themes[i].name+" حتى تختار غيرها");
  }));
+ $("#settings-theme-random")?.addEventListener("click",()=>{
+  safeStore.set("ihsan_theme_mode","random");
+  safeStore.removeSession("ihsan_session_theme_index");
+  applyTheme();
+  refreshThemeChoices();
+  toast("تم تفعيل الألوان العشوائية لكل جلسة");
+ });
+ refreshThemeChoices();
  $("#settings-reduced-motion").addEventListener("change",e=>{
   const enabled=e.currentTarget.checked;
   if(enabled)safeStore.set("ihsan_reduce_motion","1");else safeStore.remove("ihsan_reduce_motion");
