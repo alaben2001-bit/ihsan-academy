@@ -287,10 +287,16 @@ export default {
       await env.DB.prepare("UPDATE students SET active=0 WHERE id=?").bind(s.id).run();if(s.user_id)await env.DB.prepare("UPDATE users SET active=0 WHERE id=?").bind(s.user_id).run();await log(env,user.id,"student_deactivate",{student_id:s.id});return json({ok:true});
     }
     if(path==="/api/attendance"&&method==="GET"){
-      const date=clean(url.searchParams.get("date"),10)||nowIso().slice(0,10),groupId=clean(url.searchParams.get("group_id"),80);
-      if(user.role==="student"){const rows=await records(env,"attendance"," AND student_id=?",[user.student_id||""]);return json(rows.filter(x=>x.date===date));}
+      const date=clean(url.searchParams.get("date"),10)||nowIso().slice(0,10),groupId=clean(url.searchParams.get("group_id"),80),history=url.searchParams.get("history")==="1",studentId=clean(url.searchParams.get("student_id"),80);
+      if(user.role==="student"){
+        const rows=await records(env,"attendance"," AND student_id=?",[user.student_id||""]);
+        return json(history?rows.sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,120):rows.filter(x=>x.date===date));
+      }
       if(!groupId||!await canManageGroup(env,user,groupId))return fail(403,"اختر فوجًا ضمن صلاحيتك");
-      return json(await records(env,"attendance"," AND group_id=?",[groupId]).then(a=>a.filter(x=>x.date===date)));
+      let rows=await records(env,"attendance"," AND group_id=?",[groupId]);
+      if(studentId)rows=rows.filter(x=>x.student_id===studentId);
+      if(history)return json(rows.sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,500));
+      return json(rows.filter(x=>x.date===date));
     }
     if(path==="/api/attendance"&&method==="POST"){
       if(user.role!=="admin"&&user.role!=="teacher")return fail(403,"تسجيل الحضور للمعلم أو المدير");const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value,groupId=clean(b.group_id,80),date=clean(b.date,10),items=Array.isArray(b.items)?b.items:[];
