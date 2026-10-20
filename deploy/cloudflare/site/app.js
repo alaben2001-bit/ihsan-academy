@@ -106,7 +106,7 @@ function showSettings(){
  const reduced=safeStore.get("ihsan_reduce_motion")==="1";
  const notes=["اللون الأساسي للأكاديمية","أزرق هادئ وواضح","بنفسجي متوازن","رملي دافئ"];
  const themeMarkup=themes.map((t,i)=>'<button type="button" class="theme-choice" data-theme-index="'+i+'" aria-pressed="'+(i===selectedIndex)+'"><span class="theme-swatch theme-swatch-'+i+'" aria-hidden="true"><i></i></span><span class="theme-choice-copy"><strong>'+esc(t.name)+'</strong><small>'+notes[i]+'</small></span><span class="theme-check" aria-hidden="true">✓</span></button>').join("");
- const securityMarkup=S.user?'<section class="settings-section"><div class="settings-section-title"><span class="settings-icon" aria-hidden="true">⌑</span><div><h3>الحساب والأمان</h3><p>احمِ حسابك بكلمة مرور قوية لا تستخدمها في موقع آخر.</p></div></div><button type="button" class="btn" id="settings-password">تغيير كلمة المرور</button></section>':'<section class="settings-section"><h3>الحساب والأمان</h3><p class="muted small">سجّل الدخول لإدارة إعدادات حسابك وكلمة المرور.</p></section>';
+ const securityMarkup=S.user?'<section class="settings-section"><div class="settings-section-title"><span class="settings-icon" aria-hidden="true">⌑</span><div><h3>الحساب والأمان</h3><p>احمِ حسابك بكلمة مرور قوية لا تستخدمها في موقع آخر.</p></div></div><div class="student-actions"><button type="button" class="btn" id="settings-password">تغيير كلمة المرور</button><button type="button" class="btn secondary" id="settings-google-link">ربط حساب Google</button></div><div id="settings-google-link-area" class="google-login-section hidden"><div id="settings-google-link-host"></div><p id="settings-google-link-note" class="muted small">اربط حساب Google بعد تسجيل الدخول إلى حسابك الحالي؛ لن يُنشأ حساب طالب جديد.</p></div></section>':'<section class="settings-section"><h3>الحساب والأمان</h3><p class="muted small">سجّل الدخول لإدارة إعدادات حسابك وكلمة المرور.</p></section>';
  const markup='<dialog id="settings-dialog" class="settings-dialog" aria-labelledby="settings-title"><div class="settings-head"><div><span class="eyebrow">تفضيلاتك الشخصية</span><h2 id="settings-title">إعدادات الأكاديمية</h2><p>اضبط الواجهة بما يريحك، وتُحفظ اختياراتك على هذا الجهاز.</p></div><button type="button" class="settings-close" id="settings-close" aria-label="إغلاق الإعدادات">×</button></div><div class="settings-body"><section class="settings-section"><div class="settings-section-title"><span class="settings-icon" aria-hidden="true">◈</span><div><h3>ألوان الواجهة</h3><p>اختر سمة، وستتغيّر ألوان الصفحات والبطاقات معًا.</p></div></div><div class="theme-options">'+themeMarkup+'</div><div class="theme-mode-controls"><button type="button" id="settings-theme-random" class="btn secondary" aria-pressed="'+(themeMode!=="fixed")+'">🎲 عشوائي كل جلسة</button><span class="pill" id="theme-mode-status">'+(themeMode==="fixed"?'السمة المثبتة: '+esc(themes[selectedIndex].name):'يتغيّر اللون تلقائيًا مع كل جلسة جديدة')+'</span></div></section><section class="settings-section"><div class="settings-section-title"><span class="settings-icon" aria-hidden="true">◌</span><div><h3>الحركة والراحة</h3><p>خفّف الحركات الانتقالية إذا فضّلت واجهة أكثر هدوءًا.</p></div></div><label class="settings-preference" for="settings-reduced-motion"><span><strong>تقليل الحركة</strong><small>إيقاف الحركات والزخارف المتحركة غير الضرورية.</small></span><input id="settings-reduced-motion" type="checkbox" '+(reduced?'checked':'')+'></label></section>'+securityMarkup+'</div><div class="settings-foot"><span>أكاديمية الإحسان في بناء الإنسان</span><button type="button" class="btn secondary" id="settings-done">تم</button></div></dialog>';
  document.body.insertAdjacentHTML("beforeend",markup);
  const dialog=$("#settings-dialog");
@@ -145,7 +145,35 @@ function showSettings(){
   toast(enabled?"تم تقليل الحركة":"عادت الحركات إلى إعدادها الطبيعي");
  });
  $("#settings-password")?.addEventListener("click",()=>{close();showPasswordChange()});
+ $("#settings-google-link")?.addEventListener("click",()=>linkGoogleAccount());
  if(typeof dialog.showModal==="function")dialog.showModal();else dialog.setAttribute("open","");
+}
+async function linkGoogleAccount(){
+ const area=$("#settings-google-link-area"),host=$("#settings-google-link-host"),note=$("#settings-google-link-note");
+ if(!area||!host||!note)return;
+ area.classList.remove("hidden");
+ host.innerHTML='<span class="muted small">جار تجهيز ربط Google…</span>';
+ try{
+  const cfg=await api("/auth/google/config");
+  if(!cfg.enabled||!cfg.client_id)throw new Error("الدخول بجوجل غير مهيأ بعد.");
+  await loadGoogleIdentityLibrary();
+  const nonce=Array.from(crypto.getRandomValues(new Uint8Array(24)),b=>b.toString(16).padStart(2,"0")).join("");
+  host.innerHTML="";
+  window.google.accounts.id.initialize({client_id:cfg.client_id,nonce,callback:async res=>{
+   const button=$("#settings-google-link");
+   if(button)button.disabled=true;
+   note.textContent="جار التحقق من Google وربطه بحسابك الحالي…";
+   try{
+    await api("/auth/google/link",{method:"POST",body:JSON.stringify({credential:res.credential,nonce})});
+    note.textContent="تم ربط Google بهذا الحساب. في المرات القادمة يمكنك الدخول به دون إنشاء حساب جديد.";
+    host.innerHTML="";
+    toast("تم ربط حساب Google بحساب الأكاديمية الحالي.");
+   }catch(error){note.textContent=error.message||"تعذر ربط حساب Google.";toast(note.textContent,true)}
+   finally{if(button)button.disabled=false}
+  }});
+  window.google.accounts.id.renderButton(host,{type:"standard",theme:"outline",size:"large",shape:"rectangular",text:"continue_with",locale:"ar",width:280});
+  note.textContent="اختر حساب Google الذي تريد ربطه بحساب الأكاديمية المفتوح الآن.";
+ }catch(error){host.innerHTML="";note.textContent=error.message||"تعذر تجهيز ربط Google.";toast(note.textContent,true)}
 }
 function showPasswordChange(forced=false){
  const old=document.querySelector("#password-dialog");if(old)old.remove();
