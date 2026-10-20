@@ -154,14 +154,14 @@ export default {
     if(path==="/api/groups"&&method==="POST"){
       if(user.role!=="admin")return fail(403,"هذه العملية للمدير فقط"); const parsed=await parseBody(request);if(parsed.error)return parsed.error;
       const name=clean(parsed.value.name,120),teacherId=clean(parsed.value.teacher_id,80)||null;if(!name)return fail(400,"اسم الفوج مطلوب");
-      if(teacherId){const t=await env.DB.prepare("SELECT id FROM users WHERE id=? AND role='teacher' AND active=1").bind(teacherId).first();if(!t)return fail(400,"المعلم المحدد غير صالح");}
+      if(teacherId){const t=await env.DB.prepare("SELECT id FROM users WHERE id=? AND role IN ('teacher','admin') AND active=1").bind(teacherId).first();if(!t)return fail(400,"المعلم المحدد غير صالح");}
       const id=uuid();await env.DB.prepare("INSERT INTO groups(id,name,school_id,teacher_id,active) VALUES(?,?,?, ?,1)").bind(id,name,"qs-rahman",teacherId).run();await log(env,user.id,"group_create",{id,name});return json({id,name,teacher_id:teacherId,active:1},201);
     }
     const groupMatch=path.match(/^\/api\/groups\/([^/]+)$/);
     if(groupMatch&&method==="PATCH"){
       if(user.role!=="admin")return fail(403,"هذه العملية للمدير فقط");const parsed=await parseBody(request);if(parsed.error)return parsed.error;const id=groupMatch[1],b=parsed.value;
       const g=await groupRow(env,id);if(!g)return fail(404,"الفوج غير موجود");const name=clean(b.name??g.name,120),teacherId=b.teacher_id===undefined?g.teacher_id:(clean(b.teacher_id,80)||null);
-      if(teacherId){const t=await env.DB.prepare("SELECT id FROM users WHERE id=? AND role='teacher' AND active=1").bind(teacherId).first();if(!t)return fail(400,"المعلم المحدد غير صالح");}
+      if(teacherId){const t=await env.DB.prepare("SELECT id FROM users WHERE id=? AND role IN ('teacher','admin') AND active=1").bind(teacherId).first();if(!t)return fail(400,"المعلم المحدد غير صالح");}
       await env.DB.prepare("UPDATE groups SET name=?,teacher_id=? WHERE id=?").bind(name,teacherId,id).run();return json({ok:true});
     }
     if(groupMatch&&method==="DELETE"){
