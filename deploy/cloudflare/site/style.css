@@ -1053,3 +1053,33 @@ body:has(.auth-layout) footer{margin-top:auto}
 @media(prefers-reduced-motion:reduce){
  .app-authenticated .stat,.app-authenticated .quick-action,.app-authenticated .quick-action-arrow{transition:none!important;transform:none!important}
 }
+
+
+/* Cloudflare production shell refinement — targets the actual deployed markup. */
+@media (min-width:761px){
+  .app-authenticated .sidebar{
+    background:#064e3b!important;
+    border-left-color:rgba(255,255,255,.12)!important;
+    color:#fff;
+  }
+  .app-authenticated .sidebar-brand{border-bottom-color:rgba(255,255,255,.14)!important}
+  .app-authenticated .sidebar-brand strong{color:#fff}
+  .app-authenticated .sidebar-brand small{color:#c2d8cd}
+  .app-authenticated .sidebar-brand-mark{background:#f0ece3!important;color:#064e3b!important}
+  .app-authenticated .nav-section-title{color:#b9d0c6!important}
+  .app-authenticated .nav-btn{color:#e0ebe4!important;border-color:transparent!important;background:transparent!important}
+  .app-authenticated .nav-btn .nav-icon-wrap,.app-authenticated .nav-btn .nav-chevron{color:#c2d8cd!important}
+  .app-authenticated .nav-btn:hover{background:rgba(255,255,255,.09)!important;color:#fff!important}
+  .app-authenticated .nav-btn.active{background:#f0ece3!important;color:#064e3b!important;border-color:transparent!important;box-shadow:inset -3px 0 #c5a880!important}
+  .app-authenticated .nav-btn.active .nav-icon-wrap{color:#064e3b!important}
+  .app-authenticated .sidebar-bottom{border-top-color:rgba(255,255,255,.14)!important}
+  .app-authenticated .sidebar-account{color:#fff}
+  .app-authenticated .account-copy strong{color:#fff}
+  .app-authenticated .account-copy small{color:#c2d8cd}
+  .app-authenticated .account-mark{background:rgba(255,255,255,.1)!important;border-color:rgba(255,255,255,.18)!important;color:#fff!important}
+  .app-authenticated .module-switch{background:rgba(255,255,255,.08)!important;border-color:rgba(255,255,255,.18)!important;color:#fff!important}
+  .app-authenticated .module-switch:hover{background:rgba(255,255,255,.14)!important}
+}
+@media(prefers-reduced-motion:reduce){
+  .app-authenticated .nav-btn{transition:none!important}
+}
