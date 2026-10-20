@@ -86,8 +86,13 @@ export default {
       const name=clean(b.name,120), identity=clean(b.email,200).toLowerCase(), password=String(b.password||"");
       if(!name||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(identity)||password.length<14||password.length>256) return fail(400,"أدخل الاسم والبريد وكلمة مرور من 14 حرفًا على الأقل");
       const exists=await env.DB.prepare("SELECT COUNT(*) AS n FROM users WHERE role='admin'").first(); if((exists?.n||0)>0)return fail(409,"تم إنشاء المدير الأول بالفعل");
+      const identityExists=await env.DB.prepare("SELECT id FROM users WHERE identity_normalized=? LIMIT 1").bind(identity).first();
+      if(identityExists)return fail(409,"هذا البريد مستخدم بالفعل. استخدم بريدًا آخر.");
       const id=uuid(); await env.DB.prepare("INSERT INTO users (id,display_name,identity_normalized,password_hash,role,active) VALUES (?,?,?,?, 'admin',1)").bind(id,name,identity,await passwordHash(password)).run();
-      await log(env,id,"admin_bootstrap",{identity}); return json({ok:true,message:"تم إنشاء حساب المدير. سجّل الدخول الآن."},201);
+      // Audit logging must not turn a successful account creation into a misleading 500.
+      try { await log(env,id,"admin_bootstrap",{identity}); }
+      catch (auditError) { console.error("Ihsan audit log failed after admin bootstrap", { message:String(auditError?.message||auditError) }); }
+      return json({ok:true,message:"تم إنشاء حساب المدير. سجّل الدخول الآن."},201);
     }
     if (path === "/api/login" && method === "POST") {
       const parsed=await parseBody(request); if(parsed.error)return parsed.error; const b=parsed.value;
