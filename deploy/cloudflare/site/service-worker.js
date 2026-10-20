@@ -1,5 +1,5 @@
-const CACHE = "ihsan-academy-shell-v7-20261020-36";
-const SHELL = ["/", "/index.html", "/style.css?v=20261020-36", "/app.js?v=20261020-36", "/startup.js?v=20261020-36", "/manifest.json", "/icon.svg"];
+const CACHE = "ihsan-academy-shell-v8-20261020-37";
+const SHELL = ["/", "/index.html", "/style.css?v=20261020-37", "/app.js?v=20261020-37", "/startup.js?v=20261020-37", "/manifest.json", "/icon.svg"];
 self.addEventListener("install", event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting())));
 self.addEventListener("activate", event => event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key)))).then(() => self.clients.claim())));
 self.addEventListener("fetch", event => {
