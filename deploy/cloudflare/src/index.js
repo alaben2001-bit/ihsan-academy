@@ -286,15 +286,45 @@ export default {
     }
     if(path==="/api/me"&&method==="GET")return json(safeUser(user));
     if(path==="/api/dashboard"&&method==="GET"){
-      const isStaff=user.role==="admin"||user.role==="teacher";
-      const [groups,students,att,tests]=await Promise.all([
-        isStaff?env.DB.prepare("SELECT COUNT(*) AS n FROM groups WHERE active=1"+(user.role==="teacher"?" AND teacher_id=?":"")).bind(...(user.role==="teacher"?[user.id]:[])).first():{n:0},
-        isStaff?env.DB.prepare("SELECT COUNT(*) AS n FROM students WHERE active=1"+(user.role==="teacher"?" AND group_id IN (SELECT id FROM groups WHERE teacher_id=?)":"")).bind(...(user.role==="teacher"?[user.id]:[])).first():{n:0},
-        user.role==="admin"?records(env,"attendance"):user.role==="student"?records(env,"attendance"," AND student_id=?",[user.student_id||""]):Promise.resolve([]),
-        records(env,"tests")
-      ]);
-      const today=nowIso().slice(0,10), todayRows=att.filter(x=>x.date===today);
-      return json({students_count:students?.n||0,groups_count:groups?.n||0,attendance_rate:todayRows.length?Math.round(100*todayRows.filter(x=>x.status==="present").length/todayRows.length):0,attendance_marked:user.role==="admin"?todayRows.length:null,progress_avg:0,upcoming_tests:tests.length});
+      const isAdmin=user.role==="admin";
+      const staffRoles=["admin","teacher","director","supervisor"];
+      const isStaff=staffRoles.includes(user.role);
+      let groupIds=null;
+      if(!isAdmin&&isStaff)groupIds=await managedGroupIds(env,user);
+      const today=nowIso().slice(0,10);
+      let groupsCount=0,studentsCount=0,attendanceRows=[],tests=[];
+      if(isAdmin){
+        const result=await Promise.all([
+          env.DB.prepare("SELECT COUNT(*) AS n FROM groups WHERE active=1").first(),
+          env.DB.prepare("SELECT COUNT(*) AS n FROM students WHERE active=1").first(),
+          env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='attendance' AND json_extract(payload_json,'$.date')=? ORDER BY updated_at DESC LIMIT 1000").bind(today).all(),
+          records(env,"tests")
+        ]);
+        groupsCount=result[0]?.n||0;studentsCount=result[1]?.n||0;
+        attendanceRows=(result[2]?.results||[]).flatMap(row=>{try{return [JSON.parse(row.payload_json)]}catch{return []}});
+        tests=result[3]||[];
+      }else if(isStaff){
+        if(groupIds===null){
+          const result=await env.DB.prepare("SELECT COUNT(*) AS n FROM groups WHERE active=1").first();
+          groupsCount=result?.n||0;
+        }else if(groupIds.length){
+          const marks=groupIds.map(()=>"?").join(",");
+          const [studentResult,attendanceResult,testRows]=await Promise.all([
+            env.DB.prepare("SELECT COUNT(*) AS n FROM students WHERE active=1 AND group_id IN ("+marks+")").bind(...groupIds).first(),
+            env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='attendance' AND group_id IN ("+marks+") AND json_extract(payload_json,'$.date')=? ORDER BY updated_at DESC LIMIT 1000").bind(...groupIds,today).all(),
+            records(env,"tests"," AND group_id IN ("+marks+")",groupIds)
+          ]);
+          studentsCount=studentResult?.n||0;
+          attendanceRows=(attendanceResult.results||[]).flatMap(row=>{try{return [JSON.parse(row.payload_json)]}catch{return []}});
+          tests=(testRows||[]).filter(test=>!!test.group_id&&groupIds.includes(test.group_id));
+          groupsCount=groupIds.length;
+        }
+      }else if(user.role==="student"){
+        attendanceRows=await records(env,"attendance"," AND student_id=?",[user.student_id||""]);
+        tests=(await records(env,"tests"," AND group_id=?",[user.group_id||""])).filter(test=>test.status==="published"&&(!test.group_id||test.group_id===user.group_id));
+      }
+      const todayRows=attendanceRows.filter(row=>row.date===today);
+      return json({students_count:studentsCount,groups_count:groupsCount,attendance_rate:todayRows.length?Math.round(100*todayRows.filter(row=>row.status==="present").length/todayRows.length):0,attendance_marked:isAdmin?todayRows.length:null,progress_avg:null,upcoming_tests:tests.filter(test=>!test.due_date||test.due_date>=today).length});
     }
     if(path==="/api/groups"&&method==="GET"){
       let rows;
