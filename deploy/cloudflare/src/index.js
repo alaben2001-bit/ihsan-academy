@@ -331,9 +331,50 @@ export default {
       return json(await records(env,"quran_progress"," AND student_id=?",[studentId]));
     }
     if(path==="/api/quran/progress"&&method==="POST"){
-      if(user.role!=="admin"&&user.role!=="teacher")return fail(403,"تسجيل التقدم للمعلم أو المدير");const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value,studentId=clean(b.student_id,80),date=clean(b.date,10)||nowIso().slice(0,10),memorized=clean(b.memorized,200),reviewed=clean(b.reviewed,200),notes=clean(b.notes,500);
-      const s=await env.DB.prepare("SELECT group_id FROM students WHERE id=? AND active=1").bind(studentId).first();if(!s||!await canManageGroup(env,user,s.group_id))return fail(403,"لا تملك صلاحية هذا الطالب");if(!memorized&&!reviewed&&!notes)return fail(400,"أدخل الحفظ أو المراجعة أو ملاحظة");
-      const row={id:uuid(),student_id:studentId,group_id:s.group_id,date,memorized,reviewed,notes,teacher_id:user.id,created_at:nowIso()};await saveRecord(env,"quran_progress",row);await log(env,user.id,"quran_progress_add",{student_id:studentId});return json(row,201);
+      if(user.role!=="admin"&&user.role!=="teacher")return fail(403,"تسجيل التقدم للمعلم أو المدير");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      const studentId=clean(b.student_id,80),date=clean(b.date,10)||nowIso().slice(0,10);
+      const memorized=clean(b.memorized,300),reviewed=clean(b.reviewed,300),recitation=clean(b.recitation,500);
+      const notes=clean(b.notes,500),feedback=clean(b.feedback,800),nextAssignment=clean(b.next_assignment,300);
+      const activity=clean(b.activity,24)||"recitation",allowedActivities=["memorization","revision","recitation","correction"];
+      const errors=Number(b.errors??0),grade=b.grade===""||b.grade==null?null:Number(b.grade);
+      const corrected=b.corrected===true||b.corrected==="true";
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(date))return fail(400,"صيغة التاريخ غير صحيحة");
+      const st=await env.DB.prepare("SELECT group_id FROM students WHERE id=? AND active=1").bind(studentId).first();
+      if(!st||!await canManageGroup(env,user,st.group_id))return fail(403,"لا تملك صلاحية هذا الطالب");
+      if(!allowedActivities.includes(activity))return fail(400,"اختر نوع متابعة صحيحًا");
+      if(!memorized&&!reviewed&&!recitation&&!notes&&!feedback&&!nextAssignment)return fail(400,"أدخل الحفظ أو المراجعة أو التسميع أو ملاحظة");
+      if(!Number.isInteger(errors)||errors<0||errors>200)return fail(400,"عدد الأخطاء يجب أن يكون بين 0 و200");
+      if(grade!==null&&(!Number.isFinite(grade)||grade<0||grade>10))return fail(400,"التقدير يجب أن يكون بين 0 و10");
+      const row={id:uuid(),student_id:studentId,group_id:st.group_id,date,activity,memorized,reviewed,recitation,errors,grade,corrected,feedback,next_assignment:nextAssignment,notes,teacher_id:user.id,created_at:nowIso(),updated_at:nowIso()};
+      await saveRecord(env,"quran_progress",row);
+      await log(env,user.id,"quran_progress_add",{student_id:studentId,activity,errors,grade});
+      return json(row,201);
+    }
+    const quranProgressMatch=path.match(/^\/api\/quran\/progress\/([^/]+)$/);
+    if(quranProgressMatch&&method==="PATCH"){
+      if(user.role!=="admin"&&user.role!=="teacher")return fail(403,"تعديل متابعة القرآن للمعلم أو المدير");
+      const raw=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='quran_progress' AND id=?").bind(quranProgressMatch[1]).first();
+      if(!raw)return fail(404,"سجل المتابعة غير موجود");
+      let old;try{old=JSON.parse(raw.payload_json)}catch{return fail(500,"تعذّرت قراءة سجل المتابعة")}
+      const st=await env.DB.prepare("SELECT group_id FROM students WHERE id=? AND active=1").bind(old.student_id).first();
+      if(!st||!await canManageGroup(env,user,st.group_id))return fail(403,"لا تملك صلاحية تعديل هذا السجل");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      const row={...old,date:b.date===undefined?old.date:clean(b.date,10),activity:b.activity===undefined?old.activity:clean(b.activity,24),memorized:b.memorized===undefined?old.memorized:clean(b.memorized,300),reviewed:b.reviewed===undefined?old.reviewed:clean(b.reviewed,300),recitation:b.recitation===undefined?old.recitation:clean(b.recitation,500),errors:b.errors===undefined?old.errors:Number(b.errors),grade:b.grade===undefined?old.grade:(b.grade===""||b.grade==null?null:Number(b.grade)),corrected:b.corrected===undefined?old.corrected:(b.corrected===true||b.corrected==="true"),feedback:b.feedback===undefined?old.feedback:clean(b.feedback,800),next_assignment:b.next_assignment===undefined?old.next_assignment:clean(b.next_assignment,300),notes:b.notes===undefined?old.notes:clean(b.notes,500),updated_at:nowIso()};
+      if(!/^\d{4}-\d{2}-\d{2}$/.test(String(row.date||""))||!["memorization","revision","recitation","correction"].includes(row.activity)||!Number.isInteger(Number(row.errors))||Number(row.errors)<0||Number(row.errors)>200||(row.grade!==null&&(!Number.isFinite(Number(row.grade))||Number(row.grade)<0||Number(row.grade)>10)))return fail(400,"تحقق من التاريخ والنوع وعدد الأخطاء والتقدير");
+      await saveRecord(env,"quran_progress",row);await log(env,user.id,"quran_progress_update",{student_id:row.student_id,record_id:row.id});
+      return json({ok:true,record:row});
+    }
+    if(quranProgressMatch&&method==="DELETE"){
+      if(user.role!=="admin")return fail(403,"حذف سجل القرآن للمدير فقط");
+      const raw=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='quran_progress' AND id=?").bind(quranProgressMatch[1]).first();
+      if(!raw)return fail(404,"سجل المتابعة غير موجود");
+      let row;try{row=JSON.parse(raw.payload_json)}catch{return fail(500,"تعذّرت قراءة سجل المتابعة")}
+      const st=await env.DB.prepare("SELECT group_id FROM students WHERE id=? AND active=1").bind(row.student_id).first();
+      if(!st||!await canManageGroup(env,user,st.group_id))return fail(403,"لا تملك صلاحية هذا السجل");
+      await env.DB.prepare("DELETE FROM academy_records WHERE collection='quran_progress' AND id=?").bind(row.id).run();
+      await log(env,user.id,"quran_progress_delete",{student_id:row.student_id,record_id:row.id});
+      return json({ok:true});
     }
     if(path==="/api/tests"&&method==="GET"){
       const all=await scopedRecords(env,user,"tests",user.role==="student");
