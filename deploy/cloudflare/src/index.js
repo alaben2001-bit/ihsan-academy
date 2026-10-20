@@ -597,12 +597,13 @@ export default {
       if(user.role!=="student"||!user.student_id||!user.group_id)return fail(403,"المكافآت متاحة لحساب الطالب المرتبط بفوج");
       const day=nowIso().slice(0,10),parsed=await parseBody(request);if(parsed.error)return parsed.error;
       const challengeId=clean(parsed.value.challenge_id,80);
-      const allowed=["daily-quran","daily-review","daily-adab"];
-      if(!allowed.includes(challengeId))return fail(400,"هذا التحدي غير صالح");
+      const daily=[{id:"daily-quran",points:10},{id:"daily-review",points:10},{id:"daily-adab",points:5}];
+      const expected=daily[Number(day.replace(/-/g,""))%daily.length];
+      if(challengeId!==expected.id)return fail(400,"أكمل تحدي اليوم المعروض في حسابك لاستلام مكافأته");
       const id=user.student_id+":"+day;
       const old=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='daily_claims' AND id=?").bind(id).first();
       if(old)return fail(409,"لقد استلمت مكافأة اليوم بالفعل");
-      const points=challengeId==="daily-adab"?5:10;
+      const points=expected.points;
       const claim={id,student_id:user.student_id,group_id:user.group_id,day,challenge_id:challengeId,points,claimed_at:nowIso()};
       await saveRecord(env,"daily_claims",claim);await log(env,user.id,"daily_challenge_claim",{challenge_id:challengeId,points,day});return json({ok:true,claim},201);
     }
