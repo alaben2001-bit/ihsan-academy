@@ -22,6 +22,7 @@ assert.equal(academyDate(new Date("2026-10-20T23:30:00.000Z")), "2026-10-21", "A
 assert.equal(addCalendarDays("2026-10-20", 14), "2026-11-03", "two-week test due dates must advance by calendar days");
 assert.ok(!backend.includes("nowIso().slice(0,10)"), "date-only school workflows must not derive their day from UTC");
 assert.match(app, /const localDateISO=/, "browser date inputs must use the local calendar date");
+assert.match(app, /timeZone:"Africa\/Algiers"/, "browser date helpers must use the same Algeria timezone as the backend");
 
 
 // These are static regression guardrails, not a replacement for live role-by-role acceptance tests.
