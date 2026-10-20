@@ -186,7 +186,7 @@ async function startSession() {
 const isStaff = () => S.user && (S.user.role === 'admin' || S.user.role === 'teacher');
 function navGroups() {
   const n = (id, label, ic) => [id, label, ic];
-  const common = [n('academy-map', 'خريطة الأكاديمية والصلاحيات', 'chart'), n('learning-hub', 'برنامج التعلّم الممتع', 'brain'), n('community', 'مجتمع التعلم', 'discuss'), n('notifications', 'الإشعارات', 'bell'), n('settings', 'الإعدادات والخصوصية', 'settings')];
+  const common = [n('academy-map', 'خريطة الأكاديمية والصلاحيات', 'chart'), n('learning-hub', 'برنامج التعلّم الممتع', 'brain'), n('media', 'مكتبة الشيخ', 'media'), n('news', 'المستجدات', 'news'), n('community', 'مجتمع التعلم', 'discuss'), n('notifications', 'الإشعارات', 'bell'), n('settings', 'الإعدادات والخصوصية', 'settings')];
   const group = (label, items) => ({ label, items });
   if (S.user.role === 'admin') return [
     group('الرئيسية', [n('dashboard', 'الرئيسية', 'home'), n('quran', 'المدرسة القرآنية', 'quran')]),
@@ -309,7 +309,11 @@ async function openTransportStudentModal(routeId){if(S.user.role!=='admin')retur
 
 const PAGES = {
   dashboard: ['الرئيسية', 'نظرة هادئة على اليوم', pgDashboard], 'academy-map': ['خريطة الأكاديمية والصلاحيات', 'تعريف واضح بالأدوار وحدود كل صلاحية', pgAcademyMap], 'learning-hub': ['برنامج التعلّم الممتع', 'خمسة مجالات لبناء المعرفة والعمل', pgLearningHub], 'school-directory': ['هيكلة المدرسة', 'الأسماء والرتب والمهام والمراسلة', pgSchoolDirectory], journey: ['رحلتي', 'مسار شخصي خفيف ومتدرج', pgJourney], program: ['بناء المنهج', 'إدارة المواد والدروس وطرق التعلم', pgProgram], quran: ['المدرسة القرآنية', 'حفظ وتسميع ومراجعة وتجويد وتقويم', pgQuran], admin: ['الإدارة العليا', 'صلاحيات كاملة وإدارة النظام', pgAdmin], hierarchy: ['هيكلة المنصة', 'المدير العام والمدارس والأفواج والفرق', pgHierarchy], 
-  groups: ['الأفواج', 'تنظيم الطلاب ومجموعاتهم', pgGroups], transport: ['النقل الجماعي', 'خطوط النقل ونقاط التوقف والطلبة', pgTransport], curriculum: ['المنهج', 'المواد والبرنامج الأسبوعي', pgCurriculum],
+  groups: ['الأفواج', 'تنظيم الطلاب ومجموعاتهم', pgGroups],
+  teams: ['فرق المدرسة', 'الأعضاء والمشرفون ومهام الفرق', pgTeams],
+  media: ['مكتبة الشيخ', 'دروس ومقاطع ومواد نافعة', pgMedia],
+  news: ['المستجدات', 'مقاطع الشيخ ومنشوراته', pgNews],
+  transport: ['النقل الجماعي', 'خطوط النقل ونقاط التوقف والطلبة', pgTransport], curriculum: ['المنهج', 'المواد والبرنامج الأسبوعي', pgCurriculum],
   students: ['الطلاب', 'اضغط على الطالب لفتح ملفه', pgStudents], file: ['ملف الطالب', 'مركز المتابعة', pgFile],
   profile: ['ملفي', 'بياناتي وتقدمي', pgProfile], children: ['أبنائي', 'متابعة الأبناء', pgChildren],
   tracking: ['المتابعة', 'الحضور والتقدم في نطاقك', pgTracking], learning: ['تعلّمي', 'الحفظ والمراجعة والأهداف', pgLearning],
