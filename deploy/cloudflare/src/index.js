@@ -310,7 +310,64 @@ export default {
       const s=await env.DB.prepare("SELECT group_id FROM students WHERE id=? AND active=1").bind(studentId).first();if(!s||!await canManageGroup(env,user,s.group_id))return fail(403,"لا تملك صلاحية هذا الطالب");if(!memorized&&!reviewed&&!notes)return fail(400,"أدخل الحفظ أو المراجعة أو ملاحظة");
       const row={id:uuid(),student_id:studentId,group_id:s.group_id,date,memorized,reviewed,notes,teacher_id:user.id,created_at:nowIso()};await saveRecord(env,"quran_progress",row);await log(env,user.id,"quran_progress_add",{student_id:studentId});return json(row,201);
     }
-    if(path==="/api/tests"&&method==="GET")return json(user.role==="student"?[]:await records(env,"tests"));
+    if(path==="/api/tests"&&method==="GET"){
+      const all=await scopedRecords(env,user,"tests",user.role==="student");
+      if(user.role==="student"){
+        const attempts=await records(env,"test_attempts");
+        return json(all.map(t=>{
+          const latest=attempts.filter(a=>a.student_id===user.student_id&&a.test_id===t.id).sort((a,b)=>String(b.submitted_at).localeCompare(String(a.submitted_at)))[0];
+          return {...t,questions:(t.questions||[]).map(q=>({id:q.id,prompt:q.prompt,choices:q.choices})),my_attempt:latest?{score:latest.score,total:latest.total,submitted_at:latest.submitted_at}:null};
+        }));
+      }
+      return json(all);
+    }
+    if(path==="/api/tests"&&method==="POST"){
+      if(user.role!=="admin"&&user.role!=="teacher")return fail(403,"إنشاء الاختبارات للمعلم أو المدير");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      const title=clean(b.title,160),description=clean(b.description,2000),groupId=clean(b.group_id,80)||null;
+      const questions=Array.isArray(b.questions)?b.questions:[];
+      if(!title||questions.length<1||questions.length>30)return fail(400,"أدخل عنوان الاختبار وسؤالًا واحدًا على الأقل (حتى 30 سؤالًا)");
+      if(!groupId&&user.role!=="admin")return fail(403,"يمكن للمدير وحده إنشاء اختبار عام");
+      if(groupId&&!await canManageGroup(env,user,groupId))return fail(403,"لا تملك صلاحية هذا الفوج");
+      const normalized=[];
+      for(const q0 of questions){
+        const q=q0||{},prompt=clean(q.prompt,500),choices=Array.isArray(q.choices)?q.choices.map(c=>clean(c,250)).filter(Boolean):[],correct=Number(q.correct_index);
+        if(!prompt||choices.length<2||choices.length>6||!Number.isInteger(correct)||correct<0||correct>=choices.length)return fail(400,"تحقق من نص كل سؤال وخياراته والإجابة الصحيحة");
+        normalized.push({id:clean(q.id,80)||uuid(),prompt,choices,correct_index:correct,explanation:clean(q.explanation,500)});
+      }
+      const due=String(b.due_date||"");
+      const test={id:uuid(),title,description,group_id:groupId,due_date:due.length===10?due:null,questions:normalized,status:"published",created_by:user.id,created_at:nowIso()};
+      await saveRecord(env,"tests",test);await log(env,user.id,"test_create",{test_id:test.id,group_id:groupId,questions:normalized.length});
+      return json(test,201);
+    }
+    if(path==="/api/test-submit"&&method==="POST"){
+      if(user.role!=="student"||!user.student_id||!user.group_id)return fail(403,"تقديم الاختبار متاح لحساب الطالب المرتبط بفوج");
+      const testId=clean(url.searchParams.get("id"),80);
+      const raw=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='tests' AND id=?").bind(testId).first();
+      if(!raw)return fail(404,"الاختبار غير موجود");
+      let test;try{test=JSON.parse(raw.payload_json)}catch{return fail(500,"تعذّر قراءة الاختبار")}
+      if(test.status!=="published"||(test.group_id&&test.group_id!==user.group_id))return fail(403,"هذا الاختبار غير متاح لحسابك");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;
+      const submitted=Array.isArray(parsed.value.answers)?parsed.value.answers:[];
+      const answerMap=new Map(submitted.map(a=>[String(a.question_id),Number(a.selected_index)]));
+      let score=0;
+      for(const q of (test.questions||[])){if(answerMap.get(String(q.id))===q.correct_index)score++;}
+      const attempt={id:uuid(),test_id:test.id,title:test.title,student_id:user.student_id,group_id:user.group_id,score,total:(test.questions||[]).length,submitted_at:nowIso()};
+      await saveRecord(env,"test_attempts",attempt);await log(env,user.id,"test_submit",{test_id:test.id,score,total:attempt.total});
+      return json({ok:true,score,total:attempt.total,percent:attempt.total?Math.round(score*100/attempt.total):0,submitted_at:attempt.submitted_at});
+    }
+    if(path==="/api/test-delete"&&method==="POST"){
+      if(user.role!=="admin"&&user.role!=="teacher")return fail(403,"حذف الاختبارات للمعلم أو المدير");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;
+      const testId=clean(parsed.value.id,80);
+      const raw=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='tests' AND id=?").bind(testId).first();
+      if(!raw)return fail(404,"الاختبار غير موجود");
+      let test;try{test=JSON.parse(raw.payload_json)}catch{return fail(500,"تعذّر قراءة الاختبار")}
+      if(test.group_id&&!await canManageGroup(env,user,test.group_id))return fail(403,"لا تملك صلاحية هذا الاختبار");
+      if(!test.group_id&&user.role!=="admin")return fail(403,"لا تملك صلاحية هذا الاختبار");
+      await env.DB.prepare("DELETE FROM academy_records WHERE collection='tests' AND id=?").bind(test.id).run();
+      await log(env,user.id,"test_delete",{test_id:test.id});return json({ok:true});
+    }
     if(path==="/api/notifications"&&method==="GET")return json([]);
     if(path==="/api/posts"&&method==="GET")return json([]);
     if(path==="/api/subjects"&&method==="GET")return json([]);
