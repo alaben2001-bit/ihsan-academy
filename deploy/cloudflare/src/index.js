@@ -439,6 +439,28 @@ export default {
       await saveRecord(env,"subjects",subject);await log(env,user.id,"subject_create",{subject_id:subject.id});return json(subject,201);
     }
     if(path==="/api/quran"&&method==="GET")return json({levels:[],students:[],can_edit:user.role==="admin"||user.role==="teacher"});
+    if(path==="/api/leaderboard"&&method==="GET"){
+      const groupId=user.role==="student"?user.group_id:clean(url.searchParams.get("group_id"),80);
+      if(!groupId)return fail(400,"لا يوجد فوج مرتبط بالحساب");
+      if(user.role!=="student"&&!await canManageGroup(env,user,groupId))return fail(403,"لا تملك صلاحية هذا الفوج");
+      if(user.role==="student"&&groupId!==user.group_id)return fail(403,"يمكنك رؤية ترتيب فوجك فقط");
+      const students=await env.DB.prepare("SELECT id,display_name FROM students WHERE group_id=? AND active=1 ORDER BY display_name").bind(groupId).all();
+      const roster=students.results||[];
+      const [attendanceRows,quranRows,testRows]=await Promise.all([
+        records(env,"attendance"," AND group_id=?",[groupId]),
+        records(env,"quran_progress"," AND group_id=?",[groupId]),
+        records(env,"test_attempts"," AND group_id=?",[groupId])
+      ]);
+      const bestTests=new Map();
+      for(const attempt of testRows){const key=String(attempt.student_id)+":"+String(attempt.test_id);if(!bestTests.has(key)||Number(attempt.score)>Number(bestTests.get(key)))bestTests.set(key,Number(attempt.score)||0);}
+      const ranked=roster.map(st=>{
+        const present=attendanceRows.filter(a=>a.student_id===st.id&&a.status==="present").length;
+        const quran=quranRows.filter(q=>q.student_id===st.id).length;
+        let quizCorrect=0;for(const [key,score] of bestTests){if(key.startsWith(String(st.id)+":"))quizCorrect+=score;}
+        return {name:st.display_name,points:present*5+quran*10+quizCorrect*3,present_days:present,quran_records:quran,quiz_correct:quizCorrect,is_self:user.role==="student"&&st.id===user.student_id};
+      }).sort((a,b)=>b.points-a.points||a.name.localeCompare(b.name,"ar"));
+      return json(ranked.map((r,i)=>({...r,rank:i+1})));
+    }
     if(path==="/api/metrics"&&method==="GET"){
       if(user.role!=="admin")return fail(403,"forbidden");const counts=await env.DB.prepare("SELECT (SELECT COUNT(*) FROM users) AS users,(SELECT COUNT(*) FROM students WHERE active=1) AS students,(SELECT COUNT(*) FROM groups WHERE active=1) AS groups,(SELECT COUNT(*) FROM academy_records) AS records").first();return json({...counts,storage:"d1"});
     }
