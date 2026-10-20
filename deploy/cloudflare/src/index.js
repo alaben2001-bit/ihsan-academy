@@ -38,7 +38,12 @@ async function currentUser(request, env) {
   const row = await env.DB.prepare("SELECT u.id,u.display_name,u.identity_normalized,u.role,u.active FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=? AND s.expires_at>? AND u.active=1").bind(await hashToken(match[1]), nowIso()).first();
   if (!row) return null;
   const student = row.role === "student" ? await env.DB.prepare("SELECT id,group_id FROM students WHERE user_id=? AND active=1").bind(row.id).first() : null;
-  return { id: row.id, name: row.display_name, email: row.identity_normalized, role: row.role, active: !!row.active, student_id: student?.id || null, group_id: student?.group_id || null };
+  let scope = null;
+  if (row.role === "director" || row.role === "supervisor") {
+    const storedScope = await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='staff_scopes' AND owner_user_id=? ORDER BY updated_at DESC LIMIT 1").bind(row.id).first();
+    try { scope = storedScope ? JSON.parse(storedScope.payload_json) : null; } catch { scope = null; }
+  }
+  return { id: row.id, name: row.display_name, email: row.identity_normalized, role: row.role, active: !!row.active, student_id: student?.id || null, group_id: student?.group_id || null, school_ids: Array.isArray(scope?.school_ids) ? scope.school_ids : [], group_ids: Array.isArray(scope?.group_ids) ? scope.group_ids : [] };
 }
 const safeUser = u => ({ id:u.id, name:u.name, email:u.email, role:u.role, active:true, theme:"emerald", font_scale:1, high_contrast:false, reduced_motion:false, student_id:u.student_id || null, group_id:u.group_id || null });
 const records = async (env, collection, where = "", binds = []) => {
@@ -56,15 +61,39 @@ async function log(env, userId, action, meta = {}) {
 async function groupRow(env, id) { return env.DB.prepare("SELECT id,name,school_id,teacher_id,active FROM groups WHERE id=?").bind(id).first(); }
 async function canManageGroup(env, user, groupId) {
   if (user.role === "admin") return true;
-  if (user.role !== "teacher") return false;
   const g = await groupRow(env, groupId);
-  return !!g && g.teacher_id === user.id && g.active === 1;
+  if (!g || g.active !== 1) return false;
+  if (user.role === "teacher") return g.teacher_id === user.id;
+  if (user.role === "director") return Array.isArray(user.school_ids) && user.school_ids.includes(g.school_id);
+  if (user.role === "supervisor") return Array.isArray(user.group_ids) && user.group_ids.includes(g.id);
+  return false;
 }
 async function canViewGroup(env, user, groupId) {
   if (!groupId || user.role === "admin") return true;
-  if (user.role === "teacher") return canManageGroup(env, user, groupId);
   if (user.role === "student") return user.group_id === groupId;
-  return false;
+  return canManageGroup(env, user, groupId);
+}
+async function managedGroupIds(env, user) {
+  if (user.role === "admin") return null;
+  if (user.role === "teacher") {
+    const rows = await env.DB.prepare("SELECT id FROM groups WHERE active=1 AND teacher_id=? ORDER BY name").bind(user.id).all();
+    return (rows.results || []).map(row => row.id);
+  }
+  if (user.role === "director") {
+    const ids = Array.isArray(user.school_ids) ? [...new Set(user.school_ids.filter(Boolean))] : [];
+    if (!ids.length) return [];
+    const marks = ids.map(() => "?").join(",");
+    const rows = await env.DB.prepare("SELECT id FROM groups WHERE active=1 AND school_id IN (" + marks + ") ORDER BY name").bind(...ids).all();
+    return (rows.results || []).map(row => row.id);
+  }
+  if (user.role === "supervisor") {
+    const ids = Array.isArray(user.group_ids) ? [...new Set(user.group_ids.filter(Boolean))] : [];
+    if (!ids.length) return [];
+    const marks = ids.map(() => "?").join(",");
+    const rows = await env.DB.prepare("SELECT id FROM groups WHERE active=1 AND id IN (" + marks + ") ORDER BY name").bind(...ids).all();
+    return (rows.results || []).map(row => row.id);
+  }
+  return user.role === "student" && user.group_id ? [user.group_id] : [];
 }
 async function scopedRecords(env, user, collection, publishedOnly = false) {
   const rows = await records(env, collection);
@@ -176,29 +205,99 @@ export default {
     if(path==="/api/groups"&&method==="GET"){
       let rows;
       if(user.role==="admin")rows=await env.DB.prepare("SELECT id,name,school_id,teacher_id,active FROM groups WHERE active=1 ORDER BY name").all();
-      else if(user.role==="teacher")rows=await env.DB.prepare("SELECT id,name,school_id,teacher_id,active FROM groups WHERE active=1 AND teacher_id=? ORDER BY name").bind(user.id).all();
-      else if(user.role==="student"&&user.group_id){const g=await groupRow(env,user.group_id);rows={results:g?[g]:[]};}
+      else if(["teacher","director","supervisor"].includes(user.role)){
+        const ids=await managedGroupIds(env,user);
+        if(ids===null)rows=await env.DB.prepare("SELECT id,name,school_id,teacher_id,active FROM groups WHERE active=1 ORDER BY name").all();
+        else if(ids.length){const marks=ids.map(()=>"?").join(",");rows=await env.DB.prepare("SELECT id,name,school_id,teacher_id,active FROM groups WHERE active=1 AND id IN ("+marks+") ORDER BY name").bind(...ids).all();}
+        else rows={results:[]};
+      }else if(user.role==="student"&&user.group_id){const g=await groupRow(env,user.group_id);rows={results:g&&g.active===1?[g]:[]};}
       else rows={results:[]};
       return json(rows.results||[]);
     }
     if(path==="/api/groups"&&method==="POST"){
-      if(user.role!=="admin")return fail(403,"هذه العملية للمدير فقط"); const parsed=await parseBody(request);if(parsed.error)return parsed.error;
-      const name=clean(parsed.value.name,120),teacherId=clean(parsed.value.teacher_id,80)||null;if(!name)return fail(400,"اسم الفوج مطلوب");
+      if(user.role!=="admin"&&user.role!=="director")return fail(403,"إنشاء الأفواج للمدير العام أو مدير المدرسة"); const parsed=await parseBody(request);if(parsed.error)return parsed.error;
+      const name=clean(parsed.value.name,120),teacherId=clean(parsed.value.teacher_id,80)||null;
+      const schoolId=clean(parsed.value.school_id,80)||(user.role==="director"?(user.school_ids||[])[0]:"qs-rahman");
+      if(!name)return fail(400,"اسم الفوج مطلوب");
+      if(user.role==="director"&&!(user.school_ids||[]).includes(schoolId))return fail(403,"هذه المدرسة خارج نطاق صلاحيتك");
+      const school=await env.DB.prepare("SELECT id FROM quran_schools WHERE id=? AND active=1").bind(schoolId).first();if(!school)return fail(400,"المدرسة المحددة غير موجودة");
       if(teacherId){const t=await env.DB.prepare("SELECT id FROM users WHERE id=? AND role IN ('teacher','admin') AND active=1").bind(teacherId).first();if(!t)return fail(400,"المعلم المحدد غير صالح");}
-      const id=uuid();await env.DB.prepare("INSERT INTO groups(id,name,school_id,teacher_id,active) VALUES(?,?,?, ?,1)").bind(id,name,"qs-rahman",teacherId).run();await log(env,user.id,"group_create",{id,name});return json({id,name,teacher_id:teacherId,active:1},201);
+      const id=uuid();await env.DB.prepare("INSERT INTO groups(id,name,school_id,teacher_id,active) VALUES(?,?,?, ?,1)").bind(id,name,schoolId,teacherId).run();await log(env,user.id,"group_create",{id,name,school_id:schoolId});return json({id,name,school_id:schoolId,teacher_id:teacherId,active:1},201);
     }
     const groupMatch=path.match(/^\/api\/groups\/([^/]+)$/);
     if(groupMatch&&method==="PATCH"){
-      if(user.role!=="admin")return fail(403,"هذه العملية للمدير فقط");const parsed=await parseBody(request);if(parsed.error)return parsed.error;const id=groupMatch[1],b=parsed.value;
-      const g=await groupRow(env,id);if(!g)return fail(404,"الفوج غير موجود");const name=clean(b.name??g.name,120),teacherId=b.teacher_id===undefined?g.teacher_id:(clean(b.teacher_id,80)||null);
+      if(user.role!=="admin"&&user.role!=="director")return fail(403,"تعديل الأفواج للمدير العام أو مدير المدرسة");const parsed=await parseBody(request);if(parsed.error)return parsed.error;const id=groupMatch[1],b=parsed.value;
+      const g=await groupRow(env,id);if(!g)return fail(404,"الفوج غير موجود");if(!await canManageGroup(env,user,id))return fail(403,"الفوج خارج نطاق صلاحيتك");
+      const name=clean(b.name??g.name,120),teacherId=b.teacher_id===undefined?g.teacher_id:(clean(b.teacher_id,80)||null);
+      if(!name)return fail(400,"اسم الفوج مطلوب");
       if(teacherId){const t=await env.DB.prepare("SELECT id FROM users WHERE id=? AND role IN ('teacher','admin') AND active=1").bind(teacherId).first();if(!t)return fail(400,"المعلم المحدد غير صالح");}
-      await env.DB.prepare("UPDATE groups SET name=?,teacher_id=? WHERE id=?").bind(name,teacherId,id).run();return json({ok:true});
+      await env.DB.prepare("UPDATE groups SET name=?,teacher_id=? WHERE id=?").bind(name,teacherId,id).run();await log(env,user.id,"group_update",{id,name});return json({ok:true});
     }
     if(groupMatch&&method==="DELETE"){
-      if(user.role!=="admin")return fail(403,"هذه العملية للمدير فقط");await env.DB.prepare("UPDATE groups SET active=0 WHERE id=?").bind(groupMatch[1]).run();return json({ok:true});
+      if(user.role!=="admin"&&user.role!=="director")return fail(403,"إيقاف الأفواج للمدير العام أو مدير المدرسة");if(!await canManageGroup(env,user,groupMatch[1]))return fail(403,"الفوج خارج نطاق صلاحيتك");await env.DB.prepare("UPDATE groups SET active=0 WHERE id=?").bind(groupMatch[1]).run();await log(env,user.id,"group_deactivate",{id:groupMatch[1]});return json({ok:true});
     }
     if(path==="/api/teachers"&&method==="GET"){
-      if(user.role!=="admin")return fail(403,"هذه القائمة للمدير فقط");const r=await env.DB.prepare("SELECT id,display_name AS name,identity_normalized AS username FROM users WHERE role='teacher' AND active=1 ORDER BY display_name").all();return json(r.results||[]);
+      if(user.role==="admin"){const r=await env.DB.prepare("SELECT id,display_name AS name,identity_normalized AS username FROM users WHERE role='teacher' AND active=1 ORDER BY display_name").all();return json(r.results||[]);}
+      if(user.role==="director"){
+        const ids=await managedGroupIds(env,user);if(!ids.length)return json([]);
+        const marks=ids.map(()=>"?").join(",");
+        const r=await env.DB.prepare("SELECT DISTINCT u.id,u.display_name AS name,u.identity_normalized AS username FROM users u JOIN groups g ON g.teacher_id=u.id WHERE u.role='teacher' AND u.active=1 AND g.active=1 AND g.id IN ("+marks+") ORDER BY u.display_name").bind(...ids).all();
+        return json(r.results||[]);
+      }
+      return fail(403,"هذه القائمة للمدير العام أو مدير المدرسة ضمن نطاقه");
+    }
+    if(path==="/api/admin/staff"&&method==="GET"){
+      if(user.role!=="admin")return fail(403,"هذه القائمة للمدير العام فقط");
+      const rows=await env.DB.prepare("SELECT id,display_name AS name,identity_normalized AS username,role FROM users WHERE active=1 AND role IN ('director','supervisor') ORDER BY role,display_name").all();
+      const staff=[];
+      for(const row of rows.results||[]){
+        const q=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='staff_scopes' AND owner_user_id=? LIMIT 1").bind(row.id).first();
+        let scope={school_ids:[],group_ids:[]};try{if(q)scope=JSON.parse(q.payload_json)}catch{}
+        staff.push({...row,school_ids:Array.isArray(scope.school_ids)?scope.school_ids:[],group_ids:Array.isArray(scope.group_ids)?scope.group_ids:[]});
+      }
+      return json(staff);
+    }
+    if(path==="/api/admin/staff"&&method==="POST"){
+      if(user.role!=="admin")return fail(403,"إنشاء حسابات الإدارة للمدير العام فقط");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      const name=clean(b.name,120),identity=clean(b.username,120).toLowerCase(),password=String(b.password||""),role=clean(b.role,20);
+      if(!name||!identity||identity.length>120||password.length<12||password.length>256||!["director","supervisor"].includes(role))return fail(400,"أدخل الاسم واسم الدخول وكلمة مرور من 12 حرفًا على الأقل وحدد الدور");
+      let schoolIds=Array.isArray(b.school_ids)?[...new Set(b.school_ids.map(x=>clean(x,80)).filter(Boolean))]:[];
+      let groupIds=Array.isArray(b.group_ids)?[...new Set(b.group_ids.map(x=>clean(x,80)).filter(Boolean))]:[];
+      if(role==="director"){
+        if(!schoolIds.length||schoolIds.length>20)return fail(400,"حدّد مدرسة واحدة على الأقل لمدير المدرسة");
+        const found=await env.DB.prepare("SELECT id FROM quran_schools WHERE active=1 AND id IN ("+schoolIds.map(()=>"?").join(",")+")").bind(...schoolIds).all();
+        if((found.results||[]).length!==schoolIds.length)return fail(400,"توجد مدرسة غير صالحة ضمن نطاق الحساب");
+        groupIds=[];
+      }else{
+        if(!groupIds.length||groupIds.length>50)return fail(400,"حدّد فوجًا واحدًا على الأقل للمشرف");
+        const found=await env.DB.prepare("SELECT id FROM groups WHERE active=1 AND id IN ("+groupIds.map(()=>"?").join(",")+")").bind(...groupIds).all();
+        if((found.results||[]).length!==groupIds.length)return fail(400,"يوجد فوج غير صالح ضمن نطاق الحساب");
+        schoolIds=[];
+      }
+      const id=uuid();
+      try{
+        await env.DB.prepare("INSERT INTO users(id,display_name,identity_normalized,password_hash,role,active) VALUES(?,?,?,?,?,1)").bind(id,name,identity,await passwordHash(password),role).run();
+        await saveRecord(env,"staff_scopes",{id:"scope:"+id,owner_user_id:id,role,school_ids:schoolIds,group_ids:groupIds,created_by:user.id,created_at:nowIso()});
+      }catch(error){
+        await env.DB.prepare("DELETE FROM academy_records WHERE collection='staff_scopes' AND id=?").bind("scope:"+id).run();
+        await env.DB.prepare("DELETE FROM users WHERE id=?").bind(id).run();
+        if(String(error?.message||error).toLowerCase().includes("unique"))return fail(409,"اسم الدخول مستخدم بالفعل");
+        console.error("Ihsan staff setup failed",{message:String(error?.message||error)});
+        return fail(500,"تعذّر إنشاء حساب الفريق؛ لم يتم تغيير ملفات الطلاب");
+      }
+      await log(env,user.id,"staff_account_created",{id,role,school_count:schoolIds.length,group_count:groupIds.length});
+      return json({ok:true,id,name,username:identity,role,school_ids:schoolIds,group_ids:groupIds},201);
+    }
+    const staffMatch=path.match(/^\/api\/admin\/staff\/([^/]+)$/);
+    if(staffMatch&&method==="DELETE"){
+      if(user.role!=="admin")return fail(403,"تعطيل حسابات الإدارة للمدير العام فقط");
+      const target=await env.DB.prepare("SELECT id,role FROM users WHERE id=? AND role IN ('director','supervisor') AND active=1").bind(staffMatch[1]).first();
+      if(!target)return fail(404,"حساب الفريق غير موجود");
+      await env.DB.prepare("UPDATE users SET active=0 WHERE id=?").bind(target.id).run();
+      await env.DB.prepare("DELETE FROM sessions WHERE user_id=?").bind(target.id).run();
+      await log(env,user.id,"staff_account_deactivate",{id:target.id,role:target.role});
+      return json({ok:true});
     }
     if(path==="/api/teachers"&&method==="POST"){
       if(user.role!=="admin")return fail(403,"إضافة المعلمين للمدير فقط");const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
@@ -225,15 +324,19 @@ export default {
       if(user.role==="student"){
         const r=await env.DB.prepare("SELECT id,display_name AS name,group_id,active FROM students WHERE user_id=? AND active=1").bind(user.id).all();return json(r.results||[]);
       }
-      if(user.role!=="admin"&&user.role!=="teacher")return fail(403,"غير مسموح");
-      const groupId=url.searchParams.get("group_id");
+      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"غير مسموح");
+      const groupId=clean(url.searchParams.get("group_id"),80);
       if(groupId&&!await canManageGroup(env,user,groupId))return fail(403,"هذا الفوج خارج صلاحيتك");
       const base="SELECT students.id,students.display_name AS name,students.group_id,students.user_id,students.active,(SELECT identity_normalized FROM users WHERE users.id=students.user_id) AS username FROM students WHERE students.active=1";
-      const r=user.role==="teacher"?await env.DB.prepare(base+" AND group_id IN (SELECT id FROM groups WHERE teacher_id=?)"+(groupId?" AND group_id=?":"")+" ORDER BY display_name").bind(user.id,...(groupId?[groupId]:[])).all():await env.DB.prepare(base+(groupId?" AND group_id=?":"")+" ORDER BY display_name").bind(...(groupId?[groupId]:[])).all();
+      const groupIds=await managedGroupIds(env,user);let sql=base,binds=[];
+      if(groupIds!==null){if(!groupIds.length)return json([]);sql+=" AND group_id IN ("+groupIds.map(()=>"?").join(",")+")";binds.push(...groupIds);}
+      if(groupId){sql+=" AND group_id=?";binds.push(groupId);}
+      sql+=" ORDER BY display_name";
+      const r=await env.DB.prepare(sql).bind(...binds).all();
       return json(r.results||[]);
     }
     if(path==="/api/students"&&method==="POST"){
-      if(user.role!=="admin"&&user.role!=="teacher")return fail(403,"غير مسموح");const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"غير مسموح");const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
       const name=clean(b.name,120),identity=clean(b.username,100).toLowerCase(),password=String(b.password||""),groupId=clean(b.group_id,80);
       if(!name||!identity||identity.length>120||password.length<8||password.length>256||!groupId)return fail(400,"أكمل الاسم وكلمة المرور والفوج");
       if(!await canManageGroup(env,user,groupId))return fail(403,"لا تملك صلاحية هذا الفوج");
@@ -245,7 +348,7 @@ export default {
     }
     const rosterAccountMatch=path.match(/^\/api\/students\/([^/]+)\/account$/);
     if(rosterAccountMatch&&method==="POST"){
-      if(user.role!=="admin"&&user.role!=="teacher")return fail(403,"غير مسموح");
+      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"غير مسموح");
       const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
       const s=await env.DB.prepare("SELECT id,user_id,display_name,group_id FROM students WHERE id=? AND active=1").bind(rosterAccountMatch[1]).first();
       if(!s)return fail(404,"الطالب غير موجود");
@@ -266,9 +369,45 @@ export default {
       await log(env,user.id,"student_account_created",{student_id:s.id,group_id:s.group_id});
       return json({ok:true,id:s.id,user_id:userId,name,username:identity,group_id:s.group_id},201);
     }
+    if(path==="/api/admin/students/bulk-onboarding"&&method==="POST"){
+      if(user.role!=="admin")return fail(403,"تهيئة حسابات الطلاب الجماعية للمدير العام فقط");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      let requested=Array.isArray(b.student_ids)?[...new Set(b.student_ids.map(x=>clean(x,80)).filter(Boolean))]:[];
+      if(b.all_missing===true){
+        const missing=await env.DB.prepare("SELECT id FROM students WHERE active=1 AND user_id IS NULL AND group_id IN (SELECT id FROM groups WHERE active=1) ORDER BY display_name LIMIT 100").all();
+        requested=(missing.results||[]).map(x=>x.id);
+      }
+      if(!requested.length||requested.length>100)return fail(400,"اختر من طالب واحد إلى 100 طالب بلا حساب دخول");
+      const credentials=[],skipped=[];
+      for(const studentId of requested){
+        const st=await env.DB.prepare("SELECT id,display_name,group_id,user_id FROM students WHERE id=? AND active=1").bind(studentId).first();
+        if(!st||st.user_id||!st.group_id){skipped.push({student_id:studentId,reason:"not_eligible"});continue}
+        const g=await groupRow(env,st.group_id);if(!g||g.active!==1){skipped.push({student_id:studentId,reason:"inactive_group"});continue}
+        const base="talib-"+st.id.replace(/[^a-z0-9]/gi,"").slice(0,10).toLowerCase();
+        let identity=base,tryNo=0;
+        while(await env.DB.prepare("SELECT id FROM users WHERE identity_normalized=? LIMIT 1").bind(identity).first()){
+          tryNo++;identity=base+"-"+tryNo;if(tryNo>20){identity="talib-"+uuid().replace(/-/g,"").slice(0,12).toLowerCase();break}
+        }
+        const password=hex(crypto.getRandomValues(new Uint8Array(24))),userId=uuid();
+        try{
+          await env.DB.prepare("INSERT INTO users(id,display_name,identity_normalized,password_hash,role,active) VALUES(?,?,?,?, 'student',1)").bind(userId,st.display_name,identity,await passwordHash(password)).run();
+          await env.DB.prepare("UPDATE students SET user_id=? WHERE id=? AND user_id IS NULL").bind(userId,st.id).run();
+          const linked=await env.DB.prepare("SELECT user_id FROM students WHERE id=?").bind(st.id).first();
+          if(!linked||linked.user_id!==userId){await env.DB.prepare("DELETE FROM users WHERE id=?").bind(userId).run();skipped.push({student_id:studentId,reason:"already_linked"});continue}
+          credentials.push({student_id:st.id,name:st.display_name,group_id:st.group_id,username:identity,password});
+        }catch(error){
+          await env.DB.prepare("UPDATE students SET user_id=NULL WHERE id=? AND user_id=?").bind(st.id,userId).run().catch(()=>{});
+          await env.DB.prepare("DELETE FROM users WHERE id=?").bind(userId).run().catch(()=>{});
+          skipped.push({student_id:studentId,reason:"creation_failed"});
+          console.error("Ihsan bulk student onboarding failed",{student_id:studentId,message:String(error?.message||error)});
+        }
+      }
+      await log(env,user.id,"student_bulk_onboarding",{created:credentials.length,skipped:skipped.length});
+      return json({ok:true,created:credentials.length,skipped:skipped.length,credentials,skipped_rows:skipped.map(x=>({student_id:x.student_id,reason:x.reason}))},201);
+    }
     const studentMatch=path.match(/^\/api\/students\/([^/]+)$/);
     if(studentMatch&&method==="PATCH"){
-      if(user.role!=="admin"&&user.role!=="teacher")return fail(403,"غير مسموح");
+      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"غير مسموح");
       const s=await env.DB.prepare("SELECT id,user_id,display_name,group_id FROM students WHERE id=? AND active=1").bind(studentMatch[1]).first();
       if(!s)return fail(404,"الطالب غير موجود");
       if(!await canManageGroup(env,user,s.group_id))return fail(403,"لا تملك صلاحية هذا الطالب");
@@ -296,7 +435,7 @@ export default {
       return json({ok:true,name,group_id:nextGroup});
     }
     if(studentMatch&&method==="DELETE"){
-      if(user.role!=="admin"&&user.role!=="teacher")return fail(403,"غير مسموح");const s=await env.DB.prepare("SELECT id,user_id,group_id FROM students WHERE id=? AND active=1").bind(studentMatch[1]).first();if(!s)return fail(404,"الطالب غير موجود");if(!await canManageGroup(env,user,s.group_id))return fail(403,"لا تملك صلاحية هذا الطالب");
+      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"غير مسموح");const s=await env.DB.prepare("SELECT id,user_id,group_id FROM students WHERE id=? AND active=1").bind(studentMatch[1]).first();if(!s)return fail(404,"الطالب غير موجود");if(!await canManageGroup(env,user,s.group_id))return fail(403,"لا تملك صلاحية هذا الطالب");
       await env.DB.prepare("UPDATE students SET active=0 WHERE id=?").bind(s.id).run();if(s.user_id)await env.DB.prepare("UPDATE users SET active=0 WHERE id=?").bind(s.user_id).run();await log(env,user.id,"student_deactivate",{student_id:s.id});return json({ok:true});
     }
     if(path==="/api/attendance"&&method==="GET"){
@@ -318,7 +457,7 @@ export default {
       return json(history?rows.sort((a,b)=>String(b.date).localeCompare(String(a.date))).slice(0,500):rows.filter(x=>x.date===date));
     }
     if(path==="/api/attendance"&&method==="POST"){
-      if(user.role!=="admin"&&user.role!=="teacher")return fail(403,"تسجيل الحضور للمعلم أو المدير");const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value,groupId=clean(b.group_id,80),date=clean(b.date,10),items=Array.isArray(b.items)?b.items:[];
+      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"تسجيل الحضور للمعلم أو المدير");const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value,groupId=clean(b.group_id,80),date=clean(b.date,10),items=Array.isArray(b.items)?b.items:[];
       if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||!items.length||items.length>200||!await canManageGroup(env,user,groupId))return fail(400,"بيانات الحضور غير صحيحة");
       const active=await env.DB.prepare("SELECT id FROM students WHERE group_id=? AND active=1").bind(groupId).all(),allowed=new Set((active.results||[]).map(x=>x.id)),stmts=[];
       for(const item of items){if(!allowed.has(String(item.student_id))||!["present","absent","late","excused"].includes(item.status))return fail(400,"يوجد طالب أو حالة غير صحيحة");const row={id:date+":"+item.student_id,student_id:item.student_id,group_id:groupId,date,status:item.status,note:clean(item.note,300),marked_by:user.id,updated_at:nowIso()};stmts.push(env.DB.prepare("INSERT INTO academy_records(collection,id,owner_user_id,group_id,student_id,payload_json,updated_at) VALUES('attendance',?,?,?,?,?,?) ON CONFLICT(collection,id) DO UPDATE SET owner_user_id=excluded.owner_user_id,group_id=excluded.group_id,student_id=excluded.student_id,payload_json=excluded.payload_json,updated_at=excluded.updated_at").bind(row.id,user.id,groupId,item.student_id,JSON.stringify(row),row.updated_at));}
@@ -326,12 +465,12 @@ export default {
     }
     if(path==="/api/quran/progress"&&method==="GET"){
       if(user.role==="student"){const rows=await records(env,"quran_progress"," AND student_id=?",[user.student_id||""]);return json(rows);}
-      if(user.role!=="admin"&&user.role!=="teacher")return fail(403,"غير مسموح");const studentId=clean(url.searchParams.get("student_id"),80);if(!studentId)return fail(400,"حدد الطالب");
+      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"غير مسموح");const studentId=clean(url.searchParams.get("student_id"),80);if(!studentId)return fail(400,"حدد الطالب");
       const s=await env.DB.prepare("SELECT group_id FROM students WHERE id=? AND active=1").bind(studentId).first();if(!s||!await canManageGroup(env,user,s.group_id))return fail(403,"لا تملك صلاحية هذا الطالب");
       return json(await records(env,"quran_progress"," AND student_id=?",[studentId]));
     }
     if(path==="/api/quran/progress"&&method==="POST"){
-      if(user.role!=="admin"&&user.role!=="teacher")return fail(403,"تسجيل التقدم للمعلم أو المدير");
+      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"تسجيل التقدم للمعلم أو المدير");
       const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
       const studentId=clean(b.student_id,80),date=clean(b.date,10)||nowIso().slice(0,10);
       const memorized=clean(b.memorized,300),reviewed=clean(b.reviewed,300),recitation=clean(b.recitation,500);
@@ -353,7 +492,7 @@ export default {
     }
     const quranProgressMatch=path.match(/^\/api\/quran\/progress\/([^/]+)$/);
     if(quranProgressMatch&&method==="PATCH"){
-      if(user.role!=="admin"&&user.role!=="teacher")return fail(403,"تعديل متابعة القرآن للمعلم أو المدير");
+      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"تعديل متابعة القرآن للمعلم أو المدير");
       const raw=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='quran_progress' AND id=?").bind(quranProgressMatch[1]).first();
       if(!raw)return fail(404,"سجل المتابعة غير موجود");
       let old;try{old=JSON.parse(raw.payload_json)}catch{return fail(500,"تعذّرت قراءة سجل المتابعة")}
@@ -408,7 +547,7 @@ export default {
       return json(all);
     }
     if(path==="/api/tests"&&method==="POST"){
-      if(user.role!=="admin"&&user.role!=="teacher")return fail(403,"إنشاء الاختبارات للمعلم أو المدير");
+      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"إنشاء الاختبارات للمعلم أو المدير");
       const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
       const title=clean(b.title,160),description=clean(b.description,2000),groupId=clean(b.group_id,80)||null;
       const questions=Array.isArray(b.questions)?b.questions:[];
@@ -449,7 +588,7 @@ export default {
       if(user.role==="student"){
         if(!user.student_id||studentId!==user.student_id)return fail(403,"لا يمكنك عرض نتائج طالب آخر");
       }else{
-        if(user.role!=="admin"&&user.role!=="teacher")return fail(403,"عرض نتائج الطالب للمعلم أو المدير");
+        if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"عرض نتائج الطالب للمعلم أو المدير");
         const student=await env.DB.prepare("SELECT id,group_id FROM students WHERE id=? AND active=1").bind(studentId).first();
         if(!student||!await canManageGroup(env,user,student.group_id))return fail(403,"لا تملك صلاحية هذا الطالب");
       }
@@ -457,7 +596,7 @@ export default {
       return json(attempts.filter(a=>a.student_id===studentId).sort((a,b)=>String(b.submitted_at).localeCompare(String(a.submitted_at))).slice(0,100).map(a=>({id:a.id,test_id:a.test_id,title:a.title,score:a.score,total:a.total,submitted_at:a.submitted_at})));
     }
     if(path==="/api/test-results"&&method==="GET"){
-      if(user.role!=="admin"&&user.role!=="teacher")return fail(403,"عرض النتائج للمعلم أو المدير");
+      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"عرض النتائج للمعلم أو المدير");
       const testId=clean(url.searchParams.get("id"),80);
       const raw=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='tests' AND id=?").bind(testId).first();
       if(!raw)return fail(404,"الاختبار غير موجود");
@@ -468,7 +607,7 @@ export default {
       return json(attempts.filter(a=>a.test_id===test.id).map(a=>({id:a.id,student_id:a.student_id,score:a.score,total:a.total,submitted_at:a.submitted_at})));
     }
     if(path==="/api/test-delete"&&method==="POST"){
-      if(user.role!=="admin"&&user.role!=="teacher")return fail(403,"حذف الاختبارات للمعلم أو المدير");
+      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"حذف الاختبارات للمعلم أو المدير");
       const parsed=await parseBody(request);if(parsed.error)return parsed.error;
       const testId=clean(parsed.value.id,80);
       const raw=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='tests' AND id=?").bind(testId).first();
@@ -489,7 +628,7 @@ export default {
     }
     if(path==="/api/posts"&&method==="GET")return json(await scopedRecords(env,user,"posts",user.role==="student"));
     if(path==="/api/posts"&&method==="POST"){
-      if(user.role!=="admin"&&user.role!=="teacher")return fail(403,"النشر للمعلم أو المدير");
+      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"النشر للمعلم أو المدير");
       const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
       const title=clean(b.title,160),content=clean(b.content,6000),groupId=clean(b.group_id,80)||null;
       if(!title||!content)return fail(400,"أدخل عنوان المنشور ومحتواه");
@@ -500,7 +639,7 @@ export default {
     }
     if(path==="/api/notifications"&&method==="GET")return json(await scopedRecords(env,user,"notifications",user.role==="student"));
     if(path==="/api/notifications"&&method==="POST"){
-      if(user.role!=="admin"&&user.role!=="teacher")return fail(403,"إنشاء التنبيهات للمعلم أو المدير");
+      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"إنشاء التنبيهات للمعلم أو المدير");
       const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
       const title=clean(b.title,160),content=clean(b.content,2000),groupId=clean(b.group_id,80)||null;
       if(!title||!content)return fail(400,"أدخل عنوان التنبيه ومحتواه");
@@ -560,7 +699,7 @@ export default {
         if(studentId&&studentId!==user.student_id)return fail(403,"لا يمكنك عرض خطة طالب آخر");
         studentId=user.student_id;
       }else{
-        if(user.role!=="admin"&&user.role!=="teacher")return fail(403,"غير مسموح");
+        if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"غير مسموح");
         if(!studentId)return fail(400,"حدد الطالب");
         const st=await env.DB.prepare("SELECT group_id FROM students WHERE id=? AND active=1").bind(studentId).first();
         if(!st||!await canManageGroup(env,user,st.group_id))return fail(403,"لا تملك صلاحية هذا الطالب");
@@ -577,7 +716,7 @@ export default {
         if(studentId&&studentId!==user.student_id)return fail(403,"لا يمكنك تغيير خطة طالب آخر");
         studentId=user.student_id;
       }else{
-        if(user.role!=="admin"&&user.role!=="teacher")return fail(403,"تعيين مسار القرآن للمعلم أو المدير");
+        if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"تعيين مسار القرآن للمعلم أو المدير");
         if(!studentId)return fail(400,"حدد الطالب");
       }
       const st=await env.DB.prepare("SELECT group_id FROM students WHERE id=? AND active=1").bind(studentId).first();
@@ -611,7 +750,7 @@ export default {
       return json([...lessons,...custom]);
     }
     if(path==="/api/curriculum"&&method==="POST"){
-      if(user.role!=="admin"&&user.role!=="teacher")return fail(403,"إدارة الدروس للمعلم أو المدير");
+      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"إدارة الدروس للمعلم أو المدير");
       const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
       const title=clean(b.title,180),content=clean(b.content,5000),subjectId=clean(b.subject_id,80),lessonId=clean(b.id,80);
       if(!title||!content||!subjectId)return fail(400,"أدخل عنوان الدرس ومحتواه والمقرر");
@@ -629,7 +768,7 @@ export default {
       await saveRecord(env,"lessons",lesson);await log(env,user.id,previous?"lesson_update":"lesson_create",{lesson_id:lesson.id,subject_id:subjectId});return json(lesson,previous?200:201);
     }
     if(path==="/api/curriculum/delete"&&method==="POST"){
-      if(user.role!=="admin"&&user.role!=="teacher")return fail(403,"حذف الدروس للمعلم أو المدير");
+      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"حذف الدروس للمعلم أو المدير");
       const parsed=await parseBody(request);if(parsed.error)return parsed.error;const id=clean(parsed.value.id,80);
       const raw=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='lessons' AND id=?").bind(id).first();
       if(!raw)return fail(404,"الدرس غير موجود");
