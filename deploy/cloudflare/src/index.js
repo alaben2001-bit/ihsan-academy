@@ -324,7 +324,7 @@ export default {
         tests=(await records(env,"tests"," AND group_id=?",[user.group_id||""])).filter(test=>test.status==="published"&&(!test.group_id||test.group_id===user.group_id));
       }
       const todayRows=attendanceRows.filter(row=>row.date===today);
-      return json({students_count:studentsCount,groups_count:groupsCount,attendance_rate:todayRows.length?Math.round(100*todayRows.filter(row=>row.status==="present").length/todayRows.length):0,attendance_marked:isAdmin?todayRows.length:null,progress_avg:null,upcoming_tests:tests.filter(test=>!test.due_date||test.due_date>=today).length});
+      return json({students_count:studentsCount,groups_count:groupsCount,attendance_rate:(todayRows.filter(row=>["present","absent","late"].includes(row.status)).length)?Math.round(100*todayRows.filter(row=>row.status==="present"||row.status==="late").length/todayRows.filter(row=>["present","absent","late"].includes(row.status)).length):0,attendance_marked:isAdmin?todayRows.length:null,progress_avg:null,upcoming_tests:tests.filter(test=>!test.due_date||test.due_date>=today).length});
     }
     if(path==="/api/groups"&&method==="GET"){
       let rows;
@@ -827,7 +827,7 @@ export default {
         const submittedIds=new Set(ownSubmissions.map(item=>item.assignment_id));
         return {
           student_id:student.id,name:student.display_name,
-          attendance:{sessions:att.length,present,absent,late,excused,rate:att.length?Math.round(present/att.length*100):null},
+          attendance:{sessions:att.length,present,absent,late,excused,rate:(present+absent+late)?Math.round((present+late)/(present+absent+late)*100):null},
           quran:{sessions:quran.length,memorization:quran.filter(item=>item.activity==="memorization"||!!item.memorized).length,revision:quran.filter(item=>item.activity==="revision"||!!item.reviewed).length,average_grade:quranGrades.length?Math.round(quranGrades.reduce((sum,value)=>sum+value,0)/quranGrades.length*10)/10:null},
           tests:{available:visibleTests.length,attempts:attempts.length,correct,total,percent:total?Math.round(correct/total*1000)/10:null},
           assignments:{available:visibleAssignments.length,submitted:submittedIds.size,reviewed:reviewed.length,pending:pending.length,average_percent:assignmentPercents.length?Math.round(assignmentPercents.reduce((sum,value)=>sum+value,0)/assignmentPercents.length*10)/10:null}
