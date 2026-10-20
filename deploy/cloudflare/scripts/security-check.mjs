@@ -29,6 +29,12 @@ assert.match(app, /"gradebook","تقدمي ودرجاتي"/, "student navigation
 
 assert.match(backend, /if\(path==="\/api\/assignments"&&method==="POST"\)/, "assignment creation API must exist");
 assert.match(backend, /if\(path==="\/api\/assignment-submit"&&method==="POST"\)/, "student assignment submission API must exist");
+assert.match(backend, /assignmentMatch&&method==="PATCH"/, "assignment updates must be supported");
+assert.match(backend, /assignmentMatch&&method==="DELETE"/, "assignment deletion must be supported");
+assert.match(backend, /لا يمكن حذف واجب له تسليمات محفوظة/, "assignment deletion must preserve existing submissions");
+assert.match(app, /data-assignment-edit=/, "staff must have an assignment edit control");
+assert.match(app, /data-assignment-delete=/, "staff must have an assignment delete control");
+
 assert.match(backend, /if\(path==="\/api\/assignment-review"&&method==="POST"\)/, "teacher assignment review API must exist");
 assert.match(backend, /canManageGroup\(env,user,assignment\.group_id\)/, "assignment submissions and grading must be group-scoped");
 assert.match(app, /async function assignmentsPage\(v\)/, "the assignment workflow must have a UI page");
