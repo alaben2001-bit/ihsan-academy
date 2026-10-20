@@ -453,11 +453,13 @@ export default {
       if(user.role==="student"&&groupId!==user.group_id)return fail(403,"يمكنك رؤية ترتيب فوجك فقط");
       const students=await env.DB.prepare("SELECT id,display_name FROM students WHERE group_id=? AND active=1 ORDER BY display_name").bind(groupId).all();
       const roster=students.results||[];
-      const [attendanceRows,quranRows,testRows]=await Promise.all([
-        records(env,"attendance"," AND group_id=?",[groupId]),
-        records(env,"quran_progress"," AND group_id=?",[groupId]),
-        records(env,"test_attempts"," AND group_id=?",[groupId])
+      const parseStored=rows=>(rows.results||[]).flatMap(row=>{try{return [JSON.parse(row.payload_json)]}catch{return []}});
+      const [attendanceResult,quranResult,testResult]=await Promise.all([
+        env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='attendance' AND group_id=?").bind(groupId).all(),
+        env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='quran_progress' AND group_id=?").bind(groupId).all(),
+        env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='test_attempts' AND group_id=?").bind(groupId).all()
       ]);
+      const attendanceRows=parseStored(attendanceResult),quranRows=parseStored(quranResult),testRows=parseStored(testResult);
       const bestTests=new Map();
       for(const attempt of testRows){const key=String(attempt.student_id)+":"+String(attempt.test_id);if(!bestTests.has(key)||Number(attempt.score)>Number(bestTests.get(key)))bestTests.set(key,Number(attempt.score)||0);}
       const ranked=roster.map(st=>{
