@@ -319,6 +319,7 @@ export default {
           return {...t,questions:(t.questions||[]).map(q=>({id:q.id,prompt:q.prompt,choices:q.choices})),my_attempt:latest?{score:latest.score,total:latest.total,submitted_at:latest.submitted_at}:null};
         }));
       }
+      if(user.role==="teacher")return json(all.filter(t=>!!t.group_id));
       return json(all);
     }
     if(path==="/api/tests"&&method==="POST"){
