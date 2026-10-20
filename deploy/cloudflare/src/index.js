@@ -955,9 +955,19 @@ export default {
       if(!row)return fail(404,"لا يوجد تسليم لهذا الطالب");
       let submission;try{submission=JSON.parse(row.payload_json)}catch{return fail(500,"تعذّرت قراءة التسليم")};
       if(submission.assignment_id!==assignmentId||(assignment.group_id&&submission.group_id!==assignment.group_id))return fail(403,"هذا التسليم لا يتبع هذا الواجب");
+      if(b.reopen===true){
+        if(submission.status!=="reviewed")return fail(409,"لا يمكن إعادة فتح تسليم لم تتم مراجعته بعد");
+        const history=Array.isArray(submission.review_history)?submission.review_history:[];
+        history.push({grade:submission.grade??null,feedback:submission.feedback||"",reviewed_by:submission.reviewed_by||null,reviewed_at:submission.reviewed_at||null,reopened_by:user.id,reopened_at:nowIso()});
+        submission.review_history=history.slice(-10);
+        submission.grade=null;submission.feedback="";submission.status="submitted";submission.reviewed_by=null;submission.reviewed_at=null;submission.reopened_by=user.id;submission.reopened_at=nowIso();submission.updated_at=nowIso();
+        await saveRecord(env,"assignment_submissions",submission);
+        await log(env,user.id,"assignment_reopen",{assignment_id:assignmentId,student_id:studentId});
+        return json({ok:true,submission});
+      }
       const grade=b.grade===""||b.grade===null||b.grade===undefined?null:Number(b.grade);
       if(grade!==null&&(!Number.isFinite(grade)||grade<0||grade>Number(assignment.points_total||100)))return fail(400,"الدرجة خارج النطاق المسموح");
-      submission.grade=grade;submission.feedback=clean(b.feedback,2000);submission.status="reviewed";submission.reviewed_by=user.id;submission.reviewed_at=nowIso();
+      submission.grade=grade;submission.feedback=clean(b.feedback,2000);submission.status="reviewed";submission.reviewed_by=user.id;submission.reviewed_at=nowIso();submission.updated_at=nowIso();
       await saveRecord(env,"assignment_submissions",submission);await log(env,user.id,"assignment_review",{assignment_id:assignmentId,student_id:studentId,grade});
       return json({ok:true,submission});
     }
