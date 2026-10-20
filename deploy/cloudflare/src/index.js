@@ -377,12 +377,22 @@ export default {
         const missing=await env.DB.prepare("SELECT id FROM students WHERE active=1 AND user_id IS NULL AND group_id IN (SELECT id FROM groups WHERE active=1) ORDER BY display_name LIMIT 100").all();
         requested=(missing.results||[]).map(x=>x.id);
       }
-      if(!requested.length||requested.length>100)return fail(400,"اختر من طالب واحد إلى 100 طالب بلا حساب دخول");
-      const credentials=[],skipped=[];
+      if(!requested.length||requested.length>100)return fail(400,"اختر من طالب واحد إلى 100 طالب");
+      const credentials=[],skipped=[];let created=0,reset=0;
       for(const studentId of requested){
         const st=await env.DB.prepare("SELECT id,display_name,group_id,user_id FROM students WHERE id=? AND active=1").bind(studentId).first();
-        if(!st||st.user_id||!st.group_id){skipped.push({student_id:studentId,reason:"not_eligible"});continue}
+        if(!st||!st.group_id){skipped.push({student_id:studentId,reason:"not_eligible"});continue}
         const g=await groupRow(env,st.group_id);if(!g||g.active!==1){skipped.push({student_id:studentId,reason:"inactive_group"});continue}
+        if(st.user_id){
+          if(b.reset_existing!==true){skipped.push({student_id:studentId,reason:"already_linked"});continue}
+          const existing=await env.DB.prepare("SELECT id,display_name,identity_normalized,role,active FROM users WHERE id=?").bind(st.user_id).first();
+          if(!existing||existing.role!=="student"||existing.active!==1){skipped.push({student_id:studentId,reason:"invalid_linked_account"});continue}
+          const password=hex(crypto.getRandomValues(new Uint8Array(24)));
+          await env.DB.prepare("UPDATE users SET display_name=?,password_hash=? WHERE id=?").bind(st.display_name,await passwordHash(password),existing.id).run();
+          credentials.push({student_id:st.id,name:st.display_name,group_id:st.group_id,username:existing.identity_normalized,password,reset_existing:true});
+          reset++;
+          continue;
+        }
         const base="talib-"+st.id.replace(/[^a-z0-9]/gi,"").slice(0,10).toLowerCase();
         let identity=base,tryNo=0;
         while(await env.DB.prepare("SELECT id FROM users WHERE identity_normalized=? LIMIT 1").bind(identity).first()){
@@ -394,7 +404,8 @@ export default {
           await env.DB.prepare("UPDATE students SET user_id=? WHERE id=? AND user_id IS NULL").bind(userId,st.id).run();
           const linked=await env.DB.prepare("SELECT user_id FROM students WHERE id=?").bind(st.id).first();
           if(!linked||linked.user_id!==userId){await env.DB.prepare("DELETE FROM users WHERE id=?").bind(userId).run();skipped.push({student_id:studentId,reason:"already_linked"});continue}
-          credentials.push({student_id:st.id,name:st.display_name,group_id:st.group_id,username:identity,password});
+          credentials.push({student_id:st.id,name:st.display_name,group_id:st.group_id,username:identity,password,reset_existing:false});
+          created++;
         }catch(error){
           await env.DB.prepare("UPDATE students SET user_id=NULL WHERE id=? AND user_id=?").bind(st.id,userId).run().catch(()=>{});
           await env.DB.prepare("DELETE FROM users WHERE id=?").bind(userId).run().catch(()=>{});
@@ -402,8 +413,8 @@ export default {
           console.error("Ihsan bulk student onboarding failed",{student_id:studentId,message:String(error?.message||error)});
         }
       }
-      await log(env,user.id,"student_bulk_onboarding",{created:credentials.length,skipped:skipped.length});
-      return json({ok:true,created:credentials.length,skipped:skipped.length,credentials,skipped_rows:skipped.map(x=>({student_id:x.student_id,reason:x.reason}))},201);
+      await log(env,user.id,"student_bulk_onboarding",{created,reset_existing:reset,skipped:skipped.length});
+      return json({ok:true,created,reset,skipped:skipped.length,credentials,skipped_rows:skipped.map(x=>({student_id:x.student_id,reason:x.reason}))},201);
     }
     const studentMatch=path.match(/^\/api\/students\/([^/]+)$/);
     if(studentMatch&&method==="PATCH"){
