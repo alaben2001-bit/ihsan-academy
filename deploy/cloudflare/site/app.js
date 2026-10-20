@@ -23,7 +23,7 @@ $("#open-school").onclick=async()=>{try{history.pushState({ihsanMode:"school",ih
 $("#open-ihsan").onclick=()=>{try{history.pushState({ihsanMode:"ihsan",ihsanTab:"all"},"",location.pathname)}catch{}S.mode="ihsan";S.tab="all";shell();page()}}
 
 function shell(){app.innerHTML='<div class="hero"><span class="eyebrow">أَكَادِيمِيَّةُ الإِحْسَان</span><h1>مرحبًا، '+esc(S.user.name)+'</h1><p>'+(S.user.role==="admin"?"صلاحيات المدير والمعلم مفعّلة؛ يمكنك إدارة الأكاديمية ومتابعة أفواج الحضور والحفظ.":S.user.role==="teacher"?"متابعة الطلبة والحضور والتقدم في الحفظ.":"اجعل لك اليوم وردًا صغيرًا ثابتًا، واحتفِ بجهدك.")+'</p><button class="btn secondary module-switch" id="switch-module">تبديل الواجهة</button></div><div class="layout"><nav class="sidebar">'+items().map(x=>'<button class="nav-btn '+(S.tab===x[0]?"active":"")+'" data-tab="'+x[0]+'">'+x[1]+'</button>').join("")+'</nav><section id="view" class="content"><div class="loading">جار التحميل…</div></section></div>';document.querySelectorAll(".nav-btn").forEach(b=>b.onclick=()=>go(b.dataset.tab));$("#switch-module")?.addEventListener("click",moduleChooser)}
-function curriculumPage(v){
+async function curriculumPage(v){
 const lessons={
 all:["رحلة الإحسان","منهج متدرّج يجمع العلم النافع والعمل الصالح وحسن الخلق.","ابدأ بمعرفة الله، ثم تعرّف إلى رسوله ﷺ، وعش مع القرآن حفظًا وفهمًا وعملًا، وتعلّم السنة والآداب التي تظهر أثر العلم في حياتك."],
 allah:["معرفة الله تعالى","تعلّم أسماء الله الحسنى ومعانيها وآثارها في القلب والعمل.","المحور: الاسم ومعناه، ما يدل عليه من كمال الله تعالى، ثمرة الإيمان به، ودعاء أو عمل تعبّدي يناسبه. ابدأ باسم واحد، وافهمه، واستحضره في يومك."],
@@ -32,9 +32,20 @@ quranpath:["القرآن الكريم","حفظٌ ومراجعةٌ وفهمٌ و�
 sunnah:["السنة والمتون","أحاديث مختارة ومتون تأسيسية في العلم الشرعي.","ابدأ بالأحاديث الجامعة والمتون المناسبة لمستواك. احفظ النص مضبوطًا، وافهم ألفاظه، وتحقّق من شرحه ومصدره، ثم حوّل العلم إلى سلوك."],
 adab:["الأدب والعمل","تزكية النفس، آداب طالب العلم، ومهارات الحياة النافعة.","من علامات العلم النافع التواضع والصدق والرفق واحترام الوقت. اختر خُلُقًا واحدًا لهذا الأسبوع، وراقب تطبيقه، وراجع نفسك برفق."]
 };
-const x=lessons[S.tab]||lessons.all;
-v.innerHTML='<div class="curriculum-banner"><span class="eyebrow">مَنْهَجُ الإِحْسَان</span><h2>'+x[0]+'</h2><p>'+x[1]+'</p></div><div class="card curriculum-card"><h3>خطوتك التعليمية</h3><p>'+x[2]+'</p><div class="notice">قاعدة المنهج: تعلّم قليلًا بإتقان، وطبّق ما تعلّمت، ثم راجع واستمر.</div></div><div class="curriculum-tiles"><button class="curriculum-tile" data-lesson="allah"><strong>الله تعالى</strong><span>الأسماء الحسنى والإيمان</span></button><button class="curriculum-tile" data-lesson="prophet"><strong>الرسول ﷺ</strong><span>السيرة والشمائل والاتباع</span></button><button class="curriculum-tile" data-lesson="quranpath"><strong>القرآن</strong><span>حفظ وفهم وتدبر وعمل</span></button><button class="curriculum-tile" data-lesson="sunnah"><strong>السنة والمتون</strong><span>حديث وعلم شرعي</span></button><button class="curriculum-tile" data-lesson="adab"><strong>الأدب والعمل</strong><span>أخلاق وتطبيق ومراجعة</span></button></div>';
-v.querySelectorAll("[data-lesson]").forEach(b=>b.onclick=()=>{S.tab=b.dataset.lesson;shell();page()})
+let subjects=[];
+try{subjects=await api("/subjects")}catch{}
+const custom=subjects.filter(x=>!x.builtin);
+let x=lessons[S.tab]||lessons.all;
+if(S.tab.startsWith("custom-")){
+ const item=custom.find(q=>q.id===S.tab.slice(7));
+ if(item)x=[item.title,item.description,"هذا محور تعليمي أضافه مدير الأكاديمية. يلزم استكمال دروسه ومراجعه وأسئلته قبل اعتماده منهجًا مكتملًا."];
+}
+let html='<div class="curriculum-banner"><span class="eyebrow">مَنْهَجُ الإِحْسَان</span><h2>'+esc(x[0])+'</h2><p>'+esc(x[1])+'</p></div><div class="card curriculum-card"><h3>خطوتك التعليمية</h3><p>'+esc(x[2])+'</p><div class="notice">قاعدة المنهج: تعلّم قليلًا بإتقان، وطبّق ما تعلّمت، ثم راجع واستمر.</div></div><div class="curriculum-tiles"><button class="curriculum-tile" data-lesson="allah"><strong>الله تعالى</strong><span>الأسماء الحسنى والإيمان</span></button><button class="curriculum-tile" data-lesson="prophet"><strong>الرسول ﷺ</strong><span>السيرة والشمائل والاتباع</span></button><button class="curriculum-tile" data-lesson="quranpath"><strong>القرآن</strong><span>حفظ وفهم وتدبر وعمل</span></button><button class="curriculum-tile" data-lesson="sunnah"><strong>السنة والمتون</strong><span>حديث وعلم شرعي</span></button><button class="curriculum-tile" data-lesson="adab"><strong>الأدب والعمل</strong><span>أخلاق وتطبيق ومراجعة</span></button>'+custom.map(q=>'<button class="curriculum-tile" data-custom-lesson="'+esc(q.id)+'"><strong>'+esc(q.title)+'</strong><span>'+esc(q.description)+'</span></button>').join("")+'</div>';
+if(S.user.role==="admin")html+='<section class="card" style="margin-top:16px"><h3>إضافة محور تعليمي</h3><form id="subject-form" class="stack"><label class="field">اسم المحور<input name="title" required maxlength="160" placeholder="مثال: فقه العبادات"></label><label class="field">وصفه وهدفه<textarea name="description" required maxlength="2000" rows="3" placeholder="بيّن ما سيتعلمه الطالب"></textarea></label><button class="btn">حفظ المحور</button><p class="muted small">هذا يحفظ محورًا ووصفه؛ إضافة الدروس التفصيلية والمصادر والاختبارات تحتاج إدخالها لاحقًا.</p></form></section>';
+v.innerHTML=html;
+v.querySelectorAll("[data-lesson]").forEach(b=>b.onclick=()=>{S.tab=b.dataset.lesson;shell();page()});
+v.querySelectorAll("[data-custom-lesson]").forEach(b=>b.onclick=()=>{S.tab="custom-"+b.dataset.customLesson;shell();page()});
+$("#subject-form")?.addEventListener("submit",async e=>{e.preventDefault();const f=new FormData(e.currentTarget);try{await api("/subjects",{method:"POST",body:JSON.stringify({title:f.get("title"),description:f.get("description")})});toast("تم حفظ المحور التعليمي");await curriculumPage(v)}catch(err){toast(err.message,true)}});
 }
 
 const head=(a,b)=>'<div class="section-head"><div><h2>'+a+'</h2><p>'+b+'</p></div></div>';
