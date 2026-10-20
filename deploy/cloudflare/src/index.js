@@ -248,11 +248,11 @@ export default {
       const [groups,students,att,tests]=await Promise.all([
         isStaff?env.DB.prepare("SELECT COUNT(*) AS n FROM groups WHERE active=1"+(user.role==="teacher"?" AND teacher_id=?":"")).bind(...(user.role==="teacher"?[user.id]:[])).first():{n:0},
         isStaff?env.DB.prepare("SELECT COUNT(*) AS n FROM students WHERE active=1"+(user.role==="teacher"?" AND group_id IN (SELECT id FROM groups WHERE teacher_id=?)":"")).bind(...(user.role==="teacher"?[user.id]:[])).first():{n:0},
-        records(env,"attendance",user.role==="student"?" AND student_id=?":"",user.role==="student"?[user.student_id||""]:[]),
+        user.role==="admin"?records(env,"attendance"):user.role==="student"?records(env,"attendance"," AND student_id=?",[user.student_id||""]):Promise.resolve([]),
         records(env,"tests")
       ]);
       const today=nowIso().slice(0,10), todayRows=att.filter(x=>x.date===today);
-      return json({students_count:students?.n||0,groups_count:groups?.n||0,attendance_rate:todayRows.length?Math.round(100*todayRows.filter(x=>x.status==="present").length/todayRows.length):0,attendance_marked:todayRows.length,progress_avg:0,upcoming_tests:tests.length});
+      return json({students_count:students?.n||0,groups_count:groups?.n||0,attendance_rate:todayRows.length?Math.round(100*todayRows.filter(x=>x.status==="present").length/todayRows.length):0,attendance_marked:user.role==="admin"?todayRows.length:null,progress_avg:0,upcoming_tests:tests.length});
     }
     if(path==="/api/groups"&&method==="GET"){
       let rows;
