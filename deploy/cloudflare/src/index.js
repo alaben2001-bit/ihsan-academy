@@ -9,7 +9,7 @@ const JSON_HEADERS = {
 const json = (data, status = 200, extra = {}) => new Response(JSON.stringify(data), { status, headers: { ...JSON_HEADERS, ...extra } });
 const fail = (status, error) => json({ error }, status);
 const nowIso = () => new Date().toISOString();
-const BULK_STUDENT_ONBOARDING_IDS=["roster-20261020-01","roster-20261020-04","roster-20261020-05","roster-20261020-07","roster-20261020-09","roster-20261020-11","roster-20261020-13","roster-20261020-14","roster-20261020-15","roster-20261020-16","roster-20261020-18","roster-20261020-19","roster-20261020-20","roster-20261020-22","roster-20261020-23","roster-20261020-24","roster-20261020-26","roster-20261020-27","roster-20261020-28","roster-20261020-29","roster-20261020-30","roster-20261020-32","roster-20261020-33","roster-20261020-35","roster-20261020-36","roster-20261020-37","roster-20261020-38","roster-20261020-39","roster-20261020-42","roster-20261020-43","roster-20261020-44","roster-20261020-46","roster-20261020-47","roster-20261020-49","roster-20261020-50","roster-20261020-51","roster-20261020-53","roster-20261020-54","roster-20261020-55"];
+const BULK_STUDENT_ONBOARDING_IDS=["roster-20261020-01","roster-20261020-04","roster-20261020-05","roster-20261020-07","roster-20261020-09","roster-20261020-11","roster-20261020-13","roster-20261020-14","roster-20261020-15","roster-20261020-16","roster-20261020-18","roster-20261020-19","roster-20261020-20","roster-20261020-22","roster-20261020-23","roster-20261020-24","roster-20261020-26","roster-20261020-27","roster-20261020-28","roster-20261020-29","roster-20261020-30","roster-20261020-32","roster-20261020-33","roster-20261020-35","roster-20261020-36","roster-20261020-37","roster-20261020-38","roster-20261020-39","roster-20261020-42","roster-20261020-43","roster-20261020-44","roster-20261020-46","roster-20261020-47","roster-20261020-48","roster-20261020-49","roster-20261020-50","roster-20261020-51","roster-20261020-53","roster-20261020-54","roster-20261020-55"];
 const clean = (v, max = 200) => String(v ?? "").trim().slice(0, max);
 const uuid = () => crypto.randomUUID();
 const hex = bytes => [...new Uint8Array(bytes)].map(b => b.toString(16).padStart(2, "0")).join("");
@@ -441,8 +441,7 @@ export default {
       const requested=requestedInput.filter(id=>!completedIds.has(id));
       if(!requested.length)return fail(409,"اكتملت أسماء هذه الدفعة سابقًا.");
       const credentials=[],skipped=[];let created=0,reset=0;
-      const passwordAlphabet="ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23456789";
-      const temporaryPassword=()=>Array.from(crypto.getRandomValues(new Uint8Array(8)),b=>passwordAlphabet[b%passwordAlphabet.length]).join("");
+      const temporaryPassword=()=>"12345678";
       for(const studentId of requested){
         const st=await env.DB.prepare("SELECT id,display_name,group_id,user_id FROM students WHERE id=? AND active=1").bind(studentId).first();
         if(!st||!st.group_id){skipped.push({student_id:studentId,reason:"not_eligible"});continue}
@@ -452,7 +451,7 @@ export default {
           const existing=await env.DB.prepare("SELECT id,display_name,identity_normalized,role,active FROM users WHERE id=?").bind(st.user_id).first();
           if(!existing||existing.role!=="student"||existing.active!==1){skipped.push({student_id:studentId,reason:"invalid_linked_account"});continue}
           const password=temporaryPassword();
-          await env.DB.prepare("UPDATE users SET display_name=?,password_hash=? WHERE id=?").bind(st.display_name,await passwordHash(password),existing.id).run();
+          await env.DB.prepare("UPDATE users SET display_name=?,identity_normalized=?,password_hash=? WHERE id=?").bind(st.display_name,st.display_name.trim().toLowerCase(),await passwordHash(password),existing.id).run();
           credentials.push({student_id:st.id,name:st.display_name,group_id:st.group_id,username:existing.identity_normalized,password,reset_existing:true});
           reset++;completedIds.add(st.id);
           await saveRecord(env,"platform_settings",{id:markerId,owner_user_id:user.id,completed:false,completed_student_ids:[...completedIds],target_student_ids:BULK_STUDENT_ONBOARDING_IDS,updated_at:nowIso()});
