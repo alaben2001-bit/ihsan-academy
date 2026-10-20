@@ -27,6 +27,37 @@ async function verifyPassword(password, stored) {
   let diff = 0; for (let i = 0; i < actual.length; i++) diff |= actual.charCodeAt(i) ^ expected.charCodeAt(i);
   return diff === 0;
 }
+let googleJwksCache = null;
+let googleJwksCacheUntil = 0;
+function googleBase64UrlBytes(value) {
+ const b64=String(value).replace(/-/g,"+").replace(/_/g,"/");
+ const padded=b64+"=".repeat((4-b64.length%4)%4);
+ const binary=atob(padded);
+ return Uint8Array.from(binary,ch=>ch.charCodeAt(0));
+}
+function googleDecodeJson(part){return JSON.parse(new TextDecoder().decode(googleBase64UrlBytes(part)))}
+async function googleSigningKeys(force=false){
+ if(!force&&googleJwksCache&&Date.now()<googleJwksCacheUntil)return googleJwksCache;
+ let response;try{response=await fetch("https://www.googleapis.com/oauth2/v3/certs",{headers:{accept:"application/json"}})}catch{throw new Error("google_keys_unavailable")}
+ if(!response.ok)throw new Error("google_keys_unavailable");
+ const data=await response.json();if(!Array.isArray(data.keys)||!data.keys.length)throw new Error("google_keys_unavailable");
+ const cc=response.headers.get("cache-control")||"",mt=(cc.match(/max-age=(\d+)/i)||[])[1],age=Math.max(60,Math.min(3600,Number(mt||300)));
+ googleJwksCache=data.keys;googleJwksCacheUntil=Date.now()+age*1000;return googleJwksCache;
+}
+async function verifyGoogleIdToken(token,nonce,clientId){
+ if(typeof token!=="string"||token.length<100||token.length>12000)throw new Error("invalid_google_token");
+ const parts=token.split(".");if(parts.length!==3)throw new Error("invalid_google_token");
+ let header,claims;try{header=googleDecodeJson(parts[0]);claims=googleDecodeJson(parts[1])}catch{throw new Error("invalid_google_token")}
+ if(!header||header.alg!=="RS256"||typeof header.kid!=="string")throw new Error("invalid_google_token");
+ const now=Math.floor(Date.now()/1000),aud=claims.aud===clientId||(Array.isArray(claims.aud)&&claims.aud.includes(clientId));
+ if(!["accounts.google.com","https://accounts.google.com"].includes(claims.iss)||!aud||(claims.azp&&claims.azp!==clientId)||!Number.isFinite(Number(claims.exp))||Number(claims.exp)<=now||!Number.isFinite(Number(claims.iat))||Number(claims.iat)>now+60||Number(claims.iat)<now-3600||typeof claims.sub!=="string"||!claims.sub||claims.nonce!==nonce||!(claims.email_verified===true||claims.email_verified==="true")||typeof claims.email!=="string"||!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(claims.email))throw new Error("invalid_google_token");
+ let keys=await googleSigningKeys(),jwk=keys.find(k=>k.kid===header.kid&&k.kty==="RSA"&&(!k.use||k.use==="sig"));
+ if(!jwk){keys=await googleSigningKeys(true);jwk=keys.find(k=>k.kid===header.kid&&k.kty==="RSA"&&(!k.use||k.use==="sig"))}
+ if(!jwk)throw new Error("invalid_google_token");
+ try{const key=await crypto.subtle.importKey("jwk",jwk,{name:"RSASSA-PKCS1-v1_5",hash:"SHA-256"},false,["verify"]);const ok=await crypto.subtle.verify("RSASSA-PKCS1-v1_5",key,googleBase64UrlBytes(parts[2]),new TextEncoder().encode(parts[0]+"."+parts[1]));if(!ok)throw new Error("invalid_google_token")}catch(e){if(e&&e.message==="invalid_google_token")throw e;throw new Error("invalid_google_token")}
+ return claims;
+}
+
 async function bodyJson(request, maxBytes = 32000) {
   const raw = await request.text();
   if (new TextEncoder().encode(raw).length > maxBytes) throw new Error("payload_too_large");
@@ -123,6 +154,10 @@ export default {
     if (path === "/api/public/quran-schools" && method === "GET") {
       const r=await env.DB.prepare("SELECT id,name,description FROM quran_schools WHERE active=1 ORDER BY sort_order,name").all(); return json(r.results||[]);
     }
+    if (path === "/api/auth/google/config" && method === "GET") {
+      const clientId=clean(env.GOOGLE_CLIENT_ID,300),enabled=!!clientId&&clientId.endsWith(".apps.googleusercontent.com");
+      return json({enabled,client_id:enabled?clientId:null});
+    }
     if (path === "/api/admin/bootstrap" && method === "POST") {
       if (!env.BOOTSTRAP_SECRET) return fail(503,"setup_not_configured");
       if (request.headers.get("x-bootstrap-secret") !== env.BOOTSTRAP_SECRET) return fail(403,"رمز الإعداد غير صحيح");
@@ -149,6 +184,22 @@ export default {
         console.error("Ihsan administrator setup failed", { stage:bootstrapStage, message:String(error?.message||error) });
         return fail(500,"تعذّر إنشاء حساب المدير أثناء خطوة: "+bootstrapStage+". لم يتم إظهار تفاصيل تقنية حساسة؛ أعد المحاولة بعد تحديث الصفحة.");
       }
+    }
+    if (path === "/api/auth/google" && method === "POST") {
+      const clientId=clean(env.GOOGLE_CLIENT_ID,300);
+      if(!clientId.endsWith(".apps.googleusercontent.com"))return fail(503,"الدخول بجوجل غير مهيأ بعد. استخدم كلمة المرور مؤقتًا.");
+      const parsed=await parseBody(request,18000);if(parsed.error)return parsed.error;
+      const b=parsed.value,credential=String(b.credential||""),nonce=String(b.nonce||"");
+      if(!credential||!/^[a-f0-9]{48,96}$/i.test(nonce))return fail(400,"تعذر بدء التحقق من حساب Google. أعد المحاولة.");
+      let claims;try{claims=await verifyGoogleIdToken(credential,nonce,clientId)}catch(error){if(String(error&&(error.message||error))==="google_keys_unavailable")return fail(503,"تعذر الاتصال بخدمة التحقق من Google. أعد المحاولة.");return fail(401,"لم نستطع التحقق من حساب Google. أعد المحاولة.")}
+      const identity=clean(claims.email,200).toLowerCase();
+      const user=await env.DB.prepare("SELECT id,display_name,identity_normalized,role,active FROM users WHERE identity_normalized=? LIMIT 1").bind(identity).first();
+      if(!user||user.active!==1)return fail(403,"لا يوجد حساب مفعّل مرتبط بهذا البريد. اطلب من الإدارة إنشاء حسابك بالبريد نفسه.");
+      const token=hex(crypto.getRandomValues(new Uint8Array(32))),remember=b.remember===true,lifetime=(remember?30*24:12)*60*60*1000;
+      await env.DB.prepare("INSERT INTO sessions(token_hash,user_id,expires_at) VALUES(?,?,?)").bind(await hashToken(token),user.id,new Date(Date.now()+lifetime).toISOString()).run();
+      const student=user.role==="student"?await env.DB.prepare("SELECT id,group_id FROM students WHERE user_id=? AND active=1").bind(user.id).first():null;
+      await log(env,user.id,"google_login");
+      return json({token,user:safeUser({id:user.id,name:user.display_name,email:user.identity_normalized,role:user.role,student_id:student&&student.id,group_id:student&&student.group_id})});
     }
     if (path === "/api/login" && method === "POST") {
       const parsed=await parseBody(request); if(parsed.error)return parsed.error; const b=parsed.value;
