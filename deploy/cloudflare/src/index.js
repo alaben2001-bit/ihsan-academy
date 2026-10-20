@@ -177,6 +177,20 @@ export default {
       const id=uuid();try{await env.DB.prepare("INSERT INTO users(id,display_name,identity_normalized,password_hash,role,active) VALUES(?,?,?,?, 'teacher',1)").bind(id,name,identity,await passwordHash(password)).run();}catch{return fail(409,"اسم الدخول مستخدم بالفعل");}
       await log(env,user.id,"teacher_create",{id,name});return json({id,name,username:identity},201);
     }
+    const teacherMatch=path.match(/^\/api\/teachers\/([^/]+)$/);
+    if(teacherMatch&&method==="PATCH"){
+      if(user.role!=="admin")return fail(403,"تعديل حسابات المعلمين للمدير فقط");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      const target=await env.DB.prepare("SELECT id FROM users WHERE id=? AND role='teacher' AND active=1").bind(teacherMatch[1]).first();
+      if(!target)return fail(404,"المعلم غير موجود");
+      const name=clean(b.name,120),identity=clean(b.username,120).toLowerCase(),password=String(b.password||"");
+      if(!name||!identity||identity.length>120||(password&&(password.length<8||password.length>256)))return fail(400,"تحقق من الاسم واسم الدخول وكلمة المرور (8 أحرف على الأقل)");
+      const duplicate=await env.DB.prepare("SELECT id FROM users WHERE identity_normalized=? AND id<>? LIMIT 1").bind(identity,target.id).first();
+      if(duplicate)return fail(409,"اسم الدخول مستخدم بالفعل");
+      if(password)await env.DB.prepare("UPDATE users SET display_name=?,identity_normalized=?,password_hash=? WHERE id=?").bind(name,identity,await passwordHash(password),target.id).run();
+      else await env.DB.prepare("UPDATE users SET display_name=?,identity_normalized=? WHERE id=?").bind(name,identity,target.id).run();
+      await log(env,user.id,"teacher_update",{id:target.id,name});return json({ok:true,name,username:identity});
+    }
     if(path==="/api/students"&&method==="GET"){
       if(user.role==="student"){
         const r=await env.DB.prepare("SELECT id,display_name AS name,group_id,active FROM students WHERE user_id=? AND active=1").bind(user.id).all();return json(r.results||[]);
@@ -184,7 +198,7 @@ export default {
       if(user.role!=="admin"&&user.role!=="teacher")return fail(403,"غير مسموح");
       const groupId=url.searchParams.get("group_id");
       if(groupId&&!await canManageGroup(env,user,groupId))return fail(403,"هذا الفوج خارج صلاحيتك");
-      const base="SELECT id,display_name AS name,group_id,user_id,active FROM students WHERE active=1";
+      const base="SELECT students.id,students.display_name AS name,students.group_id,students.user_id,students.active,(SELECT identity_normalized FROM users WHERE users.id=students.user_id) AS username FROM students WHERE students.active=1";
       const r=user.role==="teacher"?await env.DB.prepare(base+" AND group_id IN (SELECT id FROM groups WHERE teacher_id=?)"+(groupId?" AND group_id=?":"")+" ORDER BY display_name").bind(user.id,...(groupId?[groupId]:[])).all():await env.DB.prepare(base+(groupId?" AND group_id=?":"")+" ORDER BY display_name").bind(...(groupId?[groupId]:[])).all();
       return json(r.results||[]);
     }
@@ -200,6 +214,20 @@ export default {
       await log(env,user.id,"student_create",{student_id:studentId,group_id:groupId});return json({id:studentId,user_id:id,name,username:identity,group_id:groupId},201);
     }
     const studentMatch=path.match(/^\/api\/students\/([^/]+)$/);
+    if(studentMatch&&method==="PATCH"){
+      if(user.role!=="admin"&&user.role!=="teacher")return fail(403,"غير مسموح");
+      const s=await env.DB.prepare("SELECT id,user_id,group_id FROM students WHERE id=? AND active=1").bind(studentMatch[1]).first();
+      if(!s)return fail(404,"الطالب غير موجود");if(!await canManageGroup(env,user,s.group_id))return fail(403,"لا تملك صلاحية هذا الطالب");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      const name=clean(b.name,120),identity=clean(b.username,120).toLowerCase(),password=String(b.password||"");
+      if(!s.user_id||!name||!identity||identity.length>120||(password&&(password.length<8||password.length>256)))return fail(400,"تحقق من الاسم واسم الدخول وكلمة المرور (8 أحرف على الأقل)");
+      const duplicate=await env.DB.prepare("SELECT id FROM users WHERE identity_normalized=? AND id<>? LIMIT 1").bind(identity,s.user_id).first();
+      if(duplicate)return fail(409,"اسم الدخول مستخدم بالفعل");
+      await env.DB.prepare("UPDATE students SET display_name=? WHERE id=?").bind(name,s.id).run();
+      if(password)await env.DB.prepare("UPDATE users SET display_name=?,identity_normalized=?,password_hash=? WHERE id=?").bind(name,identity,await passwordHash(password),s.user_id).run();
+      else await env.DB.prepare("UPDATE users SET display_name=?,identity_normalized=? WHERE id=?").bind(name,identity,s.user_id).run();
+      await log(env,user.id,"student_update",{student_id:s.id,name});return json({ok:true,name,username:identity});
+    }
     if(studentMatch&&method==="DELETE"){
       if(user.role!=="admin"&&user.role!=="teacher")return fail(403,"غير مسموح");const s=await env.DB.prepare("SELECT id,user_id,group_id FROM students WHERE id=? AND active=1").bind(studentMatch[1]).first();if(!s)return fail(404,"الطالب غير موجود");if(!await canManageGroup(env,user,s.group_id))return fail(403,"لا تملك صلاحية هذا الطالب");
       await env.DB.prepare("UPDATE students SET active=0 WHERE id=?").bind(s.id).run();if(s.user_id)await env.DB.prepare("UPDATE users SET active=0 WHERE id=?").bind(s.user_id).run();await log(env,user.id,"student_deactivate",{student_id:s.id});return json({ok:true});
