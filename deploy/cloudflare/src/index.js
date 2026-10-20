@@ -685,6 +685,11 @@ export default {
     if(path==="/api/metrics"&&method==="GET"){
       if(user.role!=="admin")return fail(403,"forbidden");const counts=await env.DB.prepare("SELECT (SELECT COUNT(*) FROM users) AS users,(SELECT COUNT(*) FROM students WHERE active=1) AS students,(SELECT COUNT(*) FROM groups WHERE active=1) AS groups,(SELECT COUNT(*) FROM academy_records) AS records").first();return json({...counts,storage:"d1"});
     }
+    if(path==="/api/admin/audit"&&method==="GET"){
+      if(user.role!=="admin")return fail(403,"forbidden");
+      const rows=await env.DB.prepare("SELECT a.id,a.user_id,u.display_name AS actor,a.action,a.metadata_json,a.created_at FROM audit_log a LEFT JOIN users u ON u.id=a.user_id ORDER BY a.created_at DESC LIMIT 200").all();
+      return json((rows.results||[]).map(r=>{let metadata={};try{metadata=JSON.parse(r.metadata_json||"{}")}catch{}return {id:r.id,user_id:r.user_id,actor:r.actor||"حساب غير متاح",action:r.action,metadata,created_at:r.created_at};}));
+    }
     if(path==="/api/admin/backup/summary"&&method==="GET"){
       if(user.role!=="admin")return fail(403,"forbidden");
       const [users,groups,students,recordsCount,audit]=await Promise.all([
