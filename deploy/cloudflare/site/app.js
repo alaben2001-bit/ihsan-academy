@@ -159,11 +159,11 @@ async function logout(){try{await api("/logout",{method:"POST",body:"{}"})}catch
 async function load(){const r=await Promise.allSettled([api("/groups"),api("/students")]);S.groups=r[0].status==="fulfilled"?r[0].value:[];S.students=r[1].status==="fulfilled"?r[1].value:[];if(["admin","director"].includes(S.user.role))try{S.teachers=await api("/teachers")}catch{S.teachers=[]}if(S.user.role==="admin"){const extra=await Promise.allSettled([api("/admin/staff"),api("/public/quran-schools")]);S.staff=extra[0].status==="fulfilled"?extra[0].value:[];S.schools=extra[1].status==="fulfilled"?extra[1].value:[]}}
 function items(){
  if(S.mode==="ihsan")return [["all","نظرة عامة"],["allah","معرفة الله"],["prophet","الرسول ﷺ"],["quranpath","القرآن الكريم"],["sunnah","السنة والمتون"],["adab","الأدب والعمل"]];
- if(S.user.role==="admin")return [["home","الرئيسية"],["groups","الأفواج"],["teachers","المعلمون والفريق"],["students","الطلاب"],["attendance","الحضور"],["assignments","الواجبات"],["reports","التقارير"],["quran","متابعة القرآن"],["tests","الاختبارات"],["posts","مكتبة الشيخ"],["notifications","التنبيهات"],["messages","الرسائل"],["system-check","فحص النظام"]];
- if(S.user.role==="director")return [["home","الرئيسية"],["groups","أفواج المدرسة"],["students","طلاب المدرسة"],["attendance","الحضور"],["assignments","الواجبات"],["reports","التقارير"],["quran","متابعة القرآن"],["tests","الاختبارات"],["posts","مكتبة الشيخ"],["notifications","التنبيهات"],["messages","الرسائل"]];
- if(S.user.role==="supervisor")return [["home","الرئيسية"],["students","طلاب فريقي"],["attendance","الحضور"],["assignments","الواجبات"],["reports","التقارير"],["quran","متابعة القرآن"],["tests","الاختبارات"],["posts","مكتبة الشيخ"],["notifications","التنبيهات"],["messages","الرسائل"]];
- if(S.user.role==="teacher")return [["home","الرئيسية"],["students","طلبتي"],["attendance","الحضور"],["assignments","الواجبات"],["reports","التقارير"],["quran","متابعة القرآن"],["tests","الاختبارات"],["posts","مكتبة الشيخ"],["notifications","التنبيهات"],["messages","الرسائل"]];
- return [["home","الرئيسية"],["profile","ملفي"],["quran","تقدمي في القرآن"],["assignments","واجباتي"],["attendance","حضوري"],["tests","اختباراتي"],["posts","مكتبة الشيخ"],["notifications","التنبيهات"],["messages","الرسائل"],["leaderboard","ترتيب الفوج"]];
+ if(S.user.role==="admin")return [["home","الرئيسية"],["groups","الأفواج"],["teachers","المعلمون والفريق"],["students","الطلاب"],["attendance","الحضور"],["assignments","الواجبات"],["gradebook","السجل التعليمي"],["reports","التقارير"],["quran","متابعة القرآن"],["tests","الاختبارات"],["posts","مكتبة الشيخ"],["notifications","التنبيهات"],["messages","الرسائل"],["system-check","فحص النظام"]];
+ if(S.user.role==="director")return [["home","الرئيسية"],["groups","أفواج المدرسة"],["students","طلاب المدرسة"],["attendance","الحضور"],["assignments","الواجبات"],["gradebook","السجل التعليمي"],["reports","التقارير"],["quran","متابعة القرآن"],["tests","الاختبارات"],["posts","مكتبة الشيخ"],["notifications","التنبيهات"],["messages","الرسائل"]];
+ if(S.user.role==="supervisor")return [["home","الرئيسية"],["students","طلاب فريقي"],["attendance","الحضور"],["assignments","الواجبات"],["gradebook","السجل التعليمي"],["reports","التقارير"],["quran","متابعة القرآن"],["tests","الاختبارات"],["posts","مكتبة الشيخ"],["notifications","التنبيهات"],["messages","الرسائل"]];
+ if(S.user.role==="teacher")return [["home","الرئيسية"],["students","طلبتي"],["attendance","الحضور"],["assignments","الواجبات"],["gradebook","السجل التعليمي"],["reports","التقارير"],["quran","متابعة القرآن"],["tests","الاختبارات"],["posts","مكتبة الشيخ"],["notifications","التنبيهات"],["messages","الرسائل"]];
+ return [["home","الرئيسية"],["profile","ملفي"],["quran","تقدمي في القرآن"],["assignments","واجباتي"],["gradebook","تقدمي ودرجاتي"],["attendance","حضوري"],["tests","اختباراتي"],["posts","مكتبة الشيخ"],["notifications","التنبيهات"],["messages","الرسائل"],["leaderboard","ترتيب الفوج"]];
 }
 const ROLE_LABELS={admin:"مدير الأكاديمية",director:"مدير المدرسة",teacher:"المعلم",supervisor:"مشرف الفريق",student:"الطالب"};
 const NAV_ICON_PATHS={
@@ -189,9 +189,9 @@ function navIcon(id){return '<svg viewBox="0 0 24 24" class="nav-icon" aria-hidd
 function navigationGroups(){
  const list=items();if(S.mode==="ihsan")return [{title:"منهج الإحسان",items:list}];
  const makeGroup=(title,ids)=>({title,items:list.filter(x=>ids.includes(x[0]))});
- if(S.user.role==="admin")return [makeGroup("إدارة الأكاديمية",["home","groups","teachers","students","system-check"]),makeGroup("التعليم والمتابعة",["attendance","assignments","reports","quran","tests","posts","notifications","messages"])].filter(g=>g.items.length);
- if(["teacher","director","supervisor"].includes(S.user.role))return [makeGroup(S.user.role==="director"?"إدارة المدرسة والمتابعة":S.user.role==="supervisor"?"متابعة الفريق":"التدريس والمتابعة",["home","groups","students","attendance","assignments","reports","quran","tests","posts","notifications","messages"])].filter(g=>g.items.length);
- return [makeGroup("رحلتي التعليمية",["home","profile","quran","assignments","attendance","tests","posts","notifications","messages","leaderboard"])].filter(g=>g.items.length);
+ if(S.user.role==="admin")return [makeGroup("إدارة الأكاديمية",["home","groups","teachers","students","system-check"]),makeGroup("التعليم والمتابعة",["attendance","assignments","gradebook","reports","quran","tests","posts","notifications","messages"])].filter(g=>g.items.length);
+ if(["teacher","director","supervisor"].includes(S.user.role))return [makeGroup(S.user.role==="director"?"إدارة المدرسة والمتابعة":S.user.role==="supervisor"?"متابعة الفريق":"التدريس والمتابعة",["home","groups","students","attendance","assignments","gradebook","reports","quran","tests","posts","notifications","messages"])].filter(g=>g.items.length);
+ return [makeGroup("رحلتي التعليمية",["home","profile","quran","assignments","gradebook","attendance","tests","posts","notifications","messages","leaderboard"])].filter(g=>g.items.length);
 }
 function navMarkup(){return navigationGroups().map(group=>'<div class="nav-section"><div class="nav-section-title">'+esc(group.title)+'</div>'+group.items.map(x=>'<button class="nav-btn '+(S.tab===x[0]?"active":"")+'" data-tab="'+esc(x[0])+'"><span class="nav-icon-wrap">'+navIcon(x[0])+'</span><span class="nav-label">'+esc(x[1])+'</span><span class="nav-chevron" aria-hidden="true">‹</span></button>').join("")+'</div>').join("")}
 
@@ -267,7 +267,7 @@ const field=(label,name,type="text",min="")=>'<label class="field">'+label+'<inp
 const groupOpts=()=>S.groups.map(g=>'<option value="'+esc(g.id)+'">'+esc(g.name)+'</option>').join("");
 function go(id){try{history.pushState({ihsanMode:S.mode,ihsanTab:id},"",location.pathname+"#"+encodeURIComponent(id))}catch{}S.tab=id;shell();page()}
 window.addEventListener("popstate",async e=>{if(!S.user)return;const st=e.state||{};if(st.ihsanMode==="hub"){S.mode="hub";moduleChooser(false);return;}if(st.ihsanMode==="school"||st.ihsanMode==="ihsan"){S.mode=st.ihsanMode;S.tab=st.ihsanTab||(S.mode==="ihsan"?"all":"home");if(S.mode==="school")await load();shell();await page();if(st.ihsanSubView==="student-profile")await studentProfile($("#view"),st.studentId);return;}S.mode="hub";moduleChooser(false);});
-async function page(){const v=$("#view");if(S.mode==="ihsan")return curriculumPage(v);v.innerHTML='<div class="loading">جار تحميل البيانات…</div>';try{if(S.tab==="home")return await home(v);if(S.tab==="system-check")return await systemCheckPage(v);if(S.tab==="backup")return await backupPage(v);if(S.tab==="audit")return await auditPage(v);if(S.tab==="groups")return groups(v);if(S.tab==="teachers")return teachers(v);if(S.tab==="students")return students(v);if(S.tab==="attendance")return attendance(v);if(S.tab==="assignments")return await assignmentsPage(v);if(S.tab==="messages")return await messagesPage(v);if(S.tab==="reports")return reportsPage(v);if(S.tab==="leaderboard")return leaderboardPage(v);if(S.tab==="profile")return studentProfile(v,S.user.student_id);if(S.tab==="quran")return quran(v);if(S.tab==="tests")return testsPage(v);if(S.tab==="posts")return postsPage(v);if(S.tab==="notifications")return notificationsPage(v)}catch(e){v.innerHTML='<div class="panel"><h2>تعذّر تحميل البيانات</h2><p class="notice error">'+esc(e.message)+'</p><button class="btn" id="retry">إعادة المحاولة</button></div>';$("#retry").onclick=page}}
+async function page(){const v=$("#view");if(S.mode==="ihsan")return curriculumPage(v);v.innerHTML='<div class="loading">جار تحميل البيانات…</div>';try{if(S.tab==="home")return await home(v);if(S.tab==="system-check")return await systemCheckPage(v);if(S.tab==="backup")return await backupPage(v);if(S.tab==="audit")return await auditPage(v);if(S.tab==="groups")return groups(v);if(S.tab==="teachers")return teachers(v);if(S.tab==="students")return students(v);if(S.tab==="attendance")return attendance(v);if(S.tab==="assignments")return await assignmentsPage(v);if(S.tab==="gradebook")return await gradebookPage(v);if(S.tab==="messages")return await messagesPage(v);if(S.tab==="reports")return reportsPage(v);if(S.tab==="leaderboard")return leaderboardPage(v);if(S.tab==="profile")return studentProfile(v,S.user.student_id);if(S.tab==="quran")return quran(v);if(S.tab==="tests")return testsPage(v);if(S.tab==="posts")return postsPage(v);if(S.tab==="notifications")return notificationsPage(v)}catch(e){v.innerHTML='<div class="panel"><h2>تعذّر تحميل البيانات</h2><p class="notice error">'+esc(e.message)+'</p><button class="btn" id="retry">إعادة المحاولة</button></div>';$("#retry").onclick=page}}
 async function home(v){const d=await api("/dashboard");let html=head("الرئيسية","نظرة مختصرة على يومك.");if(S.user.role!=="student")html+='<div class="stats"><div class="stat"><span class="stat-icon" aria-hidden="true">'+navIcon("students")+'</span><small>الطلاب</small><strong>'+d.students_count+'</strong></div><div class="stat"><span class="stat-icon" aria-hidden="true">'+navIcon("groups")+'</span><small>الأفواج</small><strong>'+d.groups_count+'</strong></div>'+(S.user.role==="admin"?'<div class="stat"><span class="stat-icon" aria-hidden="true">'+navIcon("attendance")+'</span><small>سُجّل حضورهم اليوم</small><strong>'+d.attendance_marked+'</strong></div>':'')+'</div>';else {
  const result=await Promise.allSettled([api("/quran/progress"),api("/attendance?history=1"),api("/tests"),api("/leaderboard"),api("/gamification"),api("/assignments")]);
  const quranRows=result[0].status==="fulfilled"?result[0].value:[];
@@ -574,6 +574,53 @@ async function testsPage(v){
  }else{
   v.querySelectorAll("[data-submit-test]").forEach(form=>form.onsubmit=async e=>{e.preventDefault();const test=tests.find(t=>t.id===form.dataset.submitTest);if(!test)return;const answers=(test.questions||[]).map(q=>{const chosen=form.querySelector('input[name="q_'+q.id+'"]:checked');return {question_id:q.id,selected_index:chosen?Number(chosen.value):-1}});if(answers.some(a=>a.selected_index<0)){toast("أجب عن جميع الأسئلة أولًا",true);return}try{const result=await api("/test-submit?id="+encodeURIComponent(test.id),{method:"POST",body:JSON.stringify({answers})});toast("نتيجتك: "+result.score+" من "+result.total+" ("+result.percent+"%)");await page()}catch(x){toast(x.message,true)}});
  }
+}
+async function gradebookPage(v){
+ const isStudent=S.user.role==="student";
+ const allowedStaff=["admin","director","teacher","supervisor"].includes(S.user.role);
+ const formatPercent=value=>value===null||value===undefined?"—":Number(value).toLocaleString("ar-DZ",{maximumFractionDigits:1})+"٪";
+ const stat=(label,value,detail="")=>'<div class="stat"><small>'+esc(label)+'</small><strong>'+esc(value)+'</strong>'+(detail?'<small>'+esc(detail)+'</small>':"")+'</div>';
+ if(isStudent){
+  let data;
+  try{data=await api("/gradebook")}catch(e){v.innerHTML=head("تقدمي ودرجاتي","ملخص ما سُجّل لك في الأكاديمية.")+'<div class="notice error">'+esc(e.message)+'</div>';return}
+  const s=(data.students||[])[0];
+  if(!s){v.innerHTML=head("تقدمي ودرجاتي","ملخص ما سُجّل لك في الأكاديمية.")+'<div class="empty">لم يُربط حسابك بعد بملف طالب نشط.</div>';return}
+  v.innerHTML=head("تقدمي ودرجاتي","هذه لوحة لمساعدتك على معرفة ما أُنجز وما يحتاج إلى متابعة، وليست حكمًا على قيمتك أو اجتهادك.")+
+   '<div class="stats">'+stat("الحضور",formatPercent(s.attendance.rate),s.attendance.sessions+" سجلات")+
+   stat("متوسط تقدير القرآن",s.quran.average_grade===null?"—":s.quran.average_grade+"/10",s.quran.sessions+" متابعات")+
+   stat("نتائج الاختبارات",formatPercent(s.tests.percent),s.tests.attempts+" محاولات · "+s.tests.correct+"/"+s.tests.total+" إجابة صحيحة")+
+   stat("واجبات راجعها المعلم",s.assignments.reviewed+" / "+s.assignments.available,s.assignments.pending+" بانتظار المراجعة")+'</div>'+
+   '<section class="card"><h3>الحضور</h3><p>حاضر: <strong>'+s.attendance.present+'</strong> · غائب: '+s.attendance.absent+' · متأخر: '+s.attendance.late+' · بعذر: '+s.attendance.excused+'</p><p class="muted small">لا يحتسب السجل ما لم يُسجّل المعلم أو الإدارة حالة الحضور.</p></section>'+
+   '<section class="card"><h3>القرآن الكريم</h3><p>متابعات: '+s.quran.sessions+' · الحفظ الجديد: '+s.quran.memorization+' · المراجعة: '+s.quran.revision+'</p><button class="btn secondary" data-gradebook-go="quran">عرض سجل القرآن</button></section>'+
+   '<section class="card"><h3>الاختبارات والواجبات</h3><p>في الاختبارات: '+s.tests.attempts+' محاولة. في الواجبات: '+s.assignments.submitted+' تسليمًا، منها '+s.assignments.reviewed+' تمت مراجعته.</p><div class="student-actions"><button class="btn" data-gradebook-go="tests">الاختبارات</button><button class="btn secondary" data-gradebook-go="assignments">واجباتي</button></div></section>'+
+   '<p class="muted small">آخر تحديث: '+esc(data.updated_at||"")+'. قد تختلف النتائج باختلاف السجلات التي أدخلها المعلم.</p>';
+  v.querySelectorAll("[data-gradebook-go]").forEach(b=>b.addEventListener("click",()=>go(b.dataset.gradebookGo)));
+  return;
+ }
+ if(!allowedStaff){v.innerHTML=head("السجل التعليمي","لا يملك هذا الحساب صلاحية عرض السجل التعليمي.")+'<div class="notice">يرجى الدخول بحساب الإدارة أو المعلم.</div>';return}
+ const savedGroup=safeStore.get("ihsan_gradebook_group");
+ const defaultGroup=S.groups.some(g=>g.id===savedGroup)?savedGroup:(S.groups.length===1?S.groups[0].id:"");
+ let html=head("السجل التعليمي","اجمع صورة الطالب في الحضور والقرآن والاختبارات والواجبات دون خلطها في درجة واحدة.")+
+  '<section class="card"><form id="gradebook-filter" class="form-grid"><label class="field wide">الفوج<select name="group_id" required><option value="">اختر الفوج</option>'+S.groups.map(g=>'<option value="'+esc(g.id)+'" '+(g.id===defaultGroup?"selected":"")+'>'+esc(g.name)+'</option>').join("")+'</select></label><div class="wide"><button class="btn" type="submit">عرض السجل</button></div></form></section><div id="gradebook-results"></div>';
+ v.innerHTML=html;
+ const filter=$("#gradebook-filter"),host=$("#gradebook-results");
+ const renderRows=data=>{
+  const rows=data.students||[];
+  if(!rows.length){host.innerHTML='<div class="empty">لا يوجد طلاب نشطون في هذا الفوج.</div>';return}
+  const csvRows=[["الطالب","الحضور %","الحاضر","الغائب","المتأخر","بعذر","متابعات القرآن","متوسط القرآن /10","محاولات الاختبار","نتيجة الاختبار %","الواجبات المسلّمة","تمت مراجعتها","بانتظار المراجعة","متوسط الواجبات %"],...rows.map(s=>[s.name,s.attendance.rate??"",s.attendance.present,s.attendance.absent,s.attendance.late,s.attendance.excused,s.quran.sessions,s.quran.average_grade??"",s.tests.attempts,s.tests.percent??"",s.assignments.submitted,s.assignments.reviewed,s.assignments.pending,s.assignments.average_percent??""])];
+  const csv="\uFEFF"+csvRows.map(row=>row.map(value=>'"'+String(value??"").replace(/"/g,'""')+'"').join(",")).join("\r\n");
+  host.innerHTML='<section class="card"><div class="section-head"><div><h3>سجل الفوج</h3><p class="muted small">'+rows.length+' طالبًا · آخر تحديث '+esc(data.updated_at||"")+'</p></div><button class="btn secondary" id="gradebook-csv" type="button">تصدير CSV</button></div><div class="stats">'+stat("متابعات القرآن",rows.reduce((n,s)=>n+s.quran.sessions,0))+stat("محاولات الاختبار",rows.reduce((n,s)=>n+s.tests.attempts,0))+stat("واجبات بانتظار المراجعة",rows.reduce((n,s)=>n+s.assignments.pending,0))+stat("سجلات الحضور",rows.reduce((n,s)=>n+s.attendance.sessions,0))+'</div><div class="table-wrap"><table><thead><tr><th>الطالب</th><th>الحضور</th><th>القرآن</th><th>الاختبارات</th><th>الواجبات</th><th>تفاصيل</th></tr></thead><tbody>'+rows.map(s=>'<tr><td><strong>'+esc(s.name)+'</strong></td><td>'+formatPercent(s.attendance.rate)+'<small>'+s.attendance.present+' حاضر · '+s.attendance.absent+' غائب</small></td><td>'+s.quran.sessions+' متابعة<small>متوسط '+(s.quran.average_grade===null?"—":esc(s.quran.average_grade)+"/10")+'</small></td><td>'+formatPercent(s.tests.percent)+'<small>'+s.tests.correct+'/'+s.tests.total+' إجابة · '+s.tests.attempts+' محاولات</small></td><td>'+s.assignments.reviewed+'/'+s.assignments.available+' مراجعة<small>'+s.assignments.pending+' بانتظار المعلم</small></td><td><button class="btn secondary" type="button" data-gradebook-student="'+esc(s.student_id)+'">ملف الطالب</button></td></tr>').join("")+'</tbody></table></div></section>';
+  $("#gradebook-csv")?.addEventListener("click",()=>{const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));const link=document.createElement("a");link.href=url;link.download="ihsan-gradebook.csv";document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1500)});
+  host.querySelectorAll("[data-gradebook-student]").forEach(button=>button.addEventListener("click",()=>go("students")));
+ };
+ const loadGroup=async id=>{
+  if(!id){host.innerHTML='<div class="empty">اختر الفوج أولًا لعرض السجل التعليمي.</div>';return}
+  safeStore.set("ihsan_gradebook_group",id);host.innerHTML='<div class="loading">جار إعداد السجل التعليمي…</div>';
+  try{renderRows(await api("/gradebook?group_id="+encodeURIComponent(id)))}catch(e){host.innerHTML='<div class="notice error">'+esc(e.message)+'</div>'}
+ };
+ filter.addEventListener("submit",async e=>{e.preventDefault();await loadGroup(String(new FormData(filter).get("group_id")||""))});
+ if(defaultGroup)await loadGroup(defaultGroup);
+ else host.innerHTML='<div class="empty">اختر الفوج ثم اضغط «عرض السجل».</div>';
 }
 async function messagesPage(v){
  let rows=[],recipients=[];
