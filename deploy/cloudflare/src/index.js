@@ -445,7 +445,52 @@ export default {
       const subject={id:uuid(),title,description,status:"published",created_by:user.id,created_at:nowIso()};
       await saveRecord(env,"subjects",subject);await log(env,user.id,"subject_create",{subject_id:subject.id});return json(subject,201);
     }
-    if(path==="/api/quran"&&method==="GET")return json({levels:[],students:[],can_edit:user.role==="admin"||user.role==="teacher"});
+    if(path==="/api/quran"&&method==="GET")return json({levels:[
+      {id:"khatma",name:"الختمة الكاملة",duration_days:null,description:"مسار مرن لإتمام القرآن مع حفظ ما يناسب قدرة الطالب ومراجعته.",weekly_goal_default:"ورد أسبوعي ثابت من الحفظ والمراجعة"},
+      {id:"45",name:"ختمة 45 يومًا",duration_days:45,description:"برنامج متوسط السرعة يجمع الإنجاز اليومي مع المراجعة.",weekly_goal_default:"قرابة جزء ونصف إلى جزأين يوميًا بحسب مستوى الطالب"},
+      {id:"30",name:"ختمة 30 يومًا",duration_days:30,description:"برنامج مكثف يحتاج إلى وقت يومي كافٍ ومراجعة منتظمة.",weekly_goal_default:"قرابة جزء يوميًا مع مراجعة ما سبق"},
+      {id:"15",name:"ختمة 15 يومًا",duration_days:15,description:"برنامج مكثف جدًا لا يناسب كل طالب؛ يحدّد المعلم المقدار بحسب الإتقان والقدرة.",weekly_goal_default:"ورد مكثف بإشراف المعلم مع مراجعة مناسبة"},
+      {id:"starter",name:"المسار التمهيدي",duration_days:null,description:"للمبتدئ: تأسيس القراءة، وحفظ قصار السور، وتثبيت الورد قبل زيادة المقدار.",weekly_goal_default:"ورد قصير ثابت مع مراجعة يومية"}
+    ],can_edit:user.role==="admin"||user.role==="teacher"});
+    if(path==="/api/quran/plan"&&method==="GET"){
+      let studentId=clean(url.searchParams.get("student_id"),80);
+      if(user.role==="student"){
+        if(!user.student_id)return fail(404,"حساب الطالب غير مرتبط بملف طالب");
+        if(studentId&&studentId!==user.student_id)return fail(403,"لا يمكنك عرض خطة طالب آخر");
+        studentId=user.student_id;
+      }else{
+        if(user.role!=="admin"&&user.role!=="teacher")return fail(403,"غير مسموح");
+        if(!studentId)return fail(400,"حدد الطالب");
+        const st=await env.DB.prepare("SELECT group_id FROM students WHERE id=? AND active=1").bind(studentId).first();
+        if(!st||!await canManageGroup(env,user,st.group_id))return fail(403,"لا تملك صلاحية هذا الطالب");
+      }
+      const row=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='quran_plan' AND student_id=? LIMIT 1").bind(studentId).first();
+      if(!row)return json(null);
+      try{return json(JSON.parse(row.payload_json))}catch{return fail(500,"تعذّرت قراءة خطة القرآن")}
+    }
+    if(path==="/api/quran/plan"&&method==="POST"){
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      let studentId=clean(b.student_id,80);
+      if(user.role==="student"){
+        if(!user.student_id)return fail(404,"حساب الطالب غير مرتبط بملف طالب");
+        if(studentId&&studentId!==user.student_id)return fail(403,"لا يمكنك تغيير خطة طالب آخر");
+        studentId=user.student_id;
+      }else{
+        if(user.role!=="admin"&&user.role!=="teacher")return fail(403,"تعيين مسار القرآن للمعلم أو المدير");
+        if(!studentId)return fail(400,"حدد الطالب");
+      }
+      const st=await env.DB.prepare("SELECT group_id FROM students WHERE id=? AND active=1").bind(studentId).first();
+      if(!st||!await canManageGroup(env,user,st.group_id))return fail(403,"لا تملك صلاحية هذا الطالب");
+      const pathId=clean(b.path_id,40),allowed=["khatma","45","30","15","starter"];
+      if(!allowed.includes(pathId))return fail(400,"اختر مسارًا قرآنيًا صحيحًا");
+      const weeklyGoal=clean(b.weekly_goal,250);
+      if(!weeklyGoal)return fail(400,"اكتب هدفًا أسبوعيًا واضحًا");
+      const existing=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='quran_plan' AND student_id=? LIMIT 1").bind(studentId).first();
+      let previous={};try{if(existing)previous=JSON.parse(existing.payload_json)}catch{}
+      const plan={id:studentId,student_id:studentId,group_id:st.group_id,path_id:pathId,weekly_goal:weeklyGoal,created_at:previous.created_at||nowIso(),updated_at:nowIso(),updated_by:user.id};
+      await saveRecord(env,"quran_plan",plan);await log(env,user.id,"quran_plan_save",{student_id:studentId,path_id:pathId});
+      return json({ok:true,plan});
+    }
     if(path==="/api/leaderboard"&&method==="GET"){
       const groupId=user.role==="student"?user.group_id:clean(url.searchParams.get("group_id"),80);
       if(!groupId)return fail(400,"لا يوجد فوج مرتبط بالحساب");
