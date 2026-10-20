@@ -685,6 +685,31 @@ export default {
     if(path==="/api/metrics"&&method==="GET"){
       if(user.role!=="admin")return fail(403,"forbidden");const counts=await env.DB.prepare("SELECT (SELECT COUNT(*) FROM users) AS users,(SELECT COUNT(*) FROM students WHERE active=1) AS students,(SELECT COUNT(*) FROM groups WHERE active=1) AS groups,(SELECT COUNT(*) FROM academy_records) AS records").first();return json({...counts,storage:"d1"});
     }
+    if(path==="/api/admin/backup/summary"&&method==="GET"){
+      if(user.role!=="admin")return fail(403,"forbidden");
+      const [users,groups,students,recordsCount,audit]=await Promise.all([
+        env.DB.prepare("SELECT COUNT(*) AS n FROM users WHERE active=1").first(),
+        env.DB.prepare("SELECT COUNT(*) AS n FROM groups WHERE active=1").first(),
+        env.DB.prepare("SELECT COUNT(*) AS n FROM students WHERE active=1").first(),
+        env.DB.prepare("SELECT COUNT(*) AS n FROM academy_records").first(),
+        env.DB.prepare("SELECT COUNT(*) AS n FROM audit_log").first()
+      ]);
+      return json({created_at:nowIso(),storage:"cloudflare-d1",counts:{users:users?.n||0,groups:groups?.n||0,students:students?.n||0,records:recordsCount?.n||0,audit_entries:audit?.n||0},includes:["الحسابات الأساسية دون كلمات المرور","الأفواج وتعيين المعلمين","قائمة الطلاب","سجلات الحضور والتقدم والاختبارات والمحتوى","آخر 5000 عملية إدارية"],excludes:["كلمات المرور وبصماتها","رموز الجلسات","محاولات تسجيل الدخول"]});
+    }
+    if(path==="/api/admin/backup/export"&&method==="GET"){
+      if(user.role!=="admin")return fail(403,"forbidden");
+      const [users,groups,students,recordsResult,schools,audit]=await Promise.all([
+        env.DB.prepare("SELECT id,display_name,identity_normalized,role,active,created_at FROM users ORDER BY created_at").all(),
+        env.DB.prepare("SELECT id,name,school_id,teacher_id,active,created_at FROM groups ORDER BY created_at").all(),
+        env.DB.prepare("SELECT id,user_id,display_name,group_id,active,created_at FROM students ORDER BY created_at").all(),
+        env.DB.prepare("SELECT collection,id,owner_user_id,group_id,student_id,payload_json,updated_at FROM academy_records ORDER BY collection,updated_at").all(),
+        env.DB.prepare("SELECT id,name,description,active,sort_order,created_at FROM quran_schools ORDER BY sort_order,name").all(),
+        env.DB.prepare("SELECT id,user_id,action,metadata_json,created_at FROM audit_log ORDER BY created_at DESC LIMIT 5000").all()
+      ]);
+      const payload={format:"ihsan-academy-operational-backup-v1",created_at:nowIso(),notice:"نسخة تشغيلية من البيانات؛ لا تتضمن كلمات المرور أو الجلسات ولا تُعد وحدها نسخة كاملة قابلة لإعادة إنشاء الحسابات.",data:{users:users.results||[],groups:groups.results||[],students:students.results||[],academy_records:(recordsResult.results||[]).map(r=>({...r,payload: (()=>{try{return JSON.parse(r.payload_json)}catch{return null}})()})),quran_schools:schools.results||[],audit_log:audit.results||[]}};
+      await log(env,user.id,"admin_backup_export",{users:payload.data.users.length,groups:payload.data.groups.length,students:payload.data.students.length,records:payload.data.academy_records.length});
+      return json(payload,200,{"content-disposition":'attachment; filename="ihsan-academy-backup.json"',"cache-control":"no-store"});
+    }
     return fail(404,"المسار غير موجود");
     } catch (error) {
       console.error("Ihsan API request failed", { path, method, message: String(error?.message || error) });
