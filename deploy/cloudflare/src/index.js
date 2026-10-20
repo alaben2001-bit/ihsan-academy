@@ -732,7 +732,7 @@ export default {
       if(!title||!description)return fail(400,"أدخل عنوان الواجب وتعليماته");
       if(!groupId&&user.role!=="admin")return fail(403,"يمكن للمدير العام وحده إنشاء واجب عام");
       if(groupId&&!await canManageGroup(env,user,groupId))return fail(403,"لا تملك صلاحية هذا الفوج");
-      if(dueDate&&!/^\\d{4}-\\d{2}-\\d{2}$/.test(dueDate))return fail(400,"صيغة موعد التسليم غير صحيحة");
+      if(dueDate&&!/^\d{4}-\d{2}-\d{2}$/.test(dueDate))return fail(400,"صيغة موعد التسليم غير صحيحة");
       if(!Number.isFinite(pointsTotal)||pointsTotal<1||pointsTotal>1000)return fail(400,"الدرجة الكلية يجب أن تكون من 1 إلى 1000");
       const assignment={id:uuid(),title,description,group_id:groupId,due_date:dueDate||null,points_total:pointsTotal,status:"published",created_by:user.id,created_at:nowIso()};
       await saveRecord(env,"assignments",assignment);await log(env,user.id,"assignment_create",{assignment_id:assignment.id,group_id:groupId});
@@ -751,8 +751,7 @@ export default {
       const submissionId=assignmentId+":"+user.student_id;
       const old=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='assignment_submissions' AND id=?").bind(submissionId).first();
       let previous=null;try{previous=old?JSON.parse(old.payload_json):null}catch{}
-      const submission={id:submissionId,assignment_id:assignmentId,student_id:user.student_id,group_id:user.group_id,response_text:responseText,status:"submitted",submitted_at:nowIso(),created_at:previous?.created_at||nowIso(),grade:null,feedback:"",reviewed_by:null,reviewed_at:null};
-      if(previous){submission.grade=previous.grade??null;submission.feedback=previous.feedback||"";submission.reviewed_by=previous.reviewed_by||null;submission.reviewed_at=previous.reviewed_at||null;}
+      const submission={id:submissionId,assignment_id:assignmentId,student_id:user.student_id,group_id:user.group_id,response_text:responseText,status:"submitted",submitted_at:nowIso(),created_at:previous?.created_at||nowIso(),revision_number:Number(previous?.revision_number||0)+1,grade:null,feedback:"",reviewed_by:null,reviewed_at:null};
       await saveRecord(env,"assignment_submissions",submission);await log(env,user.id,"assignment_submit",{assignment_id:assignmentId});
       return json({ok:true,submission},201);
     }
