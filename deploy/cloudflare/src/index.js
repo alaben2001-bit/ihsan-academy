@@ -541,9 +541,43 @@ export default {
       if(!weeklyGoal)return fail(400,"اكتب هدفًا أسبوعيًا واضحًا");
       const existing=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='quran_plan' AND student_id=? LIMIT 1").bind(studentId).first();
       let previous={};try{if(existing)previous=JSON.parse(existing.payload_json)}catch{}
-      const plan={id:studentId,student_id:studentId,group_id:st.group_id,path_id:pathId,weekly_goal:weeklyGoal,created_at:previous.created_at||nowIso(),updated_at:nowIso(),updated_by:user.id};
+      const weeklyTargets=Array.isArray(b.weekly_targets)?b.weekly_targets.slice(0,12).map((w,i)=>({week:i+1,memorization:clean(w?.memorization,180),revision:clean(w?.revision,180),understanding:clean(w?.understanding,180),application:clean(w?.application,180)})):Array.isArray(previous.weekly_targets)?previous.weekly_targets:[];
+      const plan={id:studentId,student_id:studentId,group_id:st.group_id,path_id:pathId,weekly_goal:weeklyGoal,weekly_targets:weeklyTargets,created_at:previous.created_at||nowIso(),updated_at:nowIso(),updated_by:user.id};
       await saveRecord(env,"quran_plan",plan);await log(env,user.id,"quran_plan_save",{student_id:studentId,path_id:pathId});
       return json({ok:true,plan});
+    }
+    if(path==="/api/curriculum"&&method==="GET"){
+      const custom=await scopedRecords(env,user,"lessons",user.role==="student");
+      const lessons=[
+        {id:"lesson-tawhid-1",subject_id:"allah",title:"معرفة الله تعالى وأثرها في العبادة",objective:"أن يربط الطالب بين معرفة ربه وإخلاص العبادة له.",content:"يتعلم الطالب معنى إفراد الله تعالى بالعبادة، ويستخرج من النصوص ما يزيده محبةً وتعظيمًا ورجاءً.",references:[{kind:"quran",text:"الذاريات: 56"},{kind:"quran",text:"الفاتحة: 5"}],activities:["حفظ الآية ومعرفة معناها الإجمالي","ذكر مثال عملي على إخلاص العبادة"],stages:["فهم","حفظ","مراجعة","تطبيق"],builtin:true},
+        {id:"lesson-sunnah-1",subject_id:"prophet",title:"النية والإخلاص",objective:"أن يستحضر الطالب النية الصالحة قبل العمل.",content:"الأعمال معتبرة بنياتها؛ يراجع الطالب قصده ويجدد نيته في طلب العلم وتعليم القرآن.",references:[{kind:"hadith",text:"إنما الأعمال بالنيات، صحيح البخاري (1)، وصحيح مسلم (1907)"}],activities:["شرح معنى النية بمثال من طلب العلم","كتابة نية صالحة لعمل اليوم"],stages:["فهم","حفظ","مراجعة","تطبيق"],builtin:true},
+        {id:"lesson-quran-1",subject_id:"quran",title:"آداب تلاوة القرآن وتدبره",objective:"أن يجمع الطالب بين التلاوة الصحيحة وفهم المعنى والعمل.",content:"يتدرب الطالب على القراءة المتأنية، وفهم المعنى من تفسير موثوق، واستخراج عمل واحد تدل عليه الآية.",references:[{kind:"quran",text:"محمد: 24"},{kind:"quran",text:"ص: 29"}],activities:["تلاوة مقطع مضبوط","قراءة تفسير موثوق بإشراف المعلم","تدوين فائدة وعمل تطبيقي"],stages:["فهم","حفظ","مراجعة","تطبيق"],builtin:true},
+        {id:"lesson-adab-1",subject_id:"adab",title:"الرفق وحسن الخلق",objective:"أن يطبق الطالب الرفق في تعامله مع زملائه.",content:"يتعرف الطالب معنى الرفق ويذكر صورًا عملية له في البيت والمسجد ومجلس العلم.",references:[{kind:"hadith",text:"إن الله رفيق يحب الرفق، صحيح مسلم (2593)"}],activities:["ذكر موقف يحتاج إلى الرفق","تطبيق خلق الرفق اليوم"],stages:["فهم","حفظ","مراجعة","تطبيق"],builtin:true},
+        {id:"lesson-hifz-1",subject_id:"quran",title:"منهجية الحفظ والمراجعة",objective:"أن يلتزم الطالب وردًا مناسبًا مع مراجعة متقنة.",content:"يقسم الطالب المقدار إلى وحدات صغيرة، ويكرر حتى يتقن، ثم يربط الجديد بمراجعة السابق ويعرض حفظه على المعلم.",references:[{kind:"quran",text:"المزمل: 4"},{kind:"hadith",text:"تعاهدوا القرآن، صحيح البخاري (5033)، وصحيح مسلم (791)"}],activities:["تحديد ورد واقعي","تسميع المقطع","تسجيل مواضع الخطأ وتصحيحها"],stages:["فهم","حفظ","مراجعة","تطبيق"],builtin:true}
+      ];
+      return json([...lessons,...custom]);
+    }
+    if(path==="/api/curriculum"&&method==="POST"){
+      if(user.role!=="admin"&&user.role!=="teacher")return fail(403,"إضافة الدروس للمعلم أو المدير");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      const title=clean(b.title,180),content=clean(b.content,5000),subjectId=clean(b.subject_id,80);
+      if(!title||!content||!subjectId)return fail(400,"أدخل عنوان الدرس ومحتواه والمقرر");
+      const lesson={id:uuid(),title,content,subject_id:subjectId,objective:clean(b.objective,500),references:Array.isArray(b.references)?b.references.slice(0,10).map(r=>({kind:clean(r?.kind,30),text:clean(r?.text,300)})):[],activities:Array.isArray(b.activities)?b.activities.slice(0,10).map(x=>clean(x,300)):[],stages:["فهم","حفظ","مراجعة","تطبيق"],group_id:clean(b.group_id,80)||null,status:"published",created_by:user.id,created_at:nowIso()};
+      if(lesson.group_id&&!await canManageGroup(env,user,lesson.group_id))return fail(403,"لا تملك صلاحية هذا الفوج");
+      if(!lesson.group_id&&user.role!=="admin")return fail(403,"يمكن للمدير وحده نشر درس عام");
+      await saveRecord(env,"lessons",lesson);await log(env,user.id,"lesson_create",{lesson_id:lesson.id,subject_id:subjectId});return json(lesson,201);
+    }
+    if(path==="/api/gamification"&&method==="GET"){
+      if(user.role!=="student"||!user.student_id||!user.group_id)return fail(403,"لوحة الإنجاز متاحة لحساب الطالب المرتبط بفوج");
+      const [attendance,quran,attempts,plans]=await Promise.all([
+        records(env,"attendance"," AND group_id=?",[user.group_id]),records(env,"quran_progress"," AND student_id=?",[user.student_id]),records(env,"test_attempts"," AND student_id=?",[user.student_id]),records(env,"quran_plan"," AND student_id=?",[user.student_id])
+      ]);
+      const present=attendance.filter(a=>a.student_id===user.student_id&&a.status==="present").length;
+      const days=new Set(quran.map(q=>q.date)).size,tests=attempts.length,score=attempts.reduce((n,a)=>n+(Number(a.score)||0),0);
+      const badges=[];if(days>=1)badges.push({id:"first-step",name:"الخطوة الأولى",description:"سجلت متابعة قرآنية",icon:"🌱"});if(days>=7)badges.push({id:"steady",name:"ثبات أسبوع",description:"تابعت القرآن في سبعة أيام مختلفة",icon:"🌿"});if(tests>=1)badges.push({id:"exam",name:"همة المتعلم",description:"أكملت اختبارًا",icon:"📘"});if(present>=5)badges.push({id:"attendance",name:"مواظب",description:"سجلت حضورًا خمس مرات",icon:"⭐"});
+      const day=nowIso().slice(0,10),daily=[{id:"daily-quran",title:"ورد اليوم",description:"اقرأ وردك المقرر ثم راجعه بإتقان",points:10},{id:"daily-review",title:"مراجعة ثابتة",description:"راجع محفوظًا سابقًا قبل إضافة الجديد",points:10},{id:"daily-adab",title:"عمل بالعلم",description:"طبّق فائدة تعلمتها اليوم",points:5}];
+      const challenge= daily[Number(day.replace(/-/g,""))%daily.length];
+      return json({student_id:user.student_id,points:present*5+days*10+score*3,stats:{attendance:present,quran_days:days,tests,answers_correct:score},badges,daily_challenge:challenge,plan:plans[0]||null,hearts:5,updated_at:nowIso()});
     }
     if(path==="/api/leaderboard"&&method==="GET"){
       const groupId=user.role==="student"?user.group_id:clean(url.searchParams.get("group_id"),80);
