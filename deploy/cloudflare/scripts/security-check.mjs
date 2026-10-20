@@ -76,6 +76,10 @@ assert.match(app, /data-week-part="understanding"/, "the Quran plan must let use
 assert.match(app, /data-week-part="application"/, "the Quran plan must let users set weekly application targets");
 assert.match(app, /weekly_targets:\[0,1,2,3\]\.map/, "the UI must save four structured weekly targets rather than one repeated field");
 assert.match(backend, /frequency_days:14,recurring,series_id:seriesId/, "recurring tests must record their two-week cadence");
+assert.match(backend, /if\(!latest\.due_date\|\|latest\.due_date>=today\)continue/, "a recurring test must remain open through its due date");
+assert.match(backend, /status:"archived",archived_at:rolloverAt,archived_by:"system",archive_reason:"recurring_rollover"/, "the prior recurring cycle must be archived while preserving its results");
+assert.match(backend, /status:"published",archived_at:null,archived_by:null,archive_reason:null/, "the newly generated recurring cycle must be published and unarchived");
+
 assert.match(backend, /item\.status==="archived"\|\|!item\.recurring\|\|!item\.series_id/, "archived test series must stop generating future instances");
 assert.match(backend, /parsed\.value\.action==="archive"/, "staff must be able to archive tests while preserving their records");
 assert.match(backend, /const savedAttempts=attempts\.filter\(item=>targetIds\.has\(item\.test_id\)\)/, "tests with saved student attempts must not be permanently deleted");
