@@ -237,6 +237,7 @@ export default {
       const identity=clean(claims.email,200).toLowerCase();
       const user=await env.DB.prepare("SELECT id,display_name,identity_normalized,role,active,must_change_password FROM users WHERE identity_normalized=? LIMIT 1").bind(identity).first();
       if(!user||user.active!==1)return fail(403,"لا يوجد حساب مفعّل مرتبط بهذا البريد. اطلب من الإدارة إنشاء حسابك بالبريد نفسه.");
+      if(user.must_change_password===1)return fail(403,"لأول دخول، استخدم اسم الدخول وكلمة المرور المؤقتة المرسلة إليك وغيّرها أولًا؛ بعد ذلك يمكنك الدخول باستخدام Google.");
       const token=hex(crypto.getRandomValues(new Uint8Array(32))),remember=b.remember===true,lifetime=(remember?30*24:12)*60*60*1000;
       await env.DB.prepare("INSERT INTO sessions(token_hash,user_id,expires_at) VALUES(?,?,?)").bind(await hashToken(token),user.id,new Date(Date.now()+lifetime).toISOString()).run();
       const student=user.role==="student"?await env.DB.prepare("SELECT id,group_id FROM students WHERE user_id=? AND active=1").bind(user.id).first():null;
