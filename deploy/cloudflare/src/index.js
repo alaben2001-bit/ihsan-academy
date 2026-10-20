@@ -256,17 +256,31 @@ export default {
     const studentMatch=path.match(/^\/api\/students\/([^/]+)$/);
     if(studentMatch&&method==="PATCH"){
       if(user.role!=="admin"&&user.role!=="teacher")return fail(403,"غير مسموح");
-      const s=await env.DB.prepare("SELECT id,user_id,group_id FROM students WHERE id=? AND active=1").bind(studentMatch[1]).first();
-      if(!s)return fail(404,"الطالب غير موجود");if(!await canManageGroup(env,user,s.group_id))return fail(403,"لا تملك صلاحية هذا الطالب");
+      const s=await env.DB.prepare("SELECT id,user_id,display_name,group_id FROM students WHERE id=? AND active=1").bind(studentMatch[1]).first();
+      if(!s)return fail(404,"الطالب غير موجود");
+      if(!await canManageGroup(env,user,s.group_id))return fail(403,"لا تملك صلاحية هذا الطالب");
       const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
-      const name=clean(b.name,120),identity=clean(b.username,120).toLowerCase(),password=String(b.password||"");
-      if(!s.user_id||!name||!identity||identity.length>120||(password&&(password.length<8||password.length>256)))return fail(400,"تحقق من الاسم واسم الدخول وكلمة المرور (8 أحرف على الأقل)");
-      const duplicate=await env.DB.prepare("SELECT id FROM users WHERE identity_normalized=? AND id<>? LIMIT 1").bind(identity,s.user_id).first();
-      if(duplicate)return fail(409,"اسم الدخول مستخدم بالفعل");
-      await env.DB.prepare("UPDATE students SET display_name=? WHERE id=?").bind(name,s.id).run();
-      if(password)await env.DB.prepare("UPDATE users SET display_name=?,identity_normalized=?,password_hash=? WHERE id=?").bind(name,identity,await passwordHash(password),s.user_id).run();
-      else await env.DB.prepare("UPDATE users SET display_name=?,identity_normalized=? WHERE id=?").bind(name,identity,s.user_id).run();
-      await log(env,user.id,"student_update",{student_id:s.id,name});return json({ok:true,name,username:identity});
+      const name=b.name===undefined?s.display_name:clean(b.name,120);
+      const nextGroup=b.group_id===undefined?s.group_id:clean(b.group_id,80);
+      const identity=b.username===undefined?null:clean(b.username,120).toLowerCase();
+      const password=String(b.password||"");
+      if(!name||!nextGroup)return fail(400,"اسم الطالب والفوج مطلوبان");
+      if(!await canManageGroup(env,user,nextGroup))return fail(403,"لا تملك صلاحية الفوج الجديد");
+      if(identity!==null&&(!s.user_id||!identity||identity.length>120))return fail(400,"لا يمكن تعديل اسم الدخول قبل إنشاء حساب للطالب");
+      if(password&&(!s.user_id||password.length<8||password.length>256))return fail(400,"كلمة المرور يجب أن تكون 8 أحرف على الأقل ولحساب موجود");
+      if(identity!==null){
+        const duplicate=await env.DB.prepare("SELECT id FROM users WHERE identity_normalized=? AND id<>? LIMIT 1").bind(identity,s.user_id).first();
+        if(duplicate)return fail(409,"اسم الدخول مستخدم بالفعل");
+      }
+      await env.DB.prepare("UPDATE students SET display_name=?,group_id=? WHERE id=?").bind(name,nextGroup,s.id).run();
+      if(s.user_id&&identity!==null){
+        if(password)await env.DB.prepare("UPDATE users SET display_name=?,identity_normalized=?,password_hash=? WHERE id=?").bind(name,identity,await passwordHash(password),s.user_id).run();
+        else await env.DB.prepare("UPDATE users SET display_name=?,identity_normalized=? WHERE id=?").bind(name,identity,s.user_id).run();
+      }else if(s.user_id&&b.name!==undefined){
+        await env.DB.prepare("UPDATE users SET display_name=? WHERE id=?").bind(name,s.user_id).run();
+      }
+      await log(env,user.id,"student_update",{student_id:s.id,name,old_group_id:s.group_id,new_group_id:nextGroup});
+      return json({ok:true,name,group_id:nextGroup});
     }
     if(studentMatch&&method==="DELETE"){
       if(user.role!=="admin"&&user.role!=="teacher")return fail(403,"غير مسموح");const s=await env.DB.prepare("SELECT id,user_id,group_id FROM students WHERE id=? AND active=1").bind(studentMatch[1]).first();if(!s)return fail(404,"الطالب غير موجود");if(!await canManageGroup(env,user,s.group_id))return fail(403,"لا تملك صلاحية هذا الطالب");
