@@ -413,13 +413,32 @@ function quranPlanMarkup(levels,plan,studentId,isStudent){
  const currentPath=(plan&&plan.path_id)||"starter";
  const selectedLevel=levels.find(x=>x.id===currentPath)||levels[0]||{weekly_goal_default:"ورد أسبوعي ثابت"};
  const goal=(plan&&plan.weekly_goal)||selectedLevel.weekly_goal_default||"ورد أسبوعي ثابت من الحفظ والمراجعة";
- return '<section class="card quran-plan-card"><div class="eyebrow">مسار قرآني يناسب قدرتك</div><h3>اختر المسار والهدف الأسبوعي</h3><p class="muted small">الاتساق والإتقان مقدّمان على كثرة المقدار. يمكن تعديل الهدف مع المعلم.</p><form class="quran-plan-form stack" data-quran-plan-form>'+(isStudent?"":'<input type="hidden" name="student_id" value="'+esc(studentId)+'">')+'<label class="field">المسار القرآني<select name="path_id">'+levels.map(l=>'<option value="'+esc(l.id)+'" data-goal="'+esc(l.weekly_goal_default||"")+'" '+(l.id===currentPath?'selected':"")+'>'+esc(l.name)+(l.duration_days?' · '+l.duration_days+' يومًا':"")+'</option>').join("")+'</select></label><p class="muted small" data-quran-path-description>'+esc(selectedLevel.description||"")+'</p><label class="field">الهدف الأسبوعي<textarea name="weekly_goal" required maxlength="250" rows="2">'+esc(goal)+'</textarea></label><h4>أهداف الأسابيع الأربعة القادمة</h4>'+[0,1,2,3].map(i=>'<label class="field">الأسبوع '+(i+1)+' — الحفظ والمراجعة<textarea data-week-target="'+i+'" rows="2" maxlength="300" placeholder="حدّد مقدار الحفظ والمراجعة والتسميع">'+esc((plan?.weekly_targets||[])[i]?.memorization||"")+'</textarea></label>').join("")+'<button class="btn">حفظ المسار والأهداف</button></form><p class="muted small">يمكن للمعلم إنشاء اختبار مراجعة كل أسبوعين من قسم الاختبارات؛ لم يُجدول اختبار تلقائيًا بعد.</p></section>';
+ const existingTargets=Array.isArray(plan?.weekly_targets)?plan.weekly_targets:[];
+ const field=(week,key,label,placeholder)=>'<label class="field">'+label+'<textarea data-week-target="'+week+'" data-week-part="'+key+'" rows="2" maxlength="180" placeholder="'+placeholder+'">'+esc(existingTargets[week]?.[key]||"")+'</textarea></label>';
+ const weeks=[0,1,2,3].map(i=>'<details class="quran-week-target" '+(i===0?'open':"")+'><summary><strong>الأسبوع '+(i+1)+'</strong><span class="muted small">الحفظ والمراجعة والفهم والعمل</span></summary><div class="quran-week-fields">'+
+ field(i,"memorization","الحفظ الجديد","حدّد مقدار الحفظ الجديد")+
+ field(i,"revision","المراجعة","ما الذي ستراجعه من المحفوظ؟")+
+ field(i,"understanding","الفهم والتدبر","معنى أو فائدة ستفهمها")+
+ field(i,"application","التطبيق والعمل","عمل واحد تطبّق به ما تعلمت")+
+ '</div></details>').join("");
+ return '<section class="card quran-plan-card"><div class="eyebrow">مسار قرآني يناسب قدرتك</div><h3>اختر المسار والهدف الأسبوعي</h3><p class="muted small">الاتساق والإتقان مقدّمان على كثرة المقدار. اختر هدفًا يمكن الاستمرار عليه، وعدّله مع المعلم عند الحاجة.</p><form class="quran-plan-form stack" data-quran-plan-form>'+(isStudent?"":'<input type="hidden" name="student_id" value="'+esc(studentId)+'">')+'<label class="field">المسار القرآني<select name="path_id">'+levels.map(l=>'<option value="'+esc(l.id)+'" data-goal="'+esc(l.weekly_goal_default||"")+'" '+(l.id===currentPath?'selected':"")+'>'+esc(l.name)+(l.duration_days?' · '+l.duration_days+' يومًا':"")+'</option>').join("")+'</select></label><p class="muted small" data-quran-path-description>'+esc(selectedLevel.description||"")+'</p><label class="field">الهدف الأسبوعي<textarea name="weekly_goal" required maxlength="250" rows="2">'+esc(goal)+'</textarea></label><h4>خطة الأسابيع الأربعة القادمة</h4><p class="muted small">افتح كل أسبوع وحدّد الحفظ والمراجعة ومعنى تتدبّره وعملًا تطبّقه. تُحفظ هذه الأهداف في خطة الطالب.</p>'+weeks+'<button class="btn" type="submit">حفظ المسار والأهداف</button></form><p class="muted small">عند تفعيل خيار التكرار في الاختبار، تُجهّز الدورة التالية كلما فُتح قسم الاختبارات بعد موعدها. راجع القسم بانتظام لتظهر الدورة المستحقة.</p></section>';
 }
 function wireQuranPlan(host,levels){
  const form=host.querySelector("[data-quran-plan-form]");if(!form)return;
  const pathSelect=form.elements.path_id,goal=form.elements.weekly_goal,description=form.querySelector("[data-quran-path-description]");
  pathSelect.onchange=()=>{const opt=pathSelect.selectedOptions[0];if(opt.dataset.goal)goal.value=opt.dataset.goal;const item=levels.find(x=>x.id===pathSelect.value);if(description)description.textContent=item?.description||""};
- form.onsubmit=async e=>{e.preventDefault();const data=new FormData(form);const body={path_id:data.get("path_id"),weekly_goal:data.get("weekly_goal"),weekly_targets:[...form.querySelectorAll("[data-week-target]")].map((el,i)=>({week:i+1,memorization:el.value.trim(),revision:"مراجعة المحفوظ السابق",understanding:"فهم معنى المقطع",application:"تطبيق فائدة واحدة"}))};if(data.get("student_id"))body.student_id=data.get("student_id");const btn=form.querySelector("button[type=submit],button:not([type])");if(btn)btn.disabled=true;try{await api("/quran/plan",{method:"POST",body:JSON.stringify(body)});toast("تم حفظ المسار والهدف الأسبوعي");if(S.user.role==="student"){await quran($("#view"))}else{const id=body.student_id;if(id)await loadQuranPlan(id)}}catch(x){toast(x.message,true)}finally{if(btn)btn.disabled=false}};
+ form.onsubmit=async e=>{
+  e.preventDefault();const data=new FormData(form);
+  const body={path_id:data.get("path_id"),weekly_goal:data.get("weekly_goal"),weekly_targets:[0,1,2,3].map(i=>({week:i+1,
+   memorization:form.querySelector('[data-week-target="'+i+'"][data-week-part="memorization"]')?.value.trim()||"",
+   revision:form.querySelector('[data-week-target="'+i+'"][data-week-part="revision"]')?.value.trim()||"",
+   understanding:form.querySelector('[data-week-target="'+i+'"][data-week-part="understanding"]')?.value.trim()||"",
+   application:form.querySelector('[data-week-target="'+i+'"][data-week-part="application"]')?.value.trim()||""
+  }))};
+  if(data.get("student_id"))body.student_id=data.get("student_id");
+  const btn=form.querySelector("button[type=submit],button:not([type])");if(btn)btn.disabled=true;
+  try{await api("/quran/plan",{method:"POST",body:JSON.stringify(body)});toast("تم حفظ المسار والأهداف الأربعة");if(S.user.role==="student"){await quran($("#view"))}else{const id=body.student_id;if(id)await loadQuranPlan(id)}}catch(x){toast(x.message,true)}finally{if(btn)btn.disabled=false}
+ };
 }
 function quranActivityName(a){return ({memorization:"حفظ جديد",revision:"مراجعة",recitation:"تسميع",correction:"تصحيح"})[a]||"متابعة قرآنية"}
 function quranProgressSummary(rows){
