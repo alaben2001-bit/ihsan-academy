@@ -730,3 +730,4 @@ async function notificationsPage(v){
 }
 
 boot();
+// Deploy trigger: keep the student entry/exit prayer dialogs in the latest Pages build.
