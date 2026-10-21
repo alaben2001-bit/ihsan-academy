@@ -1193,7 +1193,7 @@ function pgLearningHub(){
     <section class="card knowledge-integrity-note"><b>أمانة النقل</b><p>الآيات موثقة بسورها وأرقامها، والأحاديث مذكور مصدرها. أما الإرشادات العملية التي نكتبها نحن فمبيّن أنها فوائد تعليمية، ولا تُنسب إلى النبي ﷺ أو إلى العلماء بغير تثبت.</p></section>
   </div>`);
 }
-async async function pgSchoolManagers(){
+async function pgSchoolManagers(){
   if(S.user.role!=='admin')return showPage('dashboard');
   const schools=await api('/api/admin/schools');
   render(html`<div class="stack">
@@ -1205,7 +1205,7 @@ async async function pgSchoolManagers(){
     </section>`):html`<div class="card">${empty('لا توجد مدارس بعد','أنشئ المدرسة من النموذج أعلاه، ثم اربط بها الأفواج ومديرها.')}</div>`}
   </div>`);
 }
-function pgHierarchy(){
+async function pgHierarchy(){
   if(S.user.role!=='admin') return showPage('dashboard');
   const h=await api('/api/admin/platform-hierarchy');
   render(html`<div class="stack">
