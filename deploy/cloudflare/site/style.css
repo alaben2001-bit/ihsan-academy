@@ -1284,3 +1284,14 @@ dialog,.settings-dialog,.password-dialog{border:1px solid color-mix(in srgb,var(
   .app-authenticated .mobile-logout:hover{background:#fbe8e7;color:#8d2727}
 }
 @media(min-width:761px){.mobile-logout{display:none!important}}
+
+ 
+/* Daily supplication and learning-benefit garden */
+.daily-garden{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin:18px 0}
+.daily-garden>.card{min-width:0;position:relative;overflow:hidden;padding:clamp(18px,2.2vw,28px);border:1px solid color-mix(in srgb,var(--gold,#d4ad63) 28%,var(--line,#dce8df));background:linear-gradient(145deg,color-mix(in srgb,var(--surface,#fff) 94%,var(--gold,#d4ad63) 6%),var(--surface,#fff))}
+.daily-dua-card:before,.daily-benefit-card:before{content:"";position:absolute;inset-inline-start:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,var(--gold,#d4ad63),color-mix(in srgb,var(--gold,#d4ad63) 28%,transparent))}
+.daily-arabic{font-size:clamp(1.25rem,2.1vw,1.8rem);line-height:2.05;color:var(--ink,#18352d);font-weight:700;margin:14px 0 8px}
+.daily-dua-card p,.daily-benefit-card p{line-height:1.9}
+.daily-benefit-card h3{font-size:1.12rem;line-height:1.9;margin:12px 0}
+.daily-garden .eyebrow{color:var(--green,#174b3b);font-weight:700}
+@media(max-width:760px){.daily-garden{grid-template-columns:minmax(0,1fr)}.daily-garden>.card{padding:18px}.daily-arabic{font-size:1.25rem}}
