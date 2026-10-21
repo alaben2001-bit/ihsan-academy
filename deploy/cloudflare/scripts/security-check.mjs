@@ -149,22 +149,30 @@ assert.match(app, /صحيح مسلم، حديث 2594/, "the kindness hadith must
 assert.match(app, /curriculum-evidence-text/, "the learning curriculum must render scripture evidence as a distinct readable card");
 assert.match(app, /تسجيل الخروج/, "the exit dialog must use a neutral action label rather than a student-only journey label");
 assert.match(app, /\["hifzprogram","الحال المرتحل"\]/, "the Ihsan learning navigation must expose the Quran memorization program");
-assert.match(app, /8 س و45 د/, "the program must display the calculated week-one workload");
-assert.match(app, /10 س و50 د/, "the program must display the calculated week-two workload");
-assert.match(app, /12 س و55 د/, "the program must display the calculated week-three workload");
-assert.match(app, /47 س و30 د/, "the program must display the calculated four-week total");
-assert.match(app, /المجموع 90 دقيقة، لا 75/, "the program must disclose the early-stage 15-repetition timing discrepancy");
-assert.match(app, /5760 ساعة، لا 5320/, "the program must correct the eight-month calendar-hour arithmetic");
+
+
+
+
+
+
 assert.match(app, /لا تُحوّل خطة الاستدراك إلى إلزام بقراءة 14\.5 ساعة/, "the catch-up plan must not mandate an exhausting uninterrupted penalty day");
 assert.match(app, /data-lesson="hifzprogram"/, "the Quran memorization program must be reachable from the curriculum tiles");
 assert.match(app, /hifz-program-stack/, "the memorization program must render its dedicated responsive sections");
 assert.ok(app.includes('["hifzprogram","الحال المرتحل"]'), "Ihsan navigation must include the al-Hall al-Murtahil Quran program");
-assert.ok(app.includes("8 س و45 د") && app.includes("10 س و50 د") && app.includes("12 س و55 د") && app.includes("15 س"), "the weekly workload calculations must remain visible");
-assert.ok(app.includes("47 س و30 د"), "the monthly calculated workload must remain visible");
-assert.ok(app.includes("المجموع 90 دقيقة، لا 75"), "the program must disclose the 15-repetition early-stage timing discrepancy");
-assert.ok(app.includes("190 دقيقة، أي 3 ساعات و10 دقائق"), "the program must disclose the day-20 three-hour limit mismatch");
-assert.ok(app.includes("5760 ساعة، لا 5320"), "the program must preserve the corrected eight-month calendar-hour calculation");
+
+
+
+
+
 assert.ok(app.includes("مدينة الفاتحين") && app.includes("مدينة المصابرة") && app.includes("مدينة الثبات") && app.includes("مدينة الهدى") && app.includes("مدينة التقوى") && app.includes("مدينة الصادقين") && app.includes("مدينة الأبرار"), "all optional Quran journey city milestones must be present");
 assert.ok(app.includes("ليس بالقوي"), "the educational title must not imply authentication of the weakly graded al-Hall al-Murtahil report");
-assert.ok(app.includes("لا تُحوّل خطة الاستدراك إلى إلزام بقراءة 14.5 ساعة"), "catch-up guidance must not mandate a 14.5-hour punitive day");
+
+assert.match(app, /ستُعرض لاحقًا في المهام اليومية والخطة الأسبوعية/, "overview must reserve detailed instructions for daily and weekly tasks");
+assert.match(app, /hifz-milestone-grid/, "overview must retain a concise visual milestone map");
+assert.doesNotMatch(app, /8 س و45 د|10 س و50 د|12 س و55 د|47 س و30 د/, "the overview must not disclose full weekly workload tables");
+assert.doesNotMatch(app, /190 دقيقة، أي 3 ساعات و10 دقائق/, "daily arithmetic belongs in the later task plan, not the overview");
+assert.match(style, /color:#173c30 !important/, "note text must contrast with its note background");
+assert.match(style, /background:#edf6f0 !important/, "regular notes must use a clear light background");
+assert.match(style, /hifz-program-note--info/, "informational notes must have a distinct color treatment");
+assert.match(style, /hifz-program-note--important/, "important notes must have a distinct color treatment");
 console.log("Security regression guardrails passed.");
