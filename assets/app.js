@@ -451,7 +451,7 @@ async function pgDashboard() {
     try { sessionStorage.setItem('academy_rotation_' + key, chosen.text); } catch {}
     return chosen;
   };
-  const dailyDua = pickAtRandom(verifiedPropheticDuas, 'dua');
+  const dailyDua = pickAtRandom([...dailyDuas.filter(item => item.title === 'دعاء من القرآن'), ...verifiedPropheticDuas], 'dua');
   const studentBenefits = [
     {title:'أدب الطالب مع شيخه',text:'تعلّم من عبد الله بن عباس رضي الله عنهما توقيرَ زيد بن ثابت رضي الله عنه؛ فقد اشتهر في كتب الآداب خبر أخذه بركابه تعظيمًا للعلم وأهله. هذا أثر يُذكر في كتب التراجم والآداب، وليس حديثًا نبويًا، فلا تُنسب ألفاظه إلى النبي ﷺ.',source:'خبر منقول في كتب الآداب؛ يُذكر بصيغة الرواية لا الجزم بصحة كل لفظ'},
     {title:'مثال من أدب العلماء',text:'أنصت لشيخك، واكتب سؤالك، واختر الوقت والعبارة المناسبين، ولا تجعل الخلاف سببًا لرفع الصوت. ومن أدب أهل العلم التواضع للحق وشكر من علّمهم.',source:'توجيه تربوي مستفاد من آداب طلب العلم؛ ليس اقتباسًا حرفيًا'},
