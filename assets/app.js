@@ -1321,7 +1321,7 @@ document.addEventListener('submit', e => {
   if(f.dataset.form==='team'){e.preventDefault();const d=fd(f);guard(async()=>{await post('/api/teams',{name:d.name,group_id:d.group_id,description:d.description});closeOverlay();toast('تم إنشاء الفريق');showPage('teams');})();return;}
   if(f.dataset.form==='team-members'){e.preventDefault();const student_ids=[...f.querySelectorAll('[name=student_ids]:checked')].map(x=>x.value),supervisor_ids=[...f.querySelectorAll('[name=supervisor_ids]:checked')].map(x=>x.value);guard(async()=>{await api('/api/teams/'+encodeURIComponent(f.dataset.id)+'/members',{method:'PUT',body:JSON.stringify({student_ids,supervisor_ids})});closeOverlay();toast('تم حفظ أعضاء الفريق ومشرفيه');showPage('teams');})();return;}
   if(f.dataset.form==='team-task'){e.preventDefault();const d=fd(f);guard(async()=>{await post('/api/teams/'+encodeURIComponent(f.dataset.id)+'/tasks',d);closeOverlay();toast('تمت إضافة المهمة');showPage('teams');})();return;}
-  const form=e.target.closest('[data-form]'); if (form) { e.preventDefault(); FORM[form.dataset.form](form); }
+  const form=e.target.closest('[data-form]'); if(form&&form.dataset.form==='message-reply') return; if (form) { e.preventDefault(); FORM[form.dataset.form](form); }
 });
 
 $('#showPass').addEventListener('change', e => { $('#loginPass').type = e.target.checked ? 'text' : 'password'; });
