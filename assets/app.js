@@ -118,7 +118,8 @@ setDailyTip();
 document.addEventListener('click', event => {
   const modeButton=event.target.closest('[data-mode-option]');if(modeButton){const mode=modeButton.dataset.modeOption;localStorage.setItem('academy_appearance_mode',mode);applyAppearanceChoices();return;}
   const bgButton=event.target.closest('[data-bg-option]');if(bgButton){localStorage.setItem('academy_appearance_bg',bgButton.dataset.bgOption);applyAppearanceChoices();return;}
-  const iconButton=event.target.closest('[data-icon-option]');if(iconButton){localStorage.setItem('academy_appearance_icons',iconButton.dataset.iconOption);applyAppearanceChoices();return;}\n  const iconSizeButton=event.target.closest('[data-icon-size]');if(iconSizeButton){localStorage.setItem('academy_appearance_icon_size',iconSizeButton.dataset.iconSize);applyAppearanceChoices();return;}
+  const iconButton=event.target.closest('[data-icon-option]');if(iconButton){localStorage.setItem('academy_appearance_icons',iconButton.dataset.iconOption);applyAppearanceChoices();return;}
+  const iconSizeButton=event.target.closest('[data-icon-size]');if(iconSizeButton){localStorage.setItem('academy_appearance_icon_size',iconSizeButton.dataset.iconSize);applyAppearanceChoices();return;}
   const button = event.target.closest('[data-theme-option]');
   if (!button) return;
   const form = button.closest('form[data-form="settings"]');
