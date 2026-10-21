@@ -973,3 +973,38 @@ input:focus,select:focus,textarea:focus{outline:none!important;border-color:#58a
 @keyframes ihsan-pulse{0%,100%{opacity:.38;transform:scaleX(.94)}50%{opacity:.9;transform:scaleX(1)}}
 html.reduced-motion *,html.reduced-motion *:before,html.reduced-motion *:after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
+
+
+/* أكاديمية الإحسان: قائمة جانبية عمودية كاملة الارتفاع */
+.app .side{
+  height:100vh;
+  height:100dvh;
+  min-height:0;
+  box-sizing:border-box;
+  display:flex;
+  flex-direction:column;
+  overflow:hidden;
+}
+.app .side .brand{flex:0 0 auto}
+.app .side .nav{
+  display:flex;
+  flex:1 1 auto;
+  flex-direction:column;
+  min-height:0;
+  overflow-y:auto;
+  overflow-x:hidden;
+  align-content:stretch;
+  gap:5px;
+  padding:6px 0 10px;
+  scrollbar-width:thin;
+  scrollbar-color:rgba(213,182,106,.45) transparent;
+}
+.app .side .nav-group{display:grid;gap:2px;flex:0 0 auto}
+.app .side .nav-group+.nav-group{padding-top:6px}
+.app .side .nav-label{padding-top:3px;padding-bottom:3px}
+.app .side .nav button{min-height:35px;padding:6px 11px;margin:1px 5px;width:calc(100% - 10px);gap:9px}
+.app .side .account{flex:0 0 auto;margin-top:auto;padding-top:10px;padding-bottom:env(safe-area-inset-bottom,0)}
+@media(min-width:721px){
+  .app .side{inset:0 0 0 auto}
+  .app .main{min-width:0}
+}
