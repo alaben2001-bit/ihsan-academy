@@ -360,7 +360,6 @@ const PAGES = {
   assignments: ['الواجبات', 'تكليف، تسليم، تصحيح ومتابعة', pgAssignments],
   calendar: ['التقويم الدراسي', 'الحصص والاختبارات والأنشطة والمواعيد', pgCalendar],
   messages: ['المراسلات', 'تواصل منظم داخل الأكاديمية', pgMessages],
-  media: ['مكتبة الشيخ', 'مقاطع وملفات ودروس منشورة مع متابعة المشاهدة والتفاعل', pgMedia],
   tasks: ['مهامي', 'المهام الشخصية المكلّف بها', pgTasks],
   'teacher-tools': ['لوحة المعلم', 'اختصارات يومية', pgTeacherTools], notifications: ['الإشعارات', 'تنبيهات الأكاديمية', pgNotifications],
   'question-bank': ['بنك الأسئلة', 'تدريب وفهم وتصحيح', pgQuestionBank], community: ['مجتمع التعلم', 'أسئلة ونقاشات تربوية داخل نطاق الأكاديمية', pgCommunity],
