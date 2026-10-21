@@ -175,4 +175,15 @@ assert.match(style, /color:#173c30 !important/, "note text must contrast with it
 assert.match(style, /background:#edf6f0 !important/, "regular notes must use a clear light background");
 assert.match(style, /hifz-program-note--info/, "informational notes must have a distinct color treatment");
 assert.match(style, /hifz-program-note--important/, "important notes must have a distinct color treatment");
+assert.match(app, /function showAcademyAbout\(\)/, "the app must provide a reusable academy overview dialog");
+assert.match(app, /id="academy-about-open"/, "the global toolbar must expose academy information");
+assert.match(app, /id="about-open-welcome"/, "the pre-login welcome screen must expose academy vision and features");
+assert.match(app, /id="about-open-hub"/, "the interface chooser must expose academy overview before either interface is entered");
+assert.match(app, /id="settings-about-open"/, "settings must link to the full academy overview");
+assert.match(app, /بناء إنسانٍ يعرف ربَّه/, "the overview must state the academy's educational vision");
+assert.match(app, /برنامج «الحال المرتحل»/, "the overview must explain the Quran memorization program");
+assert.match(app, /ستُعرض لاحقًا في المهام اليومية والخطط الأسبوعية/, "the overview must keep operational details in later tasks");
+assert.match(style, /\.academy-about-dialog/, "the overview dialog must have dedicated responsive styling");
+assert.match(style, /\.academy-about-grid/, "academy features must appear as readable information cards");
+assert.match(style, /\.settings-about-section/, "settings must show a short academy description as well as a link");
 console.log("Security regression guardrails passed.");
