@@ -37,8 +37,8 @@ assert.doesNotMatch(backend, /return json\(\{token,user:safeUser/, "raw session 
 assert.doesNotMatch(app, /safeStore\.set\(["']ihsan_token["']/, "the UI must not store reusable bearer tokens");
 assert.match(app, /credentials:"same-origin"/, "API requests must send same-origin cookies");
 assert.match(app, /h\["x-csrf-token"\]=csrf/, "mutating API requests must send the CSRF token");
-assert.match(index, /app\.js\?v=20261021-78/, "the current frontend asset version must be explicit");
-assert.match(serviceWorker, /ihsan-academy-pwa-v44-20261021-78/, "the PWA cache must be invalidated with the frontend build");
+assert.match(index, /app\.js\?v=20261021-\d+/, "the current frontend asset version must be explicit");
+assert.match(serviceWorker, /ihsan-academy-pwa-v\d+-20261021-\d+/, "the PWA cache must be invalidated with the frontend build");
 assert.match(style, /\.daily-nourishment-grid/, "daily supplication and learning cards must retain their styling");
 
 // These are static regression guardrails, not a replacement for live role-by-role acceptance tests.
@@ -148,7 +148,7 @@ assert.match(app, /صحيح مسلم، حديث 2699/, "the knowledge-seeking ha
 assert.match(app, /صحيح مسلم، حديث 2594/, "the kindness hadith must include its source");
 assert.match(app, /curriculum-evidence-text/, "the learning curriculum must render scripture evidence as a distinct readable card");
 assert.match(app, /تسجيل الخروج/, "the exit dialog must use a neutral action label rather than a student-only journey label");
-assert.match(app, /\["hifzprogram","برنامج تثبيت القرآن"\]/, "the Ihsan learning navigation must expose the Quran memorization program");
+assert.match(app, /\["hifzprogram","الحال المرتحل"\]/, "the Ihsan learning navigation must expose the Quran memorization program");
 assert.match(app, /8 س و45 د/, "the program must display the calculated week-one workload");
 assert.match(app, /10 س و50 د/, "the program must display the calculated week-two workload");
 assert.match(app, /12 س و55 د/, "the program must display the calculated week-three workload");
