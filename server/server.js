@@ -1059,6 +1059,7 @@ async function handler(req, res) {
       const base = {
         students_count: list.length,
         groups_count: visibleGroupIds(user).length,
+        attendance_today_count: new Set(db.attendance.filter(a => ids.includes(a.student_id) && String(a.date || '').slice(0, 10) === today).map(a => a.student_id)).size,
         attendance_rate: Math.round(mean(list.map(s => s.attendance_rate)) || 0),
         progress_avg: Math.round(mean(list.map(s => s.progress)) || 0),
         upcoming_tests: testsFor(user).filter(t => t.date >= today).length,
