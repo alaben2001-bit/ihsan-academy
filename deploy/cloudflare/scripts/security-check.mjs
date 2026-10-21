@@ -110,4 +110,14 @@ assert.ok(backend.includes('if(count>=target){skipped++;continue}'), "re-running
 assert.ok(app.includes('id="roster-add-form"'), "the admin UI must expose the requested roster insertion form");
 assert.ok(app.includes('id="student-profile-form"'), "staff must be able to edit student academic and guardian profile fields");
 assert.ok(app.includes('split(/\\r?\\n/)'), "the roster form must split one student name per line");
+assert.match(app, /const dailySupplications=\[/, "student and staff dashboard must include source-labelled rotating supplications");
+assert.match(app, /const dailyWisdom=\[/, "dashboard must include educational benefits that are clearly not presented as scripture");
+assert.match(app, /sourceLine\.hidden=!source/, "welcome dialog must display source or composition labels for supplications");
+assert.match(app, /primary:student\?"ابدأ رحلتي":"دخول إلى الأكاديمية"/, "student journey wording must not be shown to staff");
+assert.match(app, /allah:'<path d="M12 21v-9"/, "knowledge/Allah area must use a botanical icon rather than a sparkle");
+assert.match(app, /prophet:'<path d="M7 3\.5/, "Prophet biography area must use a manuscript icon rather than a sparkle");
+assert.match(app, /daily-nourishment-grid/, "the dashboard must render daily supplication and learning-benefit cards");
+assert.match(app, /onPrimary:student\?\(\)=>/, "the welcome action must route students to the learning gardens");
+const styleVersion = index.match(/style\.css\?v=([\w-]+)/)?.[1];
+assert.ok(styleVersion && serviceWorker.includes(styleVersion), "service-worker cache must match the stylesheet asset version");
 console.log("Security regression guardrails passed.");
