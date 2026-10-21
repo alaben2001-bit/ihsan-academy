@@ -261,7 +261,7 @@ function navGroups() {
   ];
 }
 function navItems() { return navGroups().flatMap(g => g.items); }
-const HIDDEN_NAV_IDS = new Set(['quran','journey','learning','tasks','tests','curriculum','assignments','calendar','transport','media','community','notifications','reports','groups']);
+const HIDDEN_NAV_IDS = new Set(['quran','journey','learning','tasks','tests','curriculum','assignments','transport','media','community','notifications','reports']);
 function buildNav() {
   const groups = navGroups()
     .map(g => ({ ...g, items: g.items.filter(([id]) => S.user.role === 'admin' || !HIDDEN_NAV_IDS.has(id)) }))
@@ -467,6 +467,7 @@ async function pgDashboard() {
   const isSheikhAccount = (S.user.name || '').includes('عبد الصمد');
   const dailyBenefits = role === 'teacher' || isSheikhAccount ? teacherBenefits : studentBenefits;
   const dailyBenefit = pickAtRandom(dailyBenefits, 'benefit');
+  const quickActions = isStaff() ? [['students','طلابي وطلاب المدرسة','user'],['groups','الأفواج','group'],['attendance','الحضور اليوم','check'],['teams','تعيين مشرفي الفرق','group'],['calendar','التقويم','calendar']] : [];
   const daily = role === 'teacher' || isSheikhAccount ? ['رسالة اليوم', 'بارك الله تعالى في علمكم ونفع بكم.', 'فضيلة الشيخ، جزاكم الله خيرًا على تعليم القرآن وتربية الطلاب.']
     : role === 'student' ? ['خطوة اليوم', 'ثبّت عادة صغيرة قبل أن تضيف مهمة جديدة.', 'الاستمرار أهم من الضغط على نفسك.']
     : role === 'parent' ? ['لولي الأمر', 'اسأل عن التقدم قبل أن تسأل عن النتيجة.', 'الدعم الهادئ يصنع بيئة أفضل للتعلم.']
@@ -479,6 +480,7 @@ async function pgDashboard() {
       <section class="card daily-dua-card"><span class="eyebrow">${dailyDua.title}</span><h3 class="daily-arabic" lang="ar">${dailyDua.text}</h3><p class="muted small">${dailyDua.source}</p><p>${dailyDua.note}</p></section>
       <section class="card daily-benefit-card"><span class="eyebrow">${role === 'teacher' || isSheikhAccount ? 'تقدير وتعليم لفضيلة الشيخ' : 'فائدة في التعليم والتحفيز'} · ${dailyBenefit.title}</span><h3>${dailyBenefit.text}</h3><p class="muted small">${dailyBenefit.source}</p></section>
     </div>
+    ${quickActions.length ? html`<section class="card quick-actions"><div class="sec"><div><h3>خطوات سريعة</h3><p class="muted small">انتقل مباشرةً إلى المهام الأكثر استخدامًا.</p></div></div><div class="quick-actions-grid">${quickActions.map(([id,label,ic])=>html`<button type="button" class="btn sec2" data-act="nav" data-page="${id}">${ico(ic)} ${label} <span>فتح القسم</span></button>`)}</div></section>` : ''}
     </div></div>`);
 }
 
