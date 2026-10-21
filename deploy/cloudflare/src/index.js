@@ -489,11 +489,11 @@ export default {
       if(user.role!=="admin")return fail(403,"إضافة القائمة الاسمية للمدير العام فقط");
       const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
       const groupId=clean(b.group_id,80);
-      const names=Array.isArray(b.names)?b.names.map(x=>clean(x,120).replace(/\\s+/g," ")).filter(Boolean):[];
+      const names=Array.isArray(b.names)?b.names.map(x=>clean(x,120).replace(/\s+/g," ")).filter(Boolean):[];
       if(!groupId||!names.length||names.length>100)return fail(400,"اختر الفوج وأدخل من اسم واحد إلى 100 اسم");
       if(!await canManageGroup(env,user,groupId))return fail(403,"لا تملك صلاحية هذا الفوج");
       const group=await groupRow(env,groupId);if(!group||group.active!==1)return fail(404,"الفوج غير موجود أو غير نشط");
-      const normalizeName=value=>String(value||"").normalize("NFC").replace(/\\s+/g," ").trim().toLocaleLowerCase("ar");
+      const normalizeName=value=>String(value||"").normalize("NFC").replace(/\s+/g," ").trim().toLocaleLowerCase("ar");
       const existing=await env.DB.prepare("SELECT display_name FROM students WHERE group_id=? AND active=1").bind(groupId).all();
       const counts=new Map();for(const row of existing.results||[]){const key=normalizeName(row.display_name);counts.set(key,(counts.get(key)||0)+1);}
       const targets=new Map();for(const name of names){const key=normalizeName(name);targets.set(key,(targets.get(key)||0)+1);}
