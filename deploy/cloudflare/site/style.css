@@ -1522,3 +1522,20 @@ html[data-appearance="dark"] .muted,html[data-appearance="dark"] small{color:var
   .academy-about-head h2{font-size:21px}
   .academy-about-vision h3{font-size:18px}
 }
+
+/* Rotating, source-labelled Quranic verses on the sign-in welcome panel. */
+.knowledge-verse{display:flex!important;flex-direction:column;align-items:flex-start;gap:7px;max-width:590px;min-height:150px;margin:0;position:relative;z-index:1}
+.knowledge-verse .knowledge-verse-text{display:block;font-size:clamp(18px,2vw,25px);font-weight:850;line-height:1.95;color:#ffdf91;text-wrap:balance;max-width:100%}
+.knowledge-verse .knowledge-verse-source{display:block;color:#e2eee7;font-size:12px;font-weight:700;line-height:1.8}
+.knowledge-verse .knowledge-verse-next{align-self:flex-start;margin-top:3px;padding:7px 12px;min-height:35px;border:1px solid #f1d99a99;border-radius:10px;background:#ffffff0c;color:#fff0c2;font-size:12px;font-weight:800;transition:background .18s ease,border-color .18s ease}
+.knowledge-verse .knowledge-verse-next:hover{background:#ffffff18;border-color:#f1d99a}
+.knowledge-verse .knowledge-verse-next:focus-visible{outline:3px solid #f5c96e;outline-offset:3px}
+body:has(.auth-layout) .knowledge-verse{display:flex!important}
+@media(max-width:767px){
+ body:has(.auth-layout) .welcome{min-height:310px}
+ body:has(.auth-layout) .knowledge-verse{display:flex!important;min-height:135px;gap:5px;margin-top:5px}
+ .knowledge-verse .knowledge-verse-text{font-size:clamp(16px,4.6vw,20px);line-height:1.85}
+ .knowledge-verse .knowledge-verse-source{font-size:11px}
+ .knowledge-verse .knowledge-verse-next{min-height:32px;padding:6px 10px;font-size:11px}
+}
+
