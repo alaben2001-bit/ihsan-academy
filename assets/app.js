@@ -61,7 +61,9 @@ const ICON = {
   book: 'M4 5a2 2 0 0 1 2-2h13v16H6a2 2 0 0 0-2 2zM4 19V5M8 7h7',
   news: 'M5 4h11a1 1 0 0 1 1 1v15H6a2 2 0 0 1-2-2V5a1 1 0 0 1 1-1zM17 8h3v10a2 2 0 0 1-2 2M8 8h6M8 12h6M8 16h4',
   bell: 'M6 17V11a6 6 0 1 1 12 0v6l2 2H4zM10 21h4',
-  spark: 'M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z',
+  spark: 'M12 3l2.1 5.1L19 10l-4.9 2.1L12 17l-2.1-4.9L5 10l4.9-1.9zM19 15l.8 2.2L22 18l-2.2.8L19 21l-.8-2.2L16 18l2.2-.8z',
+  sprout: 'M12 21v-9M12 15C5 15 3 11 3 6c5 0 9 2 9 9zM12 12c0-5 3-8 9-8 0 5-3 8-9 8z',
+  scroll: 'M7 4h12v16H7a3 3 0 0 1 0-6h12M7 14h12M10 8h5',
   brain: 'M9 4a3 3 0 0 0-3 3 3 3 0 0 0-2 5 3 3 0 0 0 2 5 3 3 0 0 0 6 1V5a2 2 0 0 0-3-1zM15 4a3 3 0 0 1 3 3 3 3 0 0 1 2 5 3 3 0 0 1-2 5 3 3 0 0 1-6 1',
   chart: 'M4 20V4M4 20h16M8 16v-5M12 16V8M16 16v-3',
   quran: 'M5 4h14a1 1 0 0 1 1 1v15H6a2 2 0 0 1-2-2V5a1 1 0 0 1 1-1zM8 8h8M8 12h6M8 16h8',
@@ -230,7 +232,7 @@ function buildNav() {
   put($('#nav'), html`${groups.map(g => html`<div class="nav-group"><div class="nav-label">${g.label}</div>${g.items.map(([id, l, ic]) => html`<button data-act="nav" data-page="${id}" title="${l}">${ico(ic)}<span>${l}</span></button>`)}</div>`)}`);
   const mainIds = S.user.role === 'student' ? ['dashboard', 'learning-hub', 'quran', 'media', 'journey'] : S.user.role === 'teacher' ? ['dashboard', 'learning-hub', 'students', 'curriculum', 'attendance'] : S.user.role === 'admin' ? ['dashboard', 'learning-hub', 'students', 'curriculum', 'school-directory'] : S.user.role === 'chief_supervisor' ? ['dashboard', 'learning-hub', 'teams', 'school-directory', 'notifications'] : S.user.role === 'parent' ? ['dashboard', 'learning-hub', 'children', 'media', 'notifications'] : ['dashboard', 'learning-hub', 'students', 'curriculum', 'school-directory'];
   const main = mainIds.map(id => items.find(x => x[0] === id)).filter(Boolean);
-  put($('#bottomNav'), html`${main.map(([id, l, ic]) => html`<button data-act="nav" data-page="${id}">${ico(ic)}<span>${l}</span></button>`)}<button data-act="more">${ico('more')}<span>المزيد</span></button>`);
+  put($('#bottomNav'), html`${main.map(([id, l, ic]) => html`<button data-act="nav" data-page="${id}">${ico(id === "learning-hub" ? "sprout" : id === "media" ? "scroll" : ic)}<span>${l}</span></button>`)}<button data-act="more">${ico('more')}<span>المزيد</span></button>`);
 }
 
 
