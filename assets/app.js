@@ -368,7 +368,7 @@ const PAGES = {
   future: ['المراحل القادمة', 'ما سنبنيه لاحقًا', pgFuture]
 };
 function topActions(page) {
-  const bell = html`<button class="btn sec2 hide-m" data-act="nav" data-page="notifications" aria-label="الإشعارات">${ico('bell')}<span>${S.notifications.filter(n => !n.read).length}</span></button>`;
+  const bell = S.user.role === 'teacher' ? '' : html`<button class="btn sec2 hide-m" data-act="nav" data-page="notifications" aria-label="الإشعارات">${ico('bell')}<span>${S.notifications.filter(n => !n.read).length}</span></button>`;
   let extra = '';
   if (isStaff() && page === 'news') extra = html`<button class="btn" data-act="new-post">${ico('plus')}<span>منشور</span></button>`;
   if (isStaff() && page === 'media') extra = html`<button class="btn" data-act="new-media">${ico('plus')}<span>محتوى جديد</span></button>`;
