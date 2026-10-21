@@ -124,4 +124,11 @@ assert.match(app, /title:"وداع اليوم بدعاء من القرآن"/, "l
 assert.match(app, /title:"دعاء نبوي في طلب العلم النافع"/, "logout dialog must include a sourced prophetic supplication");
 assert.match(app, /kind:"دعاء بصياغة الأكاديمية"/, "composed supplications must be labelled as academy-written rather than attributed to revelation");
 assert.match(app, /source:prayer\.source\|\|\(prayer\.kind\?prayer\.kind/, "the prayer dialog must show a source or composition label");
+assert.match(app, /const evidenceByTab=\{/, "each core learning garden must expose a sourced evidence card");
+assert.match(app, /سورة الحشر، الآية 22/, "the Allah knowledge card must cite its Quranic evidence");
+assert.match(app, /سورة الأحزاب، الآية 21/, "the Prophet biography card must cite its Quranic evidence");
+assert.match(app, /صحيح مسلم، حديث 2699/, "the knowledge-seeking hadith must include its source");
+assert.match(app, /صحيح مسلم، حديث 2594/, "the kindness hadith must include its source");
+assert.match(app, /curriculum-evidence-text/, "the learning curriculum must render scripture evidence as a distinct readable card");
+assert.match(app, /تسجيل الخروج/, "the exit dialog must use a neutral action label rather than a student-only journey label");
 console.log("Security regression guardrails passed.");
