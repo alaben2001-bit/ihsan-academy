@@ -2,12 +2,13 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { validDateOnly, academyDate, addCalendarDays } from "../src/index.js";
 
-const [backend, app, index, serviceWorker, migration] = await Promise.all([
+const [backend, app, index, serviceWorker, migration, style] = await Promise.all([
   readFile("src/index.js", "utf8"),
   readFile("site/app.js", "utf8"),
   readFile("site/index.html", "utf8"),
   readFile("site/service-worker.js", "utf8"),
   readFile("migrations/0003_temporary_student_passwords.sql", "utf8"),
+  readFile("site/style.css", "utf8"),
 ]);
 
 assert.equal(validDateOnly("2024-02-29"), true, "valid leap-day due dates must be accepted");
@@ -24,6 +25,21 @@ assert.ok(!backend.includes("nowIso().slice(0,10)"), "date-only school workflows
 assert.match(app, /const localDateISO=/, "browser date inputs must use the local calendar date");
 assert.match(app, /timeZone:"Africa\/Algiers"/, "browser date helpers must use the same Algeria timezone as the backend");
 
+
+// Session security: cookies replace readable browser token storage, and state-changing cookie requests require CSRF.
+assert.match(backend, /__Host-ihsan_session=.*HttpOnly; SameSite=Strict/, "sessions must use Secure, HttpOnly, SameSite cookies");
+assert.match(backend, /__Host-ihsan_csrf=/, "sessions must issue a separate CSRF cookie");
+assert.match(backend, /csrfIsValid\(request\)/, "cookie-authenticated mutations must validate CSRF");
+assert.match(backend, /X-CSRF-Token/, "the backend must recognize the explicit CSRF header");
+assert.match(backend, /const requestSessionToken = request => bearerSessionToken\(request\) \|\| cookieSessionToken\(request\)/, "the server must authenticate with the session cookie");
+assert.equal((backend.match(/return sessionResponse\(/g)||[]).length, 2, "password and Google sign-in must both create cookie sessions");
+assert.doesNotMatch(backend, /return json\(\{token,user:safeUser/, "login responses must not return raw bearer tokens");
+assert.doesNotMatch(app, /safeStore\.set\(["']ihsan_token["']/, "the UI must not persist reusable session tokens in Web Storage");
+assert.match(app, /credentials:"same-origin"/, "the browser must include session cookies in API requests");
+assert.match(app, /h\["x-csrf-token"\]=csrf/, "mutating UI requests must attach the CSRF token");
+assert.match(index, /app\.js\?v=20261021-76/, "the updated app bundle must use a fresh asset version");
+assert.match(serviceWorker, /ihsan-academy-pwa-v42-20261021-76/, "the PWA cache must be invalidated when the app changes");
+assert.match(style, /\.daily-nourishment-grid/, "the daily supplication and learning cards must stay styled");
 
 // These are static regression guardrails, not a replacement for live role-by-role acceptance tests.
 assert.ok(backend.includes('const temporaryPassword=()=>"Ih!"+hex(crypto.getRandomValues(new Uint8Array(10)))'), "temporary passwords must be randomly generated");
