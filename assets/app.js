@@ -414,7 +414,7 @@ async function pgDashboard() {
     parent: ['متابعة هادئة وواضحة', 'تابع تقدم أبنائك بصورة مختصرة ومطمئنة.']
   }[role];
   const stats = isStaff()
-    ? [['طلابي وطلاب المدرسة', d.students_count], ['الأفواج', d.groups_count], ['نسبة الحضور اليوم', d.attendance_rate + '%'], ['متوسط التقدم', d.progress_avg + '%']]
+    ? [['طلابي وطلاب المدرسة', d.students_count], ['الأفواج', d.groups_count], ['سُجّل حضورهم اليوم', d.attendance_today_count ?? 0], ['متوسط التقدم', d.progress_avg + '%']]
     : role === 'student'
       ? [['نسبة الحضور', d.attendance_rate + '%'], ['متوسط التقدم', d.progress_avg + '%'], ['مراجعات مستحقة', d.due_reviews], ['اختبارات قادمة', d.upcoming_tests]]
       : [['الأبناء', d.students_count], ['الحضور', d.attendance_rate + '%'], ['التقدم', d.progress_avg + '%'], ['اختبارات قادمة', d.upcoming_tests]];
@@ -1171,6 +1171,7 @@ function pgLearningHub(){
         <button class="btn sec2 sm knowledge-link" type="button" data-act="nav" data-page="${item.key === 'learning' && !isStudent ? 'curriculum' : item.page}">${item.key === 'learning' && !isStudent ? 'المواد والمنهج' : item.button} <span aria-hidden="true">‹</span></button>
       </article>`)}
     </div>
+    <section class="card academy-adab-goals"><span class="eyebrow">منهج الأكاديمية وغاياتها</span><h3>العلم بأدب، والتربية برفق، والعمل بإخلاص</h3><div class="grid g2"><div><b>${isStudent ? 'أدب الطالب مع فضيلة الشيخ' : 'أدب الخطاب مع فضيلة الشيخ'}</b><p>${isStudent ? 'توقير المعلّم، وحسن الاستماع، واختيار العبارة والوقت المناسبين للسؤال، وقبول التصحيح، ونسبة الفضل إلى الله تعالى ثم إلى من علّمك.' : 'مخاطبة فضيلة الشيخ بما يليق بمقامه، وتقديم الدعاء والتقدير، وعدم استعمال اسمه مجردًا في الرسائل الموجّهة إليه.'}</p></div><div><b>${isStudent ? 'تزكية الطالب وتحفيزه' : 'تزكية الطلاب وتحفيزهم'}</b><p>${isStudent ? 'الصدق، والتواضع، والرفق، والمثابرة، واحترام الزملاء، وتصحيح الخطأ دون يأس أو كِبر.' : 'الثناء الصادق على الجهد، وصيانة كرامة الطالب، والجمع بين الرفق والانضباط، وبناء عادة تعلم ثابتة تناسب عمره وقدرته.'}</p></div></div><p class="muted small">هذه غايات تربوية معتمدة في تصميم المحتوى والسلوك داخل الأكاديمية، وليست نصوصًا شرعية منقولة.</p></section>
     <section class="card knowledge-integrity-note"><b>أمانة النقل</b><p>الآيات موثقة بسورها وأرقامها، والأحاديث مذكور مصدرها. أما الإرشادات العملية التي نكتبها نحن فمبيّن أنها فوائد تعليمية، ولا تُنسب إلى النبي ﷺ أو إلى العلماء بغير تثبت.</p></section>
   </div>`);
 }
