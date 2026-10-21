@@ -182,7 +182,7 @@ assert.match(app, /id="about-open-hub"/, "the interface chooser must expose acad
 assert.match(app, /id="settings-about-open"/, "settings must link to the full academy overview");
 assert.match(app, /بناء إنسانٍ يعرف ربَّه/, "the overview must state the academy's educational vision");
 assert.match(app, /برنامج «الحال المرتحل»/, "the overview must explain the Quran memorization program");
-assert.match(app, /ستُعرض لاحقًا في المهام اليومية والخطط الأسبوعية/, "the overview must keep operational details in later tasks");
+assert.match(app, /ستظهر في المهام اليومية والخطط الأسبوعية ذات الصلة/, "the overview must keep operational details in later tasks");
 assert.match(style, /\.academy-about-dialog/, "the overview dialog must have dedicated responsive styling");
 assert.match(style, /\.academy-about-grid/, "academy features must appear as readable information cards");
 assert.match(style, /\.settings-about-section/, "settings must show a short academy description as well as a link");
