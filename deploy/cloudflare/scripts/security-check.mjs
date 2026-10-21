@@ -120,4 +120,8 @@ assert.match(app, /daily-nourishment-grid/, "the dashboard must render daily sup
 assert.match(app, /onPrimary:student\?\(\)=>/, "the welcome action must route students to the learning gardens");
 const styleVersion = index.match(/style\.css\?v=([\w-]+)/)?.[1];
 assert.ok(styleVersion && serviceWorker.includes(styleVersion), "service-worker cache must match the stylesheet asset version");
+assert.match(app, /title:"وداع اليوم بدعاء من القرآن"/, "logout dialog must rotate in authentic Quranic supplications");
+assert.match(app, /title:"دعاء نبوي في طلب العلم النافع"/, "logout dialog must include a sourced prophetic supplication");
+assert.match(app, /kind:"دعاء بصياغة الأكاديمية"/, "composed supplications must be labelled as academy-written rather than attributed to revelation");
+assert.match(app, /source:prayer\.source\|\|\(prayer\.kind\?prayer\.kind/, "the prayer dialog must show a source or composition label");
 console.log("Security regression guardrails passed.");
