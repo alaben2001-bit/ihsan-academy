@@ -231,7 +231,7 @@ function navItems() { return navGroups().flatMap(g => g.items); }
 const HIDDEN_NAV_IDS = new Set(['quran','journey','learning','tasks','tests','curriculum','assignments','calendar','transport','media','community','notifications','reports','groups']);
 function buildNav() {
   const groups = navGroups()
-    .map(g => ({ ...g, items: g.items.filter(([id]) => !HIDDEN_NAV_IDS.has(id)) }))
+    .map(g => ({ ...g, items: g.items.filter(([id]) => S.user.role === 'admin' || !HIDDEN_NAV_IDS.has(id)) }))
     .filter(g => g.items.length);
   const items = groups.flatMap(g => g.items);
   put($('#nav'), html`${groups.map(g => html`<div class="nav-group"><div class="nav-label">${g.label}</div>${g.items.map(([id, l, ic]) => html`<button data-act="nav" data-page="${id}" title="${l}">${ico(ic)}<span>${l}</span></button>`)}</div>`)}`);
