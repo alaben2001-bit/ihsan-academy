@@ -123,9 +123,19 @@ function applyAppearanceSettings(){
  const iconStyle=safeStore.get("ihsan_icon_style")||"soft";
  const iconSize=safeStore.get("ihsan_icon_size")||"medium";
  const fontScale=Math.min(1.5,Math.max(.85,Number(safeStore.get("ihsan_font_scale")||1)));
+ // Re-apply the selected palette first, then override every semantic surface token for dark mode.
+ applyTheme();
  root.dataset.appearance=mode;root.dataset.appearanceBackground=background;root.dataset.iconStyle=iconStyle;root.dataset.iconSize=iconSize;
  root.style.setProperty("--user-font-scale",String(fontScale));
- root.style.colorScheme=mode==="dark"?"dark":mode==="light"?"light":"";
+ root.style.colorScheme=mode==="dark"?"dark":mode==="light"?"light":"light dark";
+ if(mode==="dark"){
+  const dark={green:"#75dfb7",mint:"#183b32",gold:"#e8c77c",paper:"#0b1517",ink:"#e7f0eb",muted:"#adc0b7",line:"#304a43",surface:"#142321","surface-2":"#1b2d2a",glow:"#75dfb726",shadow:"0 12px 30px #0005", "shadow-raised":"0 24px 52px #0006"};
+  for(const [key,value] of Object.entries(dark))root.style.setProperty("--"+key,value);
+  const meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.setAttribute("content","#0b1517");
+ }else{
+  const selected=themes.find(t=>t.name===root.dataset.ihsanTheme)||themes[0];
+  const meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.setAttribute("content",selected.green);
+ }
 }
 applyAppearanceSettings();
 if(safeStore.get("ihsan_reduce_motion")==="1")document.documentElement.classList.add("ihsan-reduced-motion");
@@ -342,16 +352,16 @@ function navMarkup(){return navigationGroups().map(group=>'<div class="nav-secti
 
 async function ihsanPrayerDialog({title,text,source="",icon="✦",primary="متابعة",secondary="لاحقًا",onPrimary=()=>{},onSecondary=()=>{}}){
  const previous=document.getElementById("ihsan-prayer-dialog");if(previous)previous.remove();
- const dialog=document.createElement("dialog");dialog.id="ihsan-prayer-dialog";dialog.dir="rtl";dialog.style.cssText="width:min(520px,calc(100% - 32px));border:1px solid #bfe5d1;border-radius:24px;padding:0;color:#173d30;background:#fff;box-shadow:0 24px 80px #102b2040";
+ const dialog=document.createElement("dialog");dialog.id="ihsan-prayer-dialog";dialog.dir="rtl";dialog.style.cssText="width:min(520px,calc(100% - 32px));border:1px solid var(--line);border-radius:24px;padding:0;color:var(--ink);background:var(--surface);box-shadow:0 24px 80px #0004";
  if(!document.getElementById("ihsan-prayer-dialog-style")){const style=document.createElement("style");style.id="ihsan-prayer-dialog-style";style.textContent="#ihsan-prayer-dialog::backdrop{background:#10251dcc;backdrop-filter:blur(5px)}";document.head.appendChild(style)}
  const wrap=document.createElement("div");wrap.style.cssText="padding:clamp(22px,5vw,34px);text-align:center";
- const mark=document.createElement("div");mark.textContent=icon;mark.setAttribute("aria-hidden","true");mark.style.cssText="display:grid;place-items:center;width:54px;height:54px;margin:0 auto 15px;border-radius:18px;background:#ddfaed;color:#087f5b;font-size:27px";
- const brand=document.createElement("p");brand.textContent="أكاديمية الإحسان في بناء الإنسان";brand.style.cssText="font-size:12px;color:#456b5a;margin:0 0 8px";
+ const mark=document.createElement("div");mark.textContent=icon;mark.setAttribute("aria-hidden","true");mark.style.cssText="display:grid;place-items:center;width:54px;height:54px;margin:0 auto 15px;border-radius:18px;background:var(--mint);color:var(--green);font-size:27px";
+ const brand=document.createElement("p");brand.textContent="أكاديمية الإحسان في بناء الإنسان";brand.style.cssText="font-size:12px;color:var(--muted);margin:0 0 8px";
  const h=document.createElement("h2");h.textContent=title;h.style.cssText="font-size:clamp(21px,4vw,27px);line-height:1.5;margin:0 0 12px";
  const p=document.createElement("p");p.textContent=text;p.style.cssText="font-size:16px;line-height:2.05;margin:0 auto 16px;max-width:42ch";
- const sourceLine=document.createElement("p");sourceLine.textContent=source;sourceLine.style.cssText="font-size:12px;line-height:1.8;color:#60776c;margin:0 auto 22px;max-width:46ch";sourceLine.hidden=!source;
+ const sourceLine=document.createElement("p");sourceLine.textContent=source;sourceLine.style.cssText="font-size:12px;line-height:1.8;color:var(--muted);margin:0 auto 22px;max-width:46ch";sourceLine.hidden=!source;
  const actions=document.createElement("div");actions.style.cssText="display:flex;flex-wrap:wrap;gap:10px;justify-content:center";
- const makeButton=(label,primary)=>{const b=document.createElement("button");b.type="button";b.textContent=label;b.style.cssText="min-height:44px;border-radius:12px;padding:10px 18px;cursor:pointer;font:inherit;font-weight:600;border:1px solid "+(primary?"#087f5b":"#bfe5d1")+";background:"+(primary?"#087f5b":"transparent")+";color:"+(primary?"white":"#173d30");return b};
+ const makeButton=(label,primary)=>{const b=document.createElement("button");b.type="button";b.textContent=label;b.style.cssText="min-height:44px;border-radius:12px;padding:10px 18px;cursor:pointer;font:inherit;font-weight:700;border:1px solid "+(primary?"var(--green)":"var(--line)")+";background:"+(primary?"var(--green)":"var(--surface-2)")+";color:"+(primary?"#fff":"var(--ink)");return b};
  const yes=makeButton(primary,true),no=makeButton(secondary,false);actions.append(yes,no);wrap.append(mark,brand,h,p,sourceLine,actions);dialog.append(wrap);document.body.append(dialog);
  const close=async fn=>{try{if(dialog.open)dialog.close()}catch{}dialog.remove();await fn()};
  yes.addEventListener("click",()=>close(onPrimary));no.addEventListener("click",()=>close(onSecondary));dialog.addEventListener("cancel",e=>{e.preventDefault();close(onSecondary)});dialog.addEventListener("click",e=>{if(e.target===dialog)close(onSecondary)});
