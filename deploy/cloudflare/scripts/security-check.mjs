@@ -124,6 +124,16 @@ assert.ok(backend.includes('collection=\'student_profiles\''), "student profile 
 assert.ok(backend.includes('studentProfileMatch&&method==="PATCH"'), "student academic profile updates must have a dedicated API route");
 assert.ok(backend.includes('if(count>=target){skipped++;continue}'), "re-running roster insertion must not create extra duplicate-name records");
 assert.ok(app.includes('id="roster-add-form"'), "the admin UI must expose the requested roster insertion form");
+assert.match(app, /\["school-managers","مديرو المدارس"\]/, "admin navigation must expose the dedicated school managers page");
+assert.match(app, /function schoolManagers\(v\)/, "school manager and team supervisor creation needs its own screen");
+assert.match(app, /id="staff-form"/, "school manager and supervisor creation form must be present");
+assert.match(app, /api\("\/admin\/staff",\{method:"POST"/, "staff creation form must submit to the scoped admin API");
+assert.match(backend, /if\(path==="\/api\/admin\/staff"&&method==="POST"\)/, "the backend must create scoped director and supervisor accounts");
+assert.match(backend, /must_change_password\) VALUES\(\?,\?,\?,\?,\?,1,1\)/, "director and supervisor accounts must require a first-login password change");
+assert.match(app, /id="roster-add-form"/, "the admin UI must expose the nominal roster insertion form");
+assert.match(backend, /if\(path==="\/api\/admin\/roster-add"&&method==="POST"\)/, "nominal roster import must use the Cloudflare API");
+assert.match(backend, /if\(count>=target\)\{skipped\+\+;continue\}/, "retries must preserve intended duplicate counts without duplicating the whole list");
+
 assert.ok(app.includes('id="student-profile-form"'), "staff must be able to edit student academic and guardian profile fields");
 assert.ok(app.includes('split(/\\r?\\n/)'), "the roster form must split one student name per line");
 assert.match(app, /const dailySupplications=\[/, "student and staff dashboard must include source-labelled rotating supplications");
