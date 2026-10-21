@@ -32,3 +32,151 @@ html[data-appearance="light"] body{color:#17372f}
  html[data-appearance="auto"] .muted{color:#b4c9c2!important}
  html[data-appearance="auto"] input,html[data-appearance="auto"] select,html[data-appearance="auto"] textarea{background:#0b1a24!important;color:#f1faf6!important;border-color:#355249!important}
 }
+
+
+/* Dark mode contrast repair — navigation, section actions, and page surfaces */
+html[data-appearance="dark"] #appView,
+html[data-appearance="dark"] .main,
+html[data-appearance="dark"] #view,
+html[data-appearance="dark"] .top {
+  background-color: #101d18 !important;
+  color: #edf5ef !important;
+}
+html[data-appearance="dark"] .top {
+  background: rgba(16,29,24,.97) !important;
+  border-bottom-color: #35483d !important;
+}
+html[data-appearance="dark"] .side,
+html[data-appearance="dark"] .side .brand,
+html[data-appearance="dark"] .account {
+  background: #14231c !important;
+  color: #edf5ef !important;
+  border-color: #35483d !important;
+}
+html[data-appearance="dark"] #nav .nav-label,
+html[data-appearance="dark"] #nav .nav-group > .nav-label,
+html[data-appearance="dark"] .side .brand small,
+html[data-appearance="dark"] .account small {
+  color: #b8cabe !important;
+}
+html[data-appearance="dark"] #nav button,
+html[data-appearance="dark"] .nav button,
+html[data-appearance="dark"] #bottomNav button,
+html[data-appearance="dark"] .bottom button,
+html[data-appearance="dark"] .more-grid button {
+  color: #eaf4ed !important;
+  background: #20342a !important;
+  border: 1px solid #3a5546 !important;
+  box-shadow: none !important;
+}
+html[data-appearance="dark"] #nav button span,
+html[data-appearance="dark"] #nav button svg,
+html[data-appearance="dark"] #bottomNav button span,
+html[data-appearance="dark"] #bottomNav button svg {
+  color: inherit !important;
+  stroke: currentColor;
+}
+html[data-appearance="dark"] #nav button:hover,
+html[data-appearance="dark"] #bottomNav button:hover,
+html[data-appearance="dark"] .more-grid button:hover {
+  background: #294638 !important;
+  border-color: #5c866d !important;
+}
+html[data-appearance="dark"] #nav button.active,
+html[data-appearance="dark"] .nav button.active,
+html[data-appearance="dark"] #bottomNav button.active,
+html[data-appearance="dark"] .bottom button.active,
+html[data-appearance="dark"] .more-grid button.active {
+  color: #f3fff6 !important;
+  background: linear-gradient(135deg,#286247,#1b4430) !important;
+  border-color: #6b9c7b !important;
+  box-shadow: inset -3px 0 #d3b775 !important;
+}
+html[data-appearance="dark"] .card,
+html[data-appearance="dark"] .panel,
+html[data-appearance="dark"] .stat,
+html[data-appearance="dark"] .stat-card,
+html[data-appearance="dark"] .table-wrap,
+html[data-appearance="dark"] .sheet,
+html[data-appearance="dark"] .modalbox,
+html[data-appearance="dark"] .toolbar,
+html[data-appearance="dark"] .more-grid,
+html[data-appearance="dark"] .quick-actions-grid > * {
+  background-color: #192a21 !important;
+  color: #edf5ef !important;
+  border-color: #35483d !important;
+}
+html[data-appearance="dark"] .btn.sec2,
+html[data-appearance="dark"] .btn.secondary,
+html[data-appearance="dark"] button.secondary,
+html[data-appearance="dark"] .chip,
+html[data-appearance="dark"] .tab {
+  background: #263a2e !important;
+  color: #eaf4ed !important;
+  border-color: #476252 !important;
+}
+html[data-appearance="dark"] .bottom,
+html[data-appearance="dark"] #bottomNav {
+  background: rgba(17,31,24,.98) !important;
+  border-top-color: #35483d !important;
+}
+@media (prefers-color-scheme: dark) {
+  html[data-appearance="auto"] #appView,
+  html[data-appearance="auto"] .main,
+  html[data-appearance="auto"] #view,
+  html[data-appearance="auto"] .top {
+    background-color: #101d18 !important;
+    color: #edf5ef !important;
+  }
+  html[data-appearance="auto"] .top {
+    background: rgba(16,29,24,.97) !important;
+    border-bottom-color: #35483d !important;
+  }
+  html[data-appearance="auto"] .side,
+  html[data-appearance="auto"] .side .brand,
+  html[data-appearance="auto"] .account {
+    background: #14231c !important;
+    color: #edf5ef !important;
+    border-color: #35483d !important;
+  }
+  html[data-appearance="auto"] #nav .nav-label,
+  html[data-appearance="auto"] .side .brand small,
+  html[data-appearance="auto"] .account small { color: #b8cabe !important; }
+  html[data-appearance="auto"] #nav button,
+  html[data-appearance="auto"] .nav button,
+  html[data-appearance="auto"] #bottomNav button,
+  html[data-appearance="auto"] .bottom button,
+  html[data-appearance="auto"] .more-grid button {
+    color: #eaf4ed !important;
+    background: #20342a !important;
+    border: 1px solid #3a5546 !important;
+    box-shadow: none !important;
+  }
+  html[data-appearance="auto"] #nav button.active,
+  html[data-appearance="auto"] #bottomNav button.active,
+  html[data-appearance="auto"] .bottom button.active {
+    color: #f3fff6 !important;
+    background: linear-gradient(135deg,#286247,#1b4430) !important;
+    border-color: #6b9c7b !important;
+    box-shadow: inset -3px 0 #d3b775 !important;
+  }
+  html[data-appearance="auto"] .card,
+  html[data-appearance="auto"] .panel,
+  html[data-appearance="auto"] .stat,
+  html[data-appearance="auto"] .stat-card,
+  html[data-appearance="auto"] .table-wrap,
+  html[data-appearance="auto"] .sheet,
+  html[data-appearance="auto"] .modalbox,
+  html[data-appearance="auto"] .toolbar,
+  html[data-appearance="auto"] .more-grid,
+  html[data-appearance="auto"] .quick-actions-grid > * {
+    background-color: #192a21 !important;
+    color: #edf5ef !important;
+    border-color: #35483d !important;
+  }
+  html[data-appearance="auto"] .bottom,
+  html[data-appearance="auto"] #bottomNav {
+    background: rgba(17,31,24,.98) !important;
+    border-top-color: #35483d !important;
+  }
+}
