@@ -1106,3 +1106,10 @@ button.stat-link:active{transform:translateY(0)}
 :root[data-icon-style="bold"] .appearance-icon-sample .ic svg.i{stroke-width:2.7}
 :root[data-icon-style="soft"] .appearance-icon-sample .ic svg.i{stroke-width:1.6;opacity:.82}
 @media(max-width:760px){.quick-actions-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+/* Academy goals: respectful speech and student character development */
+.academy-adab-goals{display:flex;flex-direction:column;gap:12px}
+.academy-adab-goals h3{margin:0;font-size:clamp(19px,2vw,24px);line-height:1.6}
+.academy-adab-goals .grid{gap:12px}
+.academy-adab-goals .grid>div{border:1px solid var(--line);border-radius:14px;padding:14px;background:var(--surface-soft,rgba(120,140,120,.06))}
+.academy-adab-goals .grid p{margin:8px 0 0;line-height:1.9}
