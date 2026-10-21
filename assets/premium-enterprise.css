@@ -140,3 +140,13 @@ body{
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{scroll-behavior:auto!important;transition:none!important;animation:none!important}
 }
+
+/* بستان الدعاء والفوائد اليومية */
+.daily-garden{align-items:stretch;margin-top:2px}
+.daily-garden>.card{min-width:0;position:relative;overflow:hidden;padding:clamp(18px,2.2vw,28px);border:1px solid color-mix(in srgb,var(--accent,#b99a58) 26%,var(--border,#e6e2d8));background:linear-gradient(145deg,color-mix(in srgb,var(--surface,#fff) 94%,var(--accent,#b99a58) 6%),var(--surface,#fff));}
+.daily-dua-card:before,.daily-benefit-card:before{content:"";position:absolute;inset-inline-start:0;top:0;bottom:0;width:4px;background:linear-gradient(180deg,var(--accent,#b99a58),color-mix(in srgb,var(--accent,#b99a58) 28%,transparent))}
+.daily-arabic{font-size:clamp(1.25rem,2.1vw,1.8rem);line-height:2.05;color:var(--text,#173d32);font-family:inherit;font-weight:750;margin:14px 0 8px}
+.daily-dua-card p,.daily-benefit-card p{line-height:1.9}
+.daily-benefit-card h3{font-size:1.12rem;line-height:1.9;margin:12px 0}
+.daily-garden .eyebrow{color:var(--accent-strong,var(--accent,#9c7a35));font-weight:750}
+@media(max-width:720px){.daily-garden{grid-template-columns:minmax(0,1fr)}.daily-garden>.card{padding:18px}.daily-arabic{font-size:1.25rem}}
