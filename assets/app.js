@@ -241,11 +241,13 @@ function navGroups() {
     group('عام', [n('academy-map', 'خريطة الأكاديمية والصلاحيات', 'chart'), n('learning-hub', 'برنامج التعلّم الممتع', 'brain'), n('notifications', 'الإشعارات', 'bell'), n('settings', 'الإعدادات والخصوصية', 'settings')])
   ];
   if (S.user.role === 'teacher') return [
-    group('الرئيسية', [n('dashboard', 'الرئيسية', 'home'), n('teacher-tools', 'لوحة المعلم', 'tools'), n('quran', 'المدرسة القرآنية', 'quran')]),
-    group('الأفواج والمعلمون والفرق', [n('students', 'طلبتي وطلاب المدرسة', 'user'), n('groups', 'الأفواج', 'group'), n('teams', 'الفرق ومشرفوها', 'group'), n('attendance', 'الحضور', 'check'), n('tracking', 'المتابعة', 'trend')]),
-    group('التعليم والتقويم', [n('curriculum', 'المواد والمنهج', 'book'), n('tests', 'الاختبارات', 'doc'), n('assignments', 'الواجبات', 'doc'), n('question-bank', 'بنك الأسئلة', 'doc')]),
-    group('الخدمات والتواصل', [n('calendar', 'التقويم', 'calendar'), n('transport', 'النقل الجماعي', 'bus'), n('messages', 'المراسلات', 'bell'), n('media', 'مكتبة الشيخ', 'media')]),
-    group('عام', common)
+    group('عملي اليومي كمعلم', [
+      n('dashboard', 'ملخص يومي', 'home'),
+      n('teacher-tools', 'مهامي اليومية', 'tools'),
+      n('attendance', 'تسجيل الحضور', 'check'),
+      n('students', 'طلبتي', 'user'),
+      n('tracking', 'متابعة التقدم', 'trend')
+    ])
   ];
   if (S.user.role === 'student') return [
     group('يومي', [n('dashboard', 'الرئيسية', 'home'), n('quran', 'المدرسة القرآنية', 'quran'), n('journey', 'رحلتي', 'trend'), n('learning', 'تعلّمي', 'brain'), n('tasks', 'مهامي', 'check'), n('profile', 'ملفي', 'user')]),
@@ -397,8 +399,22 @@ function openModal(title, body, mount) {
 }
 function closeOverlay() { put($('#overlay'), ''); }
 function openMore() {
-  // القائمة تعرض عناصر التنقل المسموح بها فقط؛ لا تُعيد العناصر المستبعدة من الواجهة.
-  const groups = navGroups().map(g => ({ ...g, items: g.items.filter(([id]) => !HIDDEN_NAV_IDS.has(id)) })).filter(g => g.items.length);
+  // مساحة المعلم اليومية تبقى بسيطة؛ الأدوات الإدارية محفوظة هنا عند الحاجة.
+  const teacherAdmin = [
+    { label: 'الإدارة والأدوات عند الحاجة', items: [
+      ['groups','الأفواج','group'], ['teams','الفرق ومشرفوها','group'],
+      ['curriculum','المواد والمنهج','book'], ['tests','الاختبارات','doc'],
+      ['assignments','الواجبات','doc'], ['question-bank','بنك الأسئلة','doc'],
+      ['calendar','التقويم الدراسي','calendar'], ['messages','المراسلات','bell'],
+      ['transport','النقل الجماعي','bus'], ['media','مكتبة الشيخ','media'],
+      ['school-directory','هيكلة المدرسة','users'], ['academy-map','خريطة الأكاديمية والصلاحيات','chart'],
+      ['learning-hub','برنامج التعلّم الممتع','brain'], ['community','مجتمع التعلم','discuss'],
+      ['notifications','الإشعارات','bell'], ['settings','الإعدادات والخصوصية','settings']
+    ]}
+  ];
+  const groups = S.user.role === 'teacher'
+    ? [...navGroups(), ...teacherAdmin]
+    : navGroups().map(g => ({ ...g, items: g.items.filter(([id]) => !HIDDEN_NAV_IDS.has(id)) })).filter(g => g.items.length);
   put($('#overlay'), html`<div class="more-sheet" data-act="close-modal-bg"><div class="more-panel"><div class="more-heading"><div><span class="eyebrow">مساحة الأكاديمية</span><h2>انتقل إلى ما تحتاجه</h2></div><button class="btn sec2 sm" data-act="close-modal" aria-label="إغلاق القائمة">×</button></div><div class="more-sections">${groups.map(g=>html`<section class="more-section"><h3>${g.label}</h3><div class="more-grid">${g.items.map(([id,l,ic])=>html`<button data-act="nav" data-page="${id}" class="${id===navFor(S.page)?'active':''}">${ico(ic)}<span>${l}</span><span class="more-arrow" aria-hidden="true">‹</span></button>`)}</div></section>`)}</div><button class="more-logout" data-act="logout">${ico('out')}<span>تسجيل الخروج</span></button></div></div>`);
 }
 
