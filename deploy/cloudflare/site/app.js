@@ -193,13 +193,18 @@ $("#auth-form").onsubmit=async e=>{e.preventDefault();const f=new FormData(e.cur
  if(!setup)initGoogleSignIn();
 }
 async function boot(){try{const st=await api("/setup/status");if(!S.token){auth(st.needs_admin&&st.setup_enabled);return}try{S.user=await api("/me");if(S.user?.must_change_password){renderTopActions();showPasswordChange(true)}else{await start()}}catch{S.token="";clearSessionToken();auth(st.needs_admin&&st.setup_enabled)}}catch{app.innerHTML='<div class="panel"><h2>تعذّر الاتصال</h2><p class="muted">تعذّر الوصول إلى قاعدة البيانات. حدّث الصفحة بعد قليل.</p><button class="btn" id="boot-retry">إعادة المحاولة</button></div>';$("#boot-retry")?.addEventListener("click",()=>location.reload())}}
-async function logout(){const prayers=[
-"تقبّل الله منك ما تعلّمت وعملت، وبارك في وقتك، وجعل ما حفظت نورًا لك وحجةً لك لا عليك. نلقاك على خير بإذن الله.",
-"انصرفتَ من رحلتك اليوم، فلا تنصرف عن القرآن. اللهم ثبّت قلبك على طاعتك، واجعل القرآن رفيقك في الدنيا والآخرة.",
-"أحسنتَ اليوم بخطوة، وغدًا بإذن الله خطوات. اللهم بارك في سعيك، واغفر تقصيرك، وارفع بالقرآن درجتك.",
-"حفظك الله أينما كنت، وفتح لك أبواب الخير، وجعل علمك نافعًا وعملك صالحًا، ورزقك الإخلاص والقبول.",
-"اللهم استودعناك قلبًا يتعلّم كتابك، فأنر بصيرته، وزكِّ نفسه، وبارك في عمره، واجعل القرآن نور قلبه ودربه."
-];const prayer=prayers[Math.floor(Math.random()*prayers.length)];ihsanPrayerDialog({title:"نستودع الله يومك وعملك",text:prayer,icon:"☾",primary:"أستودع الله ديني وأمانتي",secondary:"البقاء في الأكاديمية",onPrimary:async()=>{try{await api("/logout",{method:"POST",body:"{}"})}catch{}try{history.replaceState({ihsanMode:"auth"},"",location.pathname+"#login")}catch{}document.body.classList.remove("app-authenticated");S.token="";S.user=null;S.mode="hub";S.tab="home";clearSessionToken();auth(false)}})}
+async function logout(){
+const prayers=[
+{title:"وداع اليوم بدعاء من القرآن",text:"رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ",source:"سورة البقرة، الآية 201"},
+{title:"دعاء قرآني للثبات",text:"رَبَّنَا لَا تُزِغْ قُلُوبَنَا بَعْدَ إِذْ هَدَيْتَنَا وَهَبْ لَنَا مِنْ لَدُنْكَ رَحْمَةً إِنَّكَ أَنْتَ الْوَهَّابُ",source:"سورة آل عمران، الآية 8"},
+{title:"دعاء نبوي في طلب العلم النافع",text:"اللَّهُمَّ إِنِّي أَسْأَلُكَ عِلْمًا نَافِعًا، وَرِزْقًا طَيِّبًا، وَعَمَلًا مُتَقَبَّلًا",source:"سنن ابن ماجه، حديث 925"},
+{title:"نستودع الله يومك وعملك",text:"تقبّل الله منك ما تعلّمت وعملت، وبارك في وقتك، وجعل ما حفظت نورًا لك وحجةً لك لا عليك. نلقاك على خير بإذن الله.",kind:"دعاء بصياغة الأكاديمية"},
+{title:"لا تنصرف عن القرآن",text:"انتهت جلستك، لكن صلتك بالقرآن لا تنتهي. اللهم ثبّت قلبك على طاعتك، واجعل ما تعلمته نورًا يهدي خطوتك.",kind:"دعاء بصياغة الأكاديمية"},
+{title:"خطوة اليوم بذرة الغد",text:"أحسنتَ بخطوة اليوم؛ وغدًا تبدأ من حيث وصلت، لا من الصفر. اللهم بارك في سعيك، واغفر تقصيرك، وارزقك الإخلاص والقبول.",kind:"دعاء بصياغة الأكاديمية"},
+{title:"استوداع وأمل",text:"حفظك الله أينما كنت، وفتح لك أبواب الخير، وجعل علمك نافعًا وعملك صالحًا، ورزقك الإخلاص والقبول.",kind:"دعاء بصياغة الأكاديمية"}
+];
+const prayer=prayers[Math.floor(Math.random()*prayers.length)];
+ihsanPrayerDialog({title:prayer.title,text:prayer.text,source:prayer.source||(prayer.kind?prayer.kind+"؛ ليس نصًا منسوبًا إلى السنة":""),icon:"☾",primary:"تسجيل الخروج",secondary:"البقاء في الأكاديمية",onPrimary:async()=>{try{await api("/logout",{method:"POST",body:"{}"})}catch{}try{history.replaceState({ihsanMode:"auth"},"",location.pathname+"#login")}catch{}document.body.classList.remove("app-authenticated");S.token="";S.user=null;S.mode="hub";S.tab="home";clearSessionToken();auth(false)}})}
 async function load(){const r=await Promise.allSettled([api("/groups"),api("/students")]);S.groups=r[0].status==="fulfilled"?r[0].value:[];S.students=r[1].status==="fulfilled"?r[1].value:[];if(["admin","director"].includes(S.user.role))try{S.teachers=await api("/teachers")}catch{S.teachers=[]}if(S.user.role==="admin"){const extra=await Promise.allSettled([api("/admin/staff"),api("/public/quran-schools")]);S.staff=extra[0].status==="fulfilled"?extra[0].value:[];S.schools=extra[1].status==="fulfilled"?extra[1].value:[]}}
 function items(){
  if(S.mode==="ihsan")return [["all","نظرة عامة"],["allah","معرفة الله"],["prophet","الرسول ﷺ"],["quranpath","القرآن الكريم"],["sunnah","السنة والمتون"],["adab","الأدب والعمل"]];
