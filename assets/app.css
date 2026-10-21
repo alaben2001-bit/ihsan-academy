@@ -1113,3 +1113,52 @@ button.stat-link:active{transform:translateY(0)}
 .academy-adab-goals .grid{gap:12px}
 .academy-adab-goals .grid>div{border:1px solid var(--line);border-radius:14px;padding:14px;background:var(--surface-soft,rgba(120,140,120,.06))}
 .academy-adab-goals .grid p{margin:8px 0 0;line-height:1.9}
+
+
+/* Dark appearance: keep attendance registers readable even when table cells
+   carry legacy light-theme backgrounds or inline text colors. */
+:root[data-appearance="dark"] table,
+:root[data-appearance="dark"] table thead,
+:root[data-appearance="dark"] table tbody,
+:root[data-appearance="dark"] table tr,
+:root[data-appearance="dark"] table th,
+:root[data-appearance="dark"] table td,
+:root[data-appearance="dark"] table th *,
+:root[data-appearance="dark"] table td * {
+  color: var(--ink) !important;
+  border-color: var(--line) !important;
+}
+:root[data-appearance="dark"] table {
+  background: #1b2923 !important;
+}
+:root[data-appearance="dark"] table th {
+  background: #263a30 !important;
+}
+:root[data-appearance="dark"] table td {
+  background: #1b2923 !important;
+}
+:root[data-appearance="dark"] table tbody tr:nth-child(even) td {
+  background: #202f28 !important;
+}
+:root[data-appearance="dark"] table input,
+:root[data-appearance="dark"] table select,
+:root[data-appearance="dark"] table button {
+  color: var(--ink) !important;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-appearance="auto"] table,
+  :root[data-appearance="auto"] table thead,
+  :root[data-appearance="auto"] table tbody,
+  :root[data-appearance="auto"] table tr,
+  :root[data-appearance="auto"] table th,
+  :root[data-appearance="auto"] table td,
+  :root[data-appearance="auto"] table th *,
+  :root[data-appearance="auto"] table td * {
+    color: var(--ink) !important;
+    border-color: var(--line) !important;
+  }
+  :root[data-appearance="auto"] table { background: #1b2923 !important; }
+  :root[data-appearance="auto"] table th { background: #263a30 !important; }
+  :root[data-appearance="auto"] table td { background: #1b2923 !important; }
+  :root[data-appearance="auto"] table tbody tr:nth-child(even) td { background: #202f28 !important; }
+}
