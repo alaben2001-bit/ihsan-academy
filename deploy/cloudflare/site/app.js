@@ -438,7 +438,7 @@ $("#bulk-onboard-students")?.addEventListener("click",async()=>{
  }catch(err){toast(err.message,true);const b=$("#bulk-onboard-students");if(b)b.disabled=false}
 });
 $("#roster-add-form")?.addEventListener("submit",async e=>{
- e.preventDefault();const form=e.currentTarget,button=form.querySelector('button[type="submit"]'),values=new FormData(form),names=String(values.get("names")||"").split(/\\r?\\n/).map(x=>x.trim()).filter(Boolean),group_id=String(values.get("group_id")||"");
+ e.preventDefault();const form=e.currentTarget,button=form.querySelector('button[type="submit"]'),values=new FormData(form),names=String(values.get("names")||"").split(/\r?\n/).map(x=>x.trim()).filter(Boolean),group_id=String(values.get("group_id")||"");
  if(!group_id||!names.length)return toast("اختر الفوج وأدخل الأسماء.",true);
  const group=(S.groups.find(g=>g.id===group_id)||{}).name||"الفوج المحدد";
  if(!confirm("سيتم إضافة الأسماء إلى «"+group+"» دون إنشاء حسابات دخول. ستُحفظ الأسماء المكررة بالعدد المطلوب، ولن تُحذف أي سجلات موجودة. متابعة؟"))return;
