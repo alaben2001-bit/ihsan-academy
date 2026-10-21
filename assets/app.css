@@ -1021,3 +1021,9 @@ html.reduced-motion *,html.reduced-motion *:before,html.reduced-motion *:after{a
 .calendar-day.empty-day{border-color:transparent;background:transparent}
 .calendar-legend{display:flex;align-items:center;gap:8px;margin-top:12px}
 @media(max-width:520px){.calendar-grid{gap:3px}.calendar-day{min-height:42px;border-radius:8px}.calendar-weekday{font-size:10px}.calendar-monthbar strong{font-size:15px}}
+
+/* بطاقات إحصاءات لوحة الإدارة قابلة للنقر بوضوح */
+button.stat-link{appearance:none;border:1px solid var(--line);font:inherit;cursor:pointer;transition:transform .16s ease,box-shadow .16s ease,border-color .16s ease}
+button.stat-link:hover{transform:translateY(-2px);border-color:var(--accent);box-shadow:0 8px 22px rgba(6,78,59,.12)}
+button.stat-link:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+button.stat-link:active{transform:translateY(0)}
