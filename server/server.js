@@ -126,7 +126,7 @@ function migrate() {
 
   db.users.forEach(u => { if (typeof u.password === 'string' && !u.password.startsWith('scrypt$')) { u.password = hashPassword(u.password); changed = true; } });
 
-  ['attendance', 'grades', 'tests', 'teacher_notes', 'reports', 'memorization', 'goals', 'subjects', 'lessons', 'schedule', 'posts', 'post_reads', 'notifications', 'lesson_progress', 'audit_log', 'quran_sessions', 'quran_evaluations', 'quran_levels', 'assignments', 'assignment_submissions', 'calendar_events', 'messages', 'group_join_requests', 'optional_enrollments', 'student_tasks', 'media_posts', 'media_reads', 'media_reactions', 'media_comments', 'quran_halaqas', 'quran_plans', 'quran_reviews', 'quran_attendance', 'quran_certificates','academic_years','terms','journey_items','student_journey','student_diagnostics','challenges','challenge_participants','anonymous_feedback','exam_excuses','teacher_profiles','donation_intents','learning_plans','quran_submissions','question_bank','question_attempts','discussions','discussion_replies','media_bookmarks','security_events','privacy_requests','app_metrics','teams','team_members','team_tasks','team_supervisors','supervisor_requests','quran_schools','schools','school_staff','attendance_weekly','transport_routes','transport_assignments'].forEach(k => { if (!Array.isArray(db[k])) { db[k] = []; changed = true; } });
+  ['attendance', 'grades', 'tests', 'teacher_notes', 'reports', 'memorization', 'goals', 'subjects', 'lessons', 'schedule', 'posts', 'post_reads', 'notifications', 'lesson_progress', 'audit_log', 'quran_sessions', 'quran_evaluations', 'quran_levels', 'assignments', 'assignment_submissions', 'calendar_events', 'messages', 'group_join_requests', 'optional_enrollments', 'student_tasks', 'media_posts', 'media_reads', 'media_reactions', 'media_comments', 'quran_halaqas', 'quran_plans', 'quran_reviews', 'quran_attendance', 'quran_certificates','academic_years','terms','journey_items','student_journey','student_diagnostics','challenges','challenge_participants','anonymous_feedback','exam_excuses','teacher_profiles','donation_intents','learning_plans','quran_submissions','question_bank','question_attempts','discussions','discussion_replies','media_bookmarks','security_events','privacy_requests','app_metrics','teams','team_members','team_tasks','team_supervisors','supervisor_requests','quran_schools','schools','school_staff','attendance_weekly','transport_routes','transport_assignments','roster_imports'].forEach(k => { if (!Array.isArray(db[k])) { db[k] = []; changed = true; } });
   db.memberships = db.memberships || [];
   db.teacher_groups = db.teacher_groups || [];
   db.group_join_requests = db.group_join_requests || [];
@@ -271,7 +271,7 @@ function getStudent(u, id, write = false) {
   if (!s || !(write ? canEdit(u, s) : canView(u, s))) fail(write ? 403 : 404, write ? 'هذا الطالب خارج نطاقك' : 'غير موجود');
   return s;
 }
-const safeUser = u => ({ id: u.id, name: u.name, email: String(u.email||'').endsWith('@no-email.invalid') ? '' : u.email, role: u.role, font_scale: Number(u.font_scale)||1, high_contrast: !!u.high_contrast, reduced_motion: !!u.reduced_motion, theme: ['emerald','sand','indigo','olive'].includes(u.theme) ? u.theme : 'emerald' });
+const safeUser = u => ({ id: u.id, name: u.name, email: String(u.email||'').endsWith('@no-email.invalid') ? '' : u.email, role: u.role, role_label: ((db?.schools||[]).some(sc=>sc.director_user_id===u.id) || (db?.school_staff||[]).some(x=>x.user_id===u.id&&x.role==='director')) ? 'مدير المدرسة' : ({admin:'مدير الأكاديمية',teacher:'الشيخ / المعلم',student:'الطالب',parent:'ولي الأمر',chief_supervisor:'المشرف الرئيسي'}[u.role]||u.role), font_scale: Number(u.font_scale)||1, high_contrast: !!u.high_contrast, reduced_motion: !!u.reduced_motion, theme: ['emerald','sand','indigo','olive'].includes(u.theme) ? u.theme : 'emerald' });
 
 /* ───────────── الحضور والتقارير ───────────── */
 function attStats(recs) {
@@ -704,6 +704,45 @@ async function handler(req, res) {
         permissions: Object.entries(ALL_PERMISSIONS).map(([id,label]) => ({id,label})), recent
       });
     }
+    if (p === '/api/admin/schools' && req.method === 'GET') {
+      requireAdmin();
+      return json(res,200,db.schools.map(sc=>({
+        ...sc,
+        director:sc.director_user_id?adminUserView(db.users.find(u=>u.id===sc.director_user_id)||{}):null,
+        groups:db.groups.filter(g=>g.school_id===sc.id).map(g=>({id:g.id,name:g.name,school_id:g.school_id||null}))
+      })));
+    }
+    if (p === '/api/admin/schools' && req.method === 'POST') {
+      requireAdmin();
+      const b=await body(req),name=clean(b.name,160);
+      if(name.length<2)fail(400,'اسم المدرسة مطلوب');
+      if(db.schools.some(sc=>String(sc.name||'').trim().toLowerCase()===name.toLowerCase()))fail(409,'اسم المدرسة موجود بالفعل');
+      const row={id:uid('sc'),name,description:clean(b.description,800),type:clean(b.type,40)||'quran',director_user_id:null,active:true,created_at:new Date().toISOString()};
+      db.schools.push(row);audit(user,'school.create',{school_id:row.id});await save();return json(res,201,row);
+    }
+    if ((r=route(req,p,'POST','/api/admin/schools/:id/director'))) {
+      requireAdmin();
+      const school=db.schools.find(sc=>sc.id===r.id);if(!school)fail(404,'المدرسة غير موجودة');
+      const b=await body(req),name=clean(b.name,120),email=clean(b.email,200).toLowerCase(),password=String(b.password||'');
+      if(name.length<2||!/^\\S+@\\S+\\.\\S+$/.test(email)||password.length<8)fail(400,'أدخل اسم المدير وبريده وكلمة مرور مؤقتة لا تقل عن 8 أحرف');
+      if(db.users.some(u=>String(u.email||'').toLowerCase()===email))fail(409,'البريد الإلكتروني مستخدم بالفعل');
+      const groupIds=Array.isArray(b.group_ids)?[...new Set(b.group_ids.map(String))]:[];
+      const selected=groupIds.map(id=>db.groups.find(g=>g.id===id)).filter(Boolean);
+      if(selected.some(g=>g.school_id&&g.school_id!==school.id))fail(409,'أحد الأفواج مرتبط بمدرسة أخرى؛ لا يمكن نقله تلقائيًا');
+      const previousDirectorId=school.director_user_id||null;
+      const created=coreService.createUser({name,email,password,role:'teacher'});
+      if(previousDirectorId){
+        const schoolGroupIds=new Set(db.groups.filter(g=>g.school_id===school.id).map(g=>g.id));
+        db.teacher_groups=db.teacher_groups.filter(x=>!(x.teacher_id===previousDirectorId&&schoolGroupIds.has(x.group_id)));
+      }
+      selected.forEach(g=>{g.school_id=school.id;if(!db.teacher_groups.some(x=>x.teacher_id===created.id&&x.group_id===g.id))db.teacher_groups.push({teacher_id:created.id,group_id:g.id});});
+      school.director_user_id=created.id;
+      db.school_staff=db.school_staff.filter(x=>!(x.school_id===school.id&&x.role==='director'));
+      db.school_staff.push({id:uid('ss'),school_id:school.id,user_id:created.id,role:'director',created_at:new Date().toISOString()});
+      audit(user,'school.director_assign',{school_id:school.id,user_id:created.id,group_ids:selected.map(g=>g.id)});
+      await save();
+      return json(res,201,{school_id:school.id,school_name:school.name,user:adminUserView(created),initial_password:password,group_ids:selected.map(g=>g.id)});
+    }
     if (p === '/api/admin/platform-hierarchy' && req.method === 'GET') {
       requireAdmin();
       return json(res,200,{
@@ -715,7 +754,7 @@ async function handler(req, res) {
       const rows = db.users.filter(u => u.active !== false).map(u => {
         const student = db.students.find(st => st.user_id === u.id);
         const isTeamSupervisor = !!(student && (student.level === 'مشرف طالب' || db.team_supervisors.some(x => x.student_id === student.id)));
-        const roleLabel = u.role === 'admin' ? 'مدير الأكاديمية' : u.role === 'teacher' ? 'الشيخ / المعلم' : u.role === 'chief_supervisor' ? 'المشرف الرئيسي' : isTeamSupervisor ? 'مشرف فريق' : u.role === 'student' ? 'طالب' : 'ولي أمر';
+        const roleLabel = ((db.schools||[]).some(sc=>sc.director_user_id===u.id) || (db.school_staff||[]).some(x=>x.user_id===u.id&&x.role==='director')) ? 'مدير المدرسة' : u.role === 'admin' ? 'مدير الأكاديمية' : u.role === 'teacher' ? 'الشيخ / المعلم' : u.role === 'chief_supervisor' ? 'المشرف الرئيسي' : isTeamSupervisor ? 'مشرف فريق' : u.role === 'student' ? 'طالب' : 'ولي أمر';
         return { id:u.id, name:u.name, role:u.role, role_label:roleLabel, is_team_supervisor:isTeamSupervisor, active:true };
       });
       const rank = u => u.role === 'admin' ? 0 : u.role === 'teacher' && /جابر/i.test(u.name) ? 1 : u.role === 'teacher' && /عبد\\s*الصمد/i.test(u.name) ? 2 : u.role === 'chief_supervisor' ? 3 : u.is_team_supervisor ? 4 : u.role === 'teacher' ? 5 : u.role === 'student' ? 6 : 7;
@@ -1191,9 +1230,9 @@ async function handler(req, res) {
     if ((r=route(req,p,'POST','/api/teams/:id/students'))) {
       const t=teamById(r.id);if(!t||!teamCanManage(user,t))fail(403,'لا تملك صلاحية إضافة طالب إلى هذا الفريق');
       const b=await body(req),name=clean(b.name,120),suppliedEmail=clean(b.email,200).toLowerCase(),password=String(b.password||'');
-      if(name.length<2||(suppliedEmail&&!/^\S+@\S+\.\S+$/.test(suppliedEmail))||(password&&password.length<8))fail(400,'أدخل الاسم والبريد الصحيح إن وُجد وكلمة مرور مناسبة');
+      if(name.length<2||(suppliedEmail&&!/^\S+@\S+\.\S+$/.test(suppliedEmail))||password.length<8)fail(400,'أدخل الاسم والبريد الصحيح إن وُجد وكلمة مرور مؤقتة لا تقل عن 8 أحرف');
       if(suppliedEmail&&db.users.some(x=>String(x.email).toLowerCase()===suppliedEmail))fail(409,'البريد مستخدم بالفعل');
-      const email=suppliedEmail||('student-'+uid('mail')+'@no-email.invalid'),initialPassword=password||(name.trim().split(/\s+/)[0]+'123');
+      const email=suppliedEmail||('student-'+uid('mail')+'@no-email.invalid'),initialPassword=password;
       const group=db.groups.find(g=>g.id===t.group_id);if(!group)fail(404,'فوج الفريق غير موجود');
       const nu=coreService.createUser({name,email,password:initialPassword,role:'student'});
       const st={id:uid('s'),user_id:nu.id,parent_id:null,name,group_name:group.name||'',level:'المستوى الأساسي',attendance_rate:0,progress:0,memorized:'—',review:0,group_id:t.group_id};
@@ -1207,6 +1246,31 @@ async function handler(req, res) {
     if ((r=route(req,p,'PATCH','/api/team-tasks/:id'))) {
       const task=db.team_tasks.find(x=>x.id===r.id);if(!task)fail(404,'المهمة غير موجودة');const t=teamById(task.team_id);if(!t||!teamVisibleTo(user,t))fail(404,'المهمة غير موجودة');const b=await body(req);const s=studentForUser(user);const supervisor=teamSupervisorIds(t).includes(s?.id);if(!teamCanManage(user,t)&&!(user.role==='student'&&task.assigned_student_id===s?.id))fail(403,'لا تملك تعديل هذه المهمة');if(b.status!==undefined&&!['pending','done','cancelled'].includes(b.status))fail(400,'حالة المهمة غير صحيحة');if(b.status!==undefined)task.status=b.status;if(teamCanManage(user,t)&&b.title!==undefined)task.title=clean(b.title,160);await save();audit(user,'team.task_update',{id:task.id,status:task.status});return json(res,200,task);}
 
+    if (p === '/api/roster-imports' && req.method === 'POST') {
+      requireStaff(user);
+      const b=await body(req),gid=String(b.group_id||'');
+      const group=db.groups.find(g=>g.id===gid);
+      if(!group)fail(404,'الفوج غير موجود');
+      if(user.role!=='admin'&&!teacherGroupIds(user).includes(gid))fail(403,'اختر فوجًا تشرف عليه');
+      if(!Array.isArray(b.names))fail(400,'قائمة الأسماء غير صحيحة');
+      const names=b.names.map(x=>clean(String(x||'').replace(/\s+/g,' '),120)).filter(Boolean);
+      if(!names.length)fail(400,'أدخل اسمًا واحدًا على الأقل');
+      if(names.length>500)fail(400,'الحد الأقصى 500 اسم في الدفعة الواحدة');
+      if(names.some(n=>n.length<2))fail(400,'يوجد اسم قصير جدًا؛ راجع القائمة');
+      const fingerprint=crypto.createHash('sha256').update(JSON.stringify({group_id:gid,names})).digest('hex');
+      const prior=db.roster_imports.find(x=>x.group_id===gid&&x.fingerprint===fingerprint);
+      if(prior)return json(res,200,{ok:true,duplicate_submission:true,created_count:0,existing_count:prior.student_ids.length,student_ids:prior.student_ids});
+      const groupName=group.name;
+      const created=[];
+      for(const name of names){
+        const st={id:uid('s'),user_id:null,parent_id:null,name,group_name:groupName,level:'المستوى الأساسي',attendance_rate:0,progress:0,memorized:'—',review:0,group_id:gid};
+        db.students.push(st);addMembership(st.id,gid);created.push(st.id);
+      }
+      db.roster_imports.push({id:uid('ri'),user_id:user.id,group_id:gid,fingerprint,student_ids:created,created_at:new Date().toISOString()});
+      audit(user,'roster.import',{group_id:gid,count:created.length});
+      await save();
+      return json(res,201,{ok:true,duplicate_submission:false,created_count:created.length,student_ids:created});
+    }
     if (p === '/api/admin/groups' && req.method === 'GET') {
       requireAdmin();
       return json(res,200,db.groups.map(g=>({...g,student_count:new Set(db.memberships.filter(m=>m.group_id===g.id).map(m=>m.student_id)).size,teachers:db.teacher_groups.filter(x=>x.group_id===g.id).map(x=>{const t=db.users.find(u=>u.id===x.teacher_id);return t?{id:t.id,name:t.name,email:t.email}:null}).filter(Boolean)})));
