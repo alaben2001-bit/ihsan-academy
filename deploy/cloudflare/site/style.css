@@ -1539,3 +1539,114 @@ body:has(.auth-layout) .knowledge-verse{display:flex!important}
  .knowledge-verse .knowledge-verse-next{min-height:32px;padding:6px 10px;font-size:11px}
 }
 
+
+
+/* Dark-mode contrast repair: keep every content surface and its text readable. */
+html[data-appearance="dark"] body,
+html[data-appearance="dark"] #app,
+html[data-appearance="dark"] main,
+html[data-appearance="dark"] .main-content,
+html[data-appearance="dark"] .page-content {
+  color: var(--ink) !important;
+}
+html[data-appearance="dark"] :is(
+  .module-card,.module-welcome,.module-grid,.dashboard-card,.feature-card,
+  .knowledge-card,.knowledge-tile,.knowledge-item,.learning-card,.lesson-card,
+  .path-card,.track-card,.challenge-card,.task-card,.student-card,.group-card,
+  .academy-about-card,.settings-about-section,.settings-section,
+  .settings-dialog,.settings-foot,.panel,.card,.stat,.workspace-head,
+  .topbar,.sidebar,.content-area,.table-wrap,.table-container,
+  .empty-state,.notice,.info-card,.form-card,.modal-card,.dialog-card,
+  .calendar-card,.schedule-card,.progress-card,.quiz-card,.test-card,
+  .hifz-milestone-key,.hifz-city-journey,.hifz-city-grid span
+) {
+  background-color: var(--surface) !important;
+  color: var(--ink) !important;
+  border-color: var(--line) !important;
+}
+html[data-appearance="dark"] :is(
+  .module-desc,.module-card p,.module-welcome p,.dashboard-card p,
+  .knowledge-card p,.learning-card p,.lesson-card p,.path-card p,
+  .track-card p,.challenge-card p,.task-card p,.student-card p,
+  .group-card p,.academy-about-card p,.settings-section p,.muted,
+  .description,.subtitle,.helper-text,.field-hint,small
+) {
+  color: var(--muted) !important;
+}
+html[data-appearance="dark"] :is(
+  h1,h2,h3,h4,h5,h6,label,legend,th,td,p,li,dt,dd,
+  .module-label,.module-link,.card-title,.section-title,
+  .settings-section-title,.workspace-title,.stat-value,.stat-label
+) {
+  color: var(--ink) !important;
+}
+html[data-appearance="dark"] :is(
+  input,select,textarea,option,
+  .form-control,.search-input,.filter-select,
+  .appearance-choice,.btn.secondary,button.secondary
+) {
+  background-color: var(--surface-2) !important;
+  color: var(--ink) !important;
+  border-color: var(--line) !important;
+}
+html[data-appearance="dark"] :is(
+  .module-card,.dashboard-card,.feature-card,.knowledge-card,
+  .knowledge-tile,.learning-card,.lesson-card,.path-card,.track-card,
+  .challenge-card,.task-card,.student-card,.group-card,
+  .academy-about-card,.settings-section,.stat,.panel,.card
+) :is(input,select,textarea) {
+  background-color: #0a1a22 !important;
+  color: var(--ink) !important;
+  border-color: var(--line) !important;
+}
+html[data-appearance="dark"] :is(
+  .module-card,.dashboard-card,.feature-card,.knowledge-card,
+  .knowledge-tile,.learning-card,.lesson-card,.path-card,.track-card,
+  .challenge-card,.task-card,.student-card,.group-card,
+  .academy-about-card,.settings-section,.stat,.panel,.card
+) :is(a,.link,.btn-link) {
+  color: #80dfbd !important;
+}
+html[data-appearance="dark"] :is(
+  .module-card,.dashboard-card,.feature-card,.knowledge-card,
+  .knowledge-tile,.learning-card,.lesson-card,.path-card,.track-card,
+  .challenge-card,.task-card,.student-card,.group-card,
+  .academy-about-card,.settings-section,.stat,.panel,.card
+) :is(.badge,.pill,.tag) {
+  background-color: #173a32 !important;
+  color: #c6f7e4 !important;
+  border-color: #326b59 !important;
+}
+@media (prefers-color-scheme: dark) {
+  html[data-appearance="auto"] :is(
+    .module-card,.module-welcome,.dashboard-card,.feature-card,
+    .knowledge-card,.knowledge-tile,.knowledge-item,.learning-card,
+    .lesson-card,.path-card,.track-card,.challenge-card,.task-card,
+    .student-card,.group-card,.academy-about-card,.settings-about-section,
+    .settings-section,.settings-dialog,.settings-foot,.panel,.card,.stat,
+    .workspace-head,.topbar,.sidebar,.content-area,.table-wrap,.table-container,
+    .empty-state,.notice,.info-card,.form-card,.modal-card,.dialog-card,
+    .calendar-card,.schedule-card,.progress-card,.quiz-card,.test-card,
+    .hifz-milestone-key,.hifz-city-journey,.hifz-city-grid span
+  ) {
+    background-color: var(--surface) !important;
+    color: var(--ink) !important;
+    border-color: var(--line) !important;
+  }
+  html[data-appearance="auto"] :is(
+    h1,h2,h3,h4,h5,h6,label,legend,th,td,p,li,dt,dd,
+    .module-label,.module-link,.card-title,.section-title,
+    .settings-section-title,.workspace-title,.stat-value,.stat-label
+  ) { color: var(--ink) !important; }
+  html[data-appearance="auto"] :is(
+    .module-desc,.description,.subtitle,.helper-text,.field-hint,small,.muted
+  ) { color: var(--muted) !important; }
+  html[data-appearance="auto"] :is(
+    input,select,textarea,option,.form-control,.search-input,
+    .filter-select,.appearance-choice,.btn.secondary,button.secondary
+  ) {
+    background-color: var(--surface-2) !important;
+    color: var(--ink) !important;
+    border-color: var(--line) !important;
+  }
+}
