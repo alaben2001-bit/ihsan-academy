@@ -105,24 +105,4 @@
     return originalStart.apply(this, args);
   };
 
-  const originalLogout = logout;
-  document.addEventListener("click", event => {
-    const button = event.target instanceof Element ? event.target.closest("#logout") : null;
-    if (!button) return;
-    event.preventDefault();
-    event.stopPropagation();
-    event.stopImmediatePropagation();
-    if (button.dataset.prayerPending === "1") return;
-    button.dataset.prayerPending = "1";
-    const text = pick(exitPrayers);
-    showPrayer({
-      title: "نستودع الله يومك وعملك",
-      text,
-      icon: "☾",
-      primary: "أستودع الله ديني وأمانتي",
-      secondary: "البقاء في الأكاديمية",
-      onPrimary: originalLogout,
-      onSecondary: () => {}
-    }).finally(() => { button.dataset.prayerPending = "0"; });
-  }, true);
 })();
