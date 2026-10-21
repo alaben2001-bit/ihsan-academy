@@ -350,7 +350,7 @@ function showPage(id, opts = {}) {
   S.page = id; S.grading = id === 'tests' && opts.grading ? opts.grading : null; document.documentElement.dataset.page = id;
   try { history.replaceState({ academy: true, page: id }, '', location.pathname + '#' + encodeURIComponent(id)); } catch { /* */ }
   const [title, sub, fn] = PAGES[id];
-  $('#pgTitle').textContent = title; $('#pgSub').textContent = sub; put($('#topActions'), topActions(id));
+  $('#pgTitle').textContent = id === 'dashboard' ? '' : title; $('#pgSub').textContent = id === 'dashboard' ? '' : sub; put($('#topActions'), topActions(id));
   document.querySelectorAll('[data-page]').forEach(b => b.classList.toggle('active', b.dataset.page === navFor(id)));
   closeOverlay(); window.scrollTo(0, 0);
   render(raw('<div class="skel" aria-busy="true"><span class="sr">جارٍ التحميل…</span><i></i><i></i><i></i></div>'));
@@ -425,7 +425,7 @@ async function pgDashboard() {
     : role === 'parent' ? ['لولي الأمر', 'اسأل عن التقدم قبل أن تسأل عن النتيجة.', 'الدعم الهادئ يصنع بيئة أفضل للتعلم.']
     : ['فلسفة الأكاديمية', 'نبني الإنسان قبل أن نكدّس المعلومات.', 'علم نافع، خلق، عادة، صحة، وعلاقات متوازنة.'];
   render(html`<div class="stack">
-    ${role === 'student' ? '' : html`<div class="card hero hero-main"><div class="hero-copy"><span class="eyebrow">${role === 'admin' ? 'لوحة الإدارة' : 'أكاديمية بناء الإنسان'}</span><h2>${hero[0]}</h2><p>${hero[1]}</p><span class="when">${fmtDate(today())}</span></div><div class="hero-orbit"><img src="/assets/ihsan-emblem.svg" alt="شعار أكاديمية الإحسان"><i></i><i></i></div></div>`}
+    
     
     <div class="grid g4">${stats.map((s, i) => { const page = s[0] === 'الطلاب' ? 'students' : s[0] === 'الأبناء' ? 'children' : s[0] === 'الأفواج' ? 'groups' : (s[0] === 'نسبة الحضور' || s[0] === 'الحضور' || s[0] === 'سُجّل حضورهم اليوم' || s[0] === 'حضور اليوم') ? 'attendance' : null; return page && isStaff() ? html`<button type="button" class="card stat stat-link" data-act="nav" data-page="${page}" aria-label="فتح ${s[0]}" style="text-align:inherit;color:inherit;width:100%;cursor:pointer"><span class="ic">${ico(['user', 'group', 'check', 'trend'][i % 4])}</span><div><div class="lbl">${s[0]}</div><div class="num">${s[1]}</div></div></button>` : html`<div class="card stat"><span class="ic">${ico(['user', 'group', 'check', 'trend'][i % 4])}</span><div><div class="lbl">${s[0]}</div><div class="num">${s[1]}</div></div></div>`; })}</div>
     ${isStaff() ? html`<div class="card flat row wrap"><b>اختصارات سريعة</b><div class="chips"><button class="btn sm" data-act="nav" data-page="attendance">تسجيل الحضور</button><button class="btn sm sec2" data-act="new-test">إنشاء اختبار</button><button class="btn sm sec2" data-act="nav" data-page="tests">إدخال الدرجات</button></div></div>` : ''}
