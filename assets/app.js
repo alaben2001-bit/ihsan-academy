@@ -1278,6 +1278,7 @@ document.addEventListener('input', e => { const k = e.target.dataset && e.target
 document.addEventListener('change', e => { const k = e.target.dataset && e.target.dataset.ch; if (k && CHG[k]) CHG[k](e.target); });
 document.addEventListener('submit', async e => {
   const f=e.target;
+  if (f.dataset.form === 'settings') { e.preventDefault(); await persistSettingsForm(f); return; }
   if (f.dataset.form === 'practice-answer') { e.preventDefault(); await submitPracticeAnswer(f); return; }
   if(f.dataset.form==='teacher-group'){e.preventDefault();try{const d=fd(f),id=f.dataset.id;await api(id?'/api/teacher/groups/'+encodeURIComponent(id):'/api/teacher/groups',{method:id?'PATCH':'POST',body:JSON.stringify(d)});closeOverlay();toast('تم حفظ الفوج');S.groups=await api('/api/groups');S.students=await api('/api/students');showPage('groups');}catch(err){toast(err.message,true)}return;}
   if(f.dataset.form==='team-student'){e.preventDefault();try{const d=fd(f);if(d.password&&d.password!==d.confirm_password)throw new Error('كلمتا المرور غير متطابقتين');const created=await post('/api/teams/'+encodeURIComponent(f.dataset.id)+'/students',d);closeOverlay();S.groups=await api('/api/groups');S.students=await api('/api/students');showPage('teams');showLoginCredentials(d.name,d.email||'',created.initial_password||d.password);}catch(err){toast(err.message,true)}return;}
