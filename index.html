@@ -24,7 +24,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="application-name" content="أكاديمية الإحسان">
 <meta name="mobile-web-app-capable" content="yes">
-<link rel="stylesheet" href="/assets/app.css?v=75.0">
+<link rel="stylesheet" href="/assets/app.css?v=76.0">
 <link rel="stylesheet" href="/assets/admin-mobile.css?v=70.0">
 <link rel="stylesheet" href="/assets/ui-organize.css?v=1.0">
 <link rel="stylesheet" href="/assets/login-redesign.css?v=2.0">
@@ -44,7 +44,7 @@
       <div class="err-msg" id="loginErr" role="alert"></div>
       <button class="btn" id="loginBtn" type="submit">دخول إلى الأكاديمية <span aria-hidden="true">←</span></button>
     </form>
-    <div class="portal-box"><div class="sec"><div><h3>المدارس القرآنية</h3><p class="muted small">اختر بوابة مدرستك بعد تسجيل الحساب.</p></div></div><div id="quranSchools" class="portal-grid"></div></div>
+    <div class="install-prompt hidden" id="installPrompt"><div><b>ثبّت الأكاديمية على جهازك</b><span>تفتح بسرعة مثل تطبيق مستقل.</span></div><button class="btn sm" id="installBtn">تثبيت</button><button class="btn sec2 sm" id="installClose" aria-label="إغلاق">لاحقًا</button></div><div class="portal-box"><div class="sec"><div><h3>المدارس القرآنية</h3><p class="muted small">اختر بوابة مدرستك بعد تسجيل الحساب.</p></div></div><div id="quranSchools" class="portal-grid"></div></div>
   </div></div>
 </section>
 <div class="app hidden" id="appView">
@@ -58,7 +58,7 @@
 </div>
 <div id="audioDock" class="audio-dock hidden" aria-label="مشغل الأكاديمية"><div class="audio-dock-info"><span class="audio-dock-icon">♫</span><div><b id="audioDockTitle">لا يوجد تسجيل</b><small id="audioDockMeta">مشغل الأكاديمية</small></div></div><audio id="academyPlayer" controls preload="metadata"></audio><button class="btn sec2 sm" id="audioDockClose" type="button" aria-label="إغلاق المشغل">×</button></div>
 <div id="overlay"></div><div class="toast" id="toast" role="status"></div>
-<div class="install-prompt hidden" id="installPrompt"><div><b>ثبّت الأكاديمية على جهازك</b><span>تفتح بسرعة مثل تطبيق مستقل.</span></div><button class="btn sm" id="installBtn">تثبيت</button><button class="btn sec2 sm" id="installClose" aria-label="إغلاق">لاحقًا</button></div>
-<script src="/assets/app.js?v=78.0"></script>
+
+<script src="/assets/app.js?v=79.0"></script>
 </body>
 </html>
