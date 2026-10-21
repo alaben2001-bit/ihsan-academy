@@ -686,7 +686,16 @@ async function openStudentGroupChange(id){
   else { openModal('طلب نقل الطالب',html`<form class="form" data-form="group-request" data-student="${id}"><label class="field"><span>الفوج المطلوب</span><select name="group_id" required>${catalog.filter(g=>!(st.groups||[]).some(x=>x.id===g.id)).map(g=>html`<option value="${g.id}">${g.name}</option>`)}</select></label><label class="field"><span>السبب</span><textarea name="reason" maxlength="500"></textarea></label><button class="btn" type="submit">رفع الطلب للمدير</button></form>`); }
 }
 function pgStudents() {
-  render(html`<div class="card"><div class="toolbar"><label class="field"><span>بحث</span><input id="stuQ" placeholder="اسم الطالب" data-in="stuFilter"></label><label class="field"><span>الفوج</span><select id="stuG" data-ch="stuFilter"><option value="">كل الأفواج</option>${S.groups.map(g => html`<option value="${g.id}">${g.name}</option>`)}</select></label>${S.user.role==='teacher'?html`<button class="btn" data-act="teacher-new-student">إضافة طالب</button>`:''}</div><div id="stuList"></div></div>`);
+  render(html`<div class="stack">
+    <div class="card"><div class="toolbar"><label class="field"><span>بحث</span><input id="stuQ" placeholder="اسم الطالب" data-in="stuFilter"></label><label class="field"><span>الفوج</span><select id="stuG" data-ch="stuFilter"><option value="">كل الأفواج</option>${S.groups.map(g => html`<option value="${g.id}">${g.name}</option>`)}</select></label>${['teacher','admin'].includes(S.user.role)?html`<button class="btn" data-act="teacher-new-student">إنشاء حساب طالب</button>`:''}</div><div id="stuList"></div></div>
+    ${['teacher','admin'].includes(S.user.role)?html`<div class="card"><div class="sec"><div><h3>إضافة قائمة اسمية إلى فوج</h3><p class="muted small">تُضاف الأسماء بلا حسابات دخول. كل سطر سجل مستقل؛ ويمكن تكرار الاسم عمدًا.</p></div></div>
+      <form data-form="roster-import" class="stack">
+        <label class="field"><span>الفوج المستهدف</span><select name="group_id" required>${S.groups.map(g=>html`<option value="${g.id}">${g.name}</option>`)}</select></label>
+        <label class="field"><span>الأسماء — اسم واحد في كل سطر</span><textarea name="names" rows="8" required maxlength="40000" placeholder="محمد بن صالح&#10;عبد الرحمن قادري&#10;محمد بن صالح"></textarea><small class="muted">لن تُنشأ حسابات دخول أو كلمات مرور. إعادة إرسال القائمة نفسها للفوج نفسه لن تضيفها مرة ثانية.</small></label>
+        <button class="btn" type="submit">إضافة الأسماء إلى الفوج</button>
+      </form>
+    </div>`:''}
+  </div>`);
   drawStudents();
 }
 function drawStudents() {
