@@ -8,6 +8,45 @@ const JSON_HEADERS = {
 };
 const json = (data, status = 200, extra = {}) => new Response(JSON.stringify(data), { status, headers: { ...JSON_HEADERS, ...extra } });
 const fail = (status, error) => json({ error }, status);
+const readCookie = (request, name) => {
+  const header = request.headers.get("cookie") || "";
+  for (const part of header.split(";")) {
+    const index = part.indexOf("=");
+    if (index < 0 || part.slice(0,index).trim() !== name) continue;
+    const raw = part.slice(index+1).trim();
+    try { return decodeURIComponent(raw); } catch { return raw; }
+  }
+  return "";
+};
+const cookieSessionToken = request => {
+  const token = readCookie(request, "__Host-ihsan_session");
+  return /^[a-f0-9]{64}$/i.test(token) ? token : "";
+};
+const bearerSessionToken = request => {
+  const match = /^Bearer\s+([a-f0-9]{64})$/i.exec(request.headers.get("authorization") || "");
+  return match ? match[1] : "";
+};
+const requestSessionToken = request => bearerSessionToken(request) || cookieSessionToken(request);
+const csrfIsValid = request => {
+  const cookie = readCookie(request, "__Host-ihsan_csrf");
+  const header = request.headers.get("x-csrf-token") || "";
+  return /^[a-f0-9]{64}$/i.test(cookie) && cookie === header;
+};
+const sessionResponse = (data, token, remember, status = 200) => {
+  const csrf = hex(crypto.getRandomValues(new Uint8Array(32)));
+  const maxAge = remember ? "; Max-Age=2592000" : "";
+  const headers = new Headers(JSON_HEADERS);
+  headers.append("Set-Cookie", "__Host-ihsan_session=" + token + "; Path=/; Secure; HttpOnly; SameSite=Strict" + maxAge);
+  headers.append("Set-Cookie", "__Host-ihsan_csrf=" + csrf + "; Path=/; Secure; SameSite=Strict" + maxAge);
+  return new Response(JSON.stringify(data), { status, headers });
+};
+const clearedSessionResponse = (data = {ok:true}) => {
+  const headers = new Headers(JSON_HEADERS);
+  headers.append("Set-Cookie", "__Host-ihsan_session=; Path=/; Secure; HttpOnly; SameSite=Strict; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT");
+  headers.append("Set-Cookie", "__Host-ihsan_csrf=; Path=/; Secure; SameSite=Strict; Max-Age=0; Expires=Thu, 01 Jan 1970 00:00:00 GMT");
+  return new Response(JSON.stringify(data), { status:200, headers });
+};
+
 const nowIso = () => new Date().toISOString();
 export const validDateOnly = value => {
   const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ""));
@@ -89,9 +128,9 @@ async function bodyJson(request, maxBytes = 32000) {
   try { return raw ? JSON.parse(raw) : {}; } catch { throw new Error("invalid_json"); }
 }
 async function currentUser(request, env) {
-  const match = /^Bearer\s+([a-f0-9]{64})$/i.exec(request.headers.get("authorization") || "");
-  if (!match) return null;
-  const row = await env.DB.prepare("SELECT u.id,u.display_name,u.identity_normalized,u.role,u.active,u.must_change_password FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=? AND s.expires_at>? AND u.active=1").bind(await hashToken(match[1]), nowIso()).first();
+  const token = requestSessionToken(request);
+  if (!token) return null;
+  const row = await env.DB.prepare("SELECT u.id,u.display_name,u.identity_normalized,u.role,u.active,u.must_change_password FROM sessions s JOIN users u ON u.id=s.user_id WHERE s.token_hash=? AND s.expires_at>? AND u.active=1").bind(await hashToken(token), nowIso()).first();
   if (!row) return null;
   const student = row.role === "student" ? await env.DB.prepare("SELECT id,group_id FROM students WHERE user_id=? AND active=1").bind(row.id).first() : null;
   let scope = null;
@@ -209,7 +248,7 @@ export default {
   async fetch(request, env) {
     const url = new URL(request.url), path = url.pathname, method = request.method.toUpperCase();
     try {
-    if (method === "OPTIONS") return new Response(null, { status:204, headers:{ ...JSON_HEADERS, "access-control-allow-methods":"GET, POST, PUT, PATCH, DELETE, OPTIONS", "access-control-allow-headers":"Content-Type, Authorization" }});
+    if (method === "OPTIONS") return new Response(null, { status:204, headers:{ ...JSON_HEADERS, "access-control-allow-methods":"GET, POST, PUT, PATCH, DELETE, OPTIONS", "access-control-allow-headers":"Content-Type, Authorization, X-CSRF-Token" }});
     if (path === "/api/health" && method === "GET") {
       try { const [db, users] = await Promise.all([env.DB.prepare("SELECT 1 AS ok").first(), env.DB.prepare("SELECT COUNT(*) AS n FROM users").first()]); return json({ok:db?.ok===1,app:"ihsan-academy",runtime:"cloudflare-pages-functions",storage:"d1",users:users?.n||0}); } catch { return fail(503,"database_unavailable"); }
     }
@@ -266,7 +305,7 @@ export default {
       await env.DB.prepare("INSERT INTO sessions(token_hash,user_id,expires_at) VALUES(?,?,?)").bind(await hashToken(token),user.id,new Date(Date.now()+lifetime).toISOString()).run();
       const student=user.role==="student"?await env.DB.prepare("SELECT id,group_id FROM students WHERE user_id=? AND active=1").bind(user.id).first():null;
       await log(env,user.id,"google_login");
-      return json({token,user:safeUser({id:user.id,name:user.display_name,email:user.identity_normalized,role:user.role,must_change_password:user.must_change_password===1,student_id:student&&student.id,group_id:student&&student.group_id})});
+      return sessionResponse({user:safeUser({id:user.id,name:user.display_name,email:user.identity_normalized,role:user.role,must_change_password:user.must_change_password===1,student_id:student&&student.id,group_id:student&&student.group_id})},token,remember);
     }
     if (path === "/api/login" && method === "POST") {
       const parsed=await parseBody(request); if(parsed.error)return parsed.error; const b=parsed.value;
@@ -288,13 +327,19 @@ export default {
       await env.DB.prepare("INSERT INTO sessions(token_hash,user_id,expires_at) VALUES(?,?,?)").bind(await hashToken(token),user.id,new Date(Date.now()+sessionLifetimeMs).toISOString()).run();
       await log(env,user.id,"login");
       const student=user.role==="student"?await env.DB.prepare("SELECT id,group_id FROM students WHERE user_id=? AND active=1").bind(user.id).first():null;
-      return json({token,user:safeUser({id:user.id,name:user.display_name,email:user.identity_normalized,role:user.role,must_change_password:user.must_change_password===1,student_id:student?.id,group_id:student?.group_id})});
+      return sessionResponse({user:safeUser({id:user.id,name:user.display_name,email:user.identity_normalized,role:user.role,must_change_password:user.must_change_password===1,student_id:student?.id,group_id:student?.group_id})},token,remember);
     }
     if (!path.startsWith("/api/")) return env.ASSETS.fetch(request);
     if (path === "/api/logout" && method === "POST") {
-      const match=/^Bearer\s+([a-f0-9]{64})$/i.exec(request.headers.get("authorization")||""); if(match)await env.DB.prepare("DELETE FROM sessions WHERE token_hash=?").bind(await hashToken(match[1])).run(); return json({ok:true});
+      const legacyBearer = bearerSessionToken(request);
+      const cookieToken = cookieSessionToken(request);
+      if (!legacyBearer && cookieToken && !csrfIsValid(request)) return fail(403,"تعذّر التحقق من حماية الطلب. حدّث الصفحة ثم أعد المحاولة.");
+      const token = requestSessionToken(request);
+      if (token) await env.DB.prepare("DELETE FROM sessions WHERE token_hash=?").bind(await hashToken(token)).run();
+      return clearedSessionResponse({ok:true});
     }
     const user=await currentUser(request,env); if(!user)return fail(401,"يرجى تسجيل الدخول");
+    if (!bearerSessionToken(request) && cookieSessionToken(request) && ["POST","PUT","PATCH","DELETE"].includes(method) && !csrfIsValid(request)) return fail(403,"تعذّر التحقق من حماية الطلب. حدّث الصفحة ثم أعد المحاولة.");
     if(user.must_change_password && !["/api/me","/api/me/password","/api/logout"].includes(path))return fail(403,"يجب تغيير كلمة المرور المؤقتة قبل متابعة استخدام الأكاديمية.");
     if(path==="/api/auth/google/link"&&method==="POST"){
       if(user.must_change_password)return fail(403,"غيّر كلمة المرور المؤقتة قبل ربط Google.");
@@ -320,8 +365,8 @@ export default {
       if(!stored||!await verifyPassword(currentPassword,stored.password_hash))return fail(401,"كلمة المرور الحالية غير صحيحة");
       if(currentPassword===newPassword)return fail(400,"اختر كلمة مرور جديدة مختلفة");
       await env.DB.prepare("UPDATE users SET password_hash=?,must_change_password=0 WHERE id=?").bind(await passwordHash(newPassword),user.id).run();
-      const match=/^Bearer\s+([a-f0-9]{64})$/i.exec(request.headers.get("authorization")||"");
-      if(match)await env.DB.prepare("DELETE FROM sessions WHERE user_id=? AND token_hash<>?").bind(user.id,await hashToken(match[1])).run();
+      const currentToken=requestSessionToken(request);
+      if(currentToken)await env.DB.prepare("DELETE FROM sessions WHERE user_id=? AND token_hash<>?").bind(user.id,await hashToken(currentToken)).run();
       await log(env,user.id,"password_change",{});
       return json({ok:true,message:"تم تغيير كلمة المرور وإبطال الجلسات الأخرى"});
     }
