@@ -158,4 +158,13 @@ assert.match(app, /5760 ساعة، لا 5320/, "the program must correct the eig
 assert.match(app, /لا تُحوّل خطة الاستدراك إلى إلزام بقراءة 14\.5 ساعة/, "the catch-up plan must not mandate an exhausting uninterrupted penalty day");
 assert.match(app, /data-lesson="hifzprogram"/, "the Quran memorization program must be reachable from the curriculum tiles");
 assert.match(app, /hifz-program-stack/, "the memorization program must render its dedicated responsive sections");
+assert.ok(app.includes('["hifzprogram","برنامج تثبيت القرآن"]'), "Ihsan navigation must include the Quran memorization program");
+assert.ok(app.includes("8 س و45 د") && app.includes("10 س و50 د") && app.includes("12 س و55 د") && app.includes("15 س"), "the weekly workload calculations must remain visible");
+assert.ok(app.includes("47 س و30 د"), "the monthly calculated workload must remain visible");
+assert.ok(app.includes("المجموع 90 دقيقة، لا 75"), "the program must disclose the 15-repetition early-stage timing discrepancy");
+assert.ok(app.includes("190 دقيقة، أي 3 ساعات و10 دقائق"), "the program must disclose the day-20 three-hour limit mismatch");
+assert.ok(app.includes("5760 ساعة، لا 5320"), "the program must preserve the corrected eight-month calendar-hour calculation");
+assert.ok(app.includes("مدينة الفاتحين") && app.includes("مدينة المصابرة") && app.includes("مدينة الثبات") && app.includes("مدينة الهدى") && app.includes("مدينة التقوى") && app.includes("مدينة الصادقين") && app.includes("مدينة الأبرار"), "all optional Quran journey city milestones must be present");
+assert.ok(app.includes("ليس بالقوي"), "the educational title must not imply authentication of the weakly graded al-Hall al-Murtahil report");
+assert.ok(app.includes("لا تُحوّل خطة الاستدراك إلى إلزام بقراءة 14.5 ساعة"), "catch-up guidance must not mandate a 14.5-hour punitive day");
 console.log("Security regression guardrails passed.");
