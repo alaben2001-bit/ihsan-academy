@@ -148,4 +148,14 @@ assert.match(app, /صحيح مسلم، حديث 2699/, "the knowledge-seeking ha
 assert.match(app, /صحيح مسلم، حديث 2594/, "the kindness hadith must include its source");
 assert.match(app, /curriculum-evidence-text/, "the learning curriculum must render scripture evidence as a distinct readable card");
 assert.match(app, /تسجيل الخروج/, "the exit dialog must use a neutral action label rather than a student-only journey label");
+assert.match(app, /\["hifzprogram","برنامج تثبيت القرآن"\]/, "the Ihsan learning navigation must expose the Quran memorization program");
+assert.match(app, /8 س و45 د/, "the program must display the calculated week-one workload");
+assert.match(app, /10 س و50 د/, "the program must display the calculated week-two workload");
+assert.match(app, /12 س و55 د/, "the program must display the calculated week-three workload");
+assert.match(app, /47 س و30 د/, "the program must display the calculated four-week total");
+assert.match(app, /المجموع 90 دقيقة، لا 75/, "the program must disclose the early-stage 15-repetition timing discrepancy");
+assert.match(app, /5760 ساعة، لا 5320/, "the program must correct the eight-month calendar-hour arithmetic");
+assert.match(app, /لا تُحوّل خطة الاستدراك إلى إلزام بقراءة 14\.5 ساعة/, "the catch-up plan must not mandate an exhausting uninterrupted penalty day");
+assert.match(app, /data-lesson="hifzprogram"/, "the Quran memorization program must be reachable from the curriculum tiles");
+assert.match(app, /hifz-program-stack/, "the memorization program must render its dedicated responsive sections");
 console.log("Security regression guardrails passed.");
