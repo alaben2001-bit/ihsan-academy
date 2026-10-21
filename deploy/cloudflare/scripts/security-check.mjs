@@ -180,13 +180,13 @@ assert.match(app, /function showAcademyAbout\(\)/, "the app must provide a reusa
 assert.match(app, /id="academy-about-open"/, "the global toolbar must expose academy information");
 assert.match(app, /id="about-open-welcome"/, "the pre-login welcome screen must expose academy vision and features");
 assert.match(app, /id="about-open-hub"/, "the interface chooser must expose academy overview before either interface is entered");
-assert.match(app, /id="settings-about-open"/, "settings must link to the full academy overview");
+assert.doesNotMatch(app, /id="settings-about-open"/, "academy overview belongs on the pre-login screens, not the signed-in settings");
 assert.match(app, /بناء إنسانٍ يعرف ربَّه/, "the overview must state the academy's educational vision");
 assert.match(app, /برنامج «الحال المرتحل»/, "the overview must explain the Quran memorization program");
 assert.match(app, /ستظهر في المهام اليومية والخطط الأسبوعية ذات الصلة/, "the overview must keep operational details in later tasks");
 assert.match(style, /\.academy-about-dialog/, "the overview dialog must have dedicated responsive styling");
 assert.match(style, /\.academy-about-grid/, "academy features must appear as readable information cards");
-assert.match(style, /\.settings-about-section/, "settings must show a short academy description as well as a link");
+assert.doesNotMatch(app, /settings-about-section|settings-about-open/, "signed-in settings must not duplicate the academy overview entry");
 
 assert.match(app, /const knowledgeVerses=\[/, "the welcome screen must use a maintained list of Quranic knowledge verses");
 assert.match(app, /rotateKnowledgeVerses\(\)/, "Quranic knowledge verses must rotate automatically on the welcome screen");
