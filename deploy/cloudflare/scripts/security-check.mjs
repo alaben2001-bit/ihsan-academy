@@ -155,7 +155,7 @@ assert.match(app, /\["hifzprogram","الحال المرتحل"\]/, "the Ihsan le
 
 
 
-assert.match(app, /لا تُحوّل خطة الاستدراك إلى إلزام بقراءة 14\.5 ساعة/, "the catch-up plan must not mandate an exhausting uninterrupted penalty day");
+assert.doesNotMatch(app, /14\\.5 ساعة/, "the concise overview must defer catch-up details to the daily and weekly plans");
 assert.match(app, /data-lesson="hifzprogram"/, "the Quran memorization program must be reachable from the curriculum tiles");
 assert.match(app, /hifz-program-stack/, "the memorization program must render its dedicated responsive sections");
 assert.ok(app.includes('["hifzprogram","الحال المرتحل"]'), "Ihsan navigation must include the al-Hall al-Murtahil Quran program");
