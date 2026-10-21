@@ -583,8 +583,9 @@ function openTeacherStudentModal(id){
 
 /* ═══════════ الأفواج والمنهج ═══════════ */
 async function pgGroups() {
-  const catalog = await api('/api/group-catalog');
-  const reqs = await api('/api/group-requests');
+  const [catalog, reqs, teams] = await Promise.all([
+    api('/api/group-catalog'), api('/api/group-requests'), api('/api/teams')
+  ]);
   const pending = reqs.filter(r=>r.status==='pending');
   if (S.user.role === 'student') {
     render(html`<div class="stack"><div class="card hero"><h2>الأفواج والطلبات</h2><p>يمكنك طلب الانضمام إلى فوج آخر، لكن لا يتغير فوجك إلا بعد اعتماد الإدارة.</p></div>
@@ -592,9 +593,25 @@ async function pgGroups() {
       <div class="grid g3">${catalog.map(g=>html`<div class="card"><div class="row"><span class="avatar">${initial(g.name)}</span><span class="badge">${g.level||'أساسي'}</span></div><h3 style="margin-top:10px">${g.name}</h3><p class="muted">${g.description||''}</p><div class="chips"><span class="chip">${g.student_count} طالب</span><span class="chip">${(g.teachers||[]).join('، ')||'لم يُسند شيخ بعد'}</span></div>${S.groups.some(x=>x.id===g.id)?html`<span class="badge ok">منضم</span>`:html`<button class="btn sm" data-act="request-group" data-id="${g.id}">طلب الانضمام</button>`}</div>`)}</div></div>`);
     return;
   }
-  render(html`<div class="stack"><div class="card"><div class="sec"><div><h3>إدارة الأفواج والطلبات</h3><p class="muted">إدارة الأفواج وطلبات الانضمام والنقل للمدير والمعلم.</p></div>${S.user.role==='teacher'?html`<button class="btn" data-act="teacher-new-group">إضافة فوج</button>`:''}</div>
-    ${reqs.length?reqs.map(r=>html`<div class="item"><div class="row wrap"><div><b>${r.student_name}</b><p class="muted small">${r.current_group_name} ← ${r.group_name}</p></div><span class="badge ${r.status==='approved'?'ok':r.status==='rejected'?'bad':'gold'}">${r.status==='approved'?'مقبول':r.status==='rejected'?'مرفوض':'بانتظار المدير'}</span></div><p>${r.reason||''}</p>${isStaff()&&r.status==='pending'?html`<div class="chips"><button class="btn sm" data-act="approve-group-request" data-id="${r.id}">موافقة${r.mode==='transfer'?' ونقل':''}</button><button class="btn sm sec2" data-act="reject-group-request" data-id="${r.id}">رفض</button></div>`:''}</div>`):''}</div>
-    <div class="grid g3">${catalog.map(g=>html`<div class="card"><div class="row"><b>${g.name}</b><span class="badge">${g.student_count} طالب</span></div><p class="muted">${g.description||''}</p><div class="small muted">${(g.teachers||[]).join('، ')||'بدون شيخ'}</div>${S.user.role==='teacher'?html`<div class="chips" style="margin-top:10px"><button class="btn sm sec2" data-act="teacher-edit-group" data-id="${g.id}">تعديل</button><button class="btn sm danger" data-act="teacher-delete-group" data-id="${g.id}">حذف</button></div>`:''}</div>`)}</div></div>`);
+  const canManageTeams = ['admin','teacher','chief_supervisor'].includes(S.user.role);
+  render(html`<div class="stack">
+    <div class="card hero hero-main"><div class="hero-copy"><span class="eyebrow">إدارة المدرسة</span><h2>الأفواج والمعلمون والفرق</h2><p>إدارة مترابطة: كل فوج يعرض معلميه وطلابه وفرقَه ومشرفيها ومهامها في موضع واحد، مع بقاء صلاحيات كل دور محفوظة.</p></div><div class="hero-orbit"><span>إ</span><i></i><i></i></div></div>
+    <div class="card"><div class="sec"><div><h3>طلبات الانضمام والنقل</h3><p class="muted">تُراجع الطلبات قبل تغيير فوج الطالب.</p></div></div>
+    ${reqs.length?reqs.map(r=>html`<div class="item"><div class="row wrap"><div><b>${r.student_name}</b><p class="muted small">${r.current_group_name} ← ${r.group_name}</p></div><span class="badge ${r.status==='approved'?'ok':r.status==='rejected'?'bad':'gold'}">${r.status==='approved'?'مقبول':r.status==='rejected'?'مرفوض':'بانتظار المدير'}</span></div><p>${r.reason||''}</p>${isStaff()&&r.status==='pending'?html`<div class="chips"><button class="btn sm" data-act="approve-group-request" data-id="${r.id}">موافقة${r.mode==='transfer'?' ونقل':''}</button><button class="btn sm sec2" data-act="reject-group-request" data-id="${r.id}">رفض</button></div>`:''}</div>`):empty('لا توجد طلبات انضمام','ستظهر الطلبات هنا عند ورودها.')}</div>
+    <div class="row wrap">${S.user.role==='teacher'?html`<button class="btn" data-act="teacher-new-group">إضافة فوج</button>`:''}${canManageTeams?html`<button class="btn sec2" data-act="new-team">${ico('plus')} فريق جديد</button>`:''}<span class="muted small">المعلم مسؤول عن الفوج؛ ومشرف الفريق طالب لا تتجاوز صلاحياته مهام فريقه.</span></div>
+    <div class="stack">${catalog.map(g=>{
+      const groupTeams = teams.filter(t=>t.group_id===g.id);
+      return html`<section class="card">
+        <div class="sec"><div><h3>${g.name}</h3><p class="muted">${g.description||'لا يوجد وصف للفوج بعد'}</p></div><span class="badge">${g.student_count} طالبًا</span></div>
+        <div class="grid g2">
+          <div class="card flat"><h4>المعلمون المسؤولون</h4><p class="muted">${(g.teachers||[]).join('، ')||'لم يُسند معلم إلى هذا الفوج بعد'}</p>${S.user.role==='teacher'?html`<button class="btn sm sec2" data-act="teacher-edit-group" data-id="${g.id}">تعديل بيانات الفوج</button>`:''}</div>
+          <div class="card flat"><div class="sec"><h4>الفرق والمشرفون</h4><span class="badge">${groupTeams.length} فريق</span></div>
+            ${groupTeams.length?groupTeams.map(t=>html`<div class="item"><div class="row wrap"><div><b>${t.name}</b><p class="muted small">${t.description||'لا يوجد وصف للفريق'}</p></div><span class="badge ${t.active===false?'bad':'ok'}">${t.active===false?'معطل':'نشط'}</span></div><p class="small muted">${t.members.length} أعضاء · ${t.supervisors.length} مشرفين</p><div class="chips">${t.supervisors.map(x=>html`<span class="chip">${x.name}</span>`)}</div>${canManageTeams?html`<div class="chips" style="margin-top:8px"><button class="btn sm sec2" data-act="edit-team-members" data-id="${t.id}">إدارة الأعضاء والمشرفين</button><button class="btn sm sec2" data-act="new-team-task" data-id="${t.id}">إسناد مهمة</button></div>`:''}</div>`):empty('لا توجد فرق في هذا الفوج','يمكن إنشاء فريق من الزر أعلاه وربطه بهذا الفوج.') }
+          </div>
+        </div>
+      </section>`;
+    })}</div>
+  </div>`);
 }
 async function openLearningSubjectLessons(id) {
   const learning = await api('/api/learning');
