@@ -216,7 +216,7 @@ function navGroups() {
   return [
     group('الرئيسية', [n('dashboard', 'الرئيسية', 'home'), n('quran', 'المدرسة القرآنية', 'quran')]),
     group('الأبناء والمتابعة', [n('children', 'أبنائي', 'user'), n('reports', 'التقارير', 'chart'), n('tests', 'الاختبارات', 'doc'), n('groups', 'الأفواج والطلبات', 'group')]),
-    group('الخدمات', [n('calendar', 'التقويم', 'calendar'), n('transport', 'النقل الجماعي', 'bus'), n('media', 'مكتبة الشيخ', 'media')]),
+    group('الخدمات', [n('calendar', 'التقويم', 'calendar'), n('transport', 'النقل الجماعي', 'bus')]),
     group('عام', common)
   ];
 }
