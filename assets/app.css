@@ -1096,3 +1096,13 @@ button.stat-link:active{transform:translateY(0)}
 .calendar-day{font:inherit;appearance:none;width:100%;cursor:pointer}
 .calendar-day.is-focused{outline:2px solid var(--accent,#176b55);outline-offset:-2px;box-shadow:0 0 0 2px rgba(33,131,75,.12)}
 .calendar-focus-date{font-size:.72em;font-weight:500;color:var(--muted)}
+
+/* Quick actions and live icon-size preview */
+.quick-actions-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(175px,1fr));gap:10px}
+.quick-actions-grid .btn{display:flex;align-items:center;justify-content:space-between;gap:8px;min-height:48px;text-align:right}
+.quick-actions-grid .btn span{font-size:11px;opacity:.8;white-space:nowrap}
+.appearance-icon-sample .ic{display:grid;place-items:center;box-sizing:border-box}
+.appearance-icon-sample .ic svg.i{display:block;width:var(--preview-icon-size,30px)!important;height:var(--preview-icon-size,30px)!important;max-width:none;max-height:none;stroke:currentColor}
+:root[data-icon-style="bold"] .appearance-icon-sample .ic svg.i{stroke-width:2.7}
+:root[data-icon-style="soft"] .appearance-icon-sample .ic svg.i{stroke-width:1.6;opacity:.82}
+@media(max-width:760px){.quick-actions-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
