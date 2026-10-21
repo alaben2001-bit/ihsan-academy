@@ -1082,3 +1082,17 @@ button.stat-link:active{transform:translateY(0)}
 :root[data-icon-style="bold"] .appearance-icon-sample .ic{filter:drop-shadow(0 1px 1px currentColor);transform:scale(1.06)}
 :root[data-icon-style="framed"] .appearance-icon-sample .ic{border:1px solid currentColor;border-radius:10px;padding:5px;box-sizing:content-box}
 @media(max-width:520px){.appearance-icon-preview{grid-template-columns:repeat(2,minmax(0,1fr))}}
+
+
+/* V86 — sidebar fills the viewport without a distracting horizontal scrollbar */
+.side{height:100dvh;min-height:100vh;box-sizing:border-box}
+.nav{min-height:0;gap:8px;scrollbar-width:none;-ms-overflow-style:none}
+.nav::-webkit-scrollbar{display:none;width:0;height:0}
+.nav-group{gap:2px}
+.nav-group+.nav-group{padding-top:6px}
+.nav-label{padding:3px 12px;font-size:10.5px}
+.nav button{padding:8px 11px;min-height:35px}
+.nav button span{line-height:1.35}
+.calendar-day{font:inherit;appearance:none;width:100%;cursor:pointer}
+.calendar-day.is-focused{outline:2px solid var(--accent,#176b55);outline-offset:-2px;box-shadow:0 0 0 2px rgba(33,131,75,.12)}
+.calendar-focus-date{font-size:.72em;font-weight:500;color:var(--muted)}
