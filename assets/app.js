@@ -1300,7 +1300,7 @@ document.addEventListener('keydown', e => {
   if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('[role=button][data-act]')) { e.preventDefault(); e.target.click(); }
   if (e.key === 'Escape') closeOverlay();
 });
-document.addEventListener('input', e => { const k = e.target.dataset && e.target.dataset.in; if(k==='message-search'){messageSearchTerm=e.target.value;const start=e.target.selectionStart;clearTimeout(window.__messageSearchTimer);window.__messageSearchTimer=setTimeout(()=>{if(S.page==='messages')showPage('messages');},180);return;} if (k && INP[k]) INP[k](e.target); });
+document.addEventListener('input', e => { const k = e.target.dataset && e.target.dataset.in; if(k==='message-search'){messageSearchTerm=e.target.value;const start=e.target.selectionStart;clearTimeout(window.__messageSearchTimer);const pos=e.target.selectionStart;window.__messageSearchTimer=setTimeout(()=>{if(S.page==='messages'){showPage('messages');const next=document.querySelector('[data-in="message-search"]');if(next){next.focus();try{next.setSelectionRange(pos,pos);}catch{}}}},250);return;} if (k && INP[k]) INP[k](e.target); });
 document.addEventListener('change', e => { const k = e.target.dataset && e.target.dataset.ch; if (k && CHG[k]) CHG[k](e.target); });
 document.addEventListener('submit', async e => {
   const f=e.target;
