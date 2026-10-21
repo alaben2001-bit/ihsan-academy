@@ -1071,3 +1071,14 @@ button.stat-link:active{transform:translateY(0)}
 :root[data-appearance="auto"] table,:root[data-appearance="auto"] th,:root[data-appearance="auto"] td{color:var(--ink);border-color:var(--line)}
 :root[data-appearance="auto"] th{background:#263a30}
 }
+
+/* Live icon preview in appearance settings */
+.appearance-icon-preview{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:10px}
+.appearance-icon-sample{display:flex;min-width:0;min-height:82px;align-items:center;justify-content:center;gap:8px;flex-direction:column;padding:12px 8px;border:1px solid var(--line,rgba(128,128,128,.25));border-radius:14px;background:var(--surface,rgba(128,128,128,.06));font-size:.88em;text-align:center}
+.appearance-icon-sample .ic{display:grid;place-items:center;width:var(--preview-icon-size,32px);height:var(--preview-icon-size,32px);font-size:var(--preview-icon-size,32px);color:var(--accent,var(--primary,#176b55));transition:width .15s,height .15s,font-size .15s,transform .15s}
+:root[data-icon-size="small"] .appearance-icon-sample .ic{--preview-icon-size:22px}
+:root[data-icon-size="medium"] .appearance-icon-sample .ic{--preview-icon-size:30px}
+:root[data-icon-size="large"] .appearance-icon-sample .ic{--preview-icon-size:40px}
+:root[data-icon-style="bold"] .appearance-icon-sample .ic{filter:drop-shadow(0 1px 1px currentColor);transform:scale(1.06)}
+:root[data-icon-style="framed"] .appearance-icon-sample .ic{border:1px solid currentColor;border-radius:10px;padding:5px;box-sizing:content-box}
+@media(max-width:520px){.appearance-icon-preview{grid-template-columns:repeat(2,minmax(0,1fr))}}
