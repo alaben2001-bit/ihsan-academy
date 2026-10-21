@@ -25,7 +25,7 @@ async function initGoogleSignIn(){
    try{
     const remember=$("#auth-form input[name=remember]")?.checked===true;
     const data=await api("/auth/google",{method:"POST",body:JSON.stringify({credential:res.credential,nonce:ihsanGoogleNonce,remember})});
-    S.token=data.token;S.user=data.user;storeSessionToken(S.token,remember);safeStore.set("ihsan_last_identity",String(data.user?.email||""));if(S.user?.must_change_password){renderTopActions();showPasswordChange(true)}else{await start()}
+    S.token="";clearSessionToken();S.user=data.user;safeStore.set("ihsan_last_identity",String(data.user?.email||""));if(S.user?.must_change_password){renderTopActions();showPasswordChange(true)}else{await start()}
    }catch(err){setNote(err.message||"تعذر الدخول باستخدام Google.",true);if(error){error.textContent=err.message||"تعذر الدخول باستخدام Google.";error.classList.remove("hidden")}if(submit)submit.disabled=false}
   }});
   host.innerHTML="";window.google.accounts.id.renderButton(host,{type:"standard",theme:"outline",size:"large",shape:"rectangular",text:"signin_with",locale:"ar",width:320});
@@ -43,8 +43,8 @@ function showInstallGuide(){
 window.addEventListener("error",function(e){var a=document.getElementById("app");if(a&&a.querySelector(".loading")){a.innerHTML="<section class=\"panel\"><h2>خطأ في تشغيل الواجهة</h2><p class=\"muted\"></p></section>";a.querySelector("p").textContent=(e.message||"JavaScript error")+" — "+(e.filename||"")+(e.lineno?":"+e.lineno:"");}});window.addEventListener("unhandledrejection",function(e){var a=document.getElementById("app");if(a&&a.querySelector(".loading"))a.textContent="تعذّر بدء الأكاديمية: "+String(e.reason&&e.reason.message||e.reason||"خطأ غير معروف");});
 const $=s=>document.querySelector(s), app=$("#app");
 const safeStore={get(k){try{return localStorage.getItem(k)||""}catch{return ""}},set(k,v){try{localStorage.setItem(k,v)}catch{}},remove(k){try{localStorage.removeItem(k)}catch{}},getSession(k){try{return sessionStorage.getItem(k)||""}catch{return ""}},setSession(k,v){try{sessionStorage.setItem(k,v)}catch{}},removeSession(k){try{sessionStorage.removeItem(k)}catch{}}};
-function storeSessionToken(token,remember){if(remember){safeStore.set("ihsan_token",token);safeStore.removeSession("ihsan_token")}else{safeStore.remove("ihsan_token");safeStore.setSession("ihsan_token",token)}}
 function clearSessionToken(){safeStore.remove("ihsan_token");safeStore.removeSession("ihsan_token")}
+function storeSessionToken(){clearSessionToken()}
 const localDateISO=(value=new Date())=>{
  const parts=new Intl.DateTimeFormat("en-US",{timeZone:"Africa/Algiers",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(value);
  const fields=Object.fromEntries(parts.map(part=>[part.type,part.value]));
@@ -54,7 +54,8 @@ const shiftLocalDateISO=(dateOnly,days)=>{
  const [y,m,d]=dateOnly.split("-").map(Number),shifted=new Date(Date.UTC(y,m-1,d+days));
  return shifted.getUTCFullYear()+"-"+String(shifted.getUTCMonth()+1).padStart(2,"0")+"-"+String(shifted.getUTCDate()).padStart(2,"0");
 };
-const S={token:safeStore.get("ihsan_token")||safeStore.getSession("ihsan_token"),user:null,tab:"home",mode:"hub",groups:[],students:[],teachers:[],staff:[],schools:[],date:localDateISO()};
+const S={token:"",user:null,tab:"home",mode:"hub",groups:[],students:[],teachers:[],staff:[],schools:[],date:localDateISO()};
+clearSessionToken();
 const themes=[
 {name:"زمردي",green:"#087f5b",mint:"#ddfaed",gold:"#f5b942",paper:"#f2fbf7",ink:"#0d2b22",muted:"#456b5a",line:"#bfe5d1",surface:"#ffffff",surface2:"#eaf8f0"},
 {name:"أزرق",green:"#1456c0",mint:"#e2efff",gold:"#ffc857",paper:"#f4f8ff",ink:"#102548",muted:"#49658d",line:"#c5daf9",surface:"#ffffff",surface2:"#edf4ff"},
@@ -89,7 +90,21 @@ function applyTheme(){
 applyTheme();
 if(safeStore.get("ihsan_reduce_motion")==="1")document.documentElement.classList.add("ihsan-reduced-motion");
 const esc=v=>String(v==null?"":v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-async function api(path,opt={}){const h={"content-type":"application/json",...(S.token?{authorization:"Bearer "+S.token}:{}),...(opt.headers||{})};const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);try{const r=await fetch("/api"+path,{...opt,headers:h,signal:controller.signal});const raw=await r.text();let d;try{d=raw?JSON.parse(raw):{}}catch{const type=r.headers.get("content-type")||"غير محدد";const preview=raw.replace(/\\s+/g," ").slice(0,180);throw Error("رد غير صالح من الخادم — "+r.status+" — نوع المحتوى: "+type+(preview?" — "+preview:" — استجابة فارغة"))}if(!r.ok)throw Error(d.error||("فشل الطلب ("+r.status+")"));return d}catch(e){if(e.name==="AbortError")throw Error("انتهت مهلة الاتصال بالخادم بعد 12 ثانية أثناء انتظار الاستجابة. أعد المحاولة؛ إذا تكرر الأمر فالمشكلة في مسار API أو قاعدة البيانات.");if(e instanceof TypeError)throw Error("تعذّر الاتصال بخادم الأكاديمية. تحقق من الاتصال ثم أعد المحاولة.");throw e}finally{clearTimeout(timer)}}
+function readCsrfCookie(){try{const part=document.cookie.split(";").map(x=>x.trim()).find(x=>x.startsWith("__Host-ihsan_csrf="));return part?decodeURIComponent(part.slice("__Host-ihsan_csrf=".length)):""}catch{return ""}}
+async function api(path,opt={}){
+ const method=String(opt.method||"GET").toUpperCase();
+ const h={"content-type":"application/json",...(S.token?{authorization:"Bearer "+S.token}:{}),...(opt.headers||{})};
+ if(["POST","PUT","PATCH","DELETE"].includes(method)){const csrf=readCsrfCookie();if(csrf)h["x-csrf-token"]=csrf}
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
+ try{
+  const r=await fetch("/api"+path,{...opt,credentials:"same-origin",headers:h,signal:controller.signal});
+  const raw=await r.text();let d;
+  try{d=raw?JSON.parse(raw):{}}
+  catch{const type=r.headers.get("content-type")||"غير محدد";const preview=raw.replace(/\\s+/g," ").slice(0,180);throw Error("رد غير صالح من الخادم — "+r.status+" — نوع المحتوى: "+type+(preview?" — "+preview:" — استجابة فارغة"))}
+  if(!r.ok)throw Error(d.error||("فشل الطلب ("+r.status+")"));return d
+ }catch(e){if(e.name==="AbortError")throw Error("انتهت مهلة الاتصال بالخادم بعد 12 ثانية أثناء انتظار الاستجابة. أعد المحاولة؛ إذا تكرر الأمر فالمشكلة في مسار API أو قاعدة البيانات.");if(e instanceof TypeError)throw Error("تعذّر الاتصال بخادم الأكاديمية. تحقق من الاتصال ثم أعد المحاولة.");throw e}
+ finally{clearTimeout(timer)}
+}
 function toast(t,err=false){const old=$(".toast");if(old)old.remove();const e=document.createElement("div");e.className="toast"+(err?" error":"");e.textContent=t;document.body.append(e);setTimeout(()=>e.remove(),3500)}
 function renderTopActions(){
  const installed=ihsanIsInstalled();
@@ -189,10 +204,10 @@ function showPasswordChange(forced=false){
 }
 
 function auth(setup){renderTopActions();app.innerHTML='<div class="auth-layout"><section class="welcome"><div><span class="eyebrow">بِسْمِ اللهِ الرَّحْمَنِ الرَّحِيمِ</span><h1>في بساتين الوحي، نتعلّم لنحيا بالقرآن والسنة.</h1><p>رحلة هادئة بين آيات الهداية، وأحاديث النبي ﷺ، ومعاني أسماء الله الحسنى، وسِيَر الصالحين؛ نقرأ ونتدبّر ونسأل ونعمل، حتى يثمر العلم إيمانًا وعبادةً وأدبًا ورحمة.</p></div><div class="verse">﴿ وَقُلْ رَبِّ زِدْنِي عِلْمًا ﴾</div></section><section class="panel stack">'+(setup?'<div class="notice">أول دخول: أنشئ حساب المدير مرة واحدة.</div>':'')+'<div><h2>'+(setup?"إعداد الأكاديمية":"تسجيل الدخول")+'</h2><p class="muted small">'+(setup?"احتفظ برمز الإعداد لنفسك فقط.":"استخدم اسم الدخول أو البريد الذي أنشأه لك المدير.")+'</p></div><form id="auth-form" class="stack">'+(setup?'<label class="field">رمز الإعداد<input name="code" type="password" required autocomplete="off"></label><label class="field">الاسم الكامل<input name="name" required maxlength="120"></label><label class="field">البريد الإلكتروني<input name="email" type="email" required></label><label class="field">كلمة مرور المدير (14 حرفًا على الأقل)<input name="password" type="password" minlength="14" required autocomplete="new-password"></label>':'<label class="field">اسم الدخول أو الاسم الكامل<input name="username" value="'+esc(safeStore.get("ihsan_last_identity"))+'" required autocomplete="username"></label><label class="field">كلمة المرور<input name="password" type="password" required autocomplete="current-password"></label><p class="password-manager-note">يمكنك حفظ كلمة المرور في مدير كلمات مرور المتصفح عند ظهور الطلب؛ الأكاديمية لا تحفظها كنص مكشوف.</p><label class="remember-option"><input name="remember" type="checkbox"> تذكّر دخولي على هذا الجهاز لمدة تصل إلى 30 يومًا. لا تفعّلها على جهاز مشترك.</label>')+'<div id="auth-error" class="notice error hidden"></div><button class="btn" type="submit">'+(setup?"إنشاء حساب المدير":"دخول إلى الأكاديمية")+'</button></form>'+(!setup?'<div class="login-divider"><span>أو</span></div><section class="google-login-section" aria-label="تسجيل الدخول باستخدام Google"><div id="google-signin"></div><p id="google-login-note" class="muted small">جارٍ التحقق من إعدادات الدخول بجوجل…</p></section>':'')+'</section></div>';
-$("#auth-form").onsubmit=async e=>{e.preventDefault();const f=new FormData(e.currentTarget),b=e.currentTarget.querySelector("button"),err=$("#auth-error");b.disabled=true;err.classList.add("hidden");try{if(setup){await api("/admin/bootstrap",{method:"POST",headers:{"x-bootstrap-secret":String(f.get("code"))},body:JSON.stringify({name:f.get("name"),email:f.get("email"),password:f.get("password")})});toast("تم إنشاء المدير. سجّل الدخول.");auth(false)}else{const d=await api("/login",{method:"POST",body:JSON.stringify({identity:f.get("username"),password:f.get("password"),remember:f.get("remember")==="on"})});S.token=d.token;S.user=d.user;storeSessionToken(S.token,f.get("remember")==="on");safeStore.set("ihsan_last_identity",String(f.get("username")||""));if(S.user?.must_change_password){renderTopActions();showPasswordChange(true)}else{if("PasswordCredential" in window&&navigator.credentials&&navigator.credentials.store){try{await navigator.credentials.store(new PasswordCredential({id:String(f.get("username")),password:String(f.get("password")),name:d.user?.name||String(f.get("username"))}))}catch{}}await start()}}}catch(x){err.textContent=x.message;err.classList.remove("hidden")}finally{b.disabled=false}}
+$("#auth-form").onsubmit=async e=>{e.preventDefault();const f=new FormData(e.currentTarget),b=e.currentTarget.querySelector("button"),err=$("#auth-error");b.disabled=true;err.classList.add("hidden");try{if(setup){await api("/admin/bootstrap",{method:"POST",headers:{"x-bootstrap-secret":String(f.get("code"))},body:JSON.stringify({name:f.get("name"),email:f.get("email"),password:f.get("password")})});toast("تم إنشاء المدير. سجّل الدخول.");auth(false)}else{const d=await api("/login",{method:"POST",body:JSON.stringify({identity:f.get("username"),password:f.get("password"),remember:f.get("remember")==="on"})});S.token="";clearSessionToken();S.user=d.user;safeStore.set("ihsan_last_identity",String(f.get("username")||""));if(S.user?.must_change_password){renderTopActions();showPasswordChange(true)}else{if("PasswordCredential" in window&&navigator.credentials&&navigator.credentials.store){try{await navigator.credentials.store(new PasswordCredential({id:String(f.get("username")),password:String(f.get("password")),name:d.user?.name||String(f.get("username"))}))}catch{}}await start()}}}catch(x){err.textContent=x.message;err.classList.remove("hidden")}finally{b.disabled=false}}
  if(!setup)initGoogleSignIn();
 }
-async function boot(){try{const st=await api("/setup/status");if(!S.token){auth(st.needs_admin&&st.setup_enabled);return}try{S.user=await api("/me");if(S.user?.must_change_password){renderTopActions();showPasswordChange(true)}else{await start()}}catch{S.token="";clearSessionToken();auth(st.needs_admin&&st.setup_enabled)}}catch{app.innerHTML='<div class="panel"><h2>تعذّر الاتصال</h2><p class="muted">تعذّر الوصول إلى قاعدة البيانات. حدّث الصفحة بعد قليل.</p><button class="btn" id="boot-retry">إعادة المحاولة</button></div>';$("#boot-retry")?.addEventListener("click",()=>location.reload())}}
+async function boot(){try{const st=await api("/setup/status");try{S.user=await api("/me");if(S.user?.must_change_password){renderTopActions();showPasswordChange(true)}else{await start()}}catch{S.token="";clearSessionToken();auth(st.needs_admin&&st.setup_enabled)}}}catch{app.innerHTML='<div class="panel"><h2>تعذّر الاتصال</h2><p class="muted">تعذّر الوصول إلى قاعدة البيانات. حدّث الصفحة بعد قليل.</p><button class="btn" id="boot-retry">إعادة المحاولة</button></div>';$("#boot-retry")?.addEventListener("click",()=>location.reload())}}
 async function logout(){
 const prayers=[
 {title:"وداع اليوم بدعاء من القرآن",text:"رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ",source:"سورة البقرة، الآية 201"},
