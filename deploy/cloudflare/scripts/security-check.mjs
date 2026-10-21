@@ -103,4 +103,11 @@ const appVersion = index.match(/app\.js\?v=([\w-]+)/)?.[1];
 assert.ok(appVersion, "the app asset must have a versioned URL");
 assert.ok(serviceWorker.includes(appVersion), "service-worker cache version must match the app assets");
 
+assert.ok(backend.includes('if(path==="/api/admin/roster-add"&&method==="POST")'), "bulk roster insertion must be admin-only");
+assert.ok(backend.includes('collection=\'student_profiles\''), "student profile fields must use the existing flexible D1 records store");
+assert.ok(backend.includes('studentProfileMatch&&method==="PATCH"'), "student academic profile updates must have a dedicated API route");
+assert.ok(backend.includes('if(count>=target){skipped++;continue}'), "re-running roster insertion must not create extra duplicate-name records");
+assert.ok(app.includes('id="roster-add-form"'), "the admin UI must expose the requested roster insertion form");
+assert.ok(app.includes('id="student-profile-form"'), "staff must be able to edit student academic and guardian profile fields");
+assert.match(app, /split\\(\\/\\\\r\\?\\\\n\\/\\)/, "the roster form must split one student name per line");
 console.log("Security regression guardrails passed.");
