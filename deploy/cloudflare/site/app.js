@@ -25,7 +25,7 @@ async function initGoogleSignIn(){
    try{
     const remember=$("#auth-form input[name=remember]")?.checked===true;
     const data=await api("/auth/google",{method:"POST",body:JSON.stringify({credential:res.credential,nonce:ihsanGoogleNonce,remember})});
-    S.token=data.token;S.user=data.user;storeSessionToken(S.token,remember);safeStore.set("ihsan_last_identity",String(data.user?.email||""));if(S.user?.must_change_password){renderTopActions();showPasswordChange(true)}else{await start()}
+    S.token="";clearSessionToken();S.user=data.user;safeStore.set("ihsan_last_identity",String(data.user?.email||""));if(S.user?.must_change_password){renderTopActions();showPasswordChange(true)}else{await start()}
    }catch(err){setNote(err.message||"تعذر الدخول باستخدام Google.",true);if(error){error.textContent=err.message||"تعذر الدخول باستخدام Google.";error.classList.remove("hidden")}if(submit)submit.disabled=false}
   }});
   host.innerHTML="";window.google.accounts.id.renderButton(host,{type:"standard",theme:"outline",size:"large",shape:"rectangular",text:"signin_with",locale:"ar",width:320});
@@ -43,8 +43,8 @@ function showInstallGuide(){
 window.addEventListener("error",function(e){var a=document.getElementById("app");if(a&&a.querySelector(".loading")){a.innerHTML="<section class=\"panel\"><h2>خطأ في تشغيل الواجهة</h2><p class=\"muted\"></p></section>";a.querySelector("p").textContent=(e.message||"JavaScript error")+" — "+(e.filename||"")+(e.lineno?":"+e.lineno:"");}});window.addEventListener("unhandledrejection",function(e){var a=document.getElementById("app");if(a&&a.querySelector(".loading"))a.textContent="تعذّر بدء الأكاديمية: "+String(e.reason&&e.reason.message||e.reason||"خطأ غير معروف");});
 const $=s=>document.querySelector(s), app=$("#app");
 const safeStore={get(k){try{return localStorage.getItem(k)||""}catch{return ""}},set(k,v){try{localStorage.setItem(k,v)}catch{}},remove(k){try{localStorage.removeItem(k)}catch{}},getSession(k){try{return sessionStorage.getItem(k)||""}catch{return ""}},setSession(k,v){try{sessionStorage.setItem(k,v)}catch{}},removeSession(k){try{sessionStorage.removeItem(k)}catch{}}};
-function storeSessionToken(token,remember){if(remember){safeStore.set("ihsan_token",token);safeStore.removeSession("ihsan_token")}else{safeStore.remove("ihsan_token");safeStore.setSession("ihsan_token",token)}}
 function clearSessionToken(){safeStore.remove("ihsan_token");safeStore.removeSession("ihsan_token")}
+function storeSessionToken(){clearSessionToken()}
 const localDateISO=(value=new Date())=>{
  const parts=new Intl.DateTimeFormat("en-US",{timeZone:"Africa/Algiers",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(value);
  const fields=Object.fromEntries(parts.map(part=>[part.type,part.value]));
@@ -54,7 +54,8 @@ const shiftLocalDateISO=(dateOnly,days)=>{
  const [y,m,d]=dateOnly.split("-").map(Number),shifted=new Date(Date.UTC(y,m-1,d+days));
  return shifted.getUTCFullYear()+"-"+String(shifted.getUTCMonth()+1).padStart(2,"0")+"-"+String(shifted.getUTCDate()).padStart(2,"0");
 };
-const S={token:safeStore.get("ihsan_token")||safeStore.getSession("ihsan_token"),user:null,tab:"home",mode:"hub",groups:[],students:[],teachers:[],staff:[],schools:[],date:localDateISO()};
+const S={token:"",user:null,tab:"home",mode:"hub",groups:[],students:[],teachers:[],staff:[],schools:[],date:localDateISO()};
+clearSessionToken();
 const themes=[
 {name:"زمردي",green:"#087f5b",mint:"#ddfaed",gold:"#f5b942",paper:"#f2fbf7",ink:"#0d2b22",muted:"#456b5a",line:"#bfe5d1",surface:"#ffffff",surface2:"#eaf8f0"},
 {name:"أزرق",green:"#1456c0",mint:"#e2efff",gold:"#ffc857",paper:"#f4f8ff",ink:"#102548",muted:"#49658d",line:"#c5daf9",surface:"#ffffff",surface2:"#edf4ff"},
@@ -89,7 +90,38 @@ function applyTheme(){
 applyTheme();
 if(safeStore.get("ihsan_reduce_motion")==="1")document.documentElement.classList.add("ihsan-reduced-motion");
 const esc=v=>String(v==null?"":v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-async function api(path,opt={}){const h={"content-type":"application/json",...(S.token?{authorization:"Bearer "+S.token}:{}),...(opt.headers||{})};const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);try{const r=await fetch("/api"+path,{...opt,headers:h,signal:controller.signal});const raw=await r.text();let d;try{d=raw?JSON.parse(raw):{}}catch{const type=r.headers.get("content-type")||"غير محدد";const preview=raw.replace(/\\s+/g," ").slice(0,180);throw Error("رد غير صالح من الخادم — "+r.status+" — نوع المحتوى: "+type+(preview?" — "+preview:" — استجابة فارغة"))}if(!r.ok)throw Error(d.error||("فشل الطلب ("+r.status+")"));return d}catch(e){if(e.name==="AbortError")throw Error("انتهت مهلة الاتصال بالخادم بعد 12 ثانية أثناء انتظار الاستجابة. أعد المحاولة؛ إذا تكرر الأمر فالمشكلة في مسار API أو قاعدة البيانات.");if(e instanceof TypeError)throw Error("تعذّر الاتصال بخادم الأكاديمية. تحقق من الاتصال ثم أعد المحاولة.");throw e}finally{clearTimeout(timer)}}
+function readCsrfCookie(){
+ try{
+  const part=document.cookie.split(";").map(x=>x.trim()).find(x=>x.startsWith("__Host-ihsan_csrf="));
+  return part?decodeURIComponent(part.slice("__Host-ihsan_csrf=".length)):"";
+ }catch{return ""}
+}
+async function api(path,opt={}){
+ const method=String(opt.method||"GET").toUpperCase();
+ const h={"content-type":"application/json",...(opt.headers||{})};
+ if(S.token)h.authorization="Bearer "+S.token;
+ if(["POST","PUT","PATCH","DELETE"].includes(method)){
+  const csrf=readCsrfCookie();
+  if(csrf)h["x-csrf-token"]=csrf;
+ }
+ const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
+ try{
+  const r=await fetch("/api"+path,{...opt,credentials:"same-origin",headers:h,signal:controller.signal});
+  const raw=await r.text();let d;
+  try{d=raw?JSON.parse(raw):{}}
+  catch{
+   const type=r.headers.get("content-type")||"غير محدد";
+   const preview=raw.replace(/\\s+/g," ").slice(0,180);
+   throw Error("رد غير صالح من الخادم — "+r.status+" — نوع المحتوى: "+type+(preview?" — "+preview:" — استجابة فارغة"));
+  }
+  if(!r.ok)throw Error(d.error||("فشل الطلب ("+r.status+")"));
+  return d;
+ }catch(e){
+  if(e.name==="AbortError")throw Error("انتهت مهلة الاتصال بالخادم بعد 12 ثانية أثناء انتظار الاستجابة. أعد المحاولة؛ إذا تكرر الأمر فالمشكلة في مسار API أو قاعدة البيانات.");
+  if(e instanceof TypeError)throw Error("تعذّر الاتصال بخادم الأكاديمية. تحقق من الاتصال ثم أعد المحاولة.");
+  throw e;
+ }finally{clearTimeout(timer)}
+}
 function toast(t,err=false){const old=$(".toast");if(old)old.remove();const e=document.createElement("div");e.className="toast"+(err?" error":"");e.textContent=t;document.body.append(e);setTimeout(()=>e.remove(),3500)}
 function renderTopActions(){
  const installed=ihsanIsInstalled();
@@ -189,10 +221,10 @@ function showPasswordChange(forced=false){
 }
 
 function auth(setup){renderTopActions();app.innerHTML='<div class="auth-layout"><section class="welcome"><div><span class="eyebrow">بِسْمِ اللهِ الرَّحْمَنِ الرَّحِيمِ</span><h1>في بساتين الوحي، نتعلّم لنحيا بالقرآن والسنة.</h1><p>رحلة هادئة بين آيات الهداية، وأحاديث النبي ﷺ، ومعاني أسماء الله الحسنى، وسِيَر الصالحين؛ نقرأ ونتدبّر ونسأل ونعمل، حتى يثمر العلم إيمانًا وعبادةً وأدبًا ورحمة.</p></div><div class="verse">﴿ وَقُلْ رَبِّ زِدْنِي عِلْمًا ﴾</div></section><section class="panel stack">'+(setup?'<div class="notice">أول دخول: أنشئ حساب المدير مرة واحدة.</div>':'')+'<div><h2>'+(setup?"إعداد الأكاديمية":"تسجيل الدخول")+'</h2><p class="muted small">'+(setup?"احتفظ برمز الإعداد لنفسك فقط.":"استخدم اسم الدخول أو البريد الذي أنشأه لك المدير.")+'</p></div><form id="auth-form" class="stack">'+(setup?'<label class="field">رمز الإعداد<input name="code" type="password" required autocomplete="off"></label><label class="field">الاسم الكامل<input name="name" required maxlength="120"></label><label class="field">البريد الإلكتروني<input name="email" type="email" required></label><label class="field">كلمة مرور المدير (14 حرفًا على الأقل)<input name="password" type="password" minlength="14" required autocomplete="new-password"></label>':'<label class="field">اسم الدخول أو الاسم الكامل<input name="username" value="'+esc(safeStore.get("ihsan_last_identity"))+'" required autocomplete="username"></label><label class="field">كلمة المرور<input name="password" type="password" required autocomplete="current-password"></label><p class="password-manager-note">يمكنك حفظ كلمة المرور في مدير كلمات مرور المتصفح عند ظهور الطلب؛ الأكاديمية لا تحفظها كنص مكشوف.</p><label class="remember-option"><input name="remember" type="checkbox"> تذكّر دخولي على هذا الجهاز لمدة تصل إلى 30 يومًا. لا تفعّلها على جهاز مشترك.</label>')+'<div id="auth-error" class="notice error hidden"></div><button class="btn" type="submit">'+(setup?"إنشاء حساب المدير":"دخول إلى الأكاديمية")+'</button></form>'+(!setup?'<div class="login-divider"><span>أو</span></div><section class="google-login-section" aria-label="تسجيل الدخول باستخدام Google"><div id="google-signin"></div><p id="google-login-note" class="muted small">جارٍ التحقق من إعدادات الدخول بجوجل…</p></section>':'')+'</section></div>';
-$("#auth-form").onsubmit=async e=>{e.preventDefault();const f=new FormData(e.currentTarget),b=e.currentTarget.querySelector("button"),err=$("#auth-error");b.disabled=true;err.classList.add("hidden");try{if(setup){await api("/admin/bootstrap",{method:"POST",headers:{"x-bootstrap-secret":String(f.get("code"))},body:JSON.stringify({name:f.get("name"),email:f.get("email"),password:f.get("password")})});toast("تم إنشاء المدير. سجّل الدخول.");auth(false)}else{const d=await api("/login",{method:"POST",body:JSON.stringify({identity:f.get("username"),password:f.get("password"),remember:f.get("remember")==="on"})});S.token=d.token;S.user=d.user;storeSessionToken(S.token,f.get("remember")==="on");safeStore.set("ihsan_last_identity",String(f.get("username")||""));if(S.user?.must_change_password){renderTopActions();showPasswordChange(true)}else{if("PasswordCredential" in window&&navigator.credentials&&navigator.credentials.store){try{await navigator.credentials.store(new PasswordCredential({id:String(f.get("username")),password:String(f.get("password")),name:d.user?.name||String(f.get("username"))}))}catch{}}await start()}}}catch(x){err.textContent=x.message;err.classList.remove("hidden")}finally{b.disabled=false}}
+$("#auth-form").onsubmit=async e=>{e.preventDefault();const f=new FormData(e.currentTarget),b=e.currentTarget.querySelector("button"),err=$("#auth-error");b.disabled=true;err.classList.add("hidden");try{if(setup){await api("/admin/bootstrap",{method:"POST",headers:{"x-bootstrap-secret":String(f.get("code"))},body:JSON.stringify({name:f.get("name"),email:f.get("email"),password:f.get("password")})});toast("تم إنشاء المدير. سجّل الدخول.");auth(false)}else{const d=await api("/login",{method:"POST",body:JSON.stringify({identity:f.get("username"),password:f.get("password"),remember:f.get("remember")==="on"})});S.token="";clearSessionToken();S.user=d.user;safeStore.set("ihsan_last_identity",String(f.get("username")||""));if(S.user?.must_change_password){renderTopActions();showPasswordChange(true)}else{if("PasswordCredential" in window&&navigator.credentials&&navigator.credentials.store){try{await navigator.credentials.store(new PasswordCredential({id:String(f.get("username")),password:String(f.get("password")),name:d.user?.name||String(f.get("username"))}))}catch{}}await start()}}}catch(x){err.textContent=x.message;err.classList.remove("hidden")}finally{b.disabled=false}}
  if(!setup)initGoogleSignIn();
 }
-async function boot(){try{const st=await api("/setup/status");if(!S.token){auth(st.needs_admin&&st.setup_enabled);return}try{S.user=await api("/me");if(S.user?.must_change_password){renderTopActions();showPasswordChange(true)}else{await start()}}catch{S.token="";clearSessionToken();auth(st.needs_admin&&st.setup_enabled)}}catch{app.innerHTML='<div class="panel"><h2>تعذّر الاتصال</h2><p class="muted">تعذّر الوصول إلى قاعدة البيانات. حدّث الصفحة بعد قليل.</p><button class="btn" id="boot-retry">إعادة المحاولة</button></div>';$("#boot-retry")?.addEventListener("click",()=>location.reload())}}
+async function boot(){try{const st=await api("/setup/status");try{S.user=await api("/me");if(S.user?.must_change_password){renderTopActions();showPasswordChange(true)}else{await start()}}catch{S.token="";clearSessionToken();auth(st.needs_admin&&st.setup_enabled)}}}catch{app.innerHTML='<div class="panel"><h2>تعذّر الاتصال</h2><p class="muted">تعذّر الوصول إلى قاعدة البيانات. حدّث الصفحة بعد قليل.</p><button class="btn" id="boot-retry">إعادة المحاولة</button></div>';$("#boot-retry")?.addEventListener("click",()=>location.reload())}}
 async function logout(){const prayers=[
 "تقبّل الله منك ما تعلّمت وعملت، وبارك في وقتك، وجعل ما حفظت نورًا لك وحجةً لك لا عليك. نلقاك على خير بإذن الله.",
 "انصرفتَ من رحلتك اليوم، فلا تنصرف عن القرآن. اللهم ثبّت قلبك على طاعتك، واجعل القرآن رفيقك في الدنيا والآخرة.",
@@ -354,7 +386,26 @@ async function home(v){const d=await api("/dashboard");let html=head("الرئي
  const todayAttendance=attendanceRows.find(x=>x.date===today);
  const unanswered=tests.filter(t=>!t.my_attempt).length;
  html+='<div class="student-dashboard">'+(gam?'<section class="card achievement-card"><h3>إنجازك اليوم</h3><p>النقاط: <strong>'+Number(gam.points||0)+'</strong> · أيام متابعة القرآن: <strong>'+Number(gam.stats?.quran_days||0)+'</strong> · الاختبارات: <strong>'+Number(gam.stats?.tests||0)+'</strong></p><p>تحدي اليوم: '+esc(gam.daily_challenge?.title||'ورد اليوم')+' — '+esc(gam.daily_challenge?.description||'اقرأ وردك وراجعه بإتقان.')+'</p><p class="muted small">'+(gam.badges||[]).map(b=>esc(b.name)).join(' · ')+'</p><p class="muted small">القلوب المتبقية اليوم: '+Number(gam.hearts??5)+'</p>'+(gam.challenge_claimed?'<p class="notice">استلمت مكافأة اليوم بالفعل.</p>':'<button class="btn" data-claim-challenge="'+esc(gam.daily_challenge?.id||"daily-quran")+'">استلام مكافأة التحدي</button>')+'</section>': '')+'<div class="card student-welcome"><div class="eyebrow">خطوتك اليوم</div><h3>﴿ وَقُلْ رَبِّ زِدْنِي عِلْمًا ﴾</h3><p>اختر مهمة صغيرة، أنجزها بإتقان، ثم سجّل تقدمك. الاستمرار أهم من كثرة البداية.</p><div class="student-actions"><button class="btn" data-go="quran">متابعة القرآن</button><button class="btn secondary" data-go="tests">ابدأ اختبارًا</button></div></div><div class="stats"><div class="stat"><small>متابعات القرآن</small><strong>'+quranRows.length+'</strong></div><div class="stat"><small>سجلات الحضور</small><strong>'+attendanceRows.length+'</strong></div><div class="stat"><small>اختبارات متاحة</small><strong>'+tests.length+'</strong></div><div class="stat"><small>واجبات غير منجزة</small><strong>'+assignments.filter(a=>!a.my_submission||a.my_submission.status!=="reviewed").length+'</strong></div><div class="stat"><small>ترتيب فوجك</small><strong>'+(me?"#"+me.rank:"—")+'</strong></div></div><section class="card path-cards-section"><div class="section-head"><div><h3>مساراتك وبطاقات تقدمك</h3><p>اختر الخطوة التالية، وتابع تقدمك دون مقارنة جائرة بغيرك.</p></div></div><div class="path-cards"><button class="path-card" data-go="quran"><span class="path-icon">۞</span><strong>مسار القرآن</strong><small>'+(gam?.plan?esc(({starter:"المسار التمهيدي","15":"ختمة 15 يومًا","30":"ختمة 30 يومًا","45":"ختمة 45 يومًا",khatma:"الختمة الكاملة"}[gam.plan.path_id]||"خطة القرآن")):"اختر مسار ختمتك")+'</small><span class="path-meter"><i style="width:'+Math.min(100,quranRows.length*5)+'%"></i></span><small>'+quranRows.length+' متابعة مسجلة</small></button><button class="path-card" data-go="tests"><span class="path-icon">✧</span><strong>الاختبارات</strong><small>تعلّم، اختبر، ثم راجع أخطاءك</small><span class="path-meter"><i style="width:'+Math.min(100,tests.length?tests.filter(t=>t.my_attempt).length/tests.length*100:0)+'%"></i></span><small>'+tests.filter(t=>t.my_attempt).length+' من '+tests.length+' مكتمل</small></button><button class="path-card" data-go="assignments"><span class="path-icon">✓</span><strong>واجباتي</strong><small>اطلع على التكليفات وسلّم إجابتك وتابع ملاحظات المعلم</small><span class="path-meter"><i style="width:'+Math.min(100,assignments.length?assignments.filter(a=>a.my_submission&&a.my_submission.status==="reviewed").length/assignments.length*100:0)+'%"></i></span><small>'+assignments.filter(a=>a.my_submission&&a.my_submission.status==="reviewed").length+' من '+assignments.length+' تمت مراجعتها</small></button><button class="path-card" data-open-ihsan><span class="path-icon">✦</span><strong>تخصصات العلم</strong><small>الله تعالى، الرسول ﷺ، القرآن، السنة، الأدب والعمل</small><span class="path-link">استكشف المسارات ←</span></button></div></section><div class="card"><h3>اقتراح اليوم</h3><p>'+(qToday?'سُجّلت متابعة قرآن اليوم. أحسنت، راجع ما حفظته وثبّته.':"راجع وردك من القرآن، واطلب من معلمك تسجيل الحفظ والمراجعة عند التسميع.")+'</p><p>'+(todayAttendance?'حضور اليوم مسجّل: '+esc(({"present":"حاضر","absent":"غائب","late":"متأخر","excused":"بعذر"}[todayAttendance.status]||todayAttendance.status))+'.':"تحقق من سجل حضورك بعد انتهاء الحلقة.")+'</p><p>'+(unanswered?'لديك '+unanswered+' اختبار/اختبارات لم ترسلها بعد.':'راجع نتائج اختباراتك السابقة إن وُجدت.')+'</p><button class="btn secondary" data-go="profile">عرض ملفي وتقدّمي</button></div></div>';
-}const quickIds=S.user.role==="admin"?["groups","students","attendance","quran","tests"]:["teacher","director","supervisor"].includes(S.user.role)?["students","attendance","quran","tests"]:[];
+}const dailyDayParts=S.date.split("-").map(Number);
+const dailyDayIndex=Math.floor(Date.UTC(dailyDayParts[0],dailyDayParts[1]-1,dailyDayParts[2])/86400000);
+const dailyDuas=[
+ {title:"دعاء قرآني",text:"رَبِّ زِدْنِي عِلْمًا",source:"سورة طه، الآية 114",note:"دعاء قرآني قبل التعلّم وبعده."},
+ {title:"دعاء نبوي",text:"اللَّهُمَّ أَعِنِّي عَلَى ذِكْرِكَ وَشُكْرِكَ وَحُسْنِ عِبَادَتِكَ",source:"سنن أبي داود (1522)، والنسائي (1303) — صححه الألباني",note:"سؤال الله العون على الذكر والشكر وحسن العبادة."},
+ {title:"دعاء قرآني",text:"رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ",source:"سورة البقرة، الآية 201",note:"دعاء جامع لخيري الدنيا والآخرة."},
+ {title:"دعاء قرآني",text:"رَبَّنَا لَا تُزِغْ قُلُوبَنَا بَعْدَ إِذْ هَدَيْتَنَا وَهَبْ لَنَا مِنْ لَدُنْكَ رَحْمَةً إِنَّكَ أَنْتَ الْوَهَّابُ",source:"سورة آل عمران، الآية 8",note:"سؤال الثبات والرحمة من الله تعالى."}
+];
+const dailyBenefits=[
+ {title:"من آداب الطلب",text:"إذا لم تعلم، فقل: لا أعلم. صيانة العلم من التخمين أمانة، والسؤال طريق الفهم.",source:"توجيه تربوي من إعداد الأكاديمية"},
+ {title:"من فقه المراجعة",text:"استرجع المعلومة من ذاكرتك قبل النظر إلى الجواب، ثم صحّح الخطأ؛ فالمراجعة النشطة تكشف موضع النقص.",source:"مهارة تعلّم"},
+ {title:"من تزكية النفس",text:"صحّح خطأك من غير أن تحطّم نفسك، واقبل النصيحة من غير أن تجعلها حكمًا على قيمتك.",source:"تأمل تربوي من إعداد الأكاديمية"},
+ {title:"من أخلاق التعليم",text:"صحّح الفكرة بوضوح، واحفظ كرامة صاحبها؛ فالرفق لا يترك الحق، والحزم لا يحتاج إلى إهانة.",source:"تأمل تربوي من إعداد الأكاديمية"},
+ {title:"من حفظ القرآن",text:"اجعل للمراجعة وقتًا ثابتًا قبل زيادة المحفوظ؛ فالحفظ الذي يُتعاهد أثبت من محفوظ يُترك بلا مراجعة.",source:"إرشاد تعليمي، وتُضبط الخطة مع الشيخ"},
+ {title:"من معرفة الله تعالى",text:"تعلّم اسمًا من أسماء الله الحسنى بدليله، وافهم معناه كما يليق بالله، ثم اسأل نفسك: كيف يظهر أثره في الدعاء والعبادة؟",source:"منهج معرفي؛ لا يُنسب معنى إلى الله إلا بدليل صحيح"}
+];
+const dailyDua=dailyDuas[((dailyDayIndex%dailyDuas.length)+dailyDuas.length)%dailyDuas.length];
+const dailyBenefit=dailyBenefits[((dailyDayIndex%dailyBenefits.length)+dailyBenefits.length)%dailyBenefits.length];
+html+='<section class="daily-garden" aria-label="دعاء وفائدة اليوم"><article class="card daily-dua-card"><span class="eyebrow">'+esc(dailyDua.title)+'</span><h3 class="daily-arabic" lang="ar">'+esc(dailyDua.text)+'</h3><p class="muted small">'+esc(dailyDua.source)+'</p><p>'+esc(dailyDua.note)+'</p></article><article class="card daily-benefit-card"><span class="eyebrow">قطيفة معرفية · '+esc(dailyBenefit.title)+'</span><h3>'+esc(dailyBenefit.text)+'</h3><p class="muted small">'+esc(dailyBenefit.source)+'</p></article></section>';
+const quickIds=S.user.role==="admin"?["groups","students","attendance","quran","tests"]:["teacher","director","supervisor"].includes(S.user.role)?["students","attendance","quran","tests"]:[];
 const quickItems=items().filter(x=>quickIds.includes(x[0]));
 if(quickItems.length)html+='<section class="card quick-actions-card"><div class="section-head"><div><h3>خطوات سريعة</h3><p>انتقل مباشرةً إلى أكثر المهام استخدامًا.</p></div></div><div class="quick-actions">'+quickItems.map(x=>'<button class="quick-action" type="button" data-go="'+x[0]+'"><span class="quick-action-icon">'+navIcon(x[0])+'</span><span class="quick-action-copy"><strong>'+esc(x[1])+'</strong><small>فتح القسم</small></span><span class="quick-action-arrow" aria-hidden="true">←</span></button>').join("")+'</div></section>';
 v.innerHTML=html;v.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>go(b.dataset.go));v.querySelectorAll("[data-open-ihsan]").forEach(b=>b.onclick=()=>{S.mode="ihsan";S.tab="all";try{history.pushState({ihsanMode:"ihsan",ihsanTab:"all"},"",location.pathname)}catch{}shell();page()});v.querySelectorAll("[data-claim-challenge]").forEach(b=>b.onclick=async()=>{b.disabled=true;try{await api("/gamification/claim",{method:"POST",body:JSON.stringify({challenge_id:b.dataset.claimChallenge})});toast("تم تسجيل إنجازك ومكافأتك اليومية");await page()}catch(e){toast(e.message,true);b.disabled=false}})}
