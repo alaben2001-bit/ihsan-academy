@@ -223,7 +223,7 @@ function navGroups() {
   ];
 }
 function navItems() { return navGroups().flatMap(g => g.items); }
-const HIDDEN_NAV_IDS = new Set(['quran','journey','learning','tasks','tests','curriculum','assignments','calendar','transport','learning-hub','media','community','notifications','reports','groups']);
+const HIDDEN_NAV_IDS = new Set(['quran','journey','learning','tasks','tests','curriculum','assignments','calendar','transport','media','community','notifications','reports','groups']);
 function buildNav() {
   const groups = navGroups()
     .map(g => ({ ...g, items: g.items.filter(([id]) => !HIDDEN_NAV_IDS.has(id)) }))
@@ -1074,7 +1074,7 @@ function pgLearningHub(){
         <p class="muted small knowledge-reference">${item.reference}</p>
         <p class="knowledge-benefit">${item.benefit}</p>
         <div class="knowledge-action"><b>خطوة عملية</b><p>${item.action}</p></div>
-        <button class="btn sec2 sm knowledge-link" type="button" data-act="nav" data-page="${item.page}">${item.button} <span aria-hidden="true">‹</span></button>
+        <button class="btn sec2 sm knowledge-link" type="button" data-act="nav" data-page="${item.key === 'learning' && !isStudent ? 'curriculum' : item.page}">${item.key === 'learning' && !isStudent ? 'المواد والمنهج' : item.button} <span aria-hidden="true">‹</span></button>
       </article>`)}
     </div>
     <section class="card knowledge-integrity-note"><b>أمانة النقل</b><p>الآيات موثقة بسورها وأرقامها، والأحاديث مذكور مصدرها. أما الإرشادات العملية التي نكتبها نحن فمبيّن أنها فوائد تعليمية، ولا تُنسب إلى النبي ﷺ أو إلى العلماء بغير تثبت.</p></section>
