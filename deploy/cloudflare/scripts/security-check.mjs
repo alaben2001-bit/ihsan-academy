@@ -130,6 +130,7 @@ assert.match(app, /const dailySupplications=\[/, "student and staff dashboard mu
 assert.match(app, /const dailyWisdom=\[/, "dashboard must include educational benefits that are clearly not presented as scripture");
 assert.match(app, /sourceLine\.hidden=!source/, "welcome dialog must display source or composition labels for supplications");
 assert.ok(app.includes('primary:student?"ابدأ رحلتي":"الدخول إلى المدرسة القرآنية"'), "students should begin their journey and staff should enter the Quranic school");
+assert.ok(app.includes('setup?"إنشاء حساب المدير":"تسجيل الدخول"'), "the authentication form should use the clear sign-in action label");
 assert.match(app, /:async\(\)=>\{S\.mode="school";S\.tab="home";await load\(\);shell\(\);await page\(\)\}/, "the staff welcome action must enter the school workspace directly");
 assert.match(app, /allah:'<path d="M12 21v-9"/, "knowledge/Allah area must use a botanical icon rather than a sparkle");
 assert.match(app, /prophet:'<path d="M7 3\.5/, "Prophet biography area must use a manuscript icon rather than a sparkle");
