@@ -1,4 +1,4 @@
-const CACHE = 'ihsan-academy-shell-v80-2026-10-22';
+const CACHE = 'ihsan-academy-shell-v81-2026-10-22';
 const SHELL = [
   '/',
   '/index.html',
@@ -8,7 +8,7 @@ const SHELL = [
   '/assets/login-redesign.css?v=2.0',
   '/assets/premium-interface.css?v=76.0',
   '/assets/messaging.css?v=1.0',
-  '/assets/app.js?v=80.0',
+  '/assets/app.js?v=81.0',
   '/assets/icon.svg',
   '/assets/ihsan-emblem.svg',
   '/manifest.json',
