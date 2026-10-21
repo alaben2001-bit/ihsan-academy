@@ -387,6 +387,22 @@ async function pgDashboard() {
           ? [['teams','فرق الإشراف','group'],['school-directory','هيكلة المدرسة','users'],['supervisor-requests','طلبات الإشراف','check'],['learning-hub','برنامج التعلّم','brain'],['media','مكتبة الشيخ','media'],['notifications','الإشعارات','bell']]
           : [['children','متابعة الأبناء','user'],['reports','تقارير التقدم','chart'],['calendar','التقويم','calendar'],['media','مكتبة الشيخ','media'],['messages','المراسلات','bell'],['notifications','الإشعارات','bell']];
   const visibleQuickLinks = quickLinks.filter(([id]) => !HIDDEN_NAV_IDS.has(id));
+  const dayIndex = Math.floor(Date.now() / 86400000);
+  const dailyDuas = [
+    {title:'دعاء من القرآن',text:'رَبِّ زِدْنِي عِلْمًا',source:'سورة طه، الآية 114',note:'دعاء قرآني قصير قبل التعلم وبعده.'},
+    {title:'دعاء نبوي',text:'اللَّهُمَّ أَعِنِّي عَلَى ذِكْرِكَ وَشُكْرِكَ وَحُسْنِ عِبَادَتِكَ',source:'سنن أبي داود (1522)، والنسائي (1303)',note:'دعاء نبوي في سؤال العون على الذكر والشكر وحسن العبادة.'},
+    {title:'دعاء من القرآن',text:'رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ',source:'سورة البقرة، الآية 201',note:'دعاء جامع لخيري الدنيا والآخرة.'},
+    {title:'دعاء من القرآن',text:'رَبَّنَا لَا تُزِغْ قُلُوبَنَا بَعْدَ إِذْ هَدَيْتَنَا وَهَبْ لَنَا مِنْ لَدُنْكَ رَحْمَةً إِنَّكَ أَنْتَ الْوَهَّابُ',source:'سورة آل عمران، الآية 8',note:'سؤال الثبات والرحمة من الله تعالى.'}
+  ];
+  const dailyDua = dailyDuas[((dayIndex % dailyDuas.length) + dailyDuas.length) % dailyDuas.length];
+  const dailyBenefits = [
+    {title:'من آداب الطلب',text:'إذا لم تعلم، فقل: لا أعلم. صيانة العلم من التخمين أمانة، والسؤال طريق الفهم.',source:'توجيه تربوي عام'},
+    {title:'من فقه المراجعة',text:'استرجع المعلومة من ذاكرتك قبل النظر إلى الجواب، ثم صحّح الخطأ؛ فالمراجعة النشطة تكشف موضع النقص.',source:'مهارة تعلم'},
+    {title:'من تزكية النفس',text:'صحّح خطأك من غير أن تحطّم نفسك، واقبل النصيحة من غير أن تجعلها حكمًا على قيمتك.',source:'تأمل تربوي من إعداد الأكاديمية'},
+    {title:'من أخلاق التعليم',text:'صحّح الفكرة بوضوح، واحفظ كرامة صاحبها؛ فالرفق لا يترك الحق، والحزم لا يحتاج إلى إهانة.',source:'تأمل تربوي من إعداد الأكاديمية'},
+    {title:'من حفظ القرآن',text:'اجعل للمراجعة وقتًا ثابتًا قبل زيادة المحفوظ؛ فالحفظ الذي يُتعاهد أثبت من محفوظ يُترك بلا مراجعة.',source:'إرشاد تعليمي، وتُضبط الخطة مع الشيخ'}
+  ];
+  const dailyBenefit = dailyBenefits[((dayIndex % dailyBenefits.length) + dailyBenefits.length) % dailyBenefits.length];
   const daily = role === 'teacher' ? ['رسالة اليوم', 'القليل المستمر خير من الكثير المنقطع.', 'اجعل متابعة الطالب خفيفة، واضحة، ومفيدة.']
     : role === 'student' ? ['خطوة اليوم', 'ثبّت عادة صغيرة قبل أن تضيف مهمة جديدة.', 'الاستمرار أهم من الضغط على نفسك.']
     : role === 'parent' ? ['لولي الأمر', 'اسأل عن التقدم قبل أن تسأل عن النتيجة.', 'الدعم الهادئ يصنع بيئة أفضل للتعلم.']
@@ -396,6 +412,10 @@ async function pgDashboard() {
     
     <div class="grid g4">${stats.map((s, i) => { const page = s[0] === 'الطلاب' ? 'students' : s[0] === 'الأبناء' ? 'children' : s[0] === 'الأفواج' ? 'groups' : (s[0] === 'نسبة الحضور' || s[0] === 'الحضور') ? 'attendance' : null; return page && isStaff() ? html`<button type="button" class="card stat stat-link" data-act="nav" data-page="${page}" aria-label="فتح ${s[0]}" style="text-align:inherit;color:inherit;width:100%;cursor:pointer"><span class="ic">${ico(['user', 'group', 'check', 'trend'][i % 4])}</span><div><div class="lbl">${s[0]}</div><div class="num">${s[1]}</div></div></button>` : html`<div class="card stat"><span class="ic">${ico(['user', 'group', 'check', 'trend'][i % 4])}</span><div><div class="lbl">${s[0]}</div><div class="num">${s[1]}</div></div></div>`; })}</div>
     ${isStaff() ? html`<div class="card flat row wrap"><b>اختصارات سريعة</b><div class="chips"><button class="btn sm" data-act="nav" data-page="attendance">تسجيل الحضور</button><button class="btn sm sec2" data-act="new-test">إنشاء اختبار</button><button class="btn sm sec2" data-act="nav" data-page="tests">إدخال الدرجات</button></div></div>` : ''}
+    <div class="grid g2 daily-garden">
+      <section class="card daily-dua-card"><span class="eyebrow">${dailyDua.title}</span><h3 class="daily-arabic" lang="ar">${dailyDua.text}</h3><p class="muted small">${dailyDua.source}</p><p>${dailyDua.note}</p></section>
+      <section class="card daily-benefit-card"><span class="eyebrow">قطيفة معرفية · ${dailyBenefit.title}</span><h3>${dailyBenefit.text}</h3><p class="muted small">${dailyBenefit.source}</p></section>
+    </div>
     </div></div>`);
 }
 
