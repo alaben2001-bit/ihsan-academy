@@ -507,7 +507,7 @@ export default {
       await log(env,user.id,"student_roster_bulk_add",{group_id:groupId,created,skipped});
       return json({ok:true,group_id:groupId,group_name:group.name,created,skipped,total:names.length},201);
     }
-    const studentProfileMatch=path.match(/^\\/api\\/students\\/([^/]+)\\/profile$/);
+    const studentProfileMatch=path.match(/^\/api\/students\/([^/]+)\/profile$/);
     if(studentProfileMatch&&method==="GET"){
       const s=await env.DB.prepare("SELECT id,user_id,display_name,group_id FROM students WHERE id=? AND active=1").bind(studentProfileMatch[1]).first();
       if(!s)return fail(404,"ملف الطالب غير موجود");
