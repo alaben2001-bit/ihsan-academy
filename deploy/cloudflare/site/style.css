@@ -1306,3 +1306,31 @@ dialog,.settings-dialog,.password-dialog{border:1px solid color-mix(in srgb,var(
 .curriculum-evidence .notice{margin-top:8px;line-height:1.9}
 .curriculum-evidence .eyebrow{color:var(--green,#174b3b);font-weight:800}
 @media(max-width:650px){.curriculum-evidence{padding:16px}.curriculum-evidence-text{font-size:17px;line-height:2}}
+
+/* Full Quran stabilization program */
+.hifz-program-stack{display:grid;gap:16px;margin-top:16px}
+.hifz-program-stack>.card{min-width:0;padding:clamp(17px,2vw,25px)}
+.hifz-program-intro{background:linear-gradient(135deg,color-mix(in srgb,var(--mint,#e8f3ec) 84%,white),var(--surface,#fff));border-color:color-mix(in srgb,var(--green,#174b3b) 20%,var(--line,#dce8df))}
+.hifz-program-intro h3{font-size:clamp(20px,2.2vw,27px);line-height:1.6;margin:8px 0}
+.hifz-program-stack p{line-height:1.9}
+.hifz-stat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:18px}
+.hifz-stat-grid>div{display:flex;flex-direction:column;gap:5px;padding:13px;border-radius:13px;background:color-mix(in srgb,var(--surface,#fff) 72%,var(--mint,#e8f3ec));border:1px solid var(--line,#dce8df)}
+.hifz-stat-grid strong{font-size:clamp(18px,2vw,24px);color:var(--green,#174b3b)}
+.hifz-stat-grid span{font-size:12px;line-height:1.7;color:var(--muted,#6e8179)}
+.hifz-table{width:100%;border-collapse:separate;border-spacing:0;min-width:720px;font-size:13px;line-height:1.75}
+.hifz-table th,.hifz-table td{padding:11px 12px;text-align:start;vertical-align:top;border-bottom:1px solid var(--line,#dce8df)}
+.hifz-table thead th{background:var(--mint,#e8f3ec);color:var(--green,#174b3b);font-weight:800;white-space:nowrap}
+.hifz-table tbody tr:nth-child(even) td{background:color-mix(in srgb,var(--paper,#fbfdf9) 65%,var(--mint,#e8f3ec))}
+.hifz-table tbody td strong{color:var(--green,#174b3b);white-space:nowrap}
+.hifz-table tfoot td{font-weight:700;background:color-mix(in srgb,var(--gold,#d4ad63) 10%,var(--surface,#fff));border-bottom:0}
+.hifz-daily-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:14px 0}
+.hifz-daily-grid article{padding:15px;border:1px solid var(--line,#dce8df);border-radius:14px;background:var(--surface,#fff)}
+.hifz-daily-grid h4{margin:8px 0;font-size:16px}
+.hifz-daily-grid p{font-size:13px;line-height:1.9;margin:0}
+.hifz-number{display:inline-grid;place-items:center;width:33px;height:33px;border-radius:11px;background:var(--mint,#e8f3ec);color:var(--green,#174b3b);font-weight:800}
+.hifz-accountability{border-inline-start:4px solid var(--gold,#d4ad63)}
+.hifz-accountability ul{padding-inline-start:22px;margin:10px 0 0;line-height:2}
+.hifz-accountability li{margin:5px 0}
+.hifz-timeline-note{background:color-mix(in srgb,var(--mint,#e8f3ec) 46%,var(--surface,#fff));border:1px dashed color-mix(in srgb,var(--green,#174b3b) 30%,var(--line,#dce8df))}
+.hifz-timeline-note h3{margin-top:0}
+@media(max-width:760px){.hifz-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.hifz-daily-grid{grid-template-columns:minmax(0,1fr)}.hifz-program-stack>.card{padding:15px}.hifz-table{font-size:12px}.hifz-table th,.hifz-table td{padding:9px}}
