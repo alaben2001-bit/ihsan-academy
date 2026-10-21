@@ -1008,3 +1008,16 @@ html.reduced-motion *,html.reduced-motion *:before,html.reduced-motion *:after{a
   .app .side{inset:0 0 0 auto}
   .app .main{min-width:0}
 }
+
+
+/* تقويم شهري عربي واضح */
+.calendar-monthbar{display:flex;align-items:center;justify-content:space-between;gap:12px;margin:18px 0 12px}
+.calendar-monthbar strong{font-size:18px;text-align:center}
+.calendar-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:6px}
+.calendar-weekday{font-size:12px;font-weight:800;text-align:center;color:var(--muted,#68756f);padding:8px 2px}
+.calendar-day{min-height:54px;border:1px solid var(--line,rgba(40,70,55,.12));border-radius:12px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;background:var(--surface,#fff)}
+.calendar-day.has-entry{background:#e1f4e8;border-color:#60a878;color:#175d35;font-weight:800}
+.calendar-day.has-entry i,.calendar-legend-dot{display:block;width:7px;height:7px;border-radius:50%;background:#21834b}
+.calendar-day.empty-day{border-color:transparent;background:transparent}
+.calendar-legend{display:flex;align-items:center;gap:8px;margin-top:12px}
+@media(max-width:520px){.calendar-grid{gap:3px}.calendar-day{min-height:42px;border-radius:8px}.calendar-weekday{font-size:10px}.calendar-monthbar strong{font-size:15px}}
