@@ -194,4 +194,14 @@ for (const reference of ["سورة طه، الآية 114","سورة العلق،
 assert.match(style, /\.knowledge-verse-text/, "rotating Quranic verses must be styled readably");
 assert.match(style, /body:has\(\.auth-layout\) \.knowledge-verse\{display:flex!important\}/, "rotating verses must remain visible in mobile sign-in layout");
 
+
+assert.match(app, /appearance-demo-icon/, "icon appearance choices must each show a visual style sample");
+assert.match(app, /appearance-size-demo/, "icon size choices must demonstrate small, medium and large sizes");
+assert.match(app, /appearance-live-preview/, "settings must include a live preview of icons as they appear in the student UI");
+assert.match(app, /data-icon-style="framed"/, "the framed icon style must remain selectable");
+assert.match(app, /data-icon-size="large"/, "the large icon size must remain selectable");
+assert.match(style, /\.appearance-demo-icon\[data-demo-style="bold"\]/, "bold style sample must look distinct from soft and framed samples");
+assert.match(style, /\.appearance-size-demo\[data-demo-size="large"\] svg/, "size samples must visually distinguish large icons");
+assert.match(style, /\.appearance-live-item \.nav-icon/, "live preview must reflect current icon style and size settings");
+
 console.log("Security regression guardrails passed.");
