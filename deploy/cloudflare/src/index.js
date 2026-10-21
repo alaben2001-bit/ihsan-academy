@@ -485,6 +485,54 @@ export default {
       else await env.DB.prepare("UPDATE users SET display_name=?,identity_normalized=? WHERE id=?").bind(name,identity,target.id).run();
       await log(env,user.id,"teacher_update",{id:target.id,name});return json({ok:true,name,username:identity});
     }
+    if(path==="/api/admin/roster-add"&&method==="POST"){
+      if(user.role!=="admin")return fail(403,"إضافة القائمة الاسمية للمدير العام فقط");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      const groupId=clean(b.group_id,80);
+      const names=Array.isArray(b.names)?b.names.map(x=>clean(x,120).replace(/\\s+/g," ")).filter(Boolean):[];
+      if(!groupId||!names.length||names.length>100)return fail(400,"اختر الفوج وأدخل من اسم واحد إلى 100 اسم");
+      if(!await canManageGroup(env,user,groupId))return fail(403,"لا تملك صلاحية هذا الفوج");
+      const group=await groupRow(env,groupId);if(!group||group.active!==1)return fail(404,"الفوج غير موجود أو غير نشط");
+      const normalizeName=value=>String(value||"").normalize("NFC").replace(/\\s+/g," ").trim().toLocaleLowerCase("ar");
+      const existing=await env.DB.prepare("SELECT display_name FROM students WHERE group_id=? AND active=1").bind(groupId).all();
+      const counts=new Map();for(const row of existing.results||[]){const key=normalizeName(row.display_name);counts.set(key,(counts.get(key)||0)+1);}
+      const targets=new Map();for(const name of names){const key=normalizeName(name);targets.set(key,(targets.get(key)||0)+1);}
+      let created=0,skipped=0;
+      for(const name of names){
+        const key=normalizeName(name),count=counts.get(key)||0,target=targets.get(key)||1;
+        if(count>=target){skipped++;continue}
+        await env.DB.prepare("INSERT INTO students(id,user_id,display_name,group_id,active) VALUES(?,NULL,?,?,1)").bind(uuid(),name,groupId).run();
+        counts.set(key,count+1);created++;
+      }
+      await log(env,user.id,"student_roster_bulk_add",{group_id:groupId,created,skipped});
+      return json({ok:true,group_id:groupId,group_name:group.name,created,skipped,total:names.length},201);
+    }
+    const studentProfileMatch=path.match(/^\\/api\\/students\\/([^/]+)\\/profile$/);
+    if(studentProfileMatch&&method==="GET"){
+      const s=await env.DB.prepare("SELECT id,user_id,display_name,group_id FROM students WHERE id=? AND active=1").bind(studentProfileMatch[1]).first();
+      if(!s)return fail(404,"ملف الطالب غير موجود");
+      if(user.role==="student"){if(user.student_id!==s.id)return fail(403,"لا يمكنك عرض ملف طالب آخر");}
+      else if(!["admin","teacher","director","supervisor"].includes(user.role)||!await canManageGroup(env,user,s.group_id))return fail(403,"لا تملك صلاحية هذا الملف");
+      const raw=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='student_profiles' AND id=?").bind(s.id).first();
+      let p={};try{p=raw?JSON.parse(raw.payload_json):{}}catch{}
+      const result={phone:p.phone||"",preferred_contact:p.preferred_contact||"",guardian_name:p.guardian_name||"",guardian_phone:p.guardian_phone||"",age:p.age??"",school_grade:p.school_grade||"",school_name:p.school_name||"",average:p.average??"",notes:p.notes||"",updated_at:p.updated_at||""};
+      if(user.role==="student")delete result.notes;
+      return json(result);
+    }
+    if(studentProfileMatch&&method==="PATCH"){
+      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"تعديل الملف الدراسي متاح للفريق التعليمي فقط");
+      const s=await env.DB.prepare("SELECT id,display_name,group_id FROM students WHERE id=? AND active=1").bind(studentProfileMatch[1]).first();
+      if(!s)return fail(404,"ملف الطالب غير موجود");
+      if(!await canManageGroup(env,user,s.group_id))return fail(403,"لا تملك صلاحية تعديل هذا الطالب");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      const ageText=clean(b.age,3),averageText=clean(b.average,8),age=ageText===""?null:Number(ageText),average=averageText===""?null:Number(averageText);
+      if(age!==null&&(!Number.isInteger(age)||age<3||age>100))return fail(400,"العمر يجب أن يكون عددًا صحيحًا بين 3 و100");
+      if(average!==null&&(!Number.isFinite(average)||average<0||average>20))return fail(400,"المعدل يجب أن يكون بين 0 و20");
+      const profile={phone:clean(b.phone,50),preferred_contact:clean(b.preferred_contact,80),guardian_name:clean(b.guardian_name,120),guardian_phone:clean(b.guardian_phone,50),age,school_grade:clean(b.school_grade,120),school_name:clean(b.school_name,160),average,notes:clean(b.notes,1200),updated_at:nowIso()};
+      await saveRecord(env,"student_profiles",{id:s.id,owner_user_id:user.id,group_id:s.group_id,student_id:s.id,...profile});
+      await log(env,user.id,"student_profile_update",{student_id:s.id,group_id:s.group_id});
+      return json({ok:true,...profile});
+    }
     if(path==="/api/students"&&method==="GET"){
       if(user.role==="student"){
         const r=await env.DB.prepare("SELECT id,display_name AS name,group_id,active FROM students WHERE user_id=? AND active=1").bind(user.id).all();return json(r.results||[]);
