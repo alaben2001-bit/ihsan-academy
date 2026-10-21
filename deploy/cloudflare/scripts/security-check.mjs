@@ -109,5 +109,5 @@ assert.ok(backend.includes('studentProfileMatch&&method==="PATCH"'), "student ac
 assert.ok(backend.includes('if(count>=target){skipped++;continue}'), "re-running roster insertion must not create extra duplicate-name records");
 assert.ok(app.includes('id="roster-add-form"'), "the admin UI must expose the requested roster insertion form");
 assert.ok(app.includes('id="student-profile-form"'), "staff must be able to edit student academic and guardian profile fields");
-assert.match(app, /split\\(\\/\\\\r\\?\\\\n\\/\\)/, "the roster form must split one student name per line");
+assert.ok(app.includes('split(/\\r?\\n/)'), "the roster form must split one student name per line");
 console.log("Security regression guardrails passed.");
