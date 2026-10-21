@@ -1721,3 +1721,44 @@ html[data-appearance="dark"] .module-art { background:linear-gradient(145deg,#17
  .module-art { width:76px;height:76px;border-radius:22px; }
  .module-art svg { width:54px;height:54px; }
 }
+
+
+/* Real dark theme: semantic palette, dialogs, login screen, forms, cards and browser chrome. */
+:root{color-scheme:light dark}
+html[data-appearance="dark"]{color-scheme:dark}
+html[data-appearance="dark"] body{
+ background:radial-gradient(ellipse at 8% 0%,#183b32 0,transparent 34rem),radial-gradient(ellipse at 96% 28%,#4c3c1b22 0,transparent 32rem),var(--paper)!important;
+ color:var(--ink)!important;
+}
+html[data-appearance="dark"] body:before{opacity:.12;background-image:radial-gradient(#75dfb7 .55px,transparent .65px)}
+html[data-appearance="dark"] :is(.topbar,.panel,.card,.settings-dialog,.settings-section,.settings-foot,.settings-head,.settings-body,.settings-about-section,.settings-section-title,.theme-choice,.theme-options,.appearance-live-preview,.appearance-field,.student-actions,.google-login-section,.academy-about-dialog,.academy-about-body,.academy-about-footer,.academy-about-card,.academy-about-principles,.table-wrap,.list-row,.stat,.sidebar,.workspace,.workspace-head,.content-area,.module-card,.module-welcome,.hero,.student-welcome,.notice,.empty-state,.form-card,.dialog-card,.calendar-card,.schedule-card,.progress-card,.quiz-card,.test-card,.password-dialog,.install-guide-dialog,.auth-layout>.panel,.settings-preference,.settings-option,.appearance-choice,.quran-week-target,.quran-plan-card,.curriculum-banner,.curriculum-tile,.path-card,.achievement-card,.lesson-activities,.question-builder,.question-view,.quiz-option,.list-item,.notification-card,.profile-card,.schedule-item,.group-card,.student-card,.teacher-card,.welcome-card,#ihsan-prayer-dialog){
+ background-color:var(--surface)!important;
+ background-image:none!important;
+ color:var(--ink)!important;
+ border-color:var(--line)!important;
+ box-shadow:0 12px 32px #0004!important;
+}
+html[data-appearance="dark"] :is(.welcome,.hero,.student-welcome,.module-welcome,.settings-about-section,.academy-about-vision,.academy-about-principles,.appearance-live-preview,.appearance-font-preview,.module-card){
+ background:linear-gradient(135deg,#102b27,#14232b)!important;color:var(--ink)!important;
+}
+html[data-appearance="dark"] :is(.welcome h1,.welcome h2,.welcome p,.welcome .eyebrow,.welcome strong,.welcome small){color:#e7f0eb}
+html[data-appearance="dark"] :is(.settings-dialog,.academy-about-dialog,.panel,.card,.settings-section,.settings-foot,.settings-head,.settings-body,.theme-choice,.appearance-live-preview,.appearance-field,.google-login-section,.auth-layout>.panel,.install-guide-dialog,.password-dialog,#ihsan-prayer-dialog) :is(h1,h2,h3,h4,p,small,label,strong,span,li,legend,output){color:var(--ink)}
+html[data-appearance="dark"] :is(.muted,.small,.settings-section-title p,.appearance-live-preview p,.field-hint,.settings-preference small,.academy-about-dialog .about-kicker){color:var(--muted)!important}
+html[data-appearance="dark"] :is(input,select,textarea,.field input,.field select,.field textarea,.move-control select){
+ background:#0b1919!important;color:#edf7f2!important;border-color:#3b5b53!important;color-scheme:dark;
+}
+html[data-appearance="dark"] :is(button,.btn.secondary,.appearance-choice,.theme-choice,.settings-close,.knowledge-verse-next){
+ border-color:#41685c!important;
+}
+html[data-appearance="dark"] :is(.btn.secondary,.appearance-choice,.theme-choice,.settings-close){background:#173a32!important;color:#e7fff4!important}
+html[data-appearance="dark"] :is(.appearance-choice.active,.theme-choice[aria-pressed="true"]){background:#205845!important;border-color:#75dfb7!important;color:#fff!important}
+html[data-appearance="dark"] :is(.panel,.card,.stat,.list-row,.table-wrap,.sidebar,.module-card,.path-card,.achievement-card,.curriculum-tile,.quran-plan-card,.settings-section,.settings-about-section,.auth-layout>.panel,.install-guide-dialog,.password-dialog,#ihsan-prayer-dialog) :is(a,th,.link){color:#8ce8c5}
+html[data-appearance="dark"] :is(table,thead,tbody,tr,th,td){border-color:var(--line)!important}
+html[data-appearance="dark"] :is(thead,.table-wrap table){background:var(--surface-2)!important}
+html[data-appearance="dark"] tbody tr:hover{background:#1c3932!important}
+html[data-appearance="dark"] footer{background:#0c1918!important;color:var(--muted)!important;border-color:var(--line)!important}
+html[data-appearance="dark"] footer a{color:#8ce8c5!important}
+html[data-appearance="dark"] .module-art{background:linear-gradient(145deg,#173a32,#182735)!important;color:#72e0b7!important;border-color:#3d6558!important}
+html[data-appearance="dark"] .school-art,html[data-appearance="dark"] .ihsan-art{background:linear-gradient(145deg,#173a32,#182735)!important;color:#9ce8cb!important}
+html[data-appearance="dark"] ::selection{background:#39785f;color:#fff}
+@media(prefers-reduced-motion:no-preference){html[data-appearance="dark"] :is(.panel,.card,.settings-dialog,.welcome){transition:background-color .18s ease,color .18s ease,border-color .18s ease}}
