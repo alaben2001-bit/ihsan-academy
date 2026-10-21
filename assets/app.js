@@ -1193,7 +1193,19 @@ function pgLearningHub(){
     <section class="card knowledge-integrity-note"><b>أمانة النقل</b><p>الآيات موثقة بسورها وأرقامها، والأحاديث مذكور مصدرها. أما الإرشادات العملية التي نكتبها نحن فمبيّن أنها فوائد تعليمية، ولا تُنسب إلى النبي ﷺ أو إلى العلماء بغير تثبت.</p></section>
   </div>`);
 }
-async function pgHierarchy(){
+async async function pgSchoolManagers(){
+  if(S.user.role!=='admin')return showPage('dashboard');
+  const schools=await api('/api/admin/schools');
+  render(html`<div class="stack">
+    <div class="card hero hero-main"><div class="hero-copy"><span class="eyebrow">القيادة المدرسية</span><h2>مديرو المدارس</h2><p>أنشئ المدرسة، ثم أنشئ حساب مديرها واربطه بالأفواج التي يشرف عليها. لا تمنحه صلاحيات المدير العام.</p></div></div>
+    <div class="card"><div class="sec"><div><h3>إنشاء مدرسة</h3><p class="muted small">يمكنك إنشاء المدرسة أولًا ثم تعيين مديرها.</p></div></div><form data-form="school-create" class="stack"><label class="field"><span>اسم المدرسة</span><input name="name" required maxlength="160" placeholder="مدرسة مسجد الرحمان القرآنية"></label><label class="field"><span>الوصف</span><textarea name="description" maxlength="800" rows="2"></textarea></label><button class="btn">إنشاء المدرسة</button></form></div>
+    ${schools.length?schools.map(sc=>html`<section class="card"><div class="sec"><div><span class="eyebrow">مدرسة</span><h3>${sc.name}</h3><p class="muted small">${sc.description||''}</p></div><span class="badge">${sc.director?.name||'لم يُعيَّن مدير'}</span></div>
+      <p class="muted small">${sc.groups.length} فوجًا مرتبطًا بالمدرسة</p>
+      <form data-form="school-director" data-id="${sc.id}" class="stack"><h4>إنشاء حساب مدير المدرسة</h4><label class="field"><span>الاسم الكامل</span><input name="name" required maxlength="120" placeholder="اسم المدير"></label><div class="two"><label class="field"><span>البريد الإلكتروني</span><input name="email" type="email" required autocomplete="off" dir="ltr"></label><label class="field"><span>كلمة المرور المؤقتة</span><input name="password" type="password" minlength="8" required autocomplete="new-password"></label></div><div class="field"><span>الأفواج التي يديرها</span><div class="chips">${S.groups.map(g=>html`<label class="check"><input type="checkbox" name="group_ids" value="${g.id}"${g.school_id===sc.id?' checked':''}><span>${g.name}</span></label>`)}</div></div><small class="muted">يُمنح المدير صلاحيات العمل داخل الأفواج المحددة فقط. إذا عُيّن مدير جديد، تُنقل مسؤولية المدرسة إليه دون حذف أي طالب أو سجل.</small><button class="btn" type="submit">إنشاء الحساب وربطه بالمدرسة</button></form>
+    </section>`):html`<div class="card">${empty('لا توجد مدارس بعد','أنشئ المدرسة من النموذج أعلاه، ثم اربط بها الأفواج ومديرها.')}</div>`}
+  </div>`);
+}
+function pgHierarchy(){
   if(S.user.role!=='admin') return showPage('dashboard');
   const h=await api('/api/admin/platform-hierarchy');
   render(html`<div class="stack">
