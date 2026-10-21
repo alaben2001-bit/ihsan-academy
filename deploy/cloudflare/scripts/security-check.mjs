@@ -186,4 +186,12 @@ assert.match(app, /ستظهر في المهام اليومية والخطط ال
 assert.match(style, /\.academy-about-dialog/, "the overview dialog must have dedicated responsive styling");
 assert.match(style, /\.academy-about-grid/, "academy features must appear as readable information cards");
 assert.match(style, /\.settings-about-section/, "settings must show a short academy description as well as a link");
+
+assert.match(app, /const knowledgeVerses=\[/, "the welcome screen must use a maintained list of Quranic knowledge verses");
+assert.match(app, /rotateKnowledgeVerses\(\)/, "Quranic knowledge verses must rotate automatically on the welcome screen");
+assert.match(app, /knowledge-verse-next/, "users must be able to advance the Quranic verse manually");
+for (const reference of ["سورة طه، الآية 114","سورة العلق، الآية 5","سورة الزمر، الآية 9","سورة المجادلة، الآية 11","سورة فاطر، الآية 28","سورة الإسراء، الآية 36"]) assert.ok(app.includes(reference), "missing Quranic verse reference: "+reference);
+assert.match(style, /\.knowledge-verse-text/, "rotating Quranic verses must be styled readably");
+assert.match(style, /body:has\(\.auth-layout\) \.knowledge-verse\{display:flex!important\}/, "rotating verses must remain visible in mobile sign-in layout");
+
 console.log("Security regression guardrails passed.");
