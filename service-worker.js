@@ -1,4 +1,4 @@
-const CACHE = 'ihsan-academy-shell-v76-2026-10-20';
+const CACHE = 'ihsan-academy-shell-v77-2026-10-22';
 const SHELL = [
   '/',
   '/index.html',
@@ -50,7 +50,7 @@ self.addEventListener('fetch', event => {
       fetch(request).then(response => {
         if (response && response.ok) {
           const copy = response.clone();
-          caches.open(CACHE).then(cache => cache.put(request, copy)).catch(() => {});
+          event.waitUntil(caches.open(CACHE).then(cache => cache.put(request, copy)).catch(() => {}));
         }
         return response;
       }).catch(async () => {
@@ -64,7 +64,7 @@ self.addEventListener('fetch', event => {
     fetch(request).then(response => {
       if (response && response.ok) {
         const copy = response.clone();
-        caches.open(CACHE).then(cache => cache.put(request, copy)).catch(() => {});
+        event.waitUntil(caches.open(CACHE).then(cache => cache.put(request, copy)).catch(() => {}));
       }
       return response;
     }).catch(() => cachedFallback())
