@@ -232,7 +232,7 @@ function buildNav() {
   put($('#nav'), html`${groups.map(g => html`<div class="nav-group"><div class="nav-label">${g.label}</div>${g.items.map(([id, l, ic]) => html`<button data-act="nav" data-page="${id}" title="${l}">${ico(ic)}<span>${l}</span></button>`)}</div>`)}`);
   const mainIds = S.user.role === 'student' ? ['dashboard', 'learning-hub', 'quran', 'media', 'journey'] : S.user.role === 'teacher' ? ['dashboard', 'learning-hub', 'students', 'curriculum', 'attendance'] : S.user.role === 'admin' ? ['dashboard', 'learning-hub', 'students', 'curriculum', 'school-directory'] : S.user.role === 'chief_supervisor' ? ['dashboard', 'learning-hub', 'teams', 'school-directory', 'notifications'] : S.user.role === 'parent' ? ['dashboard', 'learning-hub', 'children', 'media', 'notifications'] : ['dashboard', 'learning-hub', 'students', 'curriculum', 'school-directory'];
   const main = mainIds.map(id => items.find(x => x[0] === id)).filter(Boolean);
-  put($('#bottomNav'), html`${main.map(([id, l, ic]) => html`<button data-act="nav" data-page="${id}">${ico(id === "learning-hub" ? "sprout" : id === "media" ? "scroll" : ic)}<span>${l}</span></button>`)}<button data-act="more">${ico('more')}<span>المزيد</span></button>`);
+  put($('#bottomNav'), html`${main.map(([id, l, ic]) => html`<button data-act="nav" data-page="${id}">${ico(ic)}<span>${l}</span></button>`)}<button data-act="more">${ico('more')}<span>المزيد</span></button>`);
 }
 
 
@@ -1005,7 +1005,80 @@ function pgAcademyMap(){
   </div>`);
 }
 function pgLearningHub(){
-  render(html`<div class="stack"><div class="card"><h2>التعلّم</h2><p class="muted">اختر من القائمة ما تحتاج إليه.</p></div></div>`);
+  const role = S.user?.role || 'student';
+  const isStudent = role === 'student';
+  const day = Math.floor(Date.now() / 86400000);
+  const garden = [
+    {
+      key:'allah', title:'بستان معرفة الله تعالى', icon:'sprout', subtitle:'الأسماء الحسنى والتوحيد والإيمان',
+      passage:'هُوَ اللَّهُ الَّذِي لَا إِلَٰهَ إِلَّا هُوَ عَالِمُ الْغَيْبِ وَالشَّهَادَةِ هُوَ الرَّحْمَٰنُ الرَّحِيمُ',
+      reference:'سورة الحشر، الآية 22',
+      benefit:'نتعلّم أسماء الله تعالى وصفاته من القرآن والسنة الصحيحة، ونفهم معانيها كما يليق بالله، ثم يظهر أثر العلم في الدعاء والعبادة وحسن التوكل.',
+      action:'تأمل اسمَي الله: الرحمن والرحيم، واطلب من الشيخ شرح المعنى من تفسير موثوق.',
+      page:'curriculum', button:'دروس العقيدة ومعرفة الله'
+    },
+    {
+      key:'prophet', title:'سيرة وهدي الرسول ﷺ', icon:'scroll', subtitle:'السيرة والشمائل والاقتداء',
+      passage:'لَقَدْ كَانَ لَكُمْ فِي رَسُولِ اللَّهِ أُسْوَةٌ حَسَنَةٌ',
+      reference:'سورة الأحزاب، الآية 21',
+      benefit:'ليست السيرة أحداثًا نحفظها فحسب؛ نتعلم منها هديه ﷺ في العبادة والرحمة والصبر والصدق، ولا ننسب إليه قولًا أو موقفًا إلا بمصدر معتبر.',
+      action:'اقرأ اليوم موقفًا موثقًا من السيرة، وسجّل خُلُقًا واحدًا تريد الاقتداء به.',
+      page:'curriculum', button:'دروس السيرة والشمائل'
+    },
+    {
+      key:'quran', title:'بستان القرآن الكريم', icon:'quran', subtitle:'تلاوة وحفظ وفهم ومراجعة',
+      passage:'إِنَّ هَٰذَا الْقُرْآنَ يَهْدِي لِلَّتِي هِيَ أَقْوَمُ',
+      reference:'سورة الإسراء، الآية 9',
+      benefit:'اجمع بين سلامة التلاوة، والحفظ المتدرّج، والمراجعة المنتظمة، وفهم المعنى من تفسير معتمد، ثم العمل بما تعلمت.',
+      action:'سمّع مقدارًا قصيرًا بإتقان، ثم راجع موضعًا سابقًا قبل إضافة جديد.',
+      page:'quran', button:'افتح وردي القرآني'
+    },
+    {
+      key:'hadith', title:'السنة النبوية والحديث', icon:'book', subtitle:'حفظ وفهم وتثبت وعمل',
+      passage:'مَنْ سَلَكَ طَرِيقًا يَلْتَمِسُ فِيهِ عِلْمًا، سَهَّلَ اللَّهُ لَهُ بِهِ طَرِيقًا إِلَى الْجَنَّةِ',
+      reference:'صحيح مسلم، حديث 2699',
+      benefit:'اطلب العلم من مصادره، وتثبّت من لفظ الحديث ودرجته، وافهمه بالرجوع إلى الشروح المعتبرة وأهل العلم.',
+      action:'اختر حديثًا واحدًا من منهجك، وحدّد مصدره ومعناه وتطبيقًا عمليًا له.',
+      page:'curriculum', button:'منهج السنة والحديث'
+    },
+    {
+      key:'adab', title:'الأخلاق وتزكية النفس', icon:'spark', subtitle:'الرفق والصدق والتواضع والإخلاص',
+      passage:'إِنَّ الرِّفْقَ لَا يَكُونُ فِي شَيْءٍ إِلَّا زَانَهُ، وَلَا يُنْزَعُ مِنْ شَيْءٍ إِلَّا شَانَهُ',
+      reference:'صحيح مسلم، حديث 2594',
+      benefit:'الرفق لا يعني ترك الحق، والحزم لا يحتاج إلى الإهانة؛ صحّح الخطأ بوضوح، واحفظ كرامة صاحبه.',
+      action:'استبدل اليوم عبارة جارحة بعبارة صادقة رحيمة، من غير مداهنة في الحق.',
+      page:'curriculum', button:'دروس الأخلاق والآداب'
+    },
+    {
+      key:'learning', title:'مهارات التعلم والإتقان', icon:'brain', subtitle:'استرجاع ومراجعة وتنظيم الوقت',
+      passage:'خطوة واضحة، واسترجاع من الذاكرة، ثم تصحيح للخطأ.',
+      reference:'فائدة تعليمية من إعداد الأكاديمية، وليست نصًّا شرعيًا',
+      benefit:'قبل أن تعيد قراءة الصفحة، أغلقها وحاول تذكر أهم الأفكار؛ ثم افتحها وصحّح ما فاتك، وراجع المعلومة بعد فاصل مناسب.',
+      action:'جرّب جلسة تركيز قصيرة، واكتب من ذاكرتك ثلاث فوائد، ثم راجعها.',
+      page:'journey', button:'تابع خطة الطالب'
+    }
+  ];
+  const start = ((day % garden.length) + garden.length) % garden.length;
+  const rotated = garden.slice(start).concat(garden.slice(0,start));
+  render(html`<div class="stack knowledge-garden-page">
+    <section class="card hero hero-main knowledge-garden-hero">
+      <div class="hero-copy"><span class="eyebrow">${isStudent ? 'بساتين وقطائف المعرفة' : 'زاد العلم والتعليم'}</span>
+        <h2>${isStudent ? 'ازرع معرفةً، واسقها عملًا' : 'معرفة موثّقة تُثمر تعليمًا وعملًا'}</h2>
+        <p>${isStudent ? 'كل يوم فائدة صغيرة من الوحي والعلم النافع؛ اقرأ، وافهم، وطبّق ما تستطيع.' : 'مواد موجزة للرجوع والتذكير، مع فصل النصوص الشرعية الموثقة عن الفوائد التربوية من إعداد الأكاديمية.'}</p>
+      </div><div class="hero-orbit"><span>عِلْم</span><i></i><i></i></div>
+    </section>
+    <div class="grid g2 knowledge-garden-grid">
+      ${rotated.map(item => html`<article class="card knowledge-card knowledge-${item.key}">
+        <div class="knowledge-card-top"><span class="knowledge-icon">${ico(item.icon)}</span><div><span class="eyebrow">${item.subtitle}</span><h3>${item.title}</h3></div></div>
+        <blockquote class="knowledge-text" lang="ar">${item.passage}</blockquote>
+        <p class="muted small knowledge-reference">${item.reference}</p>
+        <p class="knowledge-benefit">${item.benefit}</p>
+        <div class="knowledge-action"><b>خطوة عملية</b><p>${item.action}</p></div>
+        <button class="btn sec2 sm knowledge-link" type="button" data-act="nav" data-page="${item.page}">${item.button} <span aria-hidden="true">‹</span></button>
+      </article>`)}
+    </div>
+    <section class="card knowledge-integrity-note"><b>أمانة النقل</b><p>الآيات موثقة بسورها وأرقامها، والأحاديث مذكور مصدرها. أما الإرشادات العملية التي نكتبها نحن فمبيّن أنها فوائد تعليمية، ولا تُنسب إلى النبي ﷺ أو إلى العلماء بغير تثبت.</p></section>
+  </div>`);
 }
 async function pgHierarchy(){
   if(S.user.role!=='admin') return showPage('dashboard');
