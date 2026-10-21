@@ -158,7 +158,7 @@ assert.match(app, /5760 ساعة، لا 5320/, "the program must correct the eig
 assert.match(app, /لا تُحوّل خطة الاستدراك إلى إلزام بقراءة 14\.5 ساعة/, "the catch-up plan must not mandate an exhausting uninterrupted penalty day");
 assert.match(app, /data-lesson="hifzprogram"/, "the Quran memorization program must be reachable from the curriculum tiles");
 assert.match(app, /hifz-program-stack/, "the memorization program must render its dedicated responsive sections");
-assert.ok(app.includes('["hifzprogram","برنامج تثبيت القرآن"]'), "Ihsan navigation must include the Quran memorization program");
+assert.ok(app.includes('["hifzprogram","الحال المرتحل"]'), "Ihsan navigation must include the al-Hall al-Murtahil Quran program");
 assert.ok(app.includes("8 س و45 د") && app.includes("10 س و50 د") && app.includes("12 س و55 د") && app.includes("15 س"), "the weekly workload calculations must remain visible");
 assert.ok(app.includes("47 س و30 د"), "the monthly calculated workload must remain visible");
 assert.ok(app.includes("المجموع 90 دقيقة، لا 75"), "the program must disclose the 15-repetition early-stage timing discrepancy");
