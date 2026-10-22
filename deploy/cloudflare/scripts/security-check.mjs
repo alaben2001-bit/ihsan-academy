@@ -327,8 +327,8 @@ assert.match(style, /data-appearance-palette="dark"/, "dark mode must have dedic
 assert.match(style, /\.academy-update-notice/, "the update banner must have responsive styling");
 assert.match(style, /\.release-history-item/, "the in-app release history must be styled");
 assert.match(index, /app\.js\?v=20261022-149/, "frontend cache busting must use the latest asset version");
-assert.match(index, /style\.css\?v=20261022-148/, "stylesheet cache busting must use the latest asset version");
-assert.match(index, /startup\.js\?v=20261022-148/, "startup cache busting must use the latest asset version");
+assert.match(index, /style\.css\?v=20261022-149/, "stylesheet cache busting must use the latest asset version");
+assert.match(index, /startup\.js\?v=20261022-149/, "startup cache busting must use the latest asset version");
 assert.match(serviceWorker, /ihsan-academy-pwa-v113-20261022-149/, "service worker cache namespace must match this release");
 assert.match(app, /secondary:""/, "welcome dua must have one Continue button rather than Later");
 assert.match(app, /primary:"متابعة"/, "the rotating welcome dua must use the requested Continue label");
@@ -340,4 +340,9 @@ assert.match(app, /function isOfflineNetworkError\(error\)/, "offline fallback m
 assert.match(app, /age>30\*24\*60\*60\*1000/, "the local offline profile must expire after 30 days");
 assert.match(app, /safeStore\.remove\(offlineUserKey\(\)\);clearSessionToken\(\);auth\(false\)/, "logout must remove the local offline profile");
 
+assert.doesNotMatch(app, /أين أدبك مع فضيلة الشيخ/, "student education should model respectful manners instead of scolding students");
+assert.match(app, /جامع بيان العلم وفضله/, "student adab guidance must cite the reported scholarly example as an athar, not a Prophetic hadith");
+assert.match(app, /حلية طالب العلم/, "student adab guidance must cite a recognized reference on etiquette of learning");
+assert.match(style, /body :is\(\.small,small,\.muted,/, "font scaling must include ordinary muted secondary text, not only small-muted combinations");
+assert.match(style, /table th,table td/, "font scaling must include report table contents");
 console.log("Security regression guardrails passed.");
