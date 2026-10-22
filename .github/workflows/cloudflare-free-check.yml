@@ -4,19 +4,11 @@ on:
     branches: [main, "migration/cloudflare-student-platform"]
     paths:
       - "deploy/cloudflare/**"
-      - "assets/**"
-      - "index.html"
-      - "manifest.json"
-      - "server/**"
       - ".github/workflows/cloudflare-free-check.yml"
   push:
     branches: ["migration/cloudflare-student-platform"]
     paths:
       - "deploy/cloudflare/**"
-      - "assets/**"
-      - "index.html"
-      - "manifest.json"
-      - "server/**"
       - ".github/workflows/cloudflare-free-check.yml"
 jobs:
   validate:
