@@ -665,7 +665,7 @@ async function teamsPage(v){
  try{
   const data=await api("/student-teams"+(isStudent?"":"?group_id="+encodeURIComponent(groupId)));
   let roster=isStaff?await api("/students?group_id="+encodeURIComponent(groupId)):(data.eligible_students||[]);
-  const teams=data.teams||[],memberships=data.memberships||[],requests=data.requests||[];
+  const teams=data.teams||[],memberships=data.memberships||[],requests=data.requests||[],supervisorRequests=data.supervisor_requests||[];
   const teamById=new Map(teams.map(t=>[t.id,t]));
   const ownMembership=data.current_membership||memberships.find(m=>m.student_id===data.current_student_id)||null;
   const groupOptions=S.groups.map(g=>'<option value="'+esc(g.id)+'" '+(g.id===groupId?"selected":"")+'>'+esc(g.name)+'</option>').join("");
@@ -677,6 +677,12 @@ async function teamsPage(v){
    const ownTeam=ownMembership?teamById.get(ownMembership.team_id):null;
    html+='<section class="card"><span class="eyebrow">عضويتك الحالية</span><h3>'+(ownTeam?esc(ownTeam.team_name):"لم تُسند إلى فرقة بعد")+'</h3><p>'+(ownTeam?"مشرف الفرقة: "+esc(ownTeam.supervisor_name||"لم يُعيّن بعد")+" · كبير المشرفين: "+esc(ownTeam.head_supervisor_name||"لم يُعيّن بعد"):"تواصل مع مشرف الفرقة أو الشيخ لإسنادك إلى فرقة.")+'</p>';
    if(ownMembership&&teams.length>1)html+='<form id="team-transfer-form" class="form-grid"><label class="field wide">طلب الانتقال إلى فرقة أخرى<select name="target_team_id" required><option value="">اختر الفرقة الجديدة</option>'+teams.filter(t=>t.id!==ownMembership.team_id).map(t=>'<option value="'+esc(t.id)+'">'+esc(t.team_name)+'</option>').join("")+'</select></label><div class="wide"><button class="btn" type="submit">إرسال طلب النقل الرسمي</button></div><p class="muted small wide">لن تتغير عضويتك حتى يوافق كبير المشرفين.</p></form>';
+   const mySupervisorRequest=supervisorRequests.find(r=>r.student_id===data.current_student_id);
+   if(!teams.some(t=>t.supervisor_student_id===data.current_student_id)){
+    if(mySupervisorRequest?.status==="pending")html+='<div class="notice">طلب الانضمام إلى مشرفي الفرق قيد مراجعة كبير المشرفين.</div>';
+    else if(mySupervisorRequest?.status==="approved")html+='<div class="notice">تم اعتمادك ضمن مشرفي الفرق. يتولى المدير تعيينك على فرقة مناسبة.</div>';
+    else html+='<button type="button" class="btn" id="request-team-supervisor">طلب الانضمام إلى مشرفي الفرق</button>';
+   }
    html+='</section>';
   }
   if(data.can_assign_members){
@@ -685,10 +691,16 @@ async function teamsPage(v){
    const eligible=roster.filter(st=>!st.assigned_team_id&&!memberships.some(m=>m.student_id===st.id));
    html+='<section class="card"><h3>إسناد طالب إلى فرقة</h3><p class="muted small">لا يُضاف الطالب إلى فرقتين. إذا كان مسجلًا في فرقة أخرى، فيلزم طلب نقل رسمي وموافقة كبير المشرفين.</p>'+(assignableTeams.length?'<form id="team-member-form" class="form-grid"><label class="field">الطالب<select name="student_id" required><option value="">اختر طالبًا</option>'+eligible.map(st=>'<option value="'+esc(st.id)+'">'+esc(st.name)+'</option>').join("")+'</select></label><label class="field">الفرقة<select name="team_id" required><option value="">اختر الفرقة</option>'+assignableTeams.map(t=>'<option value="'+esc(t.id)+'">'+esc(t.team_name)+'</option>').join("")+'</select></label><div class="wide"><button class="btn" type="submit">إسناد الطالب</button></div></form>':'<p class="empty">لم تُنشأ فرق أو لم تُعيّن لك فرقة للإشراف.</p>')+'</section>';
   }
+  if(supervisorRequests.length||data.can_approve_supervisor_requests) {
+   const supervisorRequestRows=supervisorRequests.length?supervisorRequests.map(r=>'<div class="list-row"><div style="flex:1;min-width:180px"><strong>'+esc(r.student_name||"طالب")+'</strong><small>طلب الانضمام إلى مشرفي الفرق</small><small>الحالة: '+esc(({pending:"قيد المراجعة",approved:"معتمد",rejected:"مرفوض"})[r.status]||r.status)+'</small></div>'+(data.can_approve_supervisor_requests&&r.status==="pending"?'<button class="btn" data-supervisor-decision="approve" data-request-id="'+esc(r.id)+'">اعتماد</button><button class="btn secondary" data-supervisor-decision="reject" data-request-id="'+esc(r.id)+'">رفض</button>':"")+'</div>').join(""):'<div class="empty">لا توجد طلبات انضمام معلّقة.</div>';
+   html+='<section class="card"><h3>طلبات الانضمام إلى مشرفي الفرق</h3><p class="muted small">يعتمد كبير المشرفين الطلبات قبل تعيين الطالب مشرفًا على فرقة.</p><div class="list">'+supervisorRequestRows+'</div></section>';
+  }
   html+='<section class="card"><h3>أعضاء الفرق</h3><div class="list">'+memberRows+'</div></section><section class="card"><h3>طلبات النقل</h3><p class="muted small">كبير المشرفين هو المسؤول عن الموافقة أو الرفض.</p><div class="list">'+requestRows+'</div></section>';
   v.innerHTML=head(isStudent?"فرقتي وطلبات النقل":"الفرق الطلابية",isStudent?"تابع عضويتك واطلب النقل رسميًا عند الحاجة.":"إدارة عضوية الطلبة وطلبات النقل ضمن الفوج المحدد.")+html;
   $("#teams-group")?.addEventListener("change",e=>{safeStore.setSession("ihsan_team_group",e.target.value);teamsPage(v)});
   $("#team-member-form")?.addEventListener("submit",async e=>{e.preventDefault();const f=new FormData(e.currentTarget),button=e.currentTarget.querySelector('button[type="submit"]');button.disabled=true;try{await api("/student-team-memberships",{method:"POST",body:JSON.stringify({student_id:f.get("student_id"),team_id:f.get("team_id")})});toast("تم إسناد الطالب إلى الفرقة");await teamsPage(v)}catch(err){toast(err.message,true);button.disabled=false}});
+  $("#request-team-supervisor")?.addEventListener("click",async e=>{const button=e.currentTarget;button.disabled=true;try{await api("/student-team-supervisor-requests",{method:"POST",body:JSON.stringify({})});toast("أُرسل طلب الانضمام إلى كبير المشرفين");await teamsPage(v)}catch(err){toast(err.message,true);button.disabled=false}});
+  v.querySelectorAll("[data-supervisor-decision]").forEach(button=>button.addEventListener("click",async()=>{button.disabled=true;try{await api("/student-team-supervisor-requests/"+encodeURIComponent(button.dataset.requestId)+"/decision",{method:"POST",body:JSON.stringify({decision:button.dataset.supervisorDecision})});toast(button.dataset.supervisorDecision==="approve"?"تم اعتماد الطالب ضمن مشرفي الفرق":"تم رفض طلب الانضمام");await teamsPage(v)}catch(err){toast(err.message,true);button.disabled=false}}));
   $("#team-transfer-form")?.addEventListener("submit",async e=>{e.preventDefault();const f=new FormData(e.currentTarget),button=e.currentTarget.querySelector('button[type="submit"]');button.disabled=true;try{await api("/student-team-transfer-requests",{method:"POST",body:JSON.stringify({target_team_id:f.get("target_team_id")})});toast("أُرسل طلب النقل إلى كبير المشرفين");await teamsPage(v)}catch(err){toast(err.message,true);button.disabled=false}});
   v.querySelectorAll("[data-transfer-decision]").forEach(button=>button.addEventListener("click",async()=>{button.disabled=true;try{await api("/student-team-transfer-requests/"+encodeURIComponent(button.dataset.requestId)+"/decision",{method:"POST",body:JSON.stringify({decision:button.dataset.transferDecision})});toast(button.dataset.transferDecision==="approve"?"تمت الموافقة على طلب النقل":"تم رفض طلب النقل");await teamsPage(v)}catch(err){toast(err.message,true);button.disabled=false}}));
  }catch(error){v.innerHTML=head("الفرق الطلابية","تعذر تحميل العضوية أو طلبات النقل.")+'<div class="notice error">'+esc(error.message)+'</div><button class="btn" id="retry-teams">إعادة المحاولة</button>';$("#retry-teams")?.addEventListener("click",()=>teamsPage(v))}
