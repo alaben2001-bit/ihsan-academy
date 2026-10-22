@@ -160,12 +160,12 @@ function readOfflineQueue(){
  const key=offlineQueueKey();if(!key)return [];
  try{const q=JSON.parse(safeStore.get(key)||"[]");return Array.isArray(q)?q:[]}catch{return []}
 }
-function writeOfflineQueue(q){const key=offlineQueueKey();if(key)safeStore.set(key,JSON.stringify(q.slice(-300)))}
+function writeOfflineQueue(q){const key=offlineQueueKey();if(!key)return false;try{localStorage.setItem(key,JSON.stringify(q.slice(-300)));return true}catch{return false}}
 function offlineCacheKey(path){return "ihsan_offline_cache_"+(S.user?.id||"anonymous")+"_"+encodeURIComponent(path)}
 function cacheableApiPath(path,method){
  if(method!=="GET")return false;
  const base=String(path).split("?")[0];
- return ["/dashboard","/groups","/students","/attendance","/quran","/quran/plan","/quran/progress","/tests","/assignments","/gamification","/leaderboard","/messages","/messages/recipients","/notifications"].includes(base);
+ return ["/dashboard","/groups","/students","/teachers","/admin/student-team-supervisors","/attendance","/quran","/quran/plan","/quran/progress","/tests","/assignments","/gamification","/leaderboard","/messages","/messages/recipients","/notifications"].includes(base);
 }
 function parseOfflineBody(body){
  if(body&&typeof body==="object")return body;
@@ -190,7 +190,7 @@ function enqueueOfflineWrite(path,method,body){
  }else if(method==="PATCH"){
   for(let i=q.length-1;i>=0;i--)if(q[i].userId===S.user.id&&q[i].path===path&&q[i].method==="PATCH")q.splice(i,1);
  }
- q.push(entry);writeOfflineQueue(q);return true;
+ q.push(entry);return writeOfflineQueue(q);
 }
 function mergeOfflineQueue(path,value){
  if(!Array.isArray(value))return value;
@@ -766,8 +766,8 @@ const teacherOptions=(selected)=>'<option value="">غير معيّن</option>'+(
 v.innerHTML=head("الأفواج والمعلمون والفرق","تنظيم واحد للأفواج والمعلمين والفرق والإشراف الطلابي.")+(S.user.role==="admin"?'<div class="organization-shortcuts"><button type="button" class="btn secondary" id="open-teachers-panel">إدارة المعلمين وتعيينهم</button><p class="muted small">تُسند مهمة مشرف الفرقة إلى طالب من الفوج نفسه، ويُعيّن كبير المشرفين من الطلبة المسجلين؛ هذا تكليف تنظيمي ولا يمنح صلاحيات إدارية في الحساب.</p></div>':"")+'<div class="card"><form id="gform" class="form-grid"><div class="wide">'+field("اسم الفوج","name")+'</div><label class="field wide">المعلم المسؤول<select name="teacher_id">'+teacherOptions("")+'</select></label><div class="wide"><button class="btn">إضافة الفوج</button></div></form></div><div class="divider"></div><div class="list">'+(S.groups.length?S.groups.map(g=>'<div class="list-row"><div style="flex:1;min-width:220px"><strong>'+esc(g.name)+'</strong><label class="field small">المعلم المسؤول<select data-teacher-for="'+esc(g.id)+'">'+teacherOptions(g.teacher_id)+'</select></label></div><button class="btn" data-save-group="'+esc(g.id)+'">حفظ التعيين</button><button class="btn danger" data-del="'+esc(g.id)+'">إيقاف</button></div>').join(""):'<div class="empty">لا توجد أفواج بعد.</div>')+'</div>'+(S.user.role==="admin"?'<section class="card" id="teachers-inline-panel"></section>':"");
 $("#open-teachers-panel")?.addEventListener("click",()=>$("#teachers-inline-panel")?.scrollIntoView({behavior:"smooth",block:"start"}));
 if($("#teachers-inline-panel"))await teachers($("#teachers-inline-panel"));
-$("#gform").onsubmit=async e=>{e.preventDefault();const f=new FormData(e.currentTarget);try{await api("/groups",{method:"POST",body:JSON.stringify({name:f.get("name"),teacher_id:f.get("teacher_id")})});toast("تمت إضافة الفوج");await load();shell();page()}catch(x){toast(x.message,true)}};
-v.querySelectorAll("[data-save-group]").forEach(b=>b.onclick=async()=>{const id=b.dataset.saveGroup,sel=v.querySelector('[data-teacher-for="'+id+'"]');try{await api("/groups/"+encodeURIComponent(id),{method:"PATCH",body:JSON.stringify({teacher_id:sel.value||null})});toast("تم حفظ تعيين المعلم");await load();shell();page()}catch(x){toast(x.message,true)}});
+$("#gform").onsubmit=async e=>{e.preventDefault();const f=new FormData(e.currentTarget);try{const result=await api("/groups",{method:"POST",body:JSON.stringify({name:f.get("name"),teacher_id:f.get("teacher_id")})});toast(result?.queued_offline?"حُفظ إنشاء الفوج على هذا الجهاز، وسيتزامن عند عودة الاتصال.":"تمت إضافة الفوج");await load();shell();page()}catch(x){toast(x.message,true)}};
+v.querySelectorAll("[data-save-group]").forEach(b=>b.onclick=async()=>{const id=b.dataset.saveGroup,sel=v.querySelector('[data-teacher-for="'+id+'"]');try{const result=await api("/groups/"+encodeURIComponent(id),{method:"PATCH",body:JSON.stringify({teacher_id:sel.value||null})});toast(result?.queued_offline?"حُفظ التعيين على هذا الجهاز، وسيتزامن عند عودة الاتصال.":"تم حفظ تعيين المعلم");await load();shell();page()}catch(x){toast(x.message,true)}});
 v.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{if(!confirm("إيقاف الفوج؟"))return;try{await api("/groups/"+b.dataset.del,{method:"DELETE"});await load();shell();page()}catch(x){toast(x.message,true)}});
 if(S.user.role!=="admin")return;
 let assignments=[];
