@@ -185,10 +185,6 @@ html[data-appearance="dark"] #bottomNav {
 /* V3 — Lunar dark theme and shared semantic tokens.
    New components must use these tokens instead of hard-coded light-only colors,
    so every feature remains readable in both light and dark appearance modes. */
-html[data-appearance="dark"],
-@media (prefers-color-scheme: dark) {
-  html[data-appearance="auto"] {}
-}
 html[data-appearance="dark"] {
   color-scheme: dark;
   --ui-page: #14232b;
