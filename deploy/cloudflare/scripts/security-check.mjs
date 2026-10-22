@@ -246,4 +246,7 @@ assert.match(app, /const authBenefits=\[/, "the login welcome panel must show a 
 assert.match(app, /class="auth-entry-nourishment"/, "the rotating dua and educational benefit must appear on the login welcome screen");
 assert.match(style, /\.auth-entry-card/, "login dua and educational benefit cards must be styled legibly");
 
+assert.match(app, /console\.warn\("تنبيه أمني من أكاديمية الإحسان:/, "the academy must show an Arabic anti-self-XSS warning in the browser console");
+assert.match(app, /لا تُدخل أو تلصق أي شيفرة لا تفهمها/, "the Arabic console warning must advise users not to paste unknown code");
+
 console.log("Security regression guardrails passed.");
