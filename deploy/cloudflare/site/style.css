@@ -27,7 +27,6 @@
 .curriculum-tile span{font-size:12px;color:var(--muted)}
 @media(max-width:650px){.module-grid{grid-template-columns:1fr}.module-card{min-height:210px}.curriculum-tiles{grid-template-columns:1fr}.module-welcome{padding:24px}.module-switch{width:100%}}
 
-
 /* Motion refresh: fluid and restrained, with no heavy animation libraries. */
 :root{--ease-ihsan:cubic-bezier(.2,.75,.25,1)}
 @keyframes ihsan-arrive{from{opacity:0;transform:translateY(12px) scale(.99)}to{opacity:1;transform:translateY(0) scale(1)}}
@@ -95,12 +94,10 @@ html{scroll-behavior:smooth}
 .quran-week-fields{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;padding:14px}
 @media(max-width:650px){.quran-week-fields{grid-template-columns:1fr}.quran-week-target>summary{align-items:flex-start;flex-direction:column;gap:3px}}
 
-
 .password-dialog{width:min(520px,calc(100% - 28px));max-width:calc(100% - 28px);border:1px solid var(--line);border-radius:20px;padding:24px;color:var(--ink);background:var(--paper);box-shadow:0 24px 80px #0b241a35}
 .password-dialog::backdrop{background:#10251d80;backdrop-filter:blur(4px)}
 .password-dialog h2{margin:0;font-size:21px}
 .password-dialog .student-actions{justify-content:flex-start}
-
 
 /* Ihsan visual identity refresh — layered surfaces, depth, and a complete theme system */
 :root{
@@ -178,7 +175,6 @@ html[data-ihsan-theme="زمردي"]{--surface:#fff;--surface-2:#f7fbf7;--ink:#18
 .curriculum-card .stack{margin-top:14px}
 @media(max-width:900px){.path-cards{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:520px){.path-cards{grid-template-columns:1fr 1fr;gap:8px}.path-card{padding:13px}.path-card strong{font-size:14px}.lesson-stages{grid-template-columns:repeat(2,minmax(0,1fr))}}
-
 
 /* IHsan visual identity — layered editorial design, not a flat template */
 :root{
@@ -342,8 +338,6 @@ footer{border-top:1px solid color-mix(in srgb,var(--green) 9%,var(--line));backg
 }
 @media(prefers-reduced-motion:reduce){*,*:before,*:after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 
-
-
 /* IHsan signature redesign — editorial, layered, and purpose-built for Arabic learning */
 :root{
  --ink:#142f28;--muted:#6b7f76;--green:#164b3b;--mint:#e5f1e8;--gold:#c9a45c;
@@ -453,7 +447,6 @@ footer{padding:27px 16px 32px;gap:20px;flex-wrap:wrap}
  .panel,.card{padding:17px;border-radius:17px}
 }
 @media(prefers-reduced-motion:reduce){body:before{display:none}}
-
 
 /* ── Ihsan Academy · complete visual system refresh (v38) ── */
 :root{
@@ -639,7 +632,6 @@ input[type=checkbox]{accent-color:var(--green)}
  *,*:before,*:after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
 
-
 /* Premium academy dashboard refresh */
 :root{--ink:#123d3b;--muted:#6b817b;--green:#064e46;--mint:#e6f2eb;--gold:#d9b86c;--line:#e5e8df;--paper:#fbf7ef;--shadow:0 10px 28px #123d3b0d}
 body{background:radial-gradient(ellipse at 8% 0%,#f0e6d2 0,transparent 30%),var(--paper);font-family:"IBM Plex Sans Arabic",Tahoma,Arial,sans-serif}
@@ -665,7 +657,6 @@ body{background:radial-gradient(ellipse at 8% 0%,#f0e6d2 0,transparent 30%),var(
 .module-grid{gap:20px}.module-card{border-radius:24px;box-shadow:0 10px 28px #173d3012;border:1px solid #e8dfc9;padding:30px;transition:transform .22s,box-shadow .22s}.module-card:hover{transform:translateY(-4px);box-shadow:0 18px 38px #173d3020}
 footer{color:#73867d}
 @media(max-width:800px){.layout{grid-template-columns:1fr}.sidebar{position:static;display:flex;overflow-x:auto;gap:6px;padding:9px}.nav-btn{white-space:nowrap;padding:10px 13px}.hero{min-height:unset}.shell{width:calc(100% - 18px);margin:12px auto 30px}}
-
 
 /* Readability and spacing pass based on the live dashboard screenshot */
 :root{--muted:#53685f;--line:#dce4d9;--shadow:0 12px 30px rgba(16,54,43,.09)}
@@ -732,7 +723,6 @@ body{color:#263f36;background:#f6f2f7}
  .hero,.module-welcome{margin-bottom:14px}
 }
 
-
 /* Settings: clear, accessible preferences and account security. */
 .settings-dialog{width:min(720px,calc(100% - 26px));max-width:calc(100% - 26px);max-height:min(88vh,900px);padding:0;border:1px solid var(--line);border-radius:24px;color:var(--ink);background:var(--paper);box-shadow:0 28px 90px #102d2050;overflow:auto}
 .settings-dialog::backdrop{background:#10251d80;backdrop-filter:blur(5px)}
@@ -781,7 +771,6 @@ body{color:#263f36;background:#f6f2f7}
  .settings-foot{padding:13px 17px}
 }
 
-
 /* Navigation hierarchy: the same tools, grouped by the task rather than scattered in one list. */
 .sidebar{max-height:calc(100vh - 112px);overflow-y:auto;overscroll-behavior:contain}
 .nav-section{display:grid;gap:5px;min-width:0}
@@ -796,7 +785,6 @@ body{color:#263f36;background:#f6f2f7}
  .nav-section-title{display:none}
  .sidebar .nav-btn{width:auto;flex:0 0 auto}
 }
-
 
 /* Student journey: progress cards and clear, saveable learning milestones. */
 .curriculum-overall{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px 14px;margin-top:20px;padding:13px 15px;border:1px solid #ffffff45;border-radius:15px;background:#ffffff1c;color:inherit}
@@ -817,7 +805,6 @@ body{color:#263f36;background:#f6f2f7}
 .curriculum-tile:focus-visible,.theme-choice:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
 @media(max-width:560px){.curriculum-progress-card .section-head{gap:8px}.curriculum-overall{margin-top:15px}}
 
-
 /* Admin system diagnostics and student-account readiness. */
 .system-check-stats .stat{min-width:0}
 .system-check-list,.system-role-list{display:grid;gap:8px;margin-top:14px}
@@ -837,7 +824,6 @@ body{color:#263f36;background:#f6f2f7}
 .roster-filters{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:15px}
 .roster-filters .field{min-width:0}
 @media(max-width:560px){.roster-filters{grid-template-columns:1fr}.system-check-item{align-items:flex-start}.system-check-value{padding-top:5px}.roster-account-stats .stat{padding:9px}.roster-account-stats .stat strong{font-size:20px}}
-
 
 /* Ihsan Cloudflare release — enterprise RTL workspace */
 :root{
@@ -986,7 +972,6 @@ button,input,select,textarea{font-family:inherit}
 @media(max-width:1100px){.workspace-head{gap:10px}.workspace-search{width:min(24vw,250px);min-width:140px}.app-authenticated .workspace-head #top-actions .btn{padding:6px 8px;font-size:10px}}
 @media(max-width:760px){.app-authenticated .topbar{display:none}.app-authenticated #app.shell{height:100vh;height:100dvh}.app-authenticated .workspace-head{flex-wrap:wrap}.app-authenticated .workspace-head #top-actions{gap:4px}.app-authenticated .workspace-head #top-actions .btn{min-height:30px;padding:5px 7px;font-size:9px}}
 
-
 /* Design refinement 2026-10-20: typography, clean metrics, actionable shortcuts, centered authentication. */
 body{font-family:"IBM Plex Sans Arabic",sans-serif!important}
 button,input,select,textarea{font-family:"IBM Plex Sans Arabic",sans-serif!important}
@@ -1062,7 +1047,6 @@ body:has(.auth-layout) footer{margin-top:auto}
 @media(prefers-reduced-motion:reduce){
  .app-authenticated .stat,.app-authenticated .quick-action,.app-authenticated .quick-action-arrow{transition:none!important;transform:none!important}
 }
-
 
 /* Cloudflare production shell refinement — targets the actual deployed markup. */
 @media (min-width:761px){
@@ -1182,7 +1166,6 @@ dialog,.settings-dialog,.password-dialog{border:1px solid color-mix(in srgb,var(
 @media(max-width:760px){.topbar{padding:10px 12px;gap:8px}.brand{gap:8px}.brand-mark{width:40px;height:40px;border-radius:13px}.brand strong{font-size:14px}.brand small{font-size:10px}.shell{width:calc(100% - 20px);margin:18px auto 38px}.panel,.card{padding:17px;border-radius:18px}.welcome{padding:24px;border-radius:20px}.welcome h1{font-size:clamp(26px,7vw,35px)}.layout{gap:14px}.sidebar{padding:8px;border-radius:17px}.nav-btn{padding:10px;font-size:13px}.stats{gap:8px}.stat{padding:13px 11px}.stat strong{font-size:24px}#top-actions{gap:5px}#top-actions .btn{padding:8px 9px;font-size:12px}}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 
-
 /* Bستان الوحي: مساحات معرفية هادئة، لا لوحة شعارات مختصرة */
 .curriculum-banner{
   position:relative;isolation:isolate;overflow:hidden;
@@ -1263,7 +1246,6 @@ dialog,.settings-dialog,.password-dialog{border:1px solid color-mix(in srgb,var(
 .message-card .content-body{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.95;}
 .messages-inbox .section-head{gap:12px;align-items:center;}
 @media(max-width:640px){.message-card>.section-head{flex-direction:column;}.message-card>.section-head>.btn{width:100%;}}
-
 
 /* 2026-10-20 — mobile usability: a persistent, obvious exit and interface switch. */
 #switch-module-top{white-space:nowrap}
@@ -1383,17 +1365,12 @@ dialog,.settings-dialog,.password-dialog{border:1px solid color-mix(in srgb,var(
   color:#58431b !important;
 }
 .notice.hifz-program-note--important strong{color:#76510b !important}
-.hifz-program-stack{display:grid;gap:16px;margin-top:16px}
+
 .hifz-program-stack>.card{min-width:0;padding:clamp(17px,2vw,25px)}
 .hifz-stat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:18px}
-.hifz-stat-grid>div{display:flex;flex-direction:column;gap:5px;padding:13px;border-radius:13px;background:color-mix(in srgb,var(--surface,#fff) 72%,var(--mint,#e8f3ec));border:1px solid var(--line,#dce8df)}
-.hifz-stat-grid strong{font-size:clamp(18px,2vw,24px);color:var(--green,#174b3b)}
-.hifz-stat-grid span{font-size:12px;line-height:1.7;color:var(--muted,#6e8179)}
+
 .hifz-daily-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:14px 0}
-.hifz-daily-grid article{padding:15px;border:1px solid var(--line,#dce8df);border-radius:14px;background:var(--surface,#fff)}
-.hifz-daily-grid h4{margin:8px 0;font-size:16px}
-.hifz-daily-grid p{font-size:13px;line-height:1.9;margin:0}
-.hifz-number{display:inline-grid;place-items:center;width:33px;height:33px;border-radius:11px;background:var(--mint,#e8f3ec);color:var(--green,#174b3b);font-weight:800}
+
 .hifz-milestone-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:15px}
 .hifz-milestone-grid article{min-width:0;display:flex;flex-direction:column;gap:7px;padding:15px;border-radius:14px;border:1px solid var(--line,#dce8df);background:var(--surface,#fff)}
 .hifz-milestone-grid article strong{font-size:20px;color:var(--green,#174b3b);line-height:1.5}
@@ -1407,8 +1384,7 @@ dialog,.settings-dialog,.password-dialog{border:1px solid color-mix(in srgb,var(
 .hifz-phase-line strong{line-height:1.8}
 .hifz-phase-line p{grid-column:2;margin:4px 0 0;line-height:1.85;font-size:13px;color:var(--muted,#687b70)}
 .hifz-accountability{border-inline-start:4px solid #b88d2a}
-.hifz-accountability ul{padding-inline-start:22px;margin:10px 0 0;line-height:2}
-.hifz-accountability li{margin:5px 0}
+
 @media(max-width:760px){
   .hifz-stat-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .hifz-daily-grid{grid-template-columns:minmax(0,1fr)}
@@ -1538,8 +1514,6 @@ body:has(.auth-layout) .knowledge-verse{display:flex!important}
  .knowledge-verse .knowledge-verse-source{font-size:11px}
  .knowledge-verse .knowledge-verse-next{min-height:32px;padding:6px 10px;font-size:11px}
 }
-
-
 
 /* Dark-mode contrast repair: keep every content surface and its text readable. */
 html[data-appearance="dark"] body,
@@ -1677,8 +1651,6 @@ html[data-icon-style="framed"] .appearance-live-item .nav-icon{box-sizing:conten
 html[data-icon-style="soft"] .appearance-live-item .nav-icon{stroke-width:1.5!important;opacity:.88}
 @media(max-width:700px){.appearance-live-preview{grid-template-columns:minmax(0,1fr);gap:12px}.appearance-live-icons{justify-content:space-around}.appearance-live-item{min-width:50px}.appearance-icon-style-options .appearance-choice,.appearance-icon-size-options .appearance-choice{flex:1 1 30%;min-width:0;gap:6px;flex-direction:column;font-size:12px;padding:8px 5px}.appearance-demo-icon,.appearance-size-demo{flex-basis:32px;width:32px;height:32px}}
 
-
-
 /* High-contrast dark mode: no white panels or unreadable labels. */
 html[data-appearance="dark"] :is(.topbar,.panel,.card,.settings-dialog,.settings-section,.settings-foot,.settings-head,.settings-body,.settings-about-section,.settings-section-title,.theme-choice,.theme-options,.appearance-live-preview,.appearance-field,.student-actions,.google-login-section,.academy-about-dialog,.academy-about-body,.academy-about-footer,.academy-about-card,.academy-about-principles,.table-wrap,.list-row,.stat,.sidebar,.workspace,.workspace-head,.content-area,.module-card,.module-welcome,.hero,.student-welcome,.notice,.empty-state,.form-card,.dialog-card,.calendar-card,.schedule-card,.progress-card,.quiz-card,.test-card) {
  background-color: var(--surface) !important;
@@ -1722,7 +1694,6 @@ html[data-appearance="dark"] .module-art { background:linear-gradient(145deg,#17
  .module-art svg { width:54px;height:54px; }
 }
 
-
 /* Real dark theme: semantic palette, dialogs, login screen, forms, cards and browser chrome. */
 :root{color-scheme:light dark}
 html[data-appearance="dark"]{color-scheme:dark}
@@ -1762,7 +1733,6 @@ html[data-appearance="dark"] .module-art{background:linear-gradient(145deg,#173a
 html[data-appearance="dark"] .school-art,html[data-appearance="dark"] .ihsan-art{background:linear-gradient(145deg,#173a32,#182735)!important;color:#9ce8cb!important}
 html[data-appearance="dark"] ::selection{background:#39785f;color:#fff}
 @media(prefers-reduced-motion:no-preference){html[data-appearance="dark"] :is(.panel,.card,.settings-dialog,.welcome){transition:background-color .18s ease,color .18s ease,border-color .18s ease}}
-
 
 /* Final legibility and navigation refinements — Cloudflare active source. */
 :root{
@@ -1923,8 +1893,6 @@ html[data-appearance="dark"] .calendar-legend i{background:#194d36!important;bor
 .appearance-live-item .nav-icon{width:var(--nav-icon-size,24px);height:var(--nav-icon-size,24px)}
 html[data-appearance="dark"] .appearance-live-preview{background:#132a24!important;color:var(--ink)!important;border-color:var(--line)!important}
 
-
-
 /* Respect the full 85–180% font control, including secondary labels and tables. */
 html{font-size:calc(16px * var(--user-font-scale,1))!important}
 body{font-size:1rem!important;line-height:1.8}
@@ -1936,20 +1904,16 @@ html[data-appearance="dark"] .content td,
 html[data-appearance="dark"] .content th,
 html[data-appearance="dark"] .table-wrap td,
 html[data-appearance="dark"] .table-wrap th{background-color:transparent!important;color:var(--ink)!important}
-html[data-appearance="dark"] .table-wrap thead th{background:#1c3930!important;color:#effbf5!important}
+
 html[data-appearance="dark"] .content .card .card{background:var(--surface)!important;color:var(--ink)!important}
 html[data-appearance="dark"] .academy-about-footnote{background:#1c2b24!important;border-color:#5f5739!important;color:#f0d894!important}
 html[data-appearance="dark"] .google-signin-placeholder{background:#132321!important;color:#eef7f2!important;border-color:#486359!important}
-
-
 
 /* Daily work versus administration: a visible, accessible focus switch. */
 .admin-focus-toggle{display:flex;align-items:center;justify-content:center;width:100%;min-height:40px;margin:0 0 7px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--mint);color:var(--green);font:inherit;font-size:13px;font-weight:800;line-height:1.5;cursor:pointer}
 .admin-focus-toggle:hover{border-color:var(--gold);box-shadow:0 0 0 2px color-mix(in srgb,var(--gold) 22%,transparent)}
 .admin-focus-toggle:focus-visible{outline:3px solid var(--gold);outline-offset:2px}
 html[data-appearance="dark"] .admin-focus-toggle{background:#1b3b31!important;color:#e7f8ef!important;border-color:#44675a!important}
-
-
 
 /* Login welcome: rotate a sourced dua and an independent educational note per refresh. */
 .auth-entry-nourishment{display:grid;grid-template-columns:minmax(0,1fr);gap:8px;width:100%;margin-top:9px}
