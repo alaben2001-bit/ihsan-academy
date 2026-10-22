@@ -146,19 +146,150 @@ if(window.matchMedia){const systemDark=window.matchMedia("(prefers-color-scheme:
 if(safeStore.get("ihsan_reduce_motion")==="1")document.documentElement.classList.add("ihsan-reduced-motion");
 const esc=v=>String(v==null?"":v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 function readCsrfCookie(){try{const part=document.cookie.split(";").map(x=>x.trim()).find(x=>x.startsWith("__Host-ihsan_csrf="));return part?decodeURIComponent(part.slice("__Host-ihsan_csrf=".length)):""}catch{return ""}}
+function offlineUserKey(){return "ihsan_offline_user"}
+function rememberOfflineUser(){
+ if(!S.user?.id)return;
+ const user={id:S.user.id,name:S.user.name,role:S.user.role,student_id:S.user.student_id||null,group_id:S.user.group_id||null,school_ids:S.user.school_ids||[],group_ids:S.user.group_ids||[]};
+ try{safeStore.set(offlineUserKey(),JSON.stringify(user))}catch{}
+}
+function loadOfflineUser(){
+ try{const raw=safeStore.get(offlineUserKey());if(!raw)return null;const u=JSON.parse(raw);return u&&u.id&&u.role?u:null}catch{return null}
+}
+function offlineQueueKey(){return S.user?.id?"ihsan_offline_pending_v1_"+S.user.id:""}
+function readOfflineQueue(){
+ const key=offlineQueueKey();if(!key)return [];
+ try{const q=JSON.parse(safeStore.get(key)||"[]");return Array.isArray(q)?q:[]}catch{return []}
+}
+function writeOfflineQueue(q){const key=offlineQueueKey();if(key)safeStore.set(key,JSON.stringify(q.slice(-300)))}
+function offlineCacheKey(path){return "ihsan_offline_cache_"+(S.user?.id||"anonymous")+"_"+encodeURIComponent(path)}
+function cacheableApiPath(path,method){
+ if(method!=="GET")return false;
+ const base=String(path).split("?")[0];
+ return ["/dashboard","/groups","/students","/attendance","/quran","/quran/plan","/quran/progress","/tests","/assignments","/gamification","/leaderboard","/messages","/messages/recipients","/notifications"].includes(base);
+}
+function parseOfflineBody(body){
+ if(body&&typeof body==="object")return body;
+ if(typeof body==="string"){try{return JSON.parse(body)}catch{}}
+ return null;
+}
+function canQueueOffline(path,method){
+ const base=String(path).split("?")[0];
+ return (method==="POST"&&["/attendance","/quran/progress","/groups"].includes(base))||(method==="PATCH"&&/^\/groups\/[^/]+$/.test(base));
+}
+function enqueueOfflineWrite(path,method,body){
+ if(!S.user?.id||!canQueueOffline(path,method)||!body)return false;
+ const q=readOfflineQueue(),base=String(path).split("?")[0],id=String(body.id||"");
+ const entry={queue_id:crypto.randomUUID?crypto.randomUUID():String(Date.now())+"-"+Math.random().toString(36).slice(2),userId:S.user.id,path,method,body,created_at:new Date().toISOString()};
+ if(base==="/attendance"){
+  const day=String(body.date||""),group=String(body.group_id||"");
+  for(let i=q.length-1;i>=0;i--)if(q[i].userId===S.user.id&&q[i].path==="/attendance"&&String(q[i].body?.date)===day&&String(q[i].body?.group_id)===group)q.splice(i,1);
+ }else if(base==="/quran/progress"&&id){
+  for(let i=q.length-1;i>=0;i--)if(q[i].userId===S.user.id&&q[i].path==="/quran/progress"&&String(q[i].body?.id)===id)q.splice(i,1);
+ }else if(base==="/groups"&&method==="POST"&&id){
+  for(let i=q.length-1;i>=0;i--)if(q[i].userId===S.user.id&&q[i].path==="/groups"&&String(q[i].body?.id)===id)q.splice(i,1);
+ }else if(method==="PATCH"){
+  for(let i=q.length-1;i>=0;i--)if(q[i].userId===S.user.id&&q[i].path===path&&q[i].method==="PATCH")q.splice(i,1);
+ }
+ q.push(entry);writeOfflineQueue(q);return true;
+}
+function mergeOfflineQueue(path,value){
+ if(!Array.isArray(value))return value;
+ const url=new URL(path,location.origin),base=url.pathname,queue=readOfflineQueue().filter(x=>x.userId===S.user?.id);
+ const merged=value.slice();
+ if(base==="/groups"){
+  for(const item of queue){
+   if(item.method==="POST"&&item.path==="/groups"&&item.body?.id&&!merged.some(g=>g.id===item.body.id)){
+    merged.push({id:item.body.id,name:item.body.name,school_id:item.body.school_id||"qs-rahman",teacher_id:item.body.teacher_id||null,active:1,offline_pending:true});
+   }
+   if(item.method==="PATCH"&&/^\/groups\/[^/]+$/.test(item.path)){
+    const id=item.path.split("/").pop(),index=merged.findIndex(g=>g.id===id);
+    if(index>=0)merged[index]={...merged[index],...item.body,offline_pending:true};
+   }
+  }
+ }
+ if(base==="/attendance"){
+  const targetGroup=url.searchParams.get("group_id")||"",targetDate=url.searchParams.get("date")||"";
+  for(const item of queue.filter(x=>x.method==="POST"&&x.path==="/attendance")){
+   const b=item.body||{};
+   if(targetGroup&&String(b.group_id)!==targetGroup)continue;
+   if(targetDate&&String(b.date)!==targetDate)continue;
+   for(const row of (b.items||[])){
+    const r={id:String(b.date)+":"+String(row.student_id),student_id:row.student_id,group_id:b.group_id,date:b.date,status:row.status,note:row.note||"",updated_at:item.created_at,offline_pending:true};
+    const n=merged.findIndex(x=>x.student_id===r.student_id&&x.date===r.date);
+    if(n>=0)merged[n]=r;else merged.push(r);
+   }
+  }
+  merged.sort((a,b)=>String(b.date||"").localeCompare(String(a.date||"")));
+ }
+ if(base==="/quran/progress"){
+  const targetStudent=url.searchParams.get("student_id")||(S.user?.role==="student"?S.user.student_id:"");
+  for(const item of queue.filter(x=>x.method==="POST"&&x.path==="/quran/progress")){
+   const b=item.body||{};if(targetStudent&&String(b.student_id)!==String(targetStudent))continue;
+   const student=S.students.find(st=>st.id===b.student_id);
+   const r={...b,group_id:b.group_id||student?.group_id||"",teacher_id:S.user?.id,created_at:item.created_at,updated_at:item.created_at,offline_pending:true};
+   const n=merged.findIndex(x=>x.id===r.id);if(n>=0)merged[n]=r;else merged.push(r);
+  }
+  merged.sort((a,b)=>String(b.date||"").localeCompare(String(a.date||""))||String(b.created_at||"").localeCompare(String(a.created_at||"")));
+ }
+ return merged;
+}
+let offlineFlushRunning=false;
+async function flushOfflineQueue(quiet=true){
+ if(offlineFlushRunning||!navigator.onLine||!S.user?.id)return;
+ offlineFlushRunning=true;let synced=0;
+ try{
+  const queue=readOfflineQueue();
+  for(const item of queue){
+   if(item.userId!==S.user.id)continue;
+   try{
+    const headers={"content-type":"application/json"},csrf=readCsrfCookie();if(csrf)headers["x-csrf-token"]=csrf;
+    const response=await fetch("/api"+item.path,{method:item.method,credentials:"same-origin",headers,body:JSON.stringify(item.body)});
+    if(!response.ok)break;
+    let latest=readOfflineQueue();latest=latest.filter(x=>x.queue_id!==item.queue_id);writeOfflineQueue(latest);synced++;
+   }catch{break}
+  }
+ }finally{offlineFlushRunning=false}
+ if(synced&&!quiet)toast("تمت مزامنة "+synced+" عملية محفوظة دون اتصال.");
+}
+window.addEventListener("online",()=>flushOfflineQueue(false));
 async function api(path,opt={}){
- const method=String(opt.method||"GET").toUpperCase();
- const h={"content-type":"application/json",...(S.token?{authorization:"Bearer "+S.token}:{}),...(opt.headers||{})};
+ const method=String(opt.method||"GET").toUpperCase(),base=String(path).split("?")[0];
+ let bodyData=parseOfflineBody(opt.body),requestOptions={...opt};
+ if(method==="POST"&&(base==="/quran/progress"||base==="/groups")&&bodyData&&!bodyData.id){
+  bodyData={...bodyData,id:"offline-"+(crypto.randomUUID?crypto.randomUUID():Date.now()+"-"+Math.random().toString(36).slice(2))};
+  requestOptions.body=JSON.stringify(bodyData);
+ }
+ const h={"content-type":"application/json",...(S.token?{authorization:"Bearer "+S.token}:{}),...(requestOptions.headers||{})};
  if(["POST","PUT","PATCH","DELETE"].includes(method)){const csrf=readCsrfCookie();if(csrf)h["x-csrf-token"]=csrf}
  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
  try{
-  const r=await fetch("/api"+path,{...opt,credentials:"same-origin",headers:h,signal:controller.signal});
+  const r=await fetch("/api"+path,{...requestOptions,credentials:"same-origin",headers:h,signal:controller.signal});
   const raw=await r.text();let d;
   try{d=raw?JSON.parse(raw):{}}
   catch{const type=r.headers.get("content-type")||"غير محدد";const preview=raw.replace(/\\s+/g," ").slice(0,180);throw Error("رد غير صالح من الخادم — "+r.status+" — نوع المحتوى: "+type+(preview?" — "+preview:" — استجابة فارغة"))}
-  if(!r.ok)throw Error(d.error||("فشل الطلب ("+r.status+")"));return d
- }catch(e){if(e.name==="AbortError")throw Error("انتهت مهلة الاتصال بالخادم بعد 12 ثانية أثناء انتظار الاستجابة. أعد المحاولة؛ إذا تكرر الأمر فالمشكلة في مسار API أو قاعدة البيانات.");if(e instanceof TypeError)throw Error("تعذّر الاتصال بخادم الأكاديمية. تحقق من الاتصال ثم أعد المحاولة.");throw e}
- finally{clearTimeout(timer)}
+  if(!r.ok)throw Error(d.error||("فشل الطلب ("+r.status+")"));
+  if(cacheableApiPath(path,method)){
+   try{const serialized=JSON.stringify({saved_at:Date.now(),value:d});if(serialized.length<1500000)safeStore.set(offlineCacheKey(path),serialized)}catch{}
+  }
+  return d;
+ }catch(e){
+  if(e instanceof TypeError||(!navigator.onLine&&e.name!=="AbortError")){
+   if(canQueueOffline(path,method)&&enqueueOfflineWrite(path,method,bodyData)){
+    if(base==="/attendance")return {ok:true,saved:(bodyData?.items||[]).length,queued_offline:true};
+    if(base==="/quran/progress")return {...bodyData,queued_offline:true};
+    if(base==="/groups"&&method==="POST")return {...bodyData,queued_offline:true};
+    if(method==="PATCH")return {ok:true,queued_offline:true};
+   }
+   if(method==="GET"&&cacheableApiPath(path,method)){
+    try{const raw=safeStore.get(offlineCacheKey(path));if(raw){const cached=JSON.parse(raw),value=mergeOfflineQueue(path,cached.value);return value}}catch{}
+   }
+   if(e.name==="AbortError")throw Error("انتهت مهلة الاتصال بالخادم بعد 12 ثانية. أعد المحاولة عند استقرار الشبكة.");
+   throw Error(method==="GET"?"لا يوجد اتصال؛ تعذّر الاتصال بالخادم ولا توجد نسخة محفوظة لهذا القسم على هذا الجهاز.":"لا يوجد اتصال. لم تُحفظ العملية محليًا لهذا النوع؛ أعدها عند عودة الشبكة.");
+  }
+  if(e.name==="AbortError")throw Error("انتهت مهلة الاتصال بالخادم بعد 12 ثانية أثناء انتظار الاستجابة. أعد المحاولة؛ إذا تكرر الأمر فالمشكلة في مسار API أو قاعدة البيانات.");
+  if(e instanceof TypeError)throw Error("تعذّر الاتصال بخادم الأكاديمية. تحقق من الاتصال ثم أعد المحاولة.");
+  throw e;
+ }finally{clearTimeout(timer)}
 }
 function playUiSound(kind="click"){
  if(safeStore.get("ihsan_ui_sounds")==="0")return;
@@ -338,7 +469,7 @@ $("#auth-form").onsubmit=async e=>{e.preventDefault();const f=new FormData(e.cur
  $("#about-open-welcome")?.addEventListener("click",showAcademyAbout);
  if(!setup)initGoogleSignIn();
 }
-async function boot(){try{const st=await api("/setup/status");try{S.user=await api("/me");if(S.user?.must_change_password){renderTopActions();showPasswordChange(true)}else{await start()}}catch{S.token="";clearSessionToken();auth(st.needs_admin&&st.setup_enabled)}}catch{app.innerHTML='<div class="panel"><h2>تعذّر الاتصال</h2><p class="muted">تعذّر الوصول إلى قاعدة البيانات. حدّث الصفحة بعد قليل.</p><button class="btn" id="boot-retry">إعادة المحاولة</button></div>';$("#boot-retry")?.addEventListener("click",()=>location.reload())}}
+async function boot(){try{const st=await api("/setup/status");try{S.user=await api("/me");if(S.user?.must_change_password){renderTopActions();showPasswordChange(true)}else{await start()}}catch{const localUser=loadOfflineUser();if(localUser&&!navigator.onLine){S.user=localUser;S.token="";start()}else{S.token="";clearSessionToken();auth(st.needs_admin&&st.setup_enabled)}}}catch{const localUser=loadOfflineUser();if(localUser){S.user=localUser;S.token="";start();toast("وضع دون اتصال: عُرضت آخر بيانات محفوظة، وستتزامن العمليات المعلّقة عند عودة الشبكة.");return}app.innerHTML='<div class="panel"><h2>تعذّر الاتصال</h2><p class="muted">تعذّر الوصول إلى قاعدة البيانات. حدّث الصفحة بعد قليل.</p><button class="btn" id="boot-retry">إعادة المحاولة</button></div>';$("#boot-retry")?.addEventListener("click",()=>location.reload())}}
 async function logout(){
 const prayers=[
 {title:"وداع اليوم بدعاء من القرآن",text:"رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ",source:"سورة البقرة، الآية 201"},
@@ -350,7 +481,7 @@ const prayers=[
 {title:"استوداع وأمل",text:"حفظك الله أينما كنت، وفتح لك أبواب الخير، وجعل علمك نافعًا وعملك صالحًا، ورزقك الإخلاص والقبول.",kind:"دعاء بصياغة الأكاديمية"}
 ];
 const prayer=prayers[Math.floor(Math.random()*prayers.length)];
-ihsanPrayerDialog({title:prayer.title,text:prayer.text,source:prayer.source||(prayer.kind?prayer.kind+"؛ ليس نصًا منسوبًا إلى السنة":""),icon:"☾",primary:"تسجيل الخروج",secondary:"البقاء في الأكاديمية",onPrimary:async()=>{try{await api("/logout",{method:"POST",body:"{}"})}catch{}try{history.replaceState({ihsanMode:"auth"},"",location.pathname+"#login")}catch{}document.body.classList.remove("app-authenticated");S.token="";S.user=null;S.mode="hub";S.tab="home";clearSessionToken();auth(false)}})}
+ihsanPrayerDialog({title:prayer.title,text:prayer.text,source:prayer.source||(prayer.kind?prayer.kind+"؛ ليس نصًا منسوبًا إلى السنة":""),icon:"☾",primary:"تسجيل الخروج",secondary:"البقاء في الأكاديمية",onPrimary:async()=>{try{await api("/logout",{method:"POST",body:"{}"})}catch{}try{history.replaceState({ihsanMode:"auth"},"",location.pathname+"#login")}catch{}document.body.classList.remove("app-authenticated");S.token="";S.user=null;S.mode="hub";S.tab="home";safeStore.remove(offlineUserKey());clearSessionToken();auth(false)}})}
 async function load(){const r=await Promise.allSettled([api("/groups"),api("/students")]);S.groups=r[0].status==="fulfilled"?r[0].value:[];S.students=r[1].status==="fulfilled"?r[1].value:[];if(["admin","director"].includes(S.user.role))try{S.teachers=await api("/teachers")}catch{S.teachers=[]}if(S.user.role==="admin"){const extra=await Promise.allSettled([api("/admin/staff"),api("/public/quran-schools")]);S.staff=extra[0].status==="fulfilled"?extra[0].value:[];S.schools=extra[1].status==="fulfilled"?extra[1].value:[]}}
 function items(){
  if(S.mode==="ihsan")return [["all","نظرة عامة"],["allah","معرفة الله"],["prophet","الرسول ﷺ"],["quranpath","القرآن الكريم"],["hifzprogram","الحال المرتحل"],["sunnah","السنة والمتون"],["adab","الأدب والعمل"]];
@@ -439,6 +570,7 @@ async function ihsanPrayerDialog({title,text,source="",icon="✦",primary="مت�
  yes.focus()
 }
 function start(){
+ rememberOfflineUser();flushOfflineQueue(true);
  renderTopActions();
  const savedMode=safeStore.getSession("ihsan_last_mode"),savedTab=safeStore.getSession("ihsan_last_tab");
  if(savedMode==="school"||savedMode==="ihsan"){
@@ -815,7 +947,7 @@ async function attendance(v){
  input.addEventListener("change",()=>{if(input.value){S.date=input.value;safeStore.set("ihsan_attendance_date",input.value);if(student)attendance(v);else redraw(input.value.slice(0,7)+"-01")}});
  if(student)return;
  $("#ag").addEventListener("change",async()=>{const g=$("#ag").value;if(!g){marked=[];redraw();return}try{const h=await api("/attendance?group_id="+encodeURIComponent(g)+"&history=1");marked=[...new Set(h.map(r=>r.date).filter(Boolean))];redraw()}catch(e){toast("تعذّر تحميل الأيام المسجّلة: "+e.message,true)}});
- async function showAttendance(edit){const group=$("#ag").value,day=$("#ad").value;if(!group)return toast("اختر الفوج",true);try{const pair=await Promise.all([api("/students?group_id="+encodeURIComponent(group)),api("/attendance?group_id="+encodeURIComponent(group)+"&date="+encodeURIComponent(day))]);const students=pair[0],old={};pair[1].forEach(x=>old[x.student_id]=x);const host=$("#att-list");if(!students.length){host.innerHTML='<div class="empty">لا يوجد طلاب في هذا الفوج.</div>';return}const statusName=x=>({"present":"حاضر","absent":"غائب","late":"متأخر","excused":"بعذر"}[x]||"غير مسجل");if(!edit){host.innerHTML='<div class="card"><h3>معاينة سجل الحضور</h3><p class="muted small">'+esc((S.groups.find(g=>g.id===group)||{}).name||"الفوج")+' · '+esc(day)+' · '+students.length+' طالبًا</p><div class="table-wrap"><table><thead><tr><th>الطالب</th><th>الحالة المسجلة</th><th>الملاحظة</th></tr></thead><tbody>'+students.map(st=>'<tr><td>'+esc(st.name)+'</td><td><span class="pill">'+statusName(old[st.id]?.status)+'</span></td><td>'+esc(old[st.id]?.note||"—")+'</td></tr>').join("")+'</tbody></table></div><p class="muted small">هذه معاينة فقط؛ لم يُحفظ أي تغيير.</p><button id="edit-after-preview" class="btn">تعديل هذا السجل</button></div>';$("#edit-after-preview").onclick=()=>showAttendance(true);return}host.innerHTML='<form id="attform"><p class="muted small">غيّر الحالات ثم اضغط «حفظ الحضور». لن تُحفظ التغييرات قبل الضغط.</p><div class="table-wrap"><table><thead><tr><th>الطالب</th><th>الحالة</th><th>ملاحظة</th></tr></thead><tbody>'+students.map(st=>'<tr><td>'+esc(st.name)+'</td><td><select class="status-select" name="st_'+esc(st.id)+'"><option value="present" '+((old[st.id]?.status||"present")==="present"?"selected":"")+'>حاضر</option><option value="absent" '+(old[st.id]?.status==="absent"?"selected":"")+'>غائب</option><option value="late" '+(old[st.id]?.status==="late"?"selected":"")+'>متأخر</option><option value="excused" '+(old[st.id]?.status==="excused"?"selected":"")+'>بعذر</option></select></td><td><input name="note_'+esc(st.id)+'" value="'+esc(old[st.id]?.note||"")+'" style="width:120px" placeholder="اختياري"></td></tr>').join("")+'</tbody></table></div><button class="btn" style="margin-top:15px">حفظ الحضور</button><button type="button" id="back-preview" class="btn secondary" style="margin:15px 8px 0">رجوع إلى المعاينة</button></form>';$("#back-preview").onclick=()=>showAttendance(false);$("#attform").onsubmit=async e=>{e.preventDefault();const f=new FormData(e.currentTarget),items=students.map(st=>({student_id:st.id,status:f.get("st_"+st.id),note:f.get("note_"+st.id)}));try{const r=await api("/attendance",{method:"POST",body:JSON.stringify({group_id:group,date:day,items})});toast("تم حفظ حضور "+r.saved+" طالبًا");marked=[...new Set([...marked,day])];redraw();showAttendance(false)}catch(x){toast(x.message,true)}}}catch(x){toast(x.message,true)}}
+ async function showAttendance(edit){const group=$("#ag").value,day=$("#ad").value;if(!group)return toast("اختر الفوج",true);try{const pair=await Promise.all([api("/students?group_id="+encodeURIComponent(group)),api("/attendance?group_id="+encodeURIComponent(group)+"&date="+encodeURIComponent(day))]);const students=pair[0],old={};pair[1].forEach(x=>old[x.student_id]=x);const host=$("#att-list");if(!students.length){host.innerHTML='<div class="empty">لا يوجد طلاب في هذا الفوج.</div>';return}const statusName=x=>({"present":"حاضر","absent":"غائب","late":"متأخر","excused":"بعذر"}[x]||"غير مسجل");if(!edit){host.innerHTML='<div class="card"><h3>معاينة سجل الحضور</h3><p class="muted small">'+esc((S.groups.find(g=>g.id===group)||{}).name||"الفوج")+' · '+esc(day)+' · '+students.length+' طالبًا</p><div class="table-wrap"><table><thead><tr><th>الطالب</th><th>الحالة المسجلة</th><th>الملاحظة</th></tr></thead><tbody>'+students.map(st=>'<tr><td>'+esc(st.name)+'</td><td><span class="pill">'+statusName(old[st.id]?.status)+'</span></td><td>'+esc(old[st.id]?.note||"—")+'</td></tr>').join("")+'</tbody></table></div><p class="muted small">هذه معاينة فقط؛ لم يُحفظ أي تغيير.</p><button id="edit-after-preview" class="btn">تعديل هذا السجل</button></div>';$("#edit-after-preview").onclick=()=>showAttendance(true);return}host.innerHTML='<form id="attform"><p class="muted small">غيّر الحالات ثم اضغط «حفظ الحضور». لن تُحفظ التغييرات قبل الضغط.</p><div class="table-wrap"><table><thead><tr><th>الطالب</th><th>الحالة</th><th>ملاحظة</th></tr></thead><tbody>'+students.map(st=>'<tr><td>'+esc(st.name)+'</td><td><select class="status-select" name="st_'+esc(st.id)+'"><option value="present" '+((old[st.id]?.status||"present")==="present"?"selected":"")+'>حاضر</option><option value="absent" '+(old[st.id]?.status==="absent"?"selected":"")+'>غائب</option><option value="late" '+(old[st.id]?.status==="late"?"selected":"")+'>متأخر</option><option value="excused" '+(old[st.id]?.status==="excused"?"selected":"")+'>بعذر</option></select></td><td><input name="note_'+esc(st.id)+'" value="'+esc(old[st.id]?.note||"")+'" style="width:120px" placeholder="اختياري"></td></tr>').join("")+'</tbody></table></div><button class="btn" style="margin-top:15px">حفظ الحضور</button><button type="button" id="back-preview" class="btn secondary" style="margin:15px 8px 0">رجوع إلى المعاينة</button></form>';$("#back-preview").onclick=()=>showAttendance(false);$("#attform").onsubmit=async e=>{e.preventDefault();const f=new FormData(e.currentTarget),items=students.map(st=>({student_id:st.id,status:f.get("st_"+st.id),note:f.get("note_"+st.id)}));try{const r=await api("/attendance",{method:"POST",body:JSON.stringify({group_id:group,date:day,items})});toast(r.queued_offline?"حُفظ الحضور على هذا الجهاز، وسيتزامن عند عودة الاتصال.":"تم حفظ حضور "+r.saved+" طالبًا");marked=[...new Set([...marked,day])];redraw();showAttendance(false)}catch(x){toast(x.message,true)}}}catch(x){toast(x.message,true)}}
  $("#preview-att").onclick=()=>showAttendance(false);$("#load-att").onclick=()=>showAttendance(true);
 }
 
@@ -891,9 +1023,9 @@ async function quran(v){
   const body={student_id:studentId,date:f.get("date"),activity,memorized:activity==="memorization"?amount:"",reviewed:activity==="revision"?amount:"",recitation:"",errors:0,grade:null,corrected:false,feedback:"",next_assignment:"",notes:String(f.get("notes")||"").trim()};
   const submit=form.querySelector('button[type="submit"]');submit.disabled=true;
   try{
-   await api("/quran/progress",{method:"POST",body:JSON.stringify(body)});
+   const saved=await api("/quran/progress",{method:"POST",body:JSON.stringify({...body,group_id:(S.students.find(st=>st.id===studentId)||{}).group_id||""})});
    safeStore.setSession("ihsan_quran_student",studentId);studentSelect.value=studentId;form.elements.thumn.value="";form.elements.notes.value="";form.elements.date.value=S.date;
-   toast("تم حفظ التسجيل");await refreshHistory(studentId);
+   toast(saved?.queued_offline?"حُفظ تسجيل القرآن على هذا الجهاز، وسيتزامن عند عودة الاتصال.":"تم حفظ التسجيل");await refreshHistory(studentId);
   }catch(error){toast(error.message,true)}
   finally{submit.disabled=false}
  };
