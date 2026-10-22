@@ -615,33 +615,35 @@ let assignments=[];
 try{assignments=await api("/admin/student-team-supervisors")}catch(error){toast("تعذّر تحميل تعيينات مشرفي الفرق: "+error.message,true)}
 const students=S.students.slice().sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"ar"));
 const groupName=id=>(S.groups.find(g=>g.id===id)||{}).name||"فوج غير معروف";
-const byGroup=new Map(assignments.map(a=>[a.group_id,a]));
-const assignmentList=assignments.length?assignments.map(a=>'<div class="list-row"><div><strong>'+esc(groupName(a.group_id))+'</strong><small>مشرف الفرقة: '+esc(a.supervisor_name||"—")+'</small><small>كبير المشرفين: '+esc(a.head_supervisor_name||"—")+'</small></div><button type="button" class="btn secondary" data-edit-supervision="'+esc(a.group_id)+'">تعديل التعيين</button></div>').join(""):'<div class="empty">لم تُسند مهام إشرافية طلابية بعد.</div>';
-v.insertAdjacentHTML("beforeend",'<section class="card student-supervisors-section"><div class="section-head"><div><span class="eyebrow">التنظيم الطلابي</span><h3>تعيين مشرف فرقة وكبير المشرفين</h3><p>اختر مشرف الفرقة من طلاب الفوج نفسه، ثم عيّن كبير المشرفين من الطلبة. لا تُنشأ حسابات جديدة لهذا التكليف.</p></div></div><form id="student-supervisors-form" class="form-grid"><label class="field">الفوج<select id="supervisor-group" name="group_id" required><option value="">اختر الفوج</option>'+S.groups.map(g=>'<option value="'+esc(g.id)+'">'+esc(g.name)+'</option>').join("")+'</select></label><label class="field">مشرف الفرقة من طلبة الفوج<select id="supervisor-student" name="supervisor_student_id" required><option value="">اختر الفوج أولًا</option></select></label><label class="field wide">كبير المشرفين من الطلبة<select id="head-supervisor-student" name="head_supervisor_student_id" required><option value="">اختر كبير المشرفين</option>'+students.map(st=>'<option value="'+esc(st.id)+'">'+esc(st.name)+' — '+esc(groupName(st.group_id))+'</option>').join("")+'</select></label><div class="wide"><button class="btn" type="submit" '+(S.groups.length&&students.length>1?"":"disabled")+' >حفظ التعيين</button></div><p class="muted small wide">لا يمكن اختيار الطالب نفسه للمهمتين. تُحفظ التعيينات التنظيمية مع بيانات الفوج دون تغيير حسابات الدخول أو درجات الطلبة.</p></form><div class="divider"></div><h3>التعيينات الحالية</h3><div class="list" id="student-supervisor-assignment-list">'+assignmentList+'</div></section>');
-const groupSelect=$("#supervisor-group"),supervisorSelect=$("#supervisor-student"),headSelect=$("#head-supervisor-student"),assignmentForm=$("#student-supervisors-form");
-function fillSupervisorOptions(groupId,selected=""){
+const assignmentList=assignments.length?assignments.map(a=>'<div class="list-row"><div><strong>'+esc(groupName(a.group_id))+' · '+esc(a.team_name||"الفرقة الأولى")+'</strong><small>مشرف الفرقة: '+esc(a.supervisor_name||"—")+'</small><small>كبير المشرفين: '+esc(a.head_supervisor_name||"—")+'</small></div><button type="button" class="btn secondary" data-edit-supervision="'+esc(a.id)+'">تعديل الفرقة</button></div>').join(""):'<div class="empty">لم تُنشأ فرق طلابية بعد.</div>';
+v.insertAdjacentHTML("beforeend",'<section class="card student-supervisors-section"><div class="section-head"><div><span class="eyebrow">التنظيم الطلابي</span><h3>الفرق ومشرفوها وكبير المشرفين</h3><p>داخل كل فوج فرق صغيرة بأسماء مميزة، ولكل فرقة مشرف من طلاب الفوج نفسه. كبير المشرفين طالب من الفوج يتابع مشرفي الفرق، ولا تُنشأ حسابات جديدة.</p></div></div><form id="student-supervisors-form" class="form-grid"><input type="hidden" id="supervisor-team-id" name="team_id"><label class="field">الفوج<select id="supervisor-group" name="group_id" required><option value="">اختر الفوج</option>'+S.groups.map(g=>'<option value="'+esc(g.id)+'">'+esc(g.name)+'</option>').join("")+'</select></label><label class="field">اسم الفرقة<input id="supervisor-team-name" name="team_name" required maxlength="80" placeholder="مثال: فرقة الهمم"></label><label class="field">مشرف الفرقة من طلبة الفوج<select id="supervisor-student" name="supervisor_student_id" required><option value="">اختر الفوج أولًا</option></select></label><label class="field">كبير المشرفين من طلبة الفوج<select id="head-supervisor-student" name="head_supervisor_student_id" required><option value="">اختر الفوج أولًا</option></select></label><div class="wide form-actions"><button class="btn" type="submit" '+(S.groups.length&&students.length>1?"":"disabled")+' >حفظ الفرقة والتعيين</button><button class="btn secondary" type="button" id="reset-supervision-form">فرقة جديدة</button></div><p class="muted small wide">كبير المشرفين يشرف على مشرفي الفرق فقط؛ ومشرف الفرقة مسؤول عن أعضاء فرقته. لا تتغير حسابات الدخول أو درجات الطلبة بهذا التعيين.</p></form><div class="divider"></div><h3>الفرق والتعيينات الحالية</h3><div class="list" id="student-supervisor-assignment-list">'+assignmentList+'</div></section>');
+const groupSelect=$("#supervisor-group"),supervisorSelect=$("#supervisor-student"),headSelect=$("#head-supervisor-student"),assignmentForm=$("#student-supervisors-form"),teamIdInput=$("#supervisor-team-id"),teamNameInput=$("#supervisor-team-name");
+function fillStudentOptions(select,groupId,placeholder,selected=""){
  const roster=students.filter(st=>st.group_id===groupId);
- supervisorSelect.innerHTML='<option value="">اختر طالبًا من هذا الفوج</option>'+roster.map(st=>'<option value="'+esc(st.id)+'">'+esc(st.name)+'</option>').join("");
- if(selected&&roster.some(st=>st.id===selected))supervisorSelect.value=selected;
+ select.innerHTML='<option value="">'+placeholder+'</option>'+roster.map(st=>'<option value="'+esc(st.id)+'">'+esc(st.name)+'</option>').join("");
+ if(selected&&roster.some(st=>st.id===selected))select.value=selected;
 }
-function selectGroup(groupId){
+function selectGroup(groupId,assignment=null){
  groupSelect.value=groupId;
- const current=byGroup.get(groupId);
- fillSupervisorOptions(groupId,current?.supervisor_student_id||"");
- headSelect.value=current?.head_supervisor_student_id||"";
+ fillStudentOptions(supervisorSelect,groupId,"اختر مشرف الفرقة",assignment?.supervisor_student_id||"");
+ fillStudentOptions(headSelect,groupId,"اختر كبير المشرفين",assignment?.head_supervisor_student_id||"");
+ if(assignment){teamIdInput.value=assignment.id||"";teamNameInput.value=assignment.team_name||"الفرقة الأولى"}
+ else{teamIdInput.value="";teamNameInput.value=""}
 }
 groupSelect.onchange=()=>selectGroup(groupSelect.value);
-v.querySelectorAll("[data-edit-supervision]").forEach(button=>button.addEventListener("click",()=>{selectGroup(button.dataset.editSupervision);assignmentForm.scrollIntoView({behavior:"smooth",block:"center"})}));
+function resetSupervisionForm(){assignmentForm.reset();teamIdInput.value="";supervisorSelect.innerHTML='<option value="">اختر الفوج أولًا</option>';headSelect.innerHTML='<option value="">اختر الفوج أولًا</option>'}
+$("#reset-supervision-form")?.addEventListener("click",resetSupervisionForm);
+v.querySelectorAll("[data-edit-supervision]").forEach(button=>button.addEventListener("click",()=>{const current=assignments.find(a=>String(a.id)===button.dataset.editSupervision);if(current)selectGroup(current.group_id,current);assignmentForm.scrollIntoView({behavior:"smooth",block:"center"})}));
 assignmentForm.onsubmit=async e=>{
  e.preventDefault();
- const fd=new FormData(assignmentForm),groupId=String(fd.get("group_id")||""),supervisorId=String(fd.get("supervisor_student_id")||""),headId=String(fd.get("head_supervisor_student_id")||""),button=assignmentForm.querySelector('button[type="submit"]');
- if(!groupId||!supervisorId||!headId){toast("اختر الفوج ومشرف الفرقة وكبير المشرفين",true);return}
- if(supervisorId===headId){toast("اختر طالبين مختلفين للمهمتين",true);return}
+ const fd=new FormData(assignmentForm),groupId=String(fd.get("group_id")||""),teamName=String(fd.get("team_name")||"").trim(),teamId=String(fd.get("team_id")||""),supervisorId=String(fd.get("supervisor_student_id")||""),headId=String(fd.get("head_supervisor_student_id")||""),button=assignmentForm.querySelector('button[type="submit"]');
+ if(!groupId||!teamName||!supervisorId||!headId){toast("أكمل الفوج واسم الفرقة ومشرفها وكبير المشرفين",true);return}
+ if(supervisorId===headId){toast("اختر طالبين مختلفين لمهمة الإشراف ومهمة كبير المشرفين",true);return}
  button.disabled=true;
  try{
-  await api("/admin/student-team-supervisors",{method:"POST",body:JSON.stringify({group_id:groupId,supervisor_student_id:supervisorId,head_supervisor_student_id:headId})});
-  toast("حُفظ تعيين مشرف الفرقة وكبير المشرفين");
-  await groups(v);
+  await api("/admin/student-team-supervisors",{method:"POST",body:JSON.stringify({team_id:teamId,team_name:teamName,group_id:groupId,supervisor_student_id:supervisorId,head_supervisor_student_id:headId})});
+  toast(teamId?"تم تحديث الفرقة وتعييناتها":"تمت إضافة الفرقة وحفظ تعييناتها");
+  await load();shell();await page();
  }catch(error){toast(error.message,true);button.disabled=false}
 };
 if(S.groups.length)selectGroup(S.groups[0].id);
