@@ -486,6 +486,7 @@ export default {
       const peers=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='student_team_supervisors' AND group_id=?").bind(groupId).all();
       for(const row of peers.results||[]){try{const x=JSON.parse(row.payload_json);if(String(x.id)!==teamId&&String(x.team_name||"الفرقة الأولى").trim().toLocaleLowerCase()===teamName.toLocaleLowerCase())return fail(409,"اسم هذه الفرقة مستخدم في الفوج؛ اختر اسمًا مميزًا");}catch{}}
       const id=teamId||uuid();
+      for(const row of peers.results||[]){try{const x=JSON.parse(row.payload_json);if(String(x.id)===teamId)continue;if(x.head_supervisor_student_id!==chief.id){x.head_supervisor_student_id=chief.id;x.head_supervisor_name=chief.display_name;x.updated_at=nowIso();await saveRecord(env,"student_team_supervisors",x);}}catch{}}
       const assignment={id,owner_user_id:user.id,group_id:groupId,team_name:teamName,student_id:supervisor.id,supervisor_student_id:supervisor.id,supervisor_name:supervisor.display_name,head_supervisor_student_id:chief.id,head_supervisor_name:chief.display_name,updated_at:nowIso()};
       await saveRecord(env,"student_team_supervisors",assignment);
       await log(env,user.id,"student_team_supervisor_assign",{group_id:groupId,team_id:id,team_name:teamName,supervisor_student_id:supervisor.id,head_supervisor_student_id:chief.id});
