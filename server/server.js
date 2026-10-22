@@ -1302,7 +1302,7 @@ async function handler(req, res) {
       const b=await body(req),name=clean(b.name,120),suppliedEmail=clean(b.email,200).toLowerCase(),password=String(b.password||''),gid=String(b.group_id||'');
       if(name.length<2||(suppliedEmail&&!/^\S+@\S+\.\S+$/.test(suppliedEmail))||(password&&password.length<8))fail(400,'أدخل الاسم والبريد الصحيح إن وُجد وكلمة مرور مناسبة');
       if(!teacherGroupIds(user).includes(gid))fail(403,'اختر فوجًا تشرف عليه');if(suppliedEmail&&db.users.some(x=>String(x.email).toLowerCase()===suppliedEmail))fail(409,'البريد مستخدم بالفعل');
-      const email=suppliedEmail||('student-'+uid('mail')+'@no-email.invalid'),initialPassword=password||(name.trim().split(/\s+/)[0]+'123');
+      const email=suppliedEmail||('student-'+uid('mail')+'@no-email.invalid'),initialPassword=password||crypto.randomBytes(18).toString('base64url');
       const nu=coreService.createUser({name,email,password:initialPassword,role:'student'});const st={id:uid('s'),user_id:nu.id,parent_id:null,name,group_name:(db.groups.find(g=>g.id===gid)||{}).name||'',level:clean(b.level,80)||'المستوى الأساسي',attendance_rate:0,progress:0,memorized:'—',review:0,group_id:gid};db.students.push(st);addMembership(st.id,gid);audit(user,'teacher.student.create',{student_id:st.id,group_id:gid});await save();return json(res,201,{id:st.id,name:st.name,group_id:gid,initial_password:initialPassword,email:suppliedEmail});
     }
     if ((r=route(req,p,'PATCH','/api/teacher/students/:id'))) {
