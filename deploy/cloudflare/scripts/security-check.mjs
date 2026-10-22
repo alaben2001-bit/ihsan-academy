@@ -36,6 +36,7 @@ assert.doesNotMatch(backend, /!\/\^\\d\{4\}-\\d\{2\}-\\d\{2\}\$\/\.test\(date\)/
 assert.match(backend, /must_change_password,created_at FROM users ORDER BY created_at/, "full backup must preserve forced password changes");
 assert.match(backend, /google_identities:googleIdentities\.results\|\|\[\]/, "full backup must preserve linked Google identities");
 assert.match(backend, /must_change_password=excluded\.must_change_password/, "restore must retain forced password changes");
+assert.match(backend, /INSERT INTO users \(id,display_name,identity_normalized,password_hash,role,active\) SELECT \?,\?,\?,\?, 'admin',1 WHERE NOT EXISTS \(SELECT 1 FROM users WHERE role='admin'\)/, "initial administrator creation must be atomic against concurrent bootstrap requests");
 assert.match(backend, /for\(const x of googleIdentities\)statements\.push/, "restore must retain verified Google account links");
 
 assert.match(app, /const localDateISO=/, "browser date inputs must use the local calendar date");
