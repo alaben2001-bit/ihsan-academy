@@ -438,7 +438,7 @@ export default {
       if(user.role==="director"&&!(user.school_ids||[]).includes(schoolId))return fail(403,"هذه المدرسة خارج نطاق صلاحيتك");
       const school=await env.DB.prepare("SELECT id FROM quran_schools WHERE id=? AND active=1").bind(schoolId).first();if(!school)return fail(400,"المدرسة المحددة غير موجودة");
       if(teacherId){const t=await env.DB.prepare("SELECT id FROM users WHERE id=? AND role IN ('teacher','admin') AND active=1").bind(teacherId).first();if(!t)return fail(400,"المعلم المحدد غير صالح");}
-      const id=uuid();await env.DB.prepare("INSERT INTO groups(id,name,school_id,teacher_id,active) VALUES(?,?,?, ?,1)").bind(id,name,schoolId,teacherId).run();await log(env,user.id,"group_create",{id,name,school_id:schoolId});return json({id,name,school_id:schoolId,teacher_id:teacherId,active:1},201);
+      const requestedId=clean(parsed.value.id,80);if(requestedId&&!/^offline-[a-f0-9-]{20,60}$/i.test(requestedId))return fail(400,"معرّف الفوج غير صالح");const id=requestedId||uuid();await env.DB.prepare("INSERT INTO groups(id,name,school_id,teacher_id,active) VALUES(?,?,?,?,1) ON CONFLICT(id) DO UPDATE SET name=excluded.name,school_id=excluded.school_id,teacher_id=excluded.teacher_id,active=1").bind(id,name,schoolId,teacherId).run();await log(env,user.id,"group_create",{id,name,school_id:schoolId});return json({id,name,school_id:schoolId,teacher_id:teacherId,active:1},201);
     }
     const groupMatch=path.match(/^\/api\/groups\/([^/]+)$/);
     if(groupMatch&&method==="PATCH"){
@@ -957,7 +957,7 @@ export default {
       if(!memorized&&!reviewed&&!recitation&&!notes&&!feedback&&!nextAssignment)return fail(400,"أدخل الحفظ أو المراجعة أو التسميع أو ملاحظة");
       if(!Number.isInteger(errors)||errors<0||errors>200)return fail(400,"عدد الأخطاء يجب أن يكون بين 0 و200");
       if(grade!==null&&(!Number.isFinite(grade)||grade<0||grade>10))return fail(400,"التقدير يجب أن يكون بين 0 و10");
-      const row={id:uuid(),student_id:studentId,group_id:st.group_id,date,activity,memorized,reviewed,recitation,errors,grade,corrected,feedback,next_assignment:nextAssignment,notes,teacher_id:user.id,created_at:nowIso(),updated_at:nowIso()};
+      const requestedRecordId=clean(b.id,80),row={id:requestedRecordId&&/^offline-[a-f0-9-]{20,60}$/i.test(requestedRecordId)?requestedRecordId:uuid(),student_id:studentId,group_id:st.group_id,date,activity,memorized,reviewed,recitation,errors,grade,corrected,feedback,next_assignment:nextAssignment,notes,teacher_id:user.id,created_at:nowIso(),updated_at:nowIso()};
       await saveRecord(env,"quran_progress",row);
       await log(env,user.id,"quran_progress_add",{student_id:studentId,activity,errors,grade});
       return json(row,201);
