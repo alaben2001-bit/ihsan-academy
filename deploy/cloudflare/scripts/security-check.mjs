@@ -27,6 +27,9 @@ assert.ok(!backend.includes("nowIso().slice(0,10)"), "date-only school workflows
 assert.match(backend, /if\(!validDateOnly\(date\)\|\|!items\.length\|\|items\.length>200/, "attendance must validate real calendar dates");
 assert.match(backend, /if\(!validDateOnly\(date\)\)return fail\(400,"صيغة التاريخ غير صحيحة"\)/, "Quran progress creation must validate real calendar dates");
 assert.match(backend, /if\(!validDateOnly\(String\(row\.date\|\|""\)\)/, "Quran progress edits must validate real calendar dates");
+assert.match(backend, /if\(!value\|\|typeof value!=="object"\|\|Array\.isArray\(value\)\)throw new Error\("invalid_json"\)/, "API bodies must be JSON objects, not nulls, arrays, or primitives");
+assert.match(backend, /const seenStudentIds=new Set\(\);for\(const item of items\)/, "attendance must detect duplicate student rows before database writes");
+assert.match(backend, /seenStudentIds\.has\(studentId\)/, "duplicate attendance rows must be rejected instead of silently overwriting one another");
 assert.doesNotMatch(backend, /!\/\^\\d\{4\}-\\d\{2\}-\\d\{2\}\$\/\.test\(date\)/, "date-shaped strings must not be mistaken for valid calendar dates");
 
 // A full backup must preserve first-login password enforcement and linked Google accounts.
