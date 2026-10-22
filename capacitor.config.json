@@ -1,0 +1,17 @@
+{
+  "appId": "com.ihsan.academy",
+  "appName": "أكاديمية الإحسان",
+  "webDir": "www",
+  "server": {
+    "url": "https://ihsan-academy.pages.dev",
+    "cleartext": false,
+    "allowNavigation": [
+      "ihsan-academy.pages.dev",
+      "*.ihsan-academy.pages.dev"
+    ]
+  },
+  "android": {
+    "allowMixedContent": false,
+    "webContentsDebuggingEnabled": false
+  }
+}
