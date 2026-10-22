@@ -393,15 +393,40 @@ async function ihsanPrayerDialog({title,text,source="",icon="✦",primary="مت�
  if(typeof dialog.showModal==="function")dialog.showModal();else dialog.setAttribute("open","");
  yes.focus()
 }
-function start(){renderTopActions();const savedMode=safeStore.getSession("ihsan_last_mode"),savedTab=safeStore.getSession("ihsan_last_tab");if(savedMode==="school"||savedMode==="ihsan"){S.mode=savedMode;S.tab=savedTab||(savedMode==="ihsan"?"all":"home");if(S.mode==="school")load().then(()=>{shell();page()});else{shell();page()}return;}S.tab="home";S.mode="hub";moduleChooser(false);const prayers=[
-{title:"بسم الله نبدأ، وعلى الله نتوكّل",text:"أهلًا بك في أكاديمية الإحسان؛ نتعلّم لنفهم، ونقرأ لنهتدي، ونتدرّب ليظهر أثر العلم في أخلاقنا. نسأل الله أن يبارك في سعيك، وأن يجعل نفعك ممتدًا إلى من حولك.",kind:"دعاء بصياغة الأكاديمية"},
-{title:"دعاء من القرآن الكريم",text:"وَقُلْ رَبِّ زِدْنِي عِلْمًا",source:"سورة طه، الآية 114"},
-{title:"دعاء من القرآن الكريم",text:"رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ",source:"سورة البقرة، الآية 201"},
-{title:"دعاء من القرآن الكريم",text:"رَبَّنَا لَا تُزِغْ قُلُوبَنَا بَعْدَ إِذْ هَدَيْتَنَا وَهَبْ لَنَا مِنْ لَدُنْكَ رَحْمَةً إِنَّكَ أَنْتَ الْوَهَّابُ",source:"سورة آل عمران، الآية 8"},
-{title:"دعاء نبوي",text:"اللَّهُمَّ أَعِنِّي عَلَى ذِكْرِكَ وَشُكْرِكَ وَحُسْنِ عِبَادَتِكَ",source:"سنن أبي داود (1522)، وسنن النسائي (1303)"},
-{title:"أهلًا بك في بساتين الإحسان",text:"اللهم افتح لك أبواب الفهم، وارزقك صدق الطلب وحسن العمل، وزدك هدىً وتواضعًا، واجعل قلبك محبًا للحق مطمئنًا به.",kind:"دعاء بصياغة الأكاديمية"},
-{title:"بداية جديدة وأجر نرجوه من الله",text:"ابدأ مستعينًا بالله، ولا تستسلم عند المشقة. اللهم بارك في وقتك وسعيك، واشرح صدرك، وثبّت حفظك، وحسّن خُلُقك، واجعل ما تتعلّمه سببًا لصلاح قلبك وعملك.",kind:"دعاء بصياغة الأكاديمية"}
-];const prayer=prayers[Math.floor(Math.random()*prayers.length)];const student=S.user?.role==="student";ihsanPrayerDialog({title:prayer.title,text:prayer.text,source:prayer.source||(prayer.kind?prayer.kind+"؛ ليس نصًا منسوبًا إلى السنة":""),icon:"☀",primary:student?"ابدأ رحلتي":"الدخول إلى المدرسة القرآنية",secondary:"لاحقًا",onPrimary:student?()=>{try{history.pushState({ihsanMode:"ihsan",ihsanTab:"all"},"",location.pathname)}catch{}S.mode="ihsan";S.tab="all";shell();page()}:async()=>{S.mode="school";S.tab="home";await load();shell();await page()}})}
+function start(){
+ renderTopActions();
+ showRotatingEntryPrayer();
+ const savedMode=safeStore.getSession("ihsan_last_mode"),savedTab=safeStore.getSession("ihsan_last_tab");
+ if(savedMode==="school"||savedMode==="ihsan"){
+  S.mode=savedMode;S.tab=savedTab||(savedMode==="ihsan"?"all":"home");
+  if(S.mode==="school")load().then(()=>{shell();page()});else{shell();page()}
+  return;
+ }
+ S.tab="home";S.mode="hub";moduleChooser(false);
+}
+function showRotatingEntryPrayer(){
+ const prayers=[
+  {title:"دعاء قرآني لزيادة العلم",text:"وَقُلْ رَبِّ زِدْنِي عِلْمًا",source:"القرآن الكريم، سورة طه: 114"},
+  {title:"دعاء قرآني للثبات والرحمة",text:"رَبَّنَا لَا تُزِغْ قُلُوبَنَا بَعْدَ إِذْ هَدَيْتَنَا وَهَبْ لَنَا مِنْ لَدُنْكَ رَحْمَةً إِنَّكَ أَنْتَ الْوَهَّابُ",source:"القرآن الكريم، سورة آل عمران: 8"},
+  {title:"دعاء من القرآن الكريم",text:"رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ",source:"القرآن الكريم، سورة البقرة: 201"},
+  {title:"دعاء نبوي للعلم النافع",text:"اللَّهُمَّ إِنِّي أَسْأَلُكَ عِلْمًا نَافِعًا، وَرِزْقًا طَيِّبًا، وَعَمَلًا مُتَقَبَّلًا",source:"سنن ابن ماجه (925)، وصححه الألباني في صحيح ابن ماجه"},
+  {title:"دعاء نبوي على ذكر الله",text:"اللَّهُمَّ أَعِنِّي عَلَى ذِكْرِكَ وَشُكْرِكَ وَحُسْنِ عِبَادَتِكَ",source:"سنن أبي داود (1522)، وصححه الألباني"},
+  {title:"دعاء نبوي للثبات",text:"يَا مُقَلِّبَ الْقُلُوبِ ثَبِّتْ قَلْبِي عَلَى دِينِكَ",source:"جامع الترمذي (2140)، قال الترمذي: حديث حسن"}
+ ];
+ const previous=Number(safeStore.getSession("ihsan_last_prayer_index")||-1);
+ const candidates=prayers.map((p,i)=>({p,i})).filter(x=>x.i!==previous);
+ const picked=candidates[Math.floor(Math.random()*candidates.length)]||{p:prayers[0],i:0};
+ safeStore.setSession("ihsan_last_prayer_index",String(picked.i));
+ const currentMode=S.mode,currentTab=S.tab,student=S.user?.role==="student";
+ return ihsanPrayerDialog({
+  title:picked.p.title,text:picked.p.text,source:picked.p.source,icon:"☾",
+  primary:"متابعة",
+  secondary:"إغلاق",
+  onPrimary:()=>{if(currentMode==="school"||currentMode==="ihsan"){S.mode=currentMode;S.tab=currentTab;}},
+  onSecondary:()=>{}
+ });
+}
+
 function moduleChooser(push=true){safeStore.setSession("ihsan_last_mode","hub");safeStore.removeSession("ihsan_last_tab");document.body.classList.remove("app-authenticated");const outerHeader=document.querySelector("header.topbar"),actionBar=$("#top-actions");if(outerHeader&&actionBar&&!outerHeader.contains(actionBar))outerHeader.appendChild(actionBar);S.mode="hub";if(push){try{history.pushState({ihsanMode:"hub"},"",location.pathname+"#home")}catch{}}document.body.classList.remove("app-authenticated");renderTopActions();app.innerHTML='<section class="module-welcome"><span class="eyebrow">أَكَادِيمِيَّةُ الإِحْسَانِ فِي بِنَاءِ الإِنْسَان</span><h1>'+(S.user.role==="student"?"تجوّل في بساتين الإحسان":"مناراتُ العلم وبساتينُ الإحسان")+'</h1><p>'+(S.user.role==="student"?"من هنا تبدأ رحلتان متكاملتان: مدرسةٌ تحفظ القرآن وتتابع الحفظ والمراجعة، وبساتينُ علمٍ تتفيّأ ظلال الوحي؛ تتعرّف فيها إلى ربك تعالى، وتصحب سيرة رسوله ﷺ، وتفتح نوافذ التدبّر في القرآن، وتنهل من السنة، ثم ترى أثر العلم في عبادتك وخُلُقك ومعاملتك.":"من هُنا تُبنى العقول، وتُهذَّب النفوس، وتُصاغ هممُ الرجال؛ بالقرآن نهتدي، وبالسنة نقتدي، وبالعلم نرتقي، وبالأخلاق نسمو، وبالعمل نُثمر؛ لنُخرّج جيلًا راسخَ العلم، كريمَ الخُلُق، عظيمَ الأثر، يحمل نورَ الوحي إلى العالمين، ويترك في الحياة بصمةَ المحسنين خارجا من ظلمة الغافلين.")+'</p></section><div class="module-grid"><button class="module-card school-module" id="open-school"><span class="module-art school-art" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M7 27 32 9l25 18v28H7z"/><path d="M17 55V34h30v21M26 55V41h12v14M17 27h30M23 20h18"/></svg></span><span class="module-label">المدرسة القرآنية</span><span class="module-desc">الحفظ والمراجعة، الأفواج، الطلاب، المعلمون، الحضور والمتابعة.</span><span class="module-link">الدخول إلى المدرسة ←</span></button><button class="module-card ihsan-module" id="open-ihsan"><span class="module-art ihsan-art" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M32 7 38 22 54 27 38 33 32 49 26 33 10 27 26 22z"/><path d="M48 40 51 47 58 50 51 53 48 60 45 53 38 50 45 47zM15 7l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/></svg></span><span class="module-label">منهج الإحسان</span><span class="module-desc">مساحة علمية تجمع معرفة الله تعالى، وسيرة الرسول ﷺ، والقرآن والسنة، والأدب والعمل الصالح.</span><span class="module-link">الدخول إلى المنهج ←</span></button></div><div class="module-about-action"><button type="button" class="btn secondary" id="about-open-hub">رؤية عامة ومميزات الأكاديمية</button></div><p class="module-foot">«وَقُلْ رَبِّ زِدْنِي عِلْمًا»</p>';
 $("#about-open-hub")?.addEventListener("click",showAcademyAbout);
 $("#open-school").onclick=async()=>{safeStore.setSession("ihsan_last_mode","school");safeStore.setSession("ihsan_last_tab","home");try{history.pushState({ihsanMode:"school",ihsanTab:"home"},"",location.pathname)}catch{}S.mode="school";S.tab="home";await load();shell();await page()};
