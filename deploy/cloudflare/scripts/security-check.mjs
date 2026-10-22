@@ -127,7 +127,7 @@ assert.ok(!app.includes('id="roster-add-form"'), "the requested obsolete roster 
 assert.doesNotMatch(app, /\["school-managers","مديرو المدارس"\]/, "the obsolete school managers navigation entry must stay removed");
 assert.doesNotMatch(app, /if\(S\.tab==="school-managers"\)return schoolManagers\(v\);/, "the removed school managers screen must not be reachable from the app dispatcher");
 assert.doesNotMatch(app, /id="staff-form"/, "the old director/supervisor account-creation form must not reappear in the main interface");
-assert.match(app, /api\("\/admin\/staff",\{method:"POST"/, "staff creation form must submit to the scoped admin API");
+assert.doesNotMatch(app, /api\("\/admin\/staff",\{method:"POST"/, "the obsolete manager/supervisor account-creation form must not be reachable in the UI");
 assert.match(backend, /if\(path==="\/api\/admin\/staff"&&method==="POST"\)/, "the backend must create scoped director and supervisor accounts");
 assert.match(backend, /must_change_password\) VALUES\(\?,\?,\?,\?,\?,1,1\)/, "director and supervisor accounts must require a first-login password change");
 assert.ok(!app.includes('id="roster-add-form"'), "the obsolete nominal roster import form must remain removed from the UI");
