@@ -384,8 +384,8 @@ function navIcon(id){return '<svg viewBox="0 0 24 24" class="nav-icon" aria-hidd
 function navigationGroups(){
  const list=items();if(S.mode==="ihsan")return [{title:"منهج الإحسان",items:list}];
  const makeGroup=(title,ids)=>({title,items:list.filter(x=>ids.includes(x[0]))});
- if(S.user.role==="admin"){const full=safeStore.get("ihsan_admin_focus")==="full";if(!full)return [makeGroup("عمل الشيخ اليومي",["home","students","teams","attendance","assignments","gradebook","quran","tests"]),makeGroup("التواصل والمتابعة",["reports","notifications","messages"])].filter(g=>g.items.length);return [makeGroup("إدارة الأكاديمية",["home","groups","students","teams"]),makeGroup("المهام الأساسية اليومية",["attendance","assignments","gradebook","quran","tests"]),makeGroup("المتابعة والتقويم",["reports","notifications","messages"])].filter(g=>g.items.length);}
- if(["teacher","director","supervisor"].includes(S.user.role))return [makeGroup(S.user.role==="director"?"إدارة المدرسة والمتابعة":S.user.role==="supervisor"?"متابعة الفريق":"التدريس والمتابعة",["home","groups","students","teams","attendance","assignments","gradebook","reports","quran","tests","notifications","messages"])].filter(g=>g.items.length);
+ if(S.user.role==="admin"){const full=safeStore.get("ihsan_admin_focus")==="full";if(!full)return [makeGroup("عمل الشيخ اليومي",["home","students","teams","attendance","assignments","gradebook","quran","tests"]),makeGroup("التواصل والمتابعة",["notifications","messages"])].filter(g=>g.items.length);return [makeGroup("إدارة الأكاديمية",["home","groups","students","teams"]),makeGroup("المهام الأساسية اليومية",["attendance","assignments","gradebook","quran","tests"]),makeGroup("المتابعة والتقويم",["notifications","messages"])].filter(g=>g.items.length);}
+ if(["teacher","director","supervisor"].includes(S.user.role))return [makeGroup(S.user.role==="director"?"إدارة المدرسة والمتابعة":S.user.role==="supervisor"?"متابعة الفريق":"التدريس والمتابعة",["home","groups","students","teams","attendance","assignments","gradebook","quran","tests","notifications","messages"])].filter(g=>g.items.length);
  return [makeGroup("رحلتي التعليمية",["home","profile","teams","quran","assignments","gradebook","attendance","tests","notifications","messages","leaderboard"])].filter(g=>g.items.length);
 }
 function navMarkup(){return navigationGroups().map(group=>'<div class="nav-section"><div class="nav-section-title">'+esc(group.title)+'</div>'+group.items.map(x=>'<button class="nav-btn '+(S.tab===x[0]?"active":"")+'" data-tab="'+esc(x[0])+'"><span class="nav-icon-wrap">'+navIcon(x[0])+'</span><span class="nav-label">'+esc(x[1])+'</span><span class="nav-chevron" aria-hidden="true">‹</span></button>').join("")+'</div>').join("")}
@@ -896,10 +896,14 @@ async function studentProfile(v,id){
  }catch(e){v.innerHTML=head("ملف الطالب",st.name)+'<div class="notice error">'+esc(e.message)+'</div><button class="btn secondary" id="back-students">العودة إلى قائمة الطلاب</button>';$("#back-students").onclick=()=>{S.tab="students";shell();page()}}
 }
 function printReportWindow(title,content,subtitle=""){
- const w=window.open("","_blank");if(!w){toast("اسمح بفتح نافذة التقرير ثم أعد المحاولة.",true);return}
+ const w=window.open("","_blank");
+ if(!w){toast("اسمح بفتح نافذة التقرير ثم أعد المحاولة.",true);return}
  w.opener=null;w.document.open();
- w.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(title)+'</title><style>body{font-family:Arial,Tahoma,sans-serif;color:#17382e;margin:24px;line-height:1.8}h1,h2,h3{color:#075540}p{color:#52665e}table{width:100%;border-collapse:collapse;margin-top:16px}th,td{border:1px solid #ccd8d2;padding:8px;text-align:right;vertical-align:top}th{background:#e8f4ed}button{padding:10px 16px;border:0;border-radius:8px;background:#075540;color:#fff;font-weight:700;cursor:pointer}@media print{body{margin:8mm}button{display:none}tr{break-inside:avoid}}</style></head><body><h1>'+esc(title)+'</h1><p>'+esc(subtitle)+'</p>'+content+'<p><button onclick="window.print()">طباعة / حفظ PDF</button></p><script>window.addEventListener("load",()=>setTimeout(()=>window.print(),250))<\\/script></body></html>');
+ w.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(title)+'</title><style>body{font-family:Arial,Tahoma,sans-serif;color:#17382e;margin:24px;line-height:1.8}h1,h2,h3{color:#075540}p{color:#52665e}table{width:100%;border-collapse:collapse;margin-top:16px}th,td{border:1px solid #ccd8d2;padding:8px;text-align:right;vertical-align:top}th{background:#e8f4ed}button{padding:10px 16px;border:0;border-radius:8px;background:#075540;color:#fff;font-weight:700;cursor:pointer}@media print{body{margin:8mm}button{display:none}tr{break-inside:avoid}}</style></head><body><h1>'+esc(title)+'</h1><p>'+esc(subtitle)+'</p>'+content+'<p><button id="print-report" type="button">طباعة / حفظ PDF</button></p></body></html>');
  w.document.close();
+ const print=()=>{try{w.focus();w.print()}catch{}};
+ w.document.getElementById("print-report")?.addEventListener("click",print);
+ setTimeout(print,350);
 }
 
 async function reportsPage(v){
