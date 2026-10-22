@@ -247,6 +247,12 @@ assert.match(backend, /if\(path==="\/api\/admin\/student-team-supervisors"&&meth
 assert.match(backend, /SELECT id,display_name,group_id FROM students WHERE id=\? AND group_id=\? AND active=1/, "a team supervisor must be an active student in the selected group");
 assert.match(app, /id="student-supervisors-form"/, "the combined groups screen must expose student supervisor assignment");
 assert.match(app, /data-edit-supervision=/, "saved student supervision assignments must be editable");
+assert.match(app, /name="team_name"/, "each group may contain multiple distinctly named student teams");
+assert.match(app, /const groupHead=assignments\.find\(a=>a\.group_id===groupId\)/, "the chief supervisor selection must remain consistent at group level");
+assert.match(backend, /const groupId=clean\(b\.group_id,80\),teamName=clean\(b\.team_name,80\)/, "team assignment must persist a distinct team name");
+assert.match(backend, /WHERE id=\? AND group_id=\? AND active=1\"\)\.bind\(headId,groupId\)/, "the chief supervisor must be an active student in the same group");
+assert.match(backend, /اسم هذه الفرقة مستخدم في الفوج/, "team names must be unique within a group");
+
 
 
 assert.match(app, /crypto\.getRandomValues\(new Uint8Array\(18\)\)/, "blank student password fields must generate a strong random temporary password");
