@@ -473,3 +473,35 @@ html[data-appearance="dark"] .overlay { background: rgba(4,12,16,.66) !important
   html[data-appearance="auto"] .appearance-choice.active,
   html[data-appearance="auto"] .tab.active { color:#f7fbf7 !important; background:linear-gradient(135deg,#315e4b,#254b42) !important; border-color:#7da991 !important; box-shadow:inset -3px 0 var(--ui-gold) !important; }
 }
+
+
+/* Automatic dark mode receives the same navigation and hero treatment as manual dark mode. */
+@media (prefers-color-scheme: dark) {
+  html[data-appearance="auto"] .side,
+  html[data-appearance="auto"] .side .brand,
+  html[data-appearance="auto"] .account { background:#172b32 !important; color:var(--ui-text) !important; border-color:var(--ui-border) !important; }
+  html[data-appearance="auto"] .side .brand b,
+  html[data-appearance="auto"] .account b { color:#f4f8f5 !important; }
+  html[data-appearance="auto"] .side .brand small,
+  html[data-appearance="auto"] .account small,
+  html[data-appearance="auto"] #nav .nav-label { color:#b8cfca !important; }
+  html[data-appearance="auto"] #nav button,
+  html[data-appearance="auto"] .nav button,
+  html[data-appearance="auto"] #bottomNav button,
+  html[data-appearance="auto"] .bottom button,
+  html[data-appearance="auto"] .more-grid button,
+  html[data-appearance="auto"] .chip { color:var(--ui-text) !important; background:var(--ui-surface-raised) !important; border-color:var(--ui-border) !important; }
+  html[data-appearance="auto"] .hero,
+  html[data-appearance="auto"] .login-art { background-color:#203b3e !important; color:#f1f7f3 !important; }
+  html[data-appearance="auto"] .hero p,
+  html[data-appearance="auto"] .login-art p { color:#d3e4de !important; }
+  html[data-appearance="auto"] .card.flat,
+  html[data-appearance="auto"] .notice,
+  html[data-appearance="auto"] .muted-box,
+  html[data-appearance="auto"] .knowledge-action { background-color:var(--ui-surface-soft) !important; color:var(--ui-text) !important; border-color:var(--ui-border) !important; }
+  html[data-appearance="auto"] .item { border-color:var(--ui-border) !important; }
+  html[data-appearance="auto"] .item p { color:var(--ui-muted) !important; }
+  html[data-appearance="auto"] .badge,
+  html[data-appearance="auto"] .pill,
+  html[data-appearance="auto"] .tag { color:#dff2e6 !important; background:#2b4a3f !important; border-color:#527467 !important; }
+}
