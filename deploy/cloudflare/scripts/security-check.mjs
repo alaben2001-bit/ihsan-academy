@@ -326,10 +326,10 @@ assert.match(backend, /يتعارض معرّف التسجيل مع سجل آخر
 assert.match(style, /data-appearance-palette="dark"/, "dark mode must have dedicated contrast rules");
 assert.match(style, /\.academy-update-notice/, "the update banner must have responsive styling");
 assert.match(style, /\.release-history-item/, "the in-app release history must be styled");
-assert.match(index, /app\.js\?v=20261022-150/, "frontend cache busting must use the latest asset version");
-assert.match(index, /style\.css\?v=20261022-148/, "stylesheet cache busting must use the latest asset version");
-assert.match(index, /startup\.js\?v=20261022-148/, "startup cache busting must use the latest asset version");
-assert.match(serviceWorker, /ihsan-academy-pwa-v114-20261022-150/, "service worker cache namespace must match this release");
+assert.match(index, /app\.js\?v=20261022-151/, "frontend cache busting must use the latest asset version");
+assert.match(index, /style\.css\?v=20261022-151/, "stylesheet cache busting must use the latest asset version");
+assert.match(index, /startup\.js\?v=20261022-151/, "startup cache busting must use the latest asset version");
+assert.match(serviceWorker, /ihsan-academy-pwa-v115-20261022-151/, "service worker cache namespace must match this release");
 assert.match(app, /secondary:""/, "welcome dua must have one Continue button rather than Later");
 assert.match(app, /primary:"متابعة"/, "the rotating welcome dua must use the requested Continue label");
 assert.match(app, /function rememberOfflineUser\(\)/, "offline startup may only rely on the minimal stored profile, never the password");
@@ -344,4 +344,9 @@ assert.match(app, /safeStore\.remove\(offlineUserKey\(\)\);clearSessionToken\(\)
 
 assert.match(app, /صيانة 22 أكتوبر 2026 · منشورة/, "the feature history must reflect the successful production deployment");
 assert.match(app, /اجتازت فحوص الكود والبناء والنشر/, "the feature history must separate deployment success from pending hands-on acceptance testing");
+assert.doesNotMatch(app, /أين أدبك مع فضيلة الشيخ/, "student education should model respectful manners instead of scolding students");
+assert.match(app, /جامع بيان العلم وفضله/, "student adab guidance must cite the reported scholarly example as an athar, not a Prophetic hadith");
+assert.match(app, /حلية طالب العلم/, "student adab guidance must cite a recognized reference on etiquette of learning");
+assert.match(style, /body :is\(\.small,small,\.muted,/, "font scaling must include ordinary muted secondary text, not only small-muted combinations");
+assert.match(style, /table th,table td/, "font scaling must include report table contents");
 console.log("Security regression guardrails passed.");
