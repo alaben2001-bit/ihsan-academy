@@ -1910,3 +1910,24 @@ html[data-appearance="dark"] .admin-focus-toggle{background:#1b3b31!important;co
  .auth-entry-card strong{font-size:12px}
 }
 
+
+.welcome{overflow-y:auto;align-content:start;gap:clamp(12px,2vh,24px)}
+.welcome h1{font-size:clamp(1.65rem,2.4vw,2.35rem);line-height:1.65;text-wrap:balance}
+.welcome>div:first-child>p{font-size:clamp(1.05rem,1.35vw,1.22rem);line-height:2}
+.welcome .welcome-description{font-size:clamp(1.08rem,1.35vw,1.22rem);line-height:2;margin:10px 0}
+.welcome .welcome-poem{font-size:clamp(1.04rem,1.3vw,1.18rem);line-height:2.05;margin:12px 0}
+.welcome .welcome-motto{font-size:clamp(1.08rem,1.35vw,1.22rem);font-weight:800;color:var(--gold);line-height:1.9;margin:10px 0}
+.knowledge-verse{font-size:clamp(1.05rem,1.3vw,1.22rem);line-height:2.1}
+.student-create-details>summary{display:flex;align-items:center;justify-content:center;cursor:pointer;list-style:none;width:fit-content;min-width:180px}
+.student-create-details>summary::-webkit-details-marker{display:none}
+.student-create-details>summary::after{content:"＋";margin-inline-start:10px;font-weight:900}
+.student-create-details[open]>summary::after{content:"−"}
+.student-create-body{padding-top:16px;margin-top:14px;border-top:1px solid var(--line);display:grid;gap:12px}
+.student-create-body .form-grid{margin-top:4px}
+.attendance-controls{display:flex;align-items:flex-end;flex-wrap:wrap;gap:12px}
+.attendance-controls .field{min-width:min(220px,100%);flex:1}
+.weekly-inline-report{margin-top:18px}
+.weekly-inline-report .report-actions,.report-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.report-actions .btn{min-height:42px}
+[hidden]{display:none!important}
+@media(max-width:720px){.welcome{max-height:none}.welcome h1{font-size:1.55rem}.welcome .welcome-description,.welcome .welcome-poem{font-size:1rem}.student-create-details>summary{width:100%}.attendance-controls .field{flex-basis:100%}.report-actions{width:100%}}
