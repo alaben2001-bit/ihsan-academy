@@ -125,7 +125,7 @@ async function verifyGoogleIdToken(token,nonce,clientId){
 async function bodyJson(request, maxBytes = 32000) {
   const raw = await request.text();
   if (new TextEncoder().encode(raw).length > maxBytes) throw new Error("payload_too_large");
-  try { return raw ? JSON.parse(raw) : {}; } catch { throw new Error("invalid_json"); }
+  try { const value=raw ? JSON.parse(raw) : {}; if(!value||typeof value!=="object"||Array.isArray(value))throw new Error("invalid_json"); return value; } catch { throw new Error("invalid_json"); }
 }
 async function currentUser(request, env) {
   const token = requestSessionToken(request);
@@ -765,7 +765,7 @@ export default {
       if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"تسجيل الحضور للمعلم أو المدير");const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value,groupId=clean(b.group_id,80),date=clean(b.date,10),items=Array.isArray(b.items)?b.items:[];
       if(!validDateOnly(date)||!items.length||items.length>200||!await canManageGroup(env,user,groupId))return fail(400,"بيانات الحضور غير صحيحة");
       const active=await env.DB.prepare("SELECT id FROM students WHERE group_id=? AND active=1").bind(groupId).all(),allowed=new Set((active.results||[]).map(x=>x.id)),stmts=[];
-      for(const item of items){if(!allowed.has(String(item.student_id))||!["present","absent","late","excused"].includes(item.status))return fail(400,"يوجد طالب أو حالة غير صحيحة");const row={id:date+":"+item.student_id,student_id:item.student_id,group_id:groupId,date,status:item.status,note:clean(item.note,300),marked_by:user.id,updated_at:nowIso()};stmts.push(env.DB.prepare("INSERT INTO academy_records(collection,id,owner_user_id,group_id,student_id,payload_json,updated_at) VALUES('attendance',?,?,?,?,?,?) ON CONFLICT(collection,id) DO UPDATE SET owner_user_id=excluded.owner_user_id,group_id=excluded.group_id,student_id=excluded.student_id,payload_json=excluded.payload_json,updated_at=excluded.updated_at").bind(row.id,user.id,groupId,item.student_id,JSON.stringify(row),row.updated_at));}
+      const seenStudentIds=new Set();for(const item of items){const studentId=String(item?.student_id??"");if(!item||typeof item!=="object"||Array.isArray(item)||seenStudentIds.has(studentId)||!allowed.has(studentId)||!["present","absent","late","excused"].includes(item.status))return fail(400,"يوجد طالب مكرر أو طالب أو حالة غير صحيحة");seenStudentIds.add(studentId);const row={id:date+":"+studentId,student_id:studentId,group_id:groupId,date,status:item.status,note:clean(item.note,300),marked_by:user.id,updated_at:nowIso()};stmts.push(env.DB.prepare("INSERT INTO academy_records(collection,id,owner_user_id,group_id,student_id,payload_json,updated_at) VALUES('attendance',?,?,?,?,?,?) ON CONFLICT(collection,id) DO UPDATE SET owner_user_id=excluded.owner_user_id,group_id=excluded.group_id,student_id=excluded.student_id,payload_json=excluded.payload_json,updated_at=excluded.updated_at").bind(row.id,user.id,groupId,studentId,JSON.stringify(row),row.updated_at));}
       if(stmts.length)await env.DB.batch(stmts);await log(env,user.id,"attendance_save",{group_id:groupId,date,count:items.length});return json({ok:true,saved:items.length});
     }
     if(path==="/api/quran/progress"&&method==="GET"){
