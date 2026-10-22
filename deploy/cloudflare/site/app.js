@@ -744,19 +744,20 @@ const dailyWisdom=[
 {title:"الشكر العملي",text:"اشكر الله تعالى على نعمة القرآن والمعلم والصحبة الصالحة، واجعل شكرها بالمحافظة عليها والعمل بما تعلمت."}
 ];
 const dailyWisdomForSheikh=[
-{title:"لفضيلة الشيخ: التعليم برفق",text:"فضيلة الشيخ، بارك الله تعالى فيكم ونفع بكم: بيّن موضع الخطأ دون تحقير، وامنح الطالب فرصة ليعيد المحاولة؛ فالرفق يعين على قبول الحق."},
-{title:"المدح الذي يحفّز",text:"فضيلة الشيخ، أحسن الله إليكم: امدح جهدًا محددًا رأيته، مثل ثبات الحفظ أو تحسّن التجويد، ثم اقترح خطوة تالية؛ واجعل الثناء صادقًا بلا مبالغة ولا محاباة."},
-{title:"العدل بين الطلاب",text:"بارك الله تعالى في تعليمكم: راعِ تفاوت أعمار الطلاب وقدراتهم، وقارن كل طالب بتقدّمه السابق، ولا تجعل الثناء على أحد سببًا لإحباط غيره."},
-{title:"تثبيت الحفظ",text:"من إحسان التعليم تسجيل مقدار الحفظ والمراجعة مباشرة بعد الحلقة، مع ملاحظة قصيرة محددة؛ حتى يبني اللقاء القادم على سجل واضح."},
-{title:"تصحيحٌ يحفظ الكرامة",text:"فضيلة الشيخ، زادكم الله علمًا: صحّح الخطأ بوضوح وعلى انفراد ما أمكن، وعلّم الطالب كيف يتداركه، لا أن يخاف من السؤال أو المحاولة."},
-{title:"قدوة في الأدب",text:"بارك الله تعالى فيكم: أظهر للطلاب أدب العالم مع الدليل، والتثبت من النقل، والتواضع للحق، والاعتذار عند الخطأ؛ فالقدوة أبلغ من الموعظة وحدها."},
-{title:"هدف صغير قابل للقياس",text:"في نهاية الحلقة، حدّد للطالب مقدارًا واضحًا للحفظ والمراجعة، واطلب منه أن يعيده عليك؛ فالهدف المحدد أيسر متابعةً وتحقيقًا."},
-{title:"دعاء للشيخ",text:"نسأل الله تعالى أن يبارك في علم فضيلة الشيخ وعمله، وأن يجزيه عن تعليم القرآن خير الجزاء، وأن يجعل الرفق والإخلاص والإتقان أثرًا باقيًا في طلابه."}
+{title:"بشارة لمعلّم القرآن",text:"قال رسول الله ﷺ: «خَيْرُكُمْ مَنْ تَعَلَّمَ الْقُرْآنَ وَعَلَّمَهُ». نسأل الله تعالى أن يجعل تعليم فضيلة الشيخ مباركًا، وأن يكتب له أجر ما يغرسه من خير.",source:"صحيح البخاري، حديث 5027."},
+{title:"أجر الدلالة على الخير",text:"قال النبي ﷺ: «مَنْ دَلَّ عَلَى خَيْرٍ فَلَهُ مِثْلُ أَجْرِ فَاعِلِهِ». فما يتركه التعليم الصادق من أثر طيب باب واسع من الخير بإذن الله تعالى.",source:"صحيح مسلم، حديث 1893."},
+{title:"هدي النبوة في التعليم",text:"قال رسول الله ﷺ: «يَسِّرُوا وَلَا تُعَسِّرُوا، وَبَشِّرُوا وَلَا تُنَفِّرُوا». نسأل الله تعالى أن يجعل مجالس فضيلة الشيخ عامرة بالعلم والرفق والبشارة.",source:"صحيح البخاري، حديث 69."},
+{title:"فضل الرحمة",text:"قال النبي ﷺ: «الرَّاحِمُونَ يَرْحَمُهُمُ الرَّحْمَنُ». بارك الله تعالى في رحمة فضيلة الشيخ بطلابه، وجعلها سببًا للسكينة وقبول العلم.",source:"جامع الترمذي، حديث 1924؛ قال الترمذي: حسن صحيح."},
+{title:"شرف الدعوة إلى الله",text:"قال الله تعالى: ﴿وَمَنْ أَحْسَنُ قَوْلًا مِمَّنْ دَعَا إِلَى اللَّهِ وَعَمِلَ صَالِحًا﴾. نسأل الله تعالى أن يبارك في علم فضيلة الشيخ وعمله، وينفع بهما.",source:"القرآن الكريم، سورة فصلت: 33."},
+{title:"ثمرة التعليم",text:"فضيلة الشيخ، أحسن الله إليكم، ورفع قدركم، وبارك في وقتكم وعلمكم، وجعل للقرآن الذي تعلّمونه أثرًا باقيًا في قلوب طلابكم وأعمالهم.",source:"دعاء وصياغة تشجيعية من إعداد الأكاديمية، وليست نصًا شرعيًا منقولًا."},
+{title:"الثناء الصادق",text:"ما يُبذل في تعليم القرآن ورعاية الناشئة عمل جليل؛ نسأل الله تعالى أن يتقبل جهد فضيلة الشيخ، وأن يرزقه الإخلاص والإتقان وحسن الأثر.",source:"صياغة تشجيعية من إعداد الأكاديمية، وليست نصًا شرعيًا منقولًا."},
+{title:"دعاء لأهل القرآن",text:"اللهم بارك لفضيلة الشيخ في علمه وعمله، وانفع به، واجعل ما يعلّمه من كتابك الكريم نورًا وهدايةً وأجرًا جاريًا، وارزقه القبول.",source:"دعاء من صياغة الأكاديمية، وليس حديثًا نبويًا."}
 ];
+
 const wisdomPool=["admin","teacher","director","supervisor"].includes(S.user.role)?dailyWisdomForSheikh:dailyWisdom;
 const dua=dailySupplications[((daySeed%dailySupplications.length)+dailySupplications.length)%dailySupplications.length];
 const wisdom=wisdomPool[Math.floor(Math.random()*wisdomPool.length)];
-html+='<section class="daily-nourishment-grid"><article class="card daily-nourishment dua-of-day"><div class="daily-kicker">'+esc(dua.title)+'</div><h3>'+esc(dua.text)+'</h3><p class="daily-source">'+esc(dua.source)+'</p></article><article class="card daily-nourishment wisdom-of-day"><div class="daily-kicker">'+esc(wisdom.title)+'</div><p>'+esc(wisdom.text)+'</p><span class="daily-source">فائدة تربوية من إعداد الأكاديمية، وليست نصًا شرعيًا منقولًا.</span></article></section>';
+html+='<section class="daily-nourishment-grid"><article class="card daily-nourishment dua-of-day"><div class="daily-kicker">'+esc(dua.title)+'</div><h3>'+esc(dua.text)+'</h3><p class="daily-source">'+esc(dua.source)+'</p></article><article class="card daily-nourishment wisdom-of-day"><div class="daily-kicker">'+esc(wisdom.title)+'</div><p>'+esc(wisdom.text)+'</p><span class="daily-source">'+esc(wisdom.source||"فائدة تربوية من إعداد الأكاديمية، وليست نصًا شرعيًا منقولًا.")+'</span></article></section>';
 const quickIds=S.user.role==="admin"?["attendance","quran","tests"]:["teacher","director","supervisor"].includes(S.user.role)?["attendance","quran","tests"]:[];
 const quickItems=items().filter(x=>quickIds.includes(x[0]));
 if(quickItems.length)html+='<section class="card quick-actions-card"><div class="section-head"><div><h3>خطوات سريعة</h3><p>انتقل مباشرةً إلى أكثر المهام استخدامًا.</p></div></div><div class="quick-actions">'+quickItems.map(x=>'<button class="quick-action" type="button" data-go="'+x[0]+'"><span class="quick-action-icon">'+navIcon(x[0])+'</span><span class="quick-action-copy"><strong>'+esc(x[1])+'</strong><small>فتح القسم</small></span><span class="quick-action-arrow" aria-hidden="true">←</span></button>').join("")+'</div></section>';
