@@ -522,7 +522,8 @@ export default {
       }
       const teamById=new Map(teams.map(t=>[t.id,t]));
       memberships=memberships.map(m=>({...m,team_name:teamById.get(m.team_id)?.team_name||m.team_name||"فرقة غير متاحة"}));
-      return json({group_id:groupId,current_student_id:currentStudent?.id||null,teams,memberships,requests,can_assign_members:!currentStudent||isTeamSupervisor,can_approve_transfers:user.role==="admin"||isChiefSupervisor});
+      const eligibleRows=currentStudent&&isTeamSupervisor?await env.DB.prepare("SELECT id,display_name AS name FROM students WHERE group_id=? AND active=1 ORDER BY display_name").bind(groupId).all():{results:[]};
+      return json({group_id:groupId,current_student_id:currentStudent?.id||null,teams,memberships,requests,eligible_students:eligibleRows.results||[],can_assign_members:!currentStudent||isTeamSupervisor,can_approve_transfers:user.role==="admin"||isChiefSupervisor});
     }
     if(path==="/api/student-team-memberships"&&method==="POST"){
       const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
