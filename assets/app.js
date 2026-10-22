@@ -179,7 +179,7 @@ const fmtStamp = s => /^\d{4}-\d{2}-\d{2}/.test(s || '') ? fmtDate(String(s).sli
 const clamp = p => Math.max(0, Math.min(100, Number(p) || 0));
 const pct = v => v == null ? '—' : v + '%';
 const bar = p => html`<div class="progress"><i data-w="${clamp(p)}"></i></div>`;
-const empty = (t, s = '') => html`<div class="empty"><b>${t}</b>${s}</div>`;
+const empty = (t, s = '') => { const detail = s || (String(t).includes('حضور') ? 'لم يُسجَّل حضور في هذه الفترة بعد؛ ابدأ على بركة الله.' : ''); return html`<div class="empty"><b>${t}</b>${detail}</div>`; };
 const initial = n => String(n || '؟').trim()[0] || '؟';
 
 function render(s) { put(V(), s); requestAnimationFrame(() => document.querySelectorAll('.progress i[data-w]').forEach(i => { i.style.width = i.dataset.w + '%'; })); }
