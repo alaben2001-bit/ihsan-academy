@@ -326,10 +326,10 @@ assert.match(backend, /يتعارض معرّف التسجيل مع سجل آخر
 assert.match(style, /data-appearance-palette="dark"/, "dark mode must have dedicated contrast rules");
 assert.match(style, /\.academy-update-notice/, "the update banner must have responsive styling");
 assert.match(style, /\.release-history-item/, "the in-app release history must be styled");
-assert.match(index, /app\.js\?v=20261022-151/, "frontend cache busting must use the latest asset version");
-assert.match(index, /style\.css\?v=20261022-151/, "stylesheet cache busting must use the latest asset version");
-assert.match(index, /startup\.js\?v=20261022-151/, "startup cache busting must use the latest asset version");
-assert.match(serviceWorker, /ihsan-academy-pwa-v115-20261022-151/, "service worker cache namespace must match this release");
+assert.match(index, /app\.js\?v=20261022-152/, "frontend cache busting must use the latest asset version");
+assert.match(index, /style\.css\?v=20261022-152/, "stylesheet cache busting must use the latest asset version");
+assert.match(index, /startup\.js\?v=20261022-152/, "startup cache busting must use the latest asset version");
+assert.match(serviceWorker, /ihsan-academy-pwa-v116-20261022-152/, "service worker cache namespace must match this release");
 assert.match(app, /secondary:""/, "welcome dua must have one Continue button rather than Later");
 assert.match(app, /primary:"متابعة"/, "the rotating welcome dua must use the requested Continue label");
 assert.match(app, /function rememberOfflineUser\(\)/, "offline startup may only rely on the minimal stored profile, never the password");
@@ -349,4 +349,7 @@ assert.match(app, /جامع بيان العلم وفضله/, "student adab guida
 assert.match(app, /حلية طالب العلم/, "student adab guidance must cite a recognized reference on etiquette of learning");
 assert.match(style, /body :is\(\.small,small,\.muted,/, "font scaling must include ordinary muted secondary text, not only small-muted combinations");
 assert.match(style, /table th,table td/, "font scaling must include report table contents");
+assert.match(app, /ihsan_last_dashboard_dua_index/, "the dashboard dua must rotate on every refresh");
+assert.match(app, /filter\(index=>index!==previousDuaIndex\)/, "the dashboard dua must avoid immediately repeating the prior dua");
+assert.match(app, /سنن أبي داود \(1522\)، والنسائي \(1303\)؛ صححه الألباني/, "the remembrance dua must show its source and grading");
 console.log("Security regression guardrails passed.");
