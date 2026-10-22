@@ -280,7 +280,8 @@ export default {
         const hashedPassword=await passwordHash(password);
         bootstrapStage = "حفظ حساب المدير";
         const id=uuid();
-        await env.DB.prepare("INSERT INTO users (id,display_name,identity_normalized,password_hash,role,active) VALUES (?,?,?,?, 'admin',1)").bind(id,name,identity,hashedPassword).run();
+        const created=await env.DB.prepare("INSERT INTO users (id,display_name,identity_normalized,password_hash,role,active) SELECT ?,?,?,?, 'admin',1 WHERE NOT EXISTS (SELECT 1 FROM users WHERE role='admin')").bind(id,name,identity,hashedPassword).run();
+         if(Number(created?.meta?.changes||0)!==1)return fail(409,"تم إنشاء حساب المدير الأول بالفعل؛ حدّث الصفحة وسجّل الدخول.");
         // Audit logging must not turn a successful account creation into a misleading 500.
         try { await log(env,id,"admin_bootstrap",{identity}); }
         catch (auditError) { console.error("Ihsan audit log failed after admin bootstrap", { message:String(auditError?.message||auditError) }); }
