@@ -230,7 +230,8 @@ assert.doesNotMatch(app, /settings-about-section|settings-about-open/, "signed-i
 assert.match(app, /const knowledgeVerses=\[/, "the welcome screen must use a maintained list of Quranic knowledge verses");
 assert.match(app, /rotateKnowledgeVerses\(\)/, "Quranic knowledge verses must rotate automatically on the welcome screen");
 assert.doesNotMatch(app, /knowledge-verse-next|الآية التالية/, "the manual next-verse control must stay removed");
-assert.match(app, /Math\.floor\(Math\.random\(\)\*knowledgeVerses\.length\)/, "a random Quranic verse must be selected on the welcome screen");
+assert.match(app, /const choices=knowledgeVerses\.map\(\(_,index\)=>index\)\.filter\(index=>index!==previous\)/, "a different Quranic verse must be chosen from the previous selection");
+assert.match(app, /Math\.floor\(Math\.random\(\)\*choices\.length\)/, "the welcome verse must be selected randomly from the remaining choices");
 assert.match(app, /ihsan_last_knowledge_verse_index/, "the welcome verse must remember the previous selection across sessions");
 assert.match(app, /filter\(index=>index!==previous\)/, "the welcome verse must avoid repeating the immediately previous verse");
 for (const reference of ["سورة طه، الآية 114","سورة العلق، الآية 5","سورة الزمر، الآية 9","سورة المجادلة، الآية 11","سورة فاطر، الآية 28","سورة الإسراء، الآية 36"]) assert.ok(app.includes(reference), "missing Quranic verse reference: "+reference);
