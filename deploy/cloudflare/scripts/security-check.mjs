@@ -131,6 +131,9 @@ assert.match(app, /api\("\/admin\/staff",\{method:"POST"/, "staff creation form 
 assert.match(backend, /if\(path==="\/api\/admin\/staff"&&method==="POST"\)/, "the backend must create scoped director and supervisor accounts");
 assert.match(backend, /must_change_password\) VALUES\(\?,\?,\?,\?,\?,1,1\)/, "director and supervisor accounts must require a first-login password change");
 assert.ok(!app.includes('id="roster-add-form"'), "the obsolete nominal roster import form must remain removed from the UI");
+assert.match(app, /function playUiSound\(kind="click"\)/, "optional non-musical UI sound effects must be implemented");
+assert.ok(app.includes('id="settings-ui-sounds"') && app.includes('id="settings-sound-preview"'), "sound settings must provide a toggle and preview control");
+assert.match(app, /ihsan_ui_sounds/, "sound preference must be persisted locally");
 assert.match(backend, /if\(path==="\/api\/admin\/roster-add"&&method==="POST"\)/, "nominal roster import must use the Cloudflare API");
 assert.match(backend, /if\(count>=target\)\{skipped\+\+;continue\}/, "retries must preserve intended duplicate counts without duplicating the whole list");
 
