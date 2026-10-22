@@ -195,7 +195,7 @@ function renderTopActions(){
  if(S.user&&!entryView)actions+='<button class="btn secondary" id="settings-open" type="button" aria-label="إعدادات الأكاديمية">الإعدادات</button> ';
  if(entryView)actions+='<button class="btn secondary install-app-button" id="install-app" type="button" '+(installed?'disabled aria-label="التطبيق مثبت بالفعل"':'aria-label="تثبيت أكاديمية الإحسان على الهاتف"')+'>'+(installed?'التطبيق مثبت':'تثبيت التطبيق')+'</button>';
  if(S.user)actions+=' <button class="btn secondary" id="logout" type="button">خروج</button>';
- $("#top-actions").innerHTML=actions;
+ const topActions=$("#top-actions");if(topActions)topActions.innerHTML=actions;
  $("#academy-about-open")?.addEventListener("click",showAcademyAbout);$("#settings-open")?.addEventListener("click",showSettings);$("#switch-module-top")?.addEventListener("click",()=>moduleChooser());$("#logout")?.addEventListener("click",logout);
  $("#install-app")?.addEventListener("click",async()=>{if(ihsanIsInstalled()){toast("أكاديمية الإحسان مثبتة بالفعل على هذا الجهاز.");return}const p=ihsanInstallPrompt;if(!p){showInstallGuide();return}ihsanInstallPrompt=null;try{await p.prompt();const choice=await p.userChoice;if(choice?.outcome==="accepted")toast("اتبع تعليمات المتصفح لإكمال تثبيت الأكاديمية.");else toast("يمكنك التثبيت لاحقًا من قائمة المتصفح.")}catch{showInstallGuide()}});
 }
