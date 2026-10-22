@@ -278,7 +278,7 @@ assert.match(app, /data-transfer-decision="approve"/, "the chief supervisor must
 assert.match(app, /crypto\.getRandomValues\(new Uint8Array\(18\)\)/, "blank student password fields must generate a strong random temporary password");
 assert.doesNotMatch(app, /12345678/, "a universal student password must never be shown or submitted");
 assert.match(app, /id="admin-focus-toggle"/, "the director account must be able to switch between daily teaching and administration");
-assert.match(app, /makeGroup\("عمل الشيخ اليومي"/, "admin daily focus must keep teaching tasks separate from administrative tools");
+assert.match(app, /makeGroup\("مهام الشيخ اليومية"/, "admin daily focus must keep teaching tasks separate from administrative tools");
 assert.match(app, /function honorificDisplayName\(name,role\)/, "staff names must use the shared Sheikh honorific formatter");
 assert.match(app, /const displayUserName=honorificDisplayName\(S\.user\.name,S\.user\.role\)/, "the signed-in director, teacher and administrator names must use the shared honorific formatter");
 assert.match(app, /name="thumn" type="number"/, "Quran records must require a thumn number");
@@ -304,5 +304,17 @@ const healthStart = backend.indexOf('if (path === "/api/health"');
 const healthEnd = backend.indexOf('if (path === "/api/setup/status"', healthStart);
 const healthBlock = healthStart >= 0 && healthEnd > healthStart ? backend.slice(healthStart, healthEnd) : "";
 assert.ok(healthBlock && !healthBlock.includes("COUNT(*) AS n FROM users") && !healthBlock.includes("users:users?.n"), "public health checks must not disclose account totals");
+
+
+// Regression guards for the new UI and offline workflow.
+assert.doesNotMatch(app, /<button type="button" class="knowledge-verse-next"/, "the manual next-verse button must remain removed");
+assert.match(app, /function enqueueOfflineWrite\(/, "offline writes must enter an explicit local queue");
+assert.match(app, /function mergeOfflineQueue\(/, "offline reads must overlay queued attendance and Quran records");
+assert.match(app, /async function flushOfflineQueue\(/, "offline writes must sync when connectivity returns");
+assert.match(app, /rememberOfflineUser\(\)/, "the app must keep a minimal last-session profile for offline startup");
+assert.match(app, /const effectiveDark=mode==="dark"\|\|\(mode==="auto"/, "automatic appearance mode must follow the device theme");
+assert.match(style, /data-appearance-palette="dark"/, "dark surfaces must use dedicated high-contrast rules");
+assert.match(backend, /requestedRecordId&&\/\^offline-\[a-f0-9-\]/, "Quran offline retries must keep a stable record identifier");
+assert.match(backend, /requestedId&&!\/\^offline-\[a-f0-9-\]/, "offline group creation must be restricted to generated stable identifiers");
 
 console.log("Security regression guardrails passed.");
