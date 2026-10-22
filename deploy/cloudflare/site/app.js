@@ -6,7 +6,27 @@ let ihsanGoogleScriptPromise=null;
 function ihsanIsInstalled(){return Boolean(window.matchMedia&&window.matchMedia("(display-mode: standalone)").matches)||navigator.standalone===true}
 window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();ihsanInstallPrompt=e;document.documentElement.classList.add("ihsan-install-available")});
 window.addEventListener("appinstalled",()=>{ihsanInstallPrompt=null;const b=document.getElementById("install-app");if(b){b.disabled=true;b.textContent="التطبيق مثبت"}toast("تم تثبيت أكاديمية الإحسان على جهازك.")});
-if("serviceWorker" in navigator&&location.protocol==="https:")window.addEventListener("load",()=>navigator.serviceWorker.register("/service-worker.js").catch(()=>{}));
+function showAcademyUpdateNotice(){
+ if(document.getElementById("academy-update-notice"))return;
+ const box=document.createElement("section");box.id="academy-update-notice";box.className="academy-update-notice";box.setAttribute("role","status");box.setAttribute("dir","rtl");
+ box.innerHTML='<div class="academy-update-copy"><strong>يتوفر تحديث جديد للأكاديمية</strong><span>حدّث الصفحة لتظهر لك أحدث التحسينات على هذا الجهاز.</span></div><div class="academy-update-actions"><button type="button" class="btn" id="academy-update-now">تحديث التطبيق</button><button type="button" class="btn secondary" id="academy-update-dismiss">إخفاء</button></div>';
+ document.body.appendChild(box);
+ document.getElementById("academy-update-now")?.addEventListener("click",()=>location.reload());
+ document.getElementById("academy-update-dismiss")?.addEventListener("click",()=>box.remove());
+ try{if("Notification" in window&&Notification.permission==="granted")new Notification("تحديث أكاديمية الإحسان",{body:"يتوفر إصدار أحدث؛ افتح التطبيق من جديد لتطبيقه."})}catch{}
+}
+if("serviceWorker" in navigator&&location.protocol==="https:")window.addEventListener("load",async()=>{
+ const hadController=Boolean(navigator.serviceWorker.controller);
+ try{
+  const registration=await navigator.serviceWorker.register("/service-worker.js");
+  registration.addEventListener("updatefound",()=>{
+   const installing=registration.installing;
+   installing?.addEventListener("statechange",()=>{if(hadController&&installing.state==="installed")showAcademyUpdateNotice()});
+  });
+  if(hadController&&registration.waiting)showAcademyUpdateNotice();
+  registration.update().catch(()=>{});
+ }catch{}
+});
 async function loadGoogleIdentityLibrary(){
  if(window.google&&window.google.accounts&&window.google.accounts.id)return;
  if(!ihsanGoogleScriptPromise)ihsanGoogleScriptPromise=new Promise((resolve,reject)=>{const s=document.createElement("script");s.src="https://accounts.google.com/gsi/client";s.async=true;s.defer=true;s.onload=resolve;s.onerror=()=>reject(new Error("تعذر تحميل Google Identity Services"));document.head.appendChild(s)});
@@ -118,6 +138,7 @@ applyTheme();
 function applyAppearanceSettings(){
  const root=document.documentElement;
  const mode=safeStore.get("ihsan_appearance_mode")||"auto";
+ const effectiveDark=mode==="dark"||(mode==="auto"&&!!window.matchMedia?.("(prefers-color-scheme: dark)").matches);
  const background=safeStore.get("ihsan_appearance_background")||"glow";
  const iconStyle=safeStore.get("ihsan_icon_style")||"soft";
  const iconSize=safeStore.get("ihsan_icon_size")||"medium";
@@ -126,8 +147,9 @@ function applyAppearanceSettings(){
  applyTheme();
  root.dataset.appearance=mode;root.dataset.appearanceBackground=background;root.dataset.iconStyle=iconStyle;root.dataset.iconSize=iconSize;
  root.style.setProperty("--user-font-scale",String(fontScale));
- root.style.colorScheme=mode==="dark"?"dark":mode==="light"?"light":"light dark";
- if(mode==="dark"){
+ root.dataset.appearancePalette=effectiveDark?"dark":"light";
+ root.style.colorScheme=effectiveDark?"dark":"light";
+ if(effectiveDark){
   const dark={green:"#75dfb7",mint:"#183b32",gold:"#e8c77c",paper:"#0b1517",ink:"#e7f0eb",muted:"#adc0b7",line:"#304a43",surface:"#142321","surface-2":"#1b2d2a",glow:"#75dfb726",shadow:"0 12px 30px #0005", "shadow-raised":"0 24px 52px #0006"};
   for(const [key,value] of Object.entries(dark))root.style.setProperty("--"+key,value);
   const meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.setAttribute("content","#0b1517");
@@ -137,23 +159,159 @@ function applyAppearanceSettings(){
  }
 }
 applyAppearanceSettings();
+if(window.matchMedia){const systemDark=window.matchMedia("(prefers-color-scheme: dark)");systemDark.addEventListener?.("change",()=>{if((safeStore.get("ihsan_appearance_mode")||"auto")==="auto")applyAppearanceSettings()})}
 if(safeStore.get("ihsan_reduce_motion")==="1")document.documentElement.classList.add("ihsan-reduced-motion");
+
+
 const esc=v=>String(v==null?"":v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 function readCsrfCookie(){try{const part=document.cookie.split(";").map(x=>x.trim()).find(x=>x.startsWith("__Host-ihsan_csrf="));return part?decodeURIComponent(part.slice("__Host-ihsan_csrf=".length)):""}catch{return ""}}
+function offlineUserKey(){return "ihsan_offline_user"}
+function rememberOfflineUser(){
+ if(!S.user?.id)return;
+ const user={id:S.user.id,name:S.user.name,role:S.user.role,student_id:S.user.student_id||null,group_id:S.user.group_id||null,school_ids:S.user.school_ids||[],group_ids:S.user.group_ids||[]};
+ try{safeStore.set(offlineUserKey(),JSON.stringify(user))}catch{}
+}
+function loadOfflineUser(){
+ try{const raw=safeStore.get(offlineUserKey());if(!raw)return null;const u=JSON.parse(raw);return u&&u.id&&u.role?u:null}catch{return null}
+}
+function offlineQueueKey(){return S.user?.id?"ihsan_offline_pending_v1_"+S.user.id:""}
+function readOfflineQueue(){
+ const key=offlineQueueKey();if(!key)return [];
+ try{const q=JSON.parse(safeStore.get(key)||"[]");return Array.isArray(q)?q:[]}catch{return []}
+}
+function writeOfflineQueue(q){const key=offlineQueueKey();if(!key)return false;try{localStorage.setItem(key,JSON.stringify(q.slice(-300)));return true}catch{return false}}
+function offlineCacheKey(path){return "ihsan_offline_cache_"+(S.user?.id||"anonymous")+"_"+encodeURIComponent(path)}
+function cacheableApiPath(path,method){
+ if(method!=="GET")return false;
+ const base=String(path).split("?")[0];
+ return ["/dashboard","/groups","/students","/teachers","/admin/student-team-supervisors","/attendance","/quran","/quran/plan","/quran/progress","/tests","/assignments","/gamification","/leaderboard","/messages","/messages/recipients","/notifications"].includes(base);
+}
+function parseOfflineBody(body){
+ if(body&&typeof body==="object")return body;
+ if(typeof body==="string"){try{return JSON.parse(body)}catch{}}
+ return null;
+}
+function canQueueOffline(path,method){
+ const base=String(path).split("?")[0];
+ return (method==="POST"&&["/attendance","/quran/progress","/groups"].includes(base))||(method==="PATCH"&&/^\/groups\/[^/]+$/.test(base));
+}
+function enqueueOfflineWrite(path,method,body){
+ if(!S.user?.id||!canQueueOffline(path,method)||!body)return false;
+ const q=readOfflineQueue(),base=String(path).split("?")[0],id=String(body.id||"");
+ const entry={queue_id:crypto.randomUUID?crypto.randomUUID():String(Date.now())+"-"+Math.random().toString(36).slice(2),userId:S.user.id,path,method,body,created_at:new Date().toISOString()};
+ if(base==="/attendance"){
+  const day=String(body.date||""),group=String(body.group_id||"");
+  for(let i=q.length-1;i>=0;i--)if(q[i].userId===S.user.id&&q[i].path==="/attendance"&&String(q[i].body?.date)===day&&String(q[i].body?.group_id)===group)q.splice(i,1);
+ }else if(base==="/quran/progress"&&id){
+  for(let i=q.length-1;i>=0;i--)if(q[i].userId===S.user.id&&q[i].path==="/quran/progress"&&String(q[i].body?.id)===id)q.splice(i,1);
+ }else if(base==="/groups"&&method==="POST"&&id){
+  for(let i=q.length-1;i>=0;i--)if(q[i].userId===S.user.id&&q[i].path==="/groups"&&String(q[i].body?.id)===id)q.splice(i,1);
+ }else if(method==="PATCH"){
+  for(let i=q.length-1;i>=0;i--)if(q[i].userId===S.user.id&&q[i].path===path&&q[i].method==="PATCH")q.splice(i,1);
+ }
+ q.push(entry);return writeOfflineQueue(q);
+}
+function mergeOfflineQueue(path,value){
+ if(!Array.isArray(value))return value;
+ const url=new URL(path,location.origin),base=url.pathname,queue=readOfflineQueue().filter(x=>x.userId===S.user?.id);
+ const merged=value.slice();
+ if(base==="/groups"){
+  for(const item of queue){
+   if(item.method==="POST"&&item.path==="/groups"&&item.body?.id&&!merged.some(g=>g.id===item.body.id)){
+    merged.push({id:item.body.id,name:item.body.name,school_id:item.body.school_id||"qs-rahman",teacher_id:item.body.teacher_id||null,active:1,offline_pending:true});
+   }
+   if(item.method==="PATCH"&&/^\/groups\/[^/]+$/.test(item.path)){
+    const id=item.path.split("/").pop(),index=merged.findIndex(g=>g.id===id);
+    if(index>=0)merged[index]={...merged[index],...item.body,offline_pending:true};
+   }
+  }
+ }
+ if(base==="/attendance"){
+  const targetGroup=url.searchParams.get("group_id")||"",targetDate=url.searchParams.get("date")||"";
+  for(const item of queue.filter(x=>x.method==="POST"&&x.path==="/attendance")){
+   const b=item.body||{};
+   if(targetGroup&&String(b.group_id)!==targetGroup)continue;
+   if(targetDate&&String(b.date)!==targetDate)continue;
+   for(const row of (b.items||[])){
+    const r={id:String(b.date)+":"+String(row.student_id),student_id:row.student_id,group_id:b.group_id,date:b.date,status:row.status,note:row.note||"",updated_at:item.created_at,offline_pending:true};
+    const n=merged.findIndex(x=>x.student_id===r.student_id&&x.date===r.date);
+    if(n>=0)merged[n]=r;else merged.push(r);
+   }
+  }
+  merged.sort((a,b)=>String(b.date||"").localeCompare(String(a.date||"")));
+ }
+ if(base==="/quran/progress"){
+  const targetStudent=url.searchParams.get("student_id")||(S.user?.role==="student"?S.user.student_id:"");
+  for(const item of queue.filter(x=>x.method==="POST"&&x.path==="/quran/progress")){
+   const b=item.body||{};if(targetStudent&&String(b.student_id)!==String(targetStudent))continue;
+   const student=S.students.find(st=>st.id===b.student_id);
+   const r={...b,group_id:b.group_id||student?.group_id||"",teacher_id:S.user?.id,created_at:item.created_at,updated_at:item.created_at,offline_pending:true};
+   const n=merged.findIndex(x=>x.id===r.id);if(n>=0)merged[n]=r;else merged.push(r);
+  }
+  merged.sort((a,b)=>String(b.date||"").localeCompare(String(a.date||""))||String(b.created_at||"").localeCompare(String(a.created_at||"")));
+ }
+ return merged;
+}
+let offlineFlushRunning=false;
+async function flushOfflineQueue(quiet=true){
+ if(offlineFlushRunning||!navigator.onLine||!S.user?.id)return;
+ offlineFlushRunning=true;let synced=0;
+ try{
+  const queue=readOfflineQueue();
+  for(const item of queue){
+   if(item.userId!==S.user.id)continue;
+   try{
+    const headers={"content-type":"application/json"},csrf=readCsrfCookie();if(csrf)headers["x-csrf-token"]=csrf;
+    const response=await fetch("/api"+item.path,{method:item.method,credentials:"same-origin",headers,body:JSON.stringify(item.body)});
+    if(!response.ok)break;
+    let latest=readOfflineQueue();latest=latest.filter(x=>x.queue_id!==item.queue_id);writeOfflineQueue(latest);synced++;
+   }catch{break}
+  }
+ }finally{offlineFlushRunning=false}
+ if(synced&&!quiet)toast("تمت مزامنة "+synced+" عملية محفوظة دون اتصال.");
+}
+window.addEventListener("online",()=>flushOfflineQueue(false));
 async function api(path,opt={}){
- const method=String(opt.method||"GET").toUpperCase();
- const h={"content-type":"application/json",...(S.token?{authorization:"Bearer "+S.token}:{}),...(opt.headers||{})};
+ const method=String(opt.method||"GET").toUpperCase(),base=String(path).split("?")[0];
+ let bodyData=parseOfflineBody(opt.body),requestOptions={...opt};
+ if(method==="POST"&&(base==="/quran/progress"||base==="/groups")&&bodyData&&!bodyData.id){
+  bodyData={...bodyData,id:"offline-"+(crypto.randomUUID?crypto.randomUUID():Date.now()+"-"+Math.random().toString(36).slice(2))};
+  requestOptions.body=JSON.stringify(bodyData);
+ }
+ const h={"content-type":"application/json",...(S.token?{authorization:"Bearer "+S.token}:{}),...(requestOptions.headers||{})};
  if(["POST","PUT","PATCH","DELETE"].includes(method)){const csrf=readCsrfCookie();if(csrf)h["x-csrf-token"]=csrf}
  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
  try{
-  const r=await fetch("/api"+path,{...opt,credentials:"same-origin",headers:h,signal:controller.signal});
+  const r=await fetch("/api"+path,{...requestOptions,credentials:"same-origin",headers:h,signal:controller.signal});
   const raw=await r.text();let d;
   try{d=raw?JSON.parse(raw):{}}
   catch{const type=r.headers.get("content-type")||"غير محدد";const preview=raw.replace(/\\s+/g," ").slice(0,180);throw Error("رد غير صالح من الخادم — "+r.status+" — نوع المحتوى: "+type+(preview?" — "+preview:" — استجابة فارغة"))}
-  if(!r.ok)throw Error(d.error||("فشل الطلب ("+r.status+")"));return d
- }catch(e){if(e.name==="AbortError")throw Error("انتهت مهلة الاتصال بالخادم بعد 12 ثانية أثناء انتظار الاستجابة. أعد المحاولة؛ إذا تكرر الأمر فالمشكلة في مسار API أو قاعدة البيانات.");if(e instanceof TypeError)throw Error("تعذّر الاتصال بخادم الأكاديمية. تحقق من الاتصال ثم أعد المحاولة.");throw e}
- finally{clearTimeout(timer)}
+  if(!r.ok)throw Error(d.error||("فشل الطلب ("+r.status+")"));
+  if(cacheableApiPath(path,method)){
+   try{const serialized=JSON.stringify({saved_at:Date.now(),value:d});if(serialized.length<1500000)safeStore.set(offlineCacheKey(path),serialized)}catch{}
+  }
+  return d;
+ }catch(e){
+  if(e instanceof TypeError||(!navigator.onLine&&e.name!=="AbortError")){
+   if(canQueueOffline(path,method)&&enqueueOfflineWrite(path,method,bodyData)){
+    if(base==="/attendance")return {ok:true,saved:(bodyData?.items||[]).length,queued_offline:true};
+    if(base==="/quran/progress")return {...bodyData,queued_offline:true};
+    if(base==="/groups"&&method==="POST")return {...bodyData,queued_offline:true};
+    if(method==="PATCH")return {ok:true,queued_offline:true};
+   }
+   if(method==="GET"&&cacheableApiPath(path,method)){
+    try{const raw=safeStore.get(offlineCacheKey(path));if(raw){const cached=JSON.parse(raw),value=mergeOfflineQueue(path,cached.value);return value}}catch{}
+   }
+   if(e.name==="AbortError")throw Error("انتهت مهلة الاتصال بالخادم بعد 12 ثانية. أعد المحاولة عند استقرار الشبكة.");
+   throw Error(method==="GET"?"لا يوجد اتصال؛ تعذّر الاتصال بالخادم ولا توجد نسخة محفوظة لهذا القسم على هذا الجهاز.":"لا يوجد اتصال. لم تُحفظ العملية محليًا لهذا النوع؛ أعدها عند عودة الشبكة.");
+  }
+  if(e.name==="AbortError")throw Error("انتهت مهلة الاتصال بالخادم بعد 12 ثانية أثناء انتظار الاستجابة. أعد المحاولة؛ إذا تكرر الأمر فالمشكلة في مسار API أو قاعدة البيانات.");
+  if(e instanceof TypeError)throw Error("تعذّر الاتصال بخادم الأكاديمية. تحقق من الاتصال ثم أعد المحاولة.");
+  throw e;
+ }finally{clearTimeout(timer)}
 }
+
+
 function playUiSound(kind="click"){
  if(safeStore.get("ihsan_ui_sounds")==="0")return;
  try{
@@ -210,11 +368,17 @@ function showSettings(){
  const themeMarkup=themes.map((t,i)=>'<button type="button" class="theme-choice" data-theme-index="'+i+'" aria-pressed="'+(i===selectedIndex)+'"><span class="theme-swatch theme-swatch-'+i+'" aria-hidden="true"><i></i></span><span class="theme-choice-copy"><strong>'+esc(t.name)+'</strong><small>'+notes[i]+'</small></span><span class="theme-check" aria-hidden="true">✓</span></button>').join("");
  const googleLinked=safeStore.get("ihsan_google_linked")==="1";
  const securityMarkup=S.user?'<section class="settings-section"><div class="settings-section-title"><span class="settings-icon" aria-hidden="true">⌑</span><div><h3>الحساب والأمان</h3><p>احمِ حسابك بكلمة مرور قوية لا تستخدمها في موقع آخر.</p></div></div><div class="student-actions"><button type="button" class="btn" id="settings-password">تغيير كلمة المرور</button>'+(googleLinked?'<span class="google-linked-status" role="status">✓ Google مرتبط بهذا الحساب</span>':'<button type="button" class="btn secondary" id="settings-google-link">ربط حساب Google</button>')+'</div><div id="settings-google-link-area" class="google-login-section hidden"><div id="settings-google-link-host"></div><p id="settings-google-link-note" class="muted small">اربط حساب Google بحساب الأكاديمية الحالي؛ لن يُنشأ حساب جديد.</p></div></section>':'<section class="settings-section"><h3>الحساب والأمان</h3><p class="muted small">سجّل الدخول لإدارة إعدادات حسابك وكلمة المرور.</p></section>';
- const markup='<dialog id="settings-dialog" class="settings-dialog" aria-labelledby="settings-title"><div class="settings-head"><div><span class="eyebrow">تفضيلاتك الشخصية</span><h2 id="settings-title">إعدادات الأكاديمية</h2><p>اضبط الواجهة بما يريحك، وتُحفظ اختياراتك على هذا الجهاز.</p></div><button type="button" class="settings-close" id="settings-close" aria-label="إغلاق الإعدادات">×</button></div><div class="settings-body"><section class="settings-section settings-contact-section"><div class="settings-section-title"><span class="settings-icon" aria-hidden="true">✆</span><div><h3>التواصل والمساعدة</h3><p>قنوات مباشرة للملاحظات والتحسين والتنبيهات.</p></div></div><div class="settings-help-grid"><article class="settings-help-card"><h4>التواصل مع صاحب الأكاديمية</h4><p>للاستفسارات وملاحظات الاستخدام.</p><a class="btn" href="https://wa.me/213652358723?text=%D8%A7%D9%84%D8%B3%D9%84%D8%A7%D9%85%20%D8%B9%D9%84%D9%8A%D9%83%D9%85%D8%8C%20%D8%A3%D8%B1%D9%8A%D8%AF%20%D8%A7%D9%84%D8%AA%D9%88%D8%A7%D8%B5%D9%84%20%D8%A8%D8%B4%D8%A3%D9%86%20%D8%A3%D9%83%D8%A7%D8%AF%D9%8A%D9%85%D9%8A%D8%A9%20%D8%A7%D9%84%D8%A5%D8%AD%D8%B3%D8%A7%D9%86" target="_blank" rel="noopener noreferrer">واتساب · 0652358723</a></article><article class="settings-help-card"><h4>التنبيهات والأخطاء</h4><p>راجع التنبيهات، وأرسل بلاغًا مع اسم الصفحة والخطوات التي سبقت الخطأ.</p><button type="button" class="btn secondary" id="settings-open-notifications">فتح التنبيهات</button><a class="btn secondary" href="https://wa.me/213652358723?text=%D8%A8%D9%84%D8%A7%D8%BA%20%D8%B9%D9%86%20%D8%AE%D8%B7%D8%A3%3A%20%D8%A7%D8%B3%D9%85%20%D8%A7%D9%84%D8%B5%D9%81%D8%AD%D8%A9%20%D9%88%D8%B5%D9%81%20%D8%A7%D9%84%D8%AE%D8%B7%D8%A3%20%D9%88%D8%A7%D9%84%D8%AE%D8%B7%D9%88%D8%A7%D8%AA" target="_blank" rel="noopener noreferrer">الإبلاغ عن خطأ</a></article><article class="settings-help-card"><h4>ساعدنا على التطوير</h4><p>سجّل الحفظ بعد الحلقة مباشرة، وتأكد من رقم الثمن، واقترح تحسينًا محددًا مع ذكر الصفحة التي تخصه.</p><a class="btn secondary" href="https://wa.me/213652358723?text=%D8%A7%D9%82%D8%AA%D8%B1%D8%A7%D8%AD%20%D9%84%D8%AA%D8%B7%D9%88%D9%8A%D8%B1%20%D8%A3%D9%83%D8%A7%D8%AF%D9%8A%D9%85%D9%8A%D8%A9%20%D8%A7%D9%84%D8%A5%D8%AD%D8%B3%D8%A7%D9%86%3A%20" target="_blank" rel="noopener noreferrer">إرسال اقتراح</a></article><article class="settings-help-card"><h4>دعم الأكاديمية بالتبرع</h4><p>للتبرع والاستفسار عن وسيلة الدعم المتاحة، تواصل مع المالك؛ لم تُضف بيانات دفع غير مؤكدة.</p><a class="btn" href="https://wa.me/213652358723?text=%D8%A3%D8%B1%D8%BA%D8%A8%20%D9%81%D9%8A%20%D8%AF%D8%B9%D9%85%20%D8%A3%D9%83%D8%A7%D8%AF%D9%8A%D9%85%D9%8A%D8%A9%20%D8%A7%D9%84%D8%A5%D8%AD%D8%B3%D8%A7%D9%86%20%D8%A8%D8%A7%D9%84%D8%AA%D8%A8%D8%B1%D8%B9" target="_blank" rel="noopener noreferrer">التبرع ودعم المشروع</a></article></div></section><section class="settings-section"><div class="settings-section-title"><span class="settings-icon" aria-hidden="true">◈</span><div><h3>ألوان الواجهة</h3><p>اختر سمة، وستتغيّر ألوان الصفحات والبطاقات معًا.</p></div></div><div class="theme-options">'+themeMarkup+'</div><div class="theme-mode-controls"><button type="button" id="settings-theme-random" class="btn secondary" aria-pressed="'+(themeMode!=="fixed")+'">🎲 عشوائي كل جلسة</button><span class="pill" id="theme-mode-status">'+(themeMode==="fixed"?'السمة المثبتة: '+esc(themes[selectedIndex].name):'يتغيّر اللون تلقائيًا مع كل جلسة جديدة')+'</span></div></section><section class="settings-section appearance-studio"><div class="settings-section-title"><span class="settings-icon" aria-hidden="true">✦</span><div><h3>استوديو المظهر</h3><p>اضبط الوضع الليلي والخلفية والأيقونات وحجم الخط بما يناسبك.</p></div></div><div class="appearance-grid"><div class="appearance-field"><label>الوضع اللوني</label><div class="appearance-buttons"><button type="button" class="appearance-choice" data-appearance-mode="light">☀ نهاري</button><button type="button" class="appearance-choice" data-appearance-mode="dark">☾ ليلي مبهر</button><button type="button" class="appearance-choice" data-appearance-mode="auto">◐ تلقائي</button></div></div><div class="appearance-field"><label>خلفية الصفحات</label><div class="appearance-buttons"><button type="button" class="appearance-choice" data-appearance-bg="glow">✦ وهج</button><button type="button" class="appearance-choice" data-appearance-bg="geometry">◇ هندسية</button><button type="button" class="appearance-choice" data-appearance-bg="plain">○ صافية</button></div></div><div class="appearance-field"><label>شكل الأيقونات</label><div class="appearance-buttons appearance-icon-style-options"><button type="button" class="appearance-choice" data-icon-style="soft"><span class="appearance-demo-icon" data-demo-style="soft" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 14.8 9.2 21 12 14.8 14.8 12 21 9.2 14.8 3 12 9.2 9.2Z"/></svg></span><span>ناعمة</span></button><button type="button" class="appearance-choice" data-icon-style="bold"><span class="appearance-demo-icon" data-demo-style="bold" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 14.8 9.2 21 12 14.8 14.8 12 21 9.2 14.8 3 12 9.2 9.2Z"/></svg></span><span>بارزة</span></button><button type="button" class="appearance-choice" data-icon-style="framed"><span class="appearance-demo-icon" data-demo-style="framed" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 14.8 9.2 21 12 14.8 14.8 12 21 9.2 14.8 3 12 9.2 9.2Z"/></svg></span><span>مؤطّرة</span></button></div></div><div class="appearance-field"><label>حجم الأيقونات <span class="muted small">معاينة بالحجم الحقيقي</span></label><div class="appearance-buttons appearance-icon-size-options"><button type="button" class="appearance-choice" data-icon-size="small"><span class="appearance-size-demo" data-demo-size="small" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 12h16M12 4v16"/><circle cx="12" cy="12" r="8"/></svg></span><span>صغير</span></button><button type="button" class="appearance-choice" data-icon-size="medium"><span class="appearance-size-demo" data-demo-size="medium" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 12h16M12 4v16"/><circle cx="12" cy="12" r="8"/></svg></span><span>متوسط</span></button><button type="button" class="appearance-choice" data-icon-size="large"><span class="appearance-size-demo" data-demo-size="large" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 12h16M12 4v16"/><circle cx="12" cy="12" r="8"/></svg></span><span>كبير</span></button></div></div><div class="appearance-live-preview" aria-live="polite"><div><strong>معاينة الأيقونات في الأكاديمية</strong><p>تتغيّر هذه الأمثلة فورًا مع اختيار الحجم والشكل، لتتخيّل ظهورها في القوائم والبطاقات.</p></div><div class="appearance-live-icons"><span class="appearance-live-item"><svg viewBox="0 0 24 24" class="nav-icon" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg><small>الرئيسية</small></span><span class="appearance-live-item"><svg viewBox="0 0 24 24" class="nav-icon" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v18H6.5A2.5 2.5 0 0 1 4 17.5z"/><path d="M4 17.5A2.5 2.5 0 0 1 6.5 15H20"/></svg><small>القرآن</small></span><span class="appearance-live-item"><svg viewBox="0 0 24 24" class="nav-icon" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m12 21-1.45-1.32C5.4 14.99 2 11.9 2 8.1 2 5 4.42 2.5 7.5 2.5c1.74 0 3.41.81 4.5 2.1 1.09-1.29 2.76-2.1 4.5-2.1C19.58 2.5 22 5 22 8.1c0 3.8-3.4 6.89-8.55 11.59z"/></svg><small>إنجازي</small></span><span class="appearance-live-item"><svg viewBox="0 0 24 24" class="nav-icon" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4L19 6"/></svg><small>المهام</small></span></div></div><div class="appearance-field appearance-font-field"><label for="settings-font-scale">حجم الخط <output id="settings-font-scale-value">100%</output></label><input id="settings-font-scale" type="range" min="85" max="180" step="5" value="'+Math.round(Math.min(1.8,Math.max(.85,Number(safeStore.get("ihsan_font_scale")||1)))*100)+'"><div class="appearance-range-labels"><span>أصغر</span><span>أكبر</span></div><p class="appearance-font-preview" id="settings-font-preview">بسم الله الرحمن الرحيم — العلم النافع والعمل الصالح</p></div></div></section><section class="settings-section"><div class="settings-section-title"><span class="settings-icon" aria-hidden="true">◌</span><div><h3>الأصوات والراحة</h3><p>مؤثرات قصيرة غير لحنية، دون موسيقى أو نغمات؛ للنقر والنجاح والتنبيه.</p></div></div><label class="settings-preference" for="settings-ui-sounds"><span><strong>مؤثرات الواجهة</strong><small>تشغيل أو إيقاف أصوات الضغط والنتائج على هذا الجهاز.</small></span><input id="settings-ui-sounds" type="checkbox" '+(safeStore.get("ihsan_ui_sounds")!=="0"?'checked':'')+'></label><div class="student-actions"><button type="button" class="btn secondary" id="settings-sound-preview">تجربة الصوت</button><span class="muted small" id="settings-sound-status">'+(safeStore.get("ihsan_ui_sounds")==="0"?'الأصوات متوقفة':'الأصوات مفعّلة')+'</span></div></section><section class="settings-section"><div class="settings-section-title"><span class="settings-icon" aria-hidden="true">◌</span><div><h3>الحركة والراحة</h3><p>خفّف الحركات الانتقالية إذا فضّلت واجهة أكثر هدوءًا.</p></div></div><label class="settings-preference" for="settings-reduced-motion"><span><strong>تقليل الحركة</strong><small>إيقاف الحركات والزخارف المتحركة غير الضرورية.</small></span><input id="settings-reduced-motion" type="checkbox" '+(reduced?'checked':'')+'></label></section>'+securityMarkup+'</div><div class="settings-foot"><span>أكاديمية الإحسان في بناء الإنسان</span></div></dialog>';
+ const releaseMarkup='<section class="settings-section release-history-section"><div class="settings-section-title"><span class="settings-icon" aria-hidden="true">▤</span><div><h3>المميزات وسجل التطوير</h3><p>أهم مراحل المشروع الموثقة في سجل المستودع؛ هذه قائمة بالمراحل الكبرى لا بكل إصلاح صغير.</p></div></div><div class="release-history-list"><article class="release-history-item"><strong>V14 · الأساس التقني</strong><p>تهيئة واجهات وواجهات API، وفحوص صحة، وضبط الصلاحيات، وتجهيز مسارات الانتقال إلى قاعدة بيانات منظمة.</p></article><article class="release-history-item"><strong>V18 · متابعة التعليم</strong><p>أدوات الحضور الجماعي، والواجبات والاختبارات، وسجل الطالب، وملاحظات المعلم والتقارير الشهرية ولوحة ولي الأمر ضمن نطاق الصلاحيات.</p></article><article class="release-history-item"><strong>V23 · ربط التعلم بالحياة الدراسية</strong><p>توسيع المحتوى التعليمي، ومهام الطالب، والتواصل، ومسارات التعلم ومتابعة الإنجاز.</p></article><article class="release-history-item"><strong>V31 · نواة بيانات منظمة</strong><p>إضافة مخطط وترحيل قابلين للتحقق للبيانات المنظمة؛ لا يعني ذلك أن كل مسار تشغيل قد انتقل إلى تلك النواة.</p></article><article class="release-history-item"><strong>V49 · تنظيم المدرسة والفرق</strong><p>تنظيم الفرق الطلابية ومشرفيها، وبوابة المدرسة القرآنية، وتحسينات التثبيت والاستخدام على الهاتف.</p></article><article class="release-history-item"><strong>V56–V58 · المحتوى التعليمي</strong><p>حزم أولية للدروس والأسئلة، ثم توسيعها إلى 26 درسًا و92 سؤالًا تدريبيًا بحسب سجل المشروع؛ ويظل المحتوى الشرعي قابلًا لمراجعة الشيخ قبل نشره.</p></article><article class="release-history-item"><strong>نسخة Cloudflare · Pages وD1</strong><p>واجهة عربية RTL، وجلسات عبر كوكيز آمنة، وربط Google للحسابات المربوطة، وتطبيق ويب قابل للتثبيت.</p></article><article class="release-history-item"><strong>صيانة 22 أكتوبر 2026 · قيد التحقق</strong><p>تحسين التباين الليلي والخط، وتنظيم القوائم، وإزالة زر الآية التالية، وإضافة ترتيب عام، وتخزين محلي ومزامنة عمليات محددة دون اتصال. يلزم اختبار قبول على المتصفح بعد النشر قبل اعتبارها مكتملة للمستخدمين.</p></article></div></section>';
+ const notificationsMarkup='<section class="settings-section browser-notifications-section"><div class="settings-section-title"><span class="settings-icon" aria-hidden="true">♧</span><div><h3>تنبيهات التطبيق على الهاتف</h3><p>إشعار المتصفح لتحديثات الأكاديمية على هذا الجهاز.</p></div></div><p class="muted small" id="settings-notification-state">جارٍ التحقق من صلاحية إشعارات المتصفح.</p><div class="student-actions"><button type="button" class="btn" id="settings-notifications-enable">تفعيل التنبيهات</button><button type="button" class="btn secondary" id="settings-notifications-test">تجربة إشعار</button></div><p class="muted small">هذه إشعارات المتصفح المتاحة حاليًا، وليست بعدُ خدمة إشعارات دفع تعمل من الخادم بعد إغلاق التطبيق.</p></section>';
+ const markup='<dialog id="settings-dialog" class="settings-dialog" aria-labelledby="settings-title"><div class="settings-head"><div><span class="eyebrow">تفضيلاتك الشخصية</span><h2 id="settings-title">إعدادات الأكاديمية</h2><p>اضبط الواجهة بما يريحك، وتُحفظ اختياراتك على هذا الجهاز.</p></div><button type="button" class="settings-close" id="settings-close" aria-label="إغلاق الإعدادات">×</button></div><div class="settings-body"><section class="settings-section settings-contact-section"><div class="settings-section-title"><span class="settings-icon" aria-hidden="true">✆</span><div><h3>التواصل والمساعدة</h3><p>قنوات مباشرة للملاحظات والتحسين والتنبيهات.</p></div></div><div class="settings-help-grid"><article class="settings-help-card"><h4>التواصل مع صاحب الأكاديمية</h4><p>للاستفسارات وملاحظات الاستخدام.</p><a class="btn" href="https://wa.me/213652358723?text=%D8%A7%D9%84%D8%B3%D9%84%D8%A7%D9%85%20%D8%B9%D9%84%D9%8A%D9%83%D9%85%D8%8C%20%D8%A3%D8%B1%D9%8A%D8%AF%20%D8%A7%D9%84%D8%AA%D9%88%D8%A7%D8%B5%D9%84%20%D8%A8%D8%B4%D8%A3%D9%86%20%D8%A3%D9%83%D8%A7%D8%AF%D9%8A%D9%85%D9%8A%D8%A9%20%D8%A7%D9%84%D8%A5%D8%AD%D8%B3%D8%A7%D9%86" target="_blank" rel="noopener noreferrer">واتساب · 0652358723</a></article><article class="settings-help-card"><h4>التنبيهات والأخطاء</h4><p>راجع التنبيهات، وأرسل بلاغًا مع اسم الصفحة والخطوات التي سبقت الخطأ.</p><button type="button" class="btn secondary" id="settings-open-notifications">فتح التنبيهات</button><a class="btn secondary" href="https://wa.me/213652358723?text=%D8%A8%D9%84%D8%A7%D8%BA%20%D8%B9%D9%86%20%D8%AE%D8%B7%D8%A3%3A%20%D8%A7%D8%B3%D9%85%20%D8%A7%D9%84%D8%B5%D9%81%D8%AD%D8%A9%20%D9%88%D8%B5%D9%81%20%D8%A7%D9%84%D8%AE%D8%B7%D8%A3%20%D9%88%D8%A7%D9%84%D8%AE%D8%B7%D9%88%D8%A7%D8%AA" target="_blank" rel="noopener noreferrer">الإبلاغ عن خطأ</a></article><article class="settings-help-card"><h4>ساعدنا على التطوير</h4><p>سجّل الحفظ بعد الحلقة مباشرة، وتأكد من رقم الثمن، واقترح تحسينًا محددًا مع ذكر الصفحة التي تخصه.</p><a class="btn secondary" href="https://wa.me/213652358723?text=%D8%A7%D9%82%D8%AA%D8%B1%D8%A7%D8%AD%20%D9%84%D8%AA%D8%B7%D9%88%D9%8A%D8%B1%20%D8%A3%D9%83%D8%A7%D8%AF%D9%8A%D9%85%D9%8A%D8%A9%20%D8%A7%D9%84%D8%A5%D8%AD%D8%B3%D8%A7%D9%86%3A%20" target="_blank" rel="noopener noreferrer">إرسال اقتراح</a></article><article class="settings-help-card"><h4>دعم الأكاديمية بالتبرع</h4><p>للتبرع والاستفسار عن وسيلة الدعم المتاحة، تواصل مع المالك؛ لم تُضف بيانات دفع غير مؤكدة.</p><a class="btn" href="https://wa.me/213652358723?text=%D8%A3%D8%B1%D8%BA%D8%A8%20%D9%81%D9%8A%20%D8%AF%D8%B9%D9%85%20%D8%A3%D9%83%D8%A7%D8%AF%D9%8A%D9%85%D9%8A%D8%A9%20%D8%A7%D9%84%D8%A5%D8%AD%D8%B3%D8%A7%D9%86%20%D8%A8%D8%A7%D9%84%D8%AA%D8%A8%D8%B1%D8%B9" target="_blank" rel="noopener noreferrer">التبرع ودعم المشروع</a></article></div></section>'+notificationsMarkup+'<section class="settings-section"><div class="settings-section-title"><span class="settings-icon" aria-hidden="true">◈</span><div><h3>ألوان الواجهة</h3><p>اختر سمة، وستتغيّر ألوان الصفحات والبطاقات معًا.</p></div></div><div class="theme-options">'+themeMarkup+'</div><div class="theme-mode-controls"><button type="button" id="settings-theme-random" class="btn secondary" aria-pressed="'+(themeMode!=="fixed")+'">🎲 عشوائي كل جلسة</button><span class="pill" id="theme-mode-status">'+(themeMode==="fixed"?'السمة المثبتة: '+esc(themes[selectedIndex].name):'يتغيّر اللون تلقائيًا مع كل جلسة جديدة')+'</span></div></section><section class="settings-section appearance-studio"><div class="settings-section-title"><span class="settings-icon" aria-hidden="true">✦</span><div><h3>استوديو المظهر</h3><p>اضبط الوضع الليلي والخلفية والأيقونات وحجم الخط بما يناسبك.</p></div></div><div class="appearance-grid"><div class="appearance-field"><label>الوضع اللوني</label><div class="appearance-buttons"><button type="button" class="appearance-choice" data-appearance-mode="light">☀ نهاري</button><button type="button" class="appearance-choice" data-appearance-mode="dark">☾ ليلي مبهر</button><button type="button" class="appearance-choice" data-appearance-mode="auto">◐ تلقائي</button></div></div><div class="appearance-field"><label>خلفية الصفحات</label><div class="appearance-buttons"><button type="button" class="appearance-choice" data-appearance-bg="glow">✦ وهج</button><button type="button" class="appearance-choice" data-appearance-bg="geometry">◇ هندسية</button><button type="button" class="appearance-choice" data-appearance-bg="plain">○ صافية</button></div></div><div class="appearance-field"><label>شكل الأيقونات</label><div class="appearance-buttons appearance-icon-style-options"><button type="button" class="appearance-choice" data-icon-style="soft"><span class="appearance-demo-icon" data-demo-style="soft" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 14.8 9.2 21 12 14.8 14.8 12 21 9.2 14.8 3 12 9.2 9.2Z"/></svg></span><span>ناعمة</span></button><button type="button" class="appearance-choice" data-icon-style="bold"><span class="appearance-demo-icon" data-demo-style="bold" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 14.8 9.2 21 12 14.8 14.8 12 21 9.2 14.8 3 12 9.2 9.2Z"/></svg></span><span>بارزة</span></button><button type="button" class="appearance-choice" data-icon-style="framed"><span class="appearance-demo-icon" data-demo-style="framed" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 14.8 9.2 21 12 14.8 14.8 12 21 9.2 14.8 3 12 9.2 9.2Z"/></svg></span><span>مؤطّرة</span></button></div></div><div class="appearance-field"><label>حجم الأيقونات <span class="muted small">معاينة بالحجم الحقيقي</span></label><div class="appearance-buttons appearance-icon-size-options"><button type="button" class="appearance-choice" data-icon-size="small"><span class="appearance-size-demo" data-demo-size="small" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 12h16M12 4v16"/><circle cx="12" cy="12" r="8"/></svg></span><span>صغير</span></button><button type="button" class="appearance-choice" data-icon-size="medium"><span class="appearance-size-demo" data-demo-size="medium" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 12h16M12 4v16"/><circle cx="12" cy="12" r="8"/></svg></span><span>متوسط</span></button><button type="button" class="appearance-choice" data-icon-size="large"><span class="appearance-size-demo" data-demo-size="large" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 12h16M12 4v16"/><circle cx="12" cy="12" r="8"/></svg></span><span>كبير</span></button></div></div><div class="appearance-live-preview" aria-live="polite"><div><strong>معاينة الأيقونات في الأكاديمية</strong><p>تتغيّر هذه الأمثلة فورًا مع اختيار الحجم والشكل، لتتخيّل ظهورها في القوائم والبطاقات.</p></div><div class="appearance-live-icons"><span class="appearance-live-item"><svg viewBox="0 0 24 24" class="nav-icon" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg><small>الرئيسية</small></span><span class="appearance-live-item"><svg viewBox="0 0 24 24" class="nav-icon" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v18H6.5A2.5 2.5 0 0 1 4 17.5z"/><path d="M4 17.5A2.5 2.5 0 0 1 6.5 15H20"/></svg><small>القرآن</small></span><span class="appearance-live-item"><svg viewBox="0 0 24 24" class="nav-icon" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m12 21-1.45-1.32C5.4 14.99 2 11.9 2 8.1 2 5 4.42 2.5 7.5 2.5c1.74 0 3.41.81 4.5 2.1 1.09-1.29 2.76-2.1 4.5-2.1C19.58 2.5 22 5 22 8.1c0 3.8-3.4 6.89-8.55 11.59z"/></svg><small>إنجازي</small></span><span class="appearance-live-item"><svg viewBox="0 0 24 24" class="nav-icon" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4L19 6"/></svg><small>المهام</small></span></div></div><div class="appearance-field appearance-font-field"><label for="settings-font-scale">حجم الخط <output id="settings-font-scale-value">100%</output></label><input id="settings-font-scale" type="range" min="85" max="180" step="5" value="'+Math.round(Math.min(1.8,Math.max(.85,Number(safeStore.get("ihsan_font_scale")||1)))*100)+'"><div class="appearance-range-labels"><span>أصغر</span><span>أكبر</span></div><p class="appearance-font-preview" id="settings-font-preview">بسم الله الرحمن الرحيم — العلم النافع والعمل الصالح</p></div></div></section><section class="settings-section"><div class="settings-section-title"><span class="settings-icon" aria-hidden="true">◌</span><div><h3>الأصوات والراحة</h3><p>مؤثرات قصيرة غير لحنية، دون موسيقى أو نغمات؛ للنقر والنجاح والتنبيه.</p></div></div><label class="settings-preference" for="settings-ui-sounds"><span><strong>مؤثرات الواجهة</strong><small>تشغيل أو إيقاف أصوات الضغط والنتائج على هذا الجهاز.</small></span><input id="settings-ui-sounds" type="checkbox" '+(safeStore.get("ihsan_ui_sounds")!=="0"?'checked':'')+'></label><div class="student-actions"><button type="button" class="btn secondary" id="settings-sound-preview">تجربة الصوت</button><span class="muted small" id="settings-sound-status">'+(safeStore.get("ihsan_ui_sounds")==="0"?'الأصوات متوقفة':'الأصوات مفعّلة')+'</span></div></section><section class="settings-section"><div class="settings-section-title"><span class="settings-icon" aria-hidden="true">◌</span><div><h3>الحركة والراحة</h3><p>خفّف الحركات الانتقالية إذا فضّلت واجهة أكثر هدوءًا.</p></div></div><label class="settings-preference" for="settings-reduced-motion"><span><strong>تقليل الحركة</strong><small>إيقاف الحركات والزخارف المتحركة غير الضرورية.</small></span><input id="settings-reduced-motion" type="checkbox" '+(reduced?'checked':'')+'></label></section>'+securityMarkup+releaseMarkup+'</div><div class="settings-foot"><span>أكاديمية الإحسان في بناء الإنسان</span></div></dialog>';
  document.body.insertAdjacentHTML("beforeend",markup);
  const dialog=$("#settings-dialog");
  const close=()=>{try{if(dialog.open)dialog.close()}catch{}dialog.remove()};
  $("#settings-close").onclick=close;$("#settings-open-notifications")?.addEventListener("click",()=>{close();go("notifications")});
+ const updateNotificationState=()=>{const el=$("#settings-notification-state");if(el)el.textContent="حالة التنبيهات: "+(typeof Notification==="undefined"?"غير مدعومة":Notification.permission==="granted"?"مسموح بها":Notification.permission==="denied"?"محظورة من إعدادات المتصفح":"لم يُطلب الإذن بعد")};
+ $("#settings-notifications-enable")?.addEventListener("click",async()=>{if(!("Notification" in window)){toast("هذا المتصفح لا يدعم إشعارات النظام.",true);return}try{const permission=await Notification.requestPermission();if(permission==="granted"){safeStore.set("ihsan_browser_notifications","1");toast("فُعّلت إشعارات المتصفح على هذا الجهاز.")}else toast(permission==="denied"?"الإشعارات محظورة؛ غيّر إذن الموقع من إعدادات المتصفح.":"لم تُمنح صلاحية الإشعارات.");updateNotificationState()}catch{toast("تعذّر طلب إذن الإشعارات من هذا المتصفح.",true)}});
+ $("#settings-notifications-test")?.addEventListener("click",()=>{if(!("Notification" in window)||Notification.permission!=="granted"){toast("فعّل إذن الإشعارات أولًا.",true);updateNotificationState();return}try{new Notification("أكاديمية الإحسان",{body:"التنبيهات تعمل على هذا الجهاز."})}catch{toast("تعذّر عرض الإشعار؛ قد يتطلب المتصفح تثبيت التطبيق أو إذنًا إضافيًا.",true)}});
+ updateNotificationState();
  dialog.addEventListener("click",e=>{if(e.target===dialog)close()});
  const refreshThemeChoices=()=>{
   const mode=safeStore.get("ihsan_theme_mode")||"random";
@@ -318,11 +482,14 @@ const authSupplications=[
  {title:"دعاء قرآني جامع",text:"رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ",source:"القرآن الكريم · البقرة: 201"}
 ];
 const authBenefits=[
- {title:"أدب الطالب مع شيخه",text:"أحسن الاستماع، واستأذن قبل السؤال، واشكر معلمك وادعُ له. قال موسى للخضر عليهما السلام: ﴿هَلْ أَتَّبِعُكَ عَلَى أَنْ تُعَلِّمَنِ مِمَّا عُلِّمْتَ رُشْدًا﴾ [الكهف: 66]."},
- {title:"فائدة في التعلم",text:"بعد الدرس أغلق الكتاب، واسترجع أهم ما تعلمته من الذاكرة، ثم راجع وصحح النقص؛ فالاسترجاع يكشف ما يحتاج إلى تثبيت."},
- {title:"فائدة في التثبت",text:"تحقق من مصدر الحديث أو الفائدة قبل نقلها، وميّز بين الآيات والأحاديث وأقوال العلماء وما تصوغه الأكاديمية."},
- {title:"تحفيز صادق",text:"امدح الاجتهاد الذي رأيته بصدق، وحدد خطوة صغيرة تالية؛ الثناء العادل يشجع على الإتقان دون مبالغة أو مقارنة جارحة."}
+ {title:"بشارة فضيلة تعليم القرآن",text:"«خَيْرُكُمْ مَنْ تَعَلَّمَ الْقُرْآنَ وَعَلَّمَهُ»؛ نسأل الله تعالى أن يجعل تعليمكم مباركًا، وأن يكتب لكم أجر ما تغرسونه من خير.",source:"صحيح البخاري (5027)؛ والتشجيع بصياغة الأكاديمية."},
+ {title:"فضل طريق العلم",text:"«مَنْ سَلَكَ طَرِيقًا يَلْتَمِسُ فِيهِ عِلْمًا، سَهَّلَ اللَّهُ لَهُ بِهِ طَرِيقًا إِلَى الْجَنَّةِ»؛ بارك الله تعالى في مجلس العلم وأهله.",source:"صحيح مسلم (2699)؛ والتشجيع بصياغة الأكاديمية."},
+ {title:"رسالة تقدير لفضيلة الشيخ",text:"فضيلة الشيخ، أحسن الله إليكم، وبارك في وقتكم وعلمكم، ونفع بكم وبطلابكم، وجعل ما تبذلونه في تعليم القرآن وتربية النفوس في ميزان حسناتكم.",source:"دعاء من صياغة الأكاديمية، وليس حديثًا نبويًا."},
+ {title:"الدعوة بالقول والعمل",text:"﴿وَمَنْ أَحْسَنُ قَوْلًا مِمَّنْ دَعَا إِلَى اللَّهِ وَعَمِلَ صَالِحًا﴾؛ نسأل الله تعالى أن يبارك في تعليمكم، ويجمع لكم نفع العلم وصلاح العمل.",source:"القرآن الكريم، سورة فصلت: 33؛ والدعاء من صياغة الأكاديمية."}
 ];
+
+
+
 const authDua=authSupplications[Math.floor(Math.random()*authSupplications.length)];
 const authWisdom=authBenefits[Math.floor(Math.random()*authBenefits.length)];
 app.innerHTML=app.innerHTML='<div class="auth-layout"><section class="welcome"><div><span class="eyebrow">بِسْمِ اللهِ الرَّحْمَنِ الرَّحِيمِ</span><h1>في بساتين الوحي، نتعلّم لنحيا بالقرآن والسنة.</h1><p>رحلة هادئة بين آيات الهداية، وأحاديث النبي ﷺ، ومعاني أسماء الله الحسنى، وسِيَر الصالحين؛ نقرأ ونتدبّر ونسأل ونعمل، حتى يثمر العلم إيمانًا وعبادةً وأدبًا ورحمة.</p><p class="welcome-description">مساحة علمية تجمع معرفة الله تعالى، وسيرة الرسول ﷺ، والقرآن والسنة، والأدب والعمل الصالح.</p><p class="welcome-poem">من هُنا تُبنى العقول، وتُهذَّب النفوس، وتُصاغ همم الرجال؛ بالقرآن نهتدي، وبالسنة نقتدي، وبالعلم نرتقي، وبالأخلاق نسمو، وبالعمل نُثمر؛ لنُخرّج جيلًا راسخ العلم، كريم الخُلُق، عظيم الأثر، يحمل نور الوحي إلى العالمين، ويترك في الحياة بصمة المحسنين.</p><p class="welcome-motto">مناراتُ العلم وبساتينُ الإحسان</p></div><div class="welcome-bottom"><div class="verse knowledge-verse" id="knowledge-verse" dir="rtl" aria-live="polite" aria-atomic="true"><span class="knowledge-verse-text"></span><small class="knowledge-verse-source"></small></div><div class="auth-entry-nourishment"><article class="auth-entry-card"><strong>'+esc(authDua.title)+'</strong><p>'+esc(authDua.text)+'</p><small>'+esc(authDua.source)+'</small></article><article class="auth-entry-card"><strong>'+esc(authWisdom.title)+'</strong><p>'+esc(authWisdom.text)+'</p><small>فائدة تربوية من إعداد الأكاديمية، وليست نصًا شرعيًا منقولًا.</small></article></div><button type="button" class="btn academy-about-welcome" id="about-open-welcome">التعريف بالأكاديمية ورؤيتها</button></div></section><section class="panel stack">'+(setup?'<div class="notice">أول دخول: أنشئ حساب المدير مرة واحدة.</div>':'')+'<div><h2>'+(setup?"إعداد الأكاديمية":"تسجيل الدخول")+'</h2><p class="muted small">'+(setup?"احتفظ برمز الإعداد لنفسك فقط.":"استخدم اسم الدخول أو البريد الذي أنشأه لك المدير.")+'</p></div><form id="auth-form" class="stack">'+(setup?'<label class="field">رمز الإعداد<input name="code" type="password" required autocomplete="off"></label><label class="field">الاسم الكامل<input name="name" required maxlength="120"></label><label class="field">البريد الإلكتروني<input name="email" type="email" required></label><label class="field">كلمة مرور المدير (14 حرفًا على الأقل)<input name="password" type="password" minlength="14" required autocomplete="new-password"></label>':'<label class="field">اسم الدخول أو الاسم الكامل<input name="username" value="'+esc(safeStore.get("ihsan_last_identity"))+'" required autocomplete="username"></label><label class="field">كلمة المرور<input name="password" type="password" required autocomplete="current-password"></label><p class="password-manager-note">يمكنك حفظ كلمة المرور في مدير كلمات مرور المتصفح عند ظهور الطلب؛ الأكاديمية لا تحفظها كنص مكشوف.</p><label class="remember-option"><input name="remember" type="checkbox" checked> تذكّر دخولي على هذا الجهاز لمدة تصل إلى 30 يومًا. أزل العلامة على الجهاز المشترك.</label>')+'<div id="auth-error" class="notice error hidden"></div><button class="btn" type="submit">'+(setup?"إنشاء حساب المدير":"تسجيل الدخول")+'</button></form>'+(!setup?'<div class="login-divider"><span>أو</span></div><section class="google-login-section" aria-label="تسجيل الدخول باستخدام Google"><div id="google-signin"></div><p id="google-login-note" class="muted small">جارٍ التحقق من إعدادات الدخول بجوجل…</p></section>':'')+'</section></div>';
@@ -332,6 +499,7 @@ $("#auth-form").onsubmit=async e=>{e.preventDefault();const f=new FormData(e.cur
  if(!setup)initGoogleSignIn();
 }
 async function boot(){try{const st=await api("/setup/status");try{S.user=await api("/me");if(S.user?.must_change_password){renderTopActions();showPasswordChange(true)}else{await start()}}catch{S.token="";clearSessionToken();auth(st.needs_admin&&st.setup_enabled)}}catch{app.innerHTML='<div class="panel"><h2>تعذّر الاتصال</h2><p class="muted">تعذّر الوصول إلى قاعدة البيانات. حدّث الصفحة بعد قليل.</p><button class="btn" id="boot-retry">إعادة المحاولة</button></div>';$("#boot-retry")?.addEventListener("click",()=>location.reload())}}
+
 async function logout(){
 const prayers=[
 {title:"وداع اليوم بدعاء من القرآن",text:"رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ",source:"سورة البقرة، الآية 201"},
@@ -347,12 +515,19 @@ ihsanPrayerDialog({title:prayer.title,text:prayer.text,source:prayer.source||(pr
 async function load(){const r=await Promise.allSettled([api("/groups"),api("/students")]);S.groups=r[0].status==="fulfilled"?r[0].value:[];S.students=r[1].status==="fulfilled"?r[1].value:[];if(["admin","director"].includes(S.user.role))try{S.teachers=await api("/teachers")}catch{S.teachers=[]}if(S.user.role==="admin"){const extra=await Promise.allSettled([api("/admin/staff"),api("/public/quran-schools")]);S.staff=extra[0].status==="fulfilled"?extra[0].value:[];S.schools=extra[1].status==="fulfilled"?extra[1].value:[]}}
 function items(){
  if(S.mode==="ihsan")return [["all","نظرة عامة"],["allah","معرفة الله"],["prophet","الرسول ﷺ"],["quranpath","القرآن الكريم"],["hifzprogram","الحال المرتحل"],["sunnah","السنة والمتون"],["adab","الأدب والعمل"]];
- if(S.user.role==="admin"){const full=safeStore.get("ihsan_admin_focus")==="full";if(!full)return [["home","الرئيسية"],["students","طلابي وطلاب المدرسة"],["teams","الفرق الطلابية"],["attendance","الحضور"],["assignments","الواجبات"],["gradebook","السجل التعليمي والترتيب"],["quran","متابعة القرآن"],["tests","الاختبارات"],["notifications","التنبيهات"],["messages","الرسائل"]];return [["home","الرئيسية"],["groups","الأفواج والمعلمون والفرق"],["students","طلابي وطلاب المدرسة"],["teams","الفرق الطلابية"],["attendance","الحضور"],["assignments","الواجبات"],["gradebook","السجل التعليمي والترتيب"],["quran","متابعة القرآن"],["tests","الاختبارات"],["notifications","التنبيهات"],["messages","الرسائل"]];}
- if(S.user.role==="director")return [["home","الرئيسية"],["groups","الأفواج والمعلمون والفرق"],["students","طلابي وطلاب المدرسة"],["teams","الفرق الطلابية"],["attendance","الحضور"],["assignments","الواجبات"],["gradebook","السجل التعليمي والترتيب"],["quran","متابعة القرآن"],["tests","الاختبارات"],["notifications","التنبيهات"],["messages","الرسائل"]];
- if(S.user.role==="supervisor")return [["home","الرئيسية"],["students","طلاب فريقي"],["teams","الفرق الطلابية"],["attendance","الحضور"],["assignments","الواجبات"],["gradebook","السجل التعليمي والترتيب"],["quran","متابعة القرآن"],["tests","الاختبارات"],["notifications","التنبيهات"],["messages","الرسائل"]];
- if(S.user.role==="teacher")return [["home","الرئيسية"],["students","طلبتي"],["teams","الفرق الطلابية"],["attendance","الحضور"],["assignments","الواجبات"],["gradebook","السجل التعليمي والترتيب"],["quran","متابعة القرآن"],["tests","الاختبارات"],["notifications","التنبيهات"],["messages","الرسائل"]];
- return [["home","الرئيسية"],["profile","ملفي"],["teams","فرقتي وطلبات النقل"],["quran","تقدمي في القرآن"],["assignments","واجباتي"],["gradebook","تقدمي ودرجاتي"],["attendance","حضوري"],["tests","اختباراتي"],["notifications","التنبيهات"],["messages","الرسائل"],["leaderboard","ترتيب الفوج"]];
+ if(S.user.role==="admin"){
+  const full=safeStore.get("ihsan_admin_focus")==="full";
+  if(!full)return [["home","الرئيسية"],["students","طلابي وطلاب المدرسة"],["attendance","الحضور"],["quran","متابعة القرآن"],["gradebook","السجل التعليمي"],["reports","التقارير"],["notifications","التنبيهات"],["messages","الرسائل"]];
+  return [["home","الرئيسية"],["groups","الأفواج والمعلمون والفرق"],["students","طلابي وطلاب المدرسة"],["attendance","الحضور"],["quran","متابعة القرآن"],["gradebook","السجل التعليمي"],["reports","التقارير"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"],["system-check","فحص النظام"]];
+ }
+ if(S.user.role==="director")return [["home","الرئيسية"],["groups","الأفواج والمعلمون والفرق"],["students","طلاب المدرسة"],["attendance","الحضور"],["quran","متابعة القرآن"],["gradebook","السجل التعليمي"],["reports","التقارير"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"]];
+ if(S.user.role==="supervisor")return [["home","الرئيسية"],["students","طلاب فريقي"],["teams","فرقي الطلابية"],["attendance","الحضور"],["quran","متابعة القرآن"],["gradebook","السجل التعليمي"],["reports","التقارير"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"]];
+ if(S.user.role==="teacher")return [["home","الرئيسية"],["students","طلبتي"],["teams","فرقي الطلابية"],["attendance","الحضور"],["quran","متابعة القرآن"],["gradebook","السجل التعليمي"],["reports","التقارير"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"]];
+ return [["home","الرئيسية"],["profile","ملفي"],["teams","فرقتي وطلبات النقل"],["quran","تقدمي في القرآن"],["assignments","واجباتي"],["gradebook","تقدمي ودرجاتي"],["attendance","حضوري"],["tests","اختباراتي"],["notifications","التنبيهات"],["messages","الرسائل"],["leaderboard","الترتيب العام"]];
 }
+
+
+
 function honorificDisplayName(name,role){const clean=String(name||"").replace(/^فضيلة الشيخ[،\s]*/,"").replace(/[،,]?\s*حفظه الله ونفع به$/,"").trim();if(["admin","director","teacher"].includes(role))return "فضيلة الشيخ "+clean+"، حفظه الله ونفع به";return clean||"مستخدم"}
 const ROLE_LABELS={admin:"فضيلة الشيخ · مدير الأكاديمية",director:"فضيلة الشيخ · مدير المدرسة",teacher:"فضيلة الشيخ",supervisor:"مشرف الفرقة الطلابية",student:"الطالب"};
 const NAV_ICON_PATHS={
@@ -384,10 +559,30 @@ function navIcon(id){return '<svg viewBox="0 0 24 24" class="nav-icon" aria-hidd
 function navigationGroups(){
  const list=items();if(S.mode==="ihsan")return [{title:"منهج الإحسان",items:list}];
  const makeGroup=(title,ids)=>({title,items:list.filter(x=>ids.includes(x[0]))});
- if(S.user.role==="admin"){const full=safeStore.get("ihsan_admin_focus")==="full";if(!full)return [makeGroup("عمل الشيخ اليومي",["home","students","teams","attendance","assignments","gradebook","quran","tests"]),makeGroup("التواصل والمتابعة",["notifications","messages"])].filter(g=>g.items.length);return [makeGroup("إدارة الأكاديمية",["home","groups","students","teams"]),makeGroup("المهام الأساسية اليومية",["attendance","assignments","gradebook","quran","tests"]),makeGroup("المتابعة والتقويم",["notifications","messages"])].filter(g=>g.items.length);}
- if(["teacher","director","supervisor"].includes(S.user.role))return [makeGroup(S.user.role==="director"?"إدارة المدرسة والمتابعة":S.user.role==="supervisor"?"متابعة الفريق":"التدريس والمتابعة",["home","groups","students","teams","attendance","assignments","gradebook","quran","tests","notifications","messages"])].filter(g=>g.items.length);
+ if(S.user.role==="admin"){
+  const full=safeStore.get("ihsan_admin_focus")==="full";
+  if(!full)return [
+   makeGroup("مهام الشيخ اليومية",["home","students","attendance","quran"]),
+   makeGroup("المتابعة والتواصل",["gradebook","reports","notifications","messages"])
+  ].filter(g=>g.items.length);
+  return [
+   makeGroup("إدارة الأكاديمية",["home","groups","students"]),
+   makeGroup("المهام الأساسية اليومية",["attendance","quran"]),
+   makeGroup("المتابعة والتقويم",["gradebook","reports","notifications","messages"]),
+   makeGroup("أدوات إضافية وتحسينية",["assignments","tests","system-check"])
+  ].filter(g=>g.items.length);
+ }
+ if(["teacher","director","supervisor"].includes(S.user.role))return [
+  makeGroup(S.user.role==="director"?"إدارة المدرسة":S.user.role==="supervisor"?"متابعة الفريق":"التدريس والمتابعة",["home","groups","students","teams"]),
+  makeGroup("المهام الأساسية اليومية",["attendance","quran"]),
+  makeGroup("المتابعة والتقويم",["gradebook","reports","notifications","messages"]),
+  makeGroup("أدوات إضافية",["assignments","tests"])
+ ].filter(g=>g.items.length);
  return [makeGroup("رحلتي التعليمية",["home","profile","teams","quran","assignments","gradebook","attendance","tests","notifications","messages","leaderboard"])].filter(g=>g.items.length);
 }
+
+
+
 function navMarkup(){return navigationGroups().map(group=>'<div class="nav-section"><div class="nav-section-title">'+esc(group.title)+'</div>'+group.items.map(x=>'<button class="nav-btn '+(S.tab===x[0]?"active":"")+'" data-tab="'+esc(x[0])+'"><span class="nav-icon-wrap">'+navIcon(x[0])+'</span><span class="nav-label">'+esc(x[1])+'</span><span class="nav-chevron" aria-hidden="true">‹</span></button>').join("")+'</div>').join("")}
 
 async function ihsanPrayerDialog({title,text,source="",icon="✦",primary="متابعة",secondary="لاحقًا",onPrimary=()=>{},onSecondary=()=>{}}){
@@ -409,6 +604,7 @@ async function ihsanPrayerDialog({title,text,source="",icon="✦",primary="مت�
  yes.focus()
 }
 function start(){
+ rememberOfflineUser();flushOfflineQueue(true);
  renderTopActions();
  const savedMode=safeStore.getSession("ihsan_last_mode"),savedTab=safeStore.getSession("ihsan_last_tab");
  if(savedMode==="school"||savedMode==="ihsan"){
@@ -459,6 +655,7 @@ $("#open-school").onclick=async()=>{safeStore.setSession("ihsan_last_mode","scho
 $("#open-ihsan").onclick=()=>{safeStore.setSession("ihsan_last_mode","ihsan");safeStore.setSession("ihsan_last_tab","all");try{history.pushState({ihsanMode:"ihsan",ihsanTab:"all"},"",location.pathname)}catch{}S.mode="ihsan";S.tab="all";shell();page()}}
 
 function shell(){
+ const retainedActions=$("#top-actions"),retainedHeader=document.querySelector("header.topbar");if(retainedActions&&retainedHeader&&!retainedHeader.contains(retainedActions))retainedHeader.appendChild(retainedActions);
  document.body.classList.add("app-authenticated");
  const current=items().find(x=>x[0]===S.tab);
  const currentTitle=current?current[1]:(S.mode==="ihsan"?"منهج الإحسان":"الرئيسية");
@@ -467,10 +664,10 @@ function shell(){
  const displayUserName=honorificDisplayName(S.user.name,S.user.role);
  const banner="";
  const options=items().map(x=>'<option value="'+esc(x[1])+'"></option>').join("");
- app.innerHTML='<div class="layout app-shell"><nav class="sidebar" aria-label="القائمة الرئيسية"><div class="sidebar-brand"><span class="sidebar-brand-mark">إ</span><span><strong>أكاديمية الإحسان</strong><small>في بناء الإنسان</small></span></div><div class="sidebar-navigation">'+navMarkup()+'</div><button class="nav-btn mobile-logout" id="mobile-logout" type="button" aria-label="تسجيل الخروج"><span class="nav-icon-wrap" aria-hidden="true">↪</span><span class="nav-label">خروج</span></button><div class="sidebar-bottom"><div class="sidebar-account"><span class="account-mark">'+initial+'</span><span class="account-copy"><strong>'+esc(displayUserName)+'</strong><small>'+esc(role)+'</small></span></div>' +(S.user.role==="admin"?'<button class="admin-focus-toggle" id="admin-focus-toggle" type="button">' +(safeStore.get("ihsan_admin_focus")==="full"?"العودة إلى مهام الشيخ":"واجهة الإدارة") +'</button>':"") +'<button class="module-switch" id="switch-module" type="button"><span aria-hidden="true">↔</span> تبديل الواجهة</button></div></nav><section class="workspace"><header class="workspace-head"><div class="workspace-heading"><div class="breadcrumbs"><span>الأكاديمية</span><span class="breadcrumb-separator" aria-hidden="true">/</span><strong id="workspace-title">'+esc(currentTitle)+'</strong></div><p>آياتٌ تُتلى وتُتدبّر · هديٌ يُتّبع · علمٌ يزكّي القلب ويهذّب السلوك</p></div><label class="workspace-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg><input id="nav-search" type="search" list="nav-search-options" placeholder="ابحث عن صفحة…" aria-label="ابحث عن صفحة في القائمة"><datalist id="nav-search-options">'+options+'</datalist></label><div class="workspace-user"><span class="workspace-status" aria-hidden="true"></span><span>'+esc(displayUserName)+'</span></div></header><div class="content-area">'+banner+'<section id="view" class="content"><div class="loading">جار التحميل…</div></section></div></section></div>';
+ app.innerHTML='<div class="layout app-shell"><nav class="sidebar" aria-label="القائمة الرئيسية"><div class="sidebar-brand"><span class="sidebar-brand-mark">إ</span><span><strong>أكاديمية الإحسان</strong><small>في بناء الإنسان</small></span></div><div class="sidebar-navigation">'+navMarkup()+'</div><button class="nav-btn mobile-logout" id="mobile-logout" type="button" aria-label="تسجيل الخروج"><span class="nav-icon-wrap" aria-hidden="true">↪</span><span class="nav-label">خروج</span></button><div class="sidebar-bottom"><div class="sidebar-account"><span class="account-mark">'+initial+'</span><span class="account-copy"><strong>'+esc(displayUserName)+'</strong><small>'+esc(role)+'</small></span></div>' +(S.user.role==="admin"?'<button class="admin-focus-toggle" id="admin-focus-toggle" type="button">' +(safeStore.get("ihsan_admin_focus")==="full"?"العودة إلى مهام الشيخ":"واجهة الإدارة") +'</button>':"") +'<button class="module-switch" id="switch-module" type="button"><span aria-hidden="true">↔</span> '+(S.mode==="school"?"الذهاب إلى منهج الإحسان":"الذهاب إلى المدرسة القرآنية")+'</button></div></nav><section class="workspace"><header class="workspace-head"><div class="workspace-heading"><div class="breadcrumbs"><span>الأكاديمية</span><span class="breadcrumb-separator" aria-hidden="true">/</span><strong id="workspace-title">'+esc(currentTitle)+'</strong></div><p>آياتٌ تُتلى وتُتدبّر · هديٌ يُتّبع · علمٌ يزكّي القلب ويهذّب السلوك</p></div><label class="workspace-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg><input id="nav-search" type="search" list="nav-search-options" placeholder="ابحث عن صفحة…" aria-label="ابحث عن صفحة في القائمة"><datalist id="nav-search-options">'+options+'</datalist></label><div class="workspace-user"><span class="workspace-status" aria-hidden="true"></span><span>'+esc(displayUserName)+'</span></div></header><div class="content-area">'+banner+'<section id="view" class="content"><div class="loading">جار التحميل…</div></section></div></section></div>';
  const actionBar=$("#top-actions"),innerHeader=document.querySelector(".workspace-head");if(actionBar&&innerHeader)innerHeader.appendChild(actionBar);
  document.querySelectorAll(".nav-btn[data-tab]").forEach(b=>b.onclick=()=>go(b.dataset.tab));$("#mobile-logout")?.addEventListener("click",logout);
- $("#switch-module")?.addEventListener("click",moduleChooser);
+ $("#switch-module")?.addEventListener("click",async()=>{const target=S.mode==="school"?"ihsan":"school";S.mode=target;S.tab=target==="ihsan"?"all":"home";safeStore.setSession("ihsan_last_mode",target);safeStore.setSession("ihsan_last_tab",S.tab);try{history.pushState({ihsanMode:target,ihsanTab:S.tab},"",location.pathname+"#"+encodeURIComponent(S.tab))}catch{}if(target==="school")await load();shell();await page()});
  $("#admin-focus-toggle")?.addEventListener("click",()=>{const next=(safeStore.get("ihsan_admin_focus")==="full"?"daily":"full");safeStore.set("ihsan_admin_focus",next);if(next==="daily"&&["groups","system-check","teachers","backup","audit","school-managers","posts"].includes(S.tab))S.tab="home";shell();page()});
  const search=$("#nav-search");
  search?.addEventListener("keydown",event=>{if(event.key!=="Enter")return;event.preventDefault();const query=search.value.trim().toLocaleLowerCase();const found=items().find(x=>x[1]===search.value.trim())||items().find(x=>x[1].toLocaleLowerCase().includes(query));if(found)go(found[0]);else toast("لم أعثر على صفحة مطابقة",true)});
@@ -539,7 +736,7 @@ const field=(label,name,type="text",min="",placeholder="")=>'<label class="field
 const groupOpts=()=>S.groups.map(g=>'<option value="'+esc(g.id)+'">'+esc(g.name)+'</option>').join("");
 function go(id){if(S.user?.role==="admin"&&id==="groups")safeStore.set("ihsan_admin_focus","full");safeStore.setSession("ihsan_last_mode",S.mode);safeStore.setSession("ihsan_last_tab",id);try{history.pushState({ihsanMode:S.mode,ihsanTab:id},"",location.pathname+"#"+encodeURIComponent(id))}catch{}S.tab=id;shell();page()}
 window.addEventListener("popstate",async e=>{if(!S.user)return;const st=e.state||{};if(st.ihsanMode==="hub"){S.mode="hub";moduleChooser(false);return;}if(st.ihsanMode==="school"||st.ihsanMode==="ihsan"){S.mode=st.ihsanMode;S.tab=st.ihsanTab||(S.mode==="ihsan"?"all":"home");if(S.mode==="school")await load();shell();await page();if(st.ihsanSubView==="student-profile")await studentProfile($("#view"),st.studentId);return;}S.mode="hub";moduleChooser(false);});
-async function page(){const v=$("#view");if(S.mode==="ihsan")return curriculumPage(v);v.innerHTML='<div class="loading">جار تحميل البيانات…</div>';try{if(S.tab==="home")return await home(v);if(S.tab==="teams")return await teamsPage(v);if(S.tab==="groups")return groups(v);if(S.tab==="teachers")return teachers(v);if(S.tab==="students")return students(v);if(S.tab==="attendance")return attendance(v);if(S.tab==="assignments")return await assignmentsPage(v);if(S.tab==="gradebook")return await gradebookPage(v);if(S.tab==="messages")return await messagesPage(v);if(S.tab==="reports")return reportsPage(v);if(S.tab==="leaderboard")return leaderboardPage(v);if(S.tab==="profile")return studentProfile(v,S.user.student_id);if(S.tab==="quran")return quran(v);if(S.tab==="tests")return testsPage(v);if(S.tab==="notifications")return notificationsPage(v);v.innerHTML=head("القسم غير متاح","هذا القسم لم يعد متاحًا. اختر قسمًا من القائمة.")+'<button class="btn" id="back-home">العودة إلى الرئيسية</button>';$("#back-home").onclick=()=>go("home");return}catch(e){v.innerHTML='<div class="panel"><h2>تعذّر تحميل البيانات</h2><p class="notice error">'+esc(e.message)+'</p><button class="btn" id="retry">إعادة المحاولة</button></div>';$("#retry").onclick=page}}
+async function page(){const v=$("#view");if(S.mode==="ihsan")return curriculumPage(v);v.innerHTML='<div class="loading">جار تحميل البيانات…</div>';try{if(S.tab==="system-check"&&S.user.role==="admin")return systemCheckPage(v);if(S.tab==="home")return await home(v);if(S.tab==="teams")return await teamsPage(v);if(S.tab==="groups")return groups(v);if(S.tab==="teachers")return teachers(v);if(S.tab==="students")return students(v);if(S.tab==="attendance")return attendance(v);if(S.tab==="assignments")return await assignmentsPage(v);if(S.tab==="gradebook")return await gradebookPage(v);if(S.tab==="messages")return await messagesPage(v);if(S.tab==="reports")return reportsPage(v);if(S.tab==="leaderboard")return leaderboardPage(v);if(S.tab==="profile")return studentProfile(v,S.user.student_id);if(S.tab==="quran")return quran(v);if(S.tab==="tests")return testsPage(v);if(S.tab==="notifications")return notificationsPage(v);v.innerHTML=head("القسم غير متاح","هذا القسم لم يعد متاحًا. اختر قسمًا من القائمة.")+'<button class="btn" id="back-home">العودة إلى الرئيسية</button>';$("#back-home").onclick=()=>go("home");return}catch(e){v.innerHTML='<div class="panel"><h2>تعذّر تحميل البيانات</h2><p class="notice error">'+esc(e.message)+'</p><button class="btn" id="retry">إعادة المحاولة</button></div>';$("#retry").onclick=page}}
 async function home(v){const d=await api("/dashboard");let html="";
 if(S.user.role!=="student"){
  const studentLabel=["admin","director"].includes(S.user.role)?"طلابي وطلاب المدرسة":"طلبتي";
@@ -582,19 +779,22 @@ const dailyWisdom=[
 {title:"الشكر العملي",text:"اشكر الله تعالى على نعمة القرآن والمعلم والصحبة الصالحة، واجعل شكرها بالمحافظة عليها والعمل بما تعلمت."}
 ];
 const dailyWisdomForSheikh=[
-{title:"لفضيلة الشيخ: التعليم برفق",text:"فضيلة الشيخ، بارك الله تعالى فيكم ونفع بكم: بيّن موضع الخطأ دون تحقير، وامنح الطالب فرصة ليعيد المحاولة؛ فالرفق يعين على قبول الحق."},
-{title:"المدح الذي يحفّز",text:"فضيلة الشيخ، أحسن الله إليكم: امدح جهدًا محددًا رأيته، مثل ثبات الحفظ أو تحسّن التجويد، ثم اقترح خطوة تالية؛ واجعل الثناء صادقًا بلا مبالغة ولا محاباة."},
-{title:"العدل بين الطلاب",text:"بارك الله تعالى في تعليمكم: راعِ تفاوت أعمار الطلاب وقدراتهم، وقارن كل طالب بتقدّمه السابق، ولا تجعل الثناء على أحد سببًا لإحباط غيره."},
-{title:"تثبيت الحفظ",text:"من إحسان التعليم تسجيل مقدار الحفظ والمراجعة مباشرة بعد الحلقة، مع ملاحظة قصيرة محددة؛ حتى يبني اللقاء القادم على سجل واضح."},
-{title:"تصحيحٌ يحفظ الكرامة",text:"فضيلة الشيخ، زادكم الله علمًا: صحّح الخطأ بوضوح وعلى انفراد ما أمكن، وعلّم الطالب كيف يتداركه، لا أن يخاف من السؤال أو المحاولة."},
-{title:"قدوة في الأدب",text:"بارك الله تعالى فيكم: أظهر للطلاب أدب العالم مع الدليل، والتثبت من النقل، والتواضع للحق، والاعتذار عند الخطأ؛ فالقدوة أبلغ من الموعظة وحدها."},
-{title:"هدف صغير قابل للقياس",text:"في نهاية الحلقة، حدّد للطالب مقدارًا واضحًا للحفظ والمراجعة، واطلب منه أن يعيده عليك؛ فالهدف المحدد أيسر متابعةً وتحقيقًا."},
-{title:"دعاء للشيخ",text:"نسأل الله تعالى أن يبارك في علم فضيلة الشيخ وعمله، وأن يجزيه عن تعليم القرآن خير الجزاء، وأن يجعل الرفق والإخلاص والإتقان أثرًا باقيًا في طلابه."}
+{title:"بشارة لمعلّم القرآن",text:"قال رسول الله ﷺ: «خَيْرُكُمْ مَنْ تَعَلَّمَ الْقُرْآنَ وَعَلَّمَهُ». نسأل الله تعالى أن يجعل تعليم فضيلة الشيخ مباركًا، وأن يكتب له أجر ما يغرسه من خير.",source:"صحيح البخاري، حديث 5027."},
+{title:"أجر الدلالة على الخير",text:"قال النبي ﷺ: «مَنْ دَلَّ عَلَى خَيْرٍ فَلَهُ مِثْلُ أَجْرِ فَاعِلِهِ». فما يتركه التعليم الصادق من أثر طيب باب واسع من الخير بإذن الله تعالى.",source:"صحيح مسلم، حديث 1893."},
+{title:"هدي النبوة في التعليم",text:"قال رسول الله ﷺ: «يَسِّرُوا وَلَا تُعَسِّرُوا، وَبَشِّرُوا وَلَا تُنَفِّرُوا». نسأل الله تعالى أن يجعل مجالس فضيلة الشيخ عامرة بالعلم والرفق والبشارة.",source:"صحيح البخاري، حديث 69."},
+{title:"فضل الرحمة",text:"قال النبي ﷺ: «الرَّاحِمُونَ يَرْحَمُهُمُ الرَّحْمَنُ». بارك الله تعالى في رحمة فضيلة الشيخ بطلابه، وجعلها سببًا للسكينة وقبول العلم.",source:"جامع الترمذي، حديث 1924؛ قال الترمذي: حسن صحيح."},
+{title:"شرف الدعوة إلى الله",text:"قال الله تعالى: ﴿وَمَنْ أَحْسَنُ قَوْلًا مِمَّنْ دَعَا إِلَى اللَّهِ وَعَمِلَ صَالِحًا﴾. نسأل الله تعالى أن يبارك في علم فضيلة الشيخ وعمله، وينفع بهما.",source:"القرآن الكريم، سورة فصلت: 33."},
+{title:"ثمرة التعليم",text:"فضيلة الشيخ، أحسن الله إليكم، ورفع قدركم، وبارك في وقتكم وعلمكم، وجعل للقرآن الذي تعلّمونه أثرًا باقيًا في قلوب طلابكم وأعمالهم.",source:"دعاء وصياغة تشجيعية من إعداد الأكاديمية، وليست نصًا شرعيًا منقولًا."},
+{title:"الثناء الصادق",text:"ما يُبذل في تعليم القرآن ورعاية الناشئة عمل جليل؛ نسأل الله تعالى أن يتقبل جهد فضيلة الشيخ، وأن يرزقه الإخلاص والإتقان وحسن الأثر.",source:"صياغة تشجيعية من إعداد الأكاديمية، وليست نصًا شرعيًا منقولًا."},
+{title:"دعاء لأهل القرآن",text:"اللهم بارك لفضيلة الشيخ في علمه وعمله، وانفع به، واجعل ما يعلّمه من كتابك الكريم نورًا وهدايةً وأجرًا جاريًا، وارزقه القبول.",source:"دعاء من صياغة الأكاديمية، وليس حديثًا نبويًا."}
 ];
+
+
+
 const wisdomPool=["admin","teacher","director","supervisor"].includes(S.user.role)?dailyWisdomForSheikh:dailyWisdom;
 const dua=dailySupplications[((daySeed%dailySupplications.length)+dailySupplications.length)%dailySupplications.length];
 const wisdom=wisdomPool[Math.floor(Math.random()*wisdomPool.length)];
-html+='<section class="daily-nourishment-grid"><article class="card daily-nourishment dua-of-day"><div class="daily-kicker">'+esc(dua.title)+'</div><h3>'+esc(dua.text)+'</h3><p class="daily-source">'+esc(dua.source)+'</p></article><article class="card daily-nourishment wisdom-of-day"><div class="daily-kicker">'+esc(wisdom.title)+'</div><p>'+esc(wisdom.text)+'</p><span class="daily-source">فائدة تربوية من إعداد الأكاديمية، وليست نصًا شرعيًا منقولًا.</span></article></section>';
+html+='<section class="daily-nourishment-grid"><article class="card daily-nourishment dua-of-day"><div class="daily-kicker">'+esc(dua.title)+'</div><h3>'+esc(dua.text)+'</h3><p class="daily-source">'+esc(dua.source)+'</p></article><article class="card daily-nourishment wisdom-of-day"><div class="daily-kicker">'+esc(wisdom.title)+'</div><p>'+esc(wisdom.text)+'</p><span class="daily-source">'+esc(wisdom.source||"فائدة تربوية من إعداد الأكاديمية، وليست نصًا شرعيًا منقولًا.")+'</span></article></section>';
 const quickIds=S.user.role==="admin"?["attendance","quran","tests"]:["teacher","director","supervisor"].includes(S.user.role)?["attendance","quran","tests"]:[];
 const quickItems=items().filter(x=>quickIds.includes(x[0]));
 if(quickItems.length)html+='<section class="card quick-actions-card"><div class="section-head"><div><h3>خطوات سريعة</h3><p>انتقل مباشرةً إلى أكثر المهام استخدامًا.</p></div></div><div class="quick-actions">'+quickItems.map(x=>'<button class="quick-action" type="button" data-go="'+x[0]+'"><span class="quick-action-icon">'+navIcon(x[0])+'</span><span class="quick-action-copy"><strong>'+esc(x[1])+'</strong><small>فتح القسم</small></span><span class="quick-action-arrow" aria-hidden="true">←</span></button>').join("")+'</div></section>';
@@ -786,7 +986,7 @@ async function attendance(v){
  if(student)return;
  $("#ag").addEventListener("change",async()=>{const g=$("#ag").value;if(!g){marked=[];redraw();return}try{const h=await api("/attendance?group_id="+encodeURIComponent(g)+"&history=1");marked=[...new Set(h.map(r=>r.date).filter(Boolean))];redraw()}catch(e){toast("تعذّر تحميل الأيام المسجّلة: "+e.message,true)}});
  $("#weekly-report-toggle").addEventListener("click",async()=>{const host=$("#weekly-report-inline"),button=$("#weekly-report-toggle");if(!host)return;if(!host.hidden){host.hidden=true;button.setAttribute("aria-expanded","false");return}const gid=$("#ag").value;if(!gid)return toast("اختر الفوج أولًا",true);host.hidden=false;button.setAttribute("aria-expanded","true");host.innerHTML='<div class="loading">جار إعداد التقرير الأسبوعي…</div>';try{const rows=await api("/attendance?group_id="+encodeURIComponent(gid)+"&history=1");const cutoff=shiftLocalDateISO(localDateISO(),-6),week=rows.filter(r=>String(r.date)>=cutoff),students=S.students.filter(st=>st.group_id===gid).slice().sort((a,b)=>String(a.name).localeCompare(String(b.name),"ar")),count=(id,status)=>week.filter(r=>r.student_id===id&&r.status===status).length;const present=week.filter(r=>r.status==="present").length,absent=week.filter(r=>r.status==="absent").length,late=week.filter(r=>r.status==="late").length;const reportTitle="التقرير الأسبوعي للحضور — "+((S.groups.find(g=>g.id===gid)||{}).name||"الفوج");const reportTable='<table><thead><tr><th>الطالب</th><th>حاضر</th><th>غائب</th><th>متأخر</th><th>بعذر</th><th>السجلات</th></tr></thead><tbody>'+students.map(st=>'<tr><td>'+esc(st.name)+'</td><td>'+count(st.id,"present")+'</td><td>'+count(st.id,"absent")+'</td><td>'+count(st.id,"late")+'</td><td>'+count(st.id,"excused")+'</td><td>'+week.filter(r=>r.student_id===st.id).length+'</td></tr>').join("")+'</tbody></table>';host.innerHTML='<section class="card weekly-inline-report"><div class="section-head"><div><h3>'+esc(reportTitle)+'</h3><p class="muted small">'+esc(cutoff)+' إلى '+esc(localDateISO())+'</p></div><div class="report-actions"><button class="btn secondary" id="share-weekly-inline" type="button">مشاركة</button><button class="btn secondary" id="print-weekly-inline" type="button">تحميل PDF</button></div></div><div class="stats"><div class="stat"><small>سجلات الأسبوع</small><strong>'+week.length+'</strong></div><div class="stat"><small>حاضر</small><strong>'+present+'</strong></div><div class="stat"><small>غائب</small><strong>'+absent+'</strong></div><div class="stat"><small>متأخر</small><strong>'+late+'</strong></div></div><div class="table-wrap">'+reportTable+'</div></section>';$("#share-weekly-inline").onclick=async()=>{const textReport=reportTitle+"\nالفترة: "+cutoff+" إلى "+localDateISO()+"\nحضور: "+present+"، غياب: "+absent+"، تأخر: "+late+"\n"+students.map(st=>st.name+": حاضر "+count(st.id,"present")+"، غائب "+count(st.id,"absent")+"، متأخر "+count(st.id,"late")+"، بعذر "+count(st.id,"excused")).join("\n");try{if(navigator.share)await navigator.share({title:reportTitle,text:textReport});else if(navigator.clipboard?.writeText){await navigator.clipboard.writeText(textReport);toast("نُسخ التقرير للمشاركة")}else toast("المشاركة غير مدعومة في هذا المتصفح.",true)}catch(e){if(e.name!=="AbortError")toast("تعذّرت مشاركة التقرير.",true)}};$("#print-weekly-inline").onclick=()=>printReportWindow(reportTitle,reportTable,cutoff+" إلى "+localDateISO());}catch(e){host.innerHTML='<div class="notice error">'+esc(e.message)+'</div>'}});
- async function showAttendance(edit){const group=$("#ag").value,day=$("#ad").value;if(!group)return toast("اختر الفوج",true);try{const pair=await Promise.all([api("/students?group_id="+encodeURIComponent(group)),api("/attendance?group_id="+encodeURIComponent(group)+"&date="+encodeURIComponent(day))]);const students=pair[0],old={};pair[1].forEach(x=>old[x.student_id]=x);const host=$("#att-list");if(!students.length){host.innerHTML='<div class="empty">لا يوجد طلاب في هذا الفوج.</div>';return}const statusName=x=>({"present":"حاضر","absent":"غائب","late":"متأخر","excused":"بعذر"}[x]||"غير مسجل");if(!edit){host.innerHTML='<div class="card"><h3>معاينة سجل الحضور</h3><p class="muted small">'+esc((S.groups.find(g=>g.id===group)||{}).name||"الفوج")+' · '+esc(day)+' · '+students.length+' طالبًا</p><div class="table-wrap"><table><thead><tr><th>الطالب</th><th>الحالة المسجلة</th><th>الملاحظة</th></tr></thead><tbody>'+students.map(st=>'<tr><td>'+esc(st.name)+'</td><td><span class="pill">'+statusName(old[st.id]?.status)+'</span></td><td>'+esc(old[st.id]?.note||"—")+'</td></tr>').join("")+'</tbody></table></div><p class="muted small">هذه معاينة فقط؛ لم يُحفظ أي تغيير.</p><button id="edit-after-preview" class="btn">تعديل هذا السجل</button></div>';$("#edit-after-preview").onclick=()=>showAttendance(true);return}host.innerHTML='<form id="attform"><p class="muted small">غيّر الحالات ثم اضغط «حفظ الحضور». لن تُحفظ التغييرات قبل الضغط.</p><div class="table-wrap"><table><thead><tr><th>الطالب</th><th>الحالة</th><th>ملاحظة</th></tr></thead><tbody>'+students.map(st=>'<tr><td>'+esc(st.name)+'</td><td><select class="status-select" name="st_'+esc(st.id)+'"><option value="present" '+((old[st.id]?.status||"present")==="present"?"selected":"")+'>حاضر</option><option value="absent" '+(old[st.id]?.status==="absent"?"selected":"")+'>غائب</option><option value="late" '+(old[st.id]?.status==="late"?"selected":"")+'>متأخر</option><option value="excused" '+(old[st.id]?.status==="excused"?"selected":"")+'>بعذر</option></select></td><td><input name="note_'+esc(st.id)+'" value="'+esc(old[st.id]?.note||"")+'" style="width:120px" placeholder="اختياري"></td></tr>').join("")+'</tbody></table></div><button class="btn" style="margin-top:15px">حفظ الحضور</button><button type="button" id="back-preview" class="btn secondary" style="margin:15px 8px 0">رجوع إلى المعاينة</button></form>';$("#back-preview").onclick=()=>showAttendance(false);$("#attform").onsubmit=async e=>{e.preventDefault();const f=new FormData(e.currentTarget),items=students.map(st=>({student_id:st.id,status:f.get("st_"+st.id),note:f.get("note_"+st.id)}));try{const r=await api("/attendance",{method:"POST",body:JSON.stringify({group_id:group,date:day,items})});toast("تم حفظ حضور "+r.saved+" طالبًا");marked=[...new Set([...marked,day])];redraw();showAttendance(false)}catch(x){toast(x.message,true)}}}catch(x){toast(x.message,true)}}
+ async function showAttendance(edit){const group=$("#ag").value,day=$("#ad").value;if(!group)return toast("اختر الفوج",true);try{const pair=await Promise.all([api("/students?group_id="+encodeURIComponent(group)),api("/attendance?group_id="+encodeURIComponent(group)+"&date="+encodeURIComponent(day))]);const students=pair[0],old={};pair[1].forEach(x=>old[x.student_id]=x);const host=$("#att-list");if(!students.length){host.innerHTML='<div class="empty">لا يوجد طلاب في هذا الفوج.</div>';return}const statusName=x=>({"present":"حاضر","absent":"غائب","late":"متأخر","excused":"بعذر"}[x]||"غير مسجل");if(!edit){host.innerHTML='<div class="card"><h3>معاينة سجل الحضور</h3><p class="muted small">'+esc((S.groups.find(g=>g.id===group)||{}).name||"الفوج")+' · '+esc(day)+' · '+students.length+' طالبًا</p><div class="table-wrap"><table><thead><tr><th>الطالب</th><th>الحالة المسجلة</th><th>الملاحظة</th></tr></thead><tbody>'+students.map(st=>'<tr><td>'+esc(st.name)+'</td><td><span class="pill">'+statusName(old[st.id]?.status)+'</span></td><td>'+esc(old[st.id]?.note||"—")+'</td></tr>').join("")+'</tbody></table></div><p class="muted small">هذه معاينة فقط؛ لم يُحفظ أي تغيير.</p><button id="edit-after-preview" class="btn">تعديل هذا السجل</button></div>';$("#edit-after-preview").onclick=()=>showAttendance(true);return}host.innerHTML='<form id="attform"><p class="muted small">غيّر الحالات ثم اضغط «حفظ الحضور». لن تُحفظ التغييرات قبل الضغط.</p><div class="table-wrap"><table><thead><tr><th>الطالب</th><th>الحالة</th><th>ملاحظة</th></tr></thead><tbody>'+students.map(st=>'<tr><td>'+esc(st.name)+'</td><td><select class="status-select" name="st_'+esc(st.id)+'"><option value="present" '+((old[st.id]?.status||"present")==="present"?"selected":"")+'>حاضر</option><option value="absent" '+(old[st.id]?.status==="absent"?"selected":"")+'>غائب</option><option value="late" '+(old[st.id]?.status==="late"?"selected":"")+'>متأخر</option><option value="excused" '+(old[st.id]?.status==="excused"?"selected":"")+'>بعذر</option></select></td><td><input name="note_'+esc(st.id)+'" value="'+esc(old[st.id]?.note||"")+'" style="width:120px" placeholder="اختياري"></td></tr>').join("")+'</tbody></table></div><button class="btn" style="margin-top:15px">حفظ الحضور</button><button type="button" id="back-preview" class="btn secondary" style="margin:15px 8px 0">رجوع إلى المعاينة</button></form>';$("#back-preview").onclick=()=>showAttendance(false);$("#attform").onsubmit=async e=>{e.preventDefault();const f=new FormData(e.currentTarget),items=students.map(st=>({student_id:st.id,status:f.get("st_"+st.id),note:f.get("note_"+st.id)}));try{const r=await api("/attendance",{method:"POST",body:JSON.stringify({group_id:group,date:day,items})});toast(r.queued_offline?"حُفظ الحضور على هذا الجهاز، وسيتزامن عند عودة الاتصال.":"تم حفظ حضور "+r.saved+" طالبًا");marked=[...new Set([...marked,day])];redraw();showAttendance(false)}catch(x){toast(x.message,true)}}}catch(x){toast(x.message,true)}}
  $("#preview-att").onclick=()=>showAttendance(false);$("#load-att").onclick=()=>showAttendance(true);
 }
 
@@ -862,9 +1062,9 @@ async function quran(v){
   const body={student_id:studentId,date:f.get("date"),activity,memorized:activity==="memorization"?amount:"",reviewed:activity==="revision"?amount:"",recitation:"",errors:0,grade:null,corrected:false,feedback:"",next_assignment:"",notes:String(f.get("notes")||"").trim()};
   const submit=form.querySelector('button[type="submit"]');submit.disabled=true;
   try{
-   await api("/quran/progress",{method:"POST",body:JSON.stringify(body)});
+   const saved=await api("/quran/progress",{method:"POST",body:JSON.stringify({...body,group_id:(S.students.find(st=>st.id===studentId)||{}).group_id||""})});
    safeStore.setSession("ihsan_quran_student",studentId);studentSelect.value=studentId;form.elements.thumn.value="";form.elements.notes.value="";form.elements.date.value=S.date;
-   toast("تم حفظ التسجيل");await refreshHistory(studentId);
+   toast(saved?.queued_offline?"حُفظ تسجيل القرآن على هذا الجهاز، وسيتزامن عند عودة الاتصال.":"تم حفظ التسجيل");await refreshHistory(studentId);
   }catch(error){toast(error.message,true)}
   finally{submit.disabled=false}
  };
@@ -914,28 +1114,51 @@ async function reportsPage(v){
 }
 
 async function leaderboardPage(v){
- const isStudent=S.user.role==="student";
+ const isStudent=S.user.role==="student",isAdmin=S.user.role==="admin";
  const staff=["admin","director","teacher","supervisor"].includes(S.user.role);
- let groupId=isStudent?(S.user.group_id||((S.groups[0]||{}).id||"")):"";
- if(staff&&S.groups.length)groupId=S.groups[0].id;
- v.innerHTML=head("ترتيب الفوج","ترتيب تشجيعي يقدّر المواظبة والحفظ ونتائج الاختبارات، لا يقيس قيمة الطالب ولا يستبدل تقييم المعلم.")+
- (staff?'<section class="card"><label class="field">الفوج<select id="leaderboard-group">'+groupOpts()+'</select></label><button class="btn" id="leaderboard-refresh" style="margin-top:12px">تحديث الترتيب</button></section>':'<p class="muted small">يعرض هذا الترتيب طلاب فوجك فقط. النقاط: 5 للحضور المسجّل، و10 لكل متابعة قرآن، و3 لكل إجابة صحيحة في أفضل محاولة لكل اختبار.</p>')+
- '<div id="leaderboard-content" class="loading">جار حساب النقاط…</div>';
+ let groupId=isStudent?(S.user.group_id||((S.groups[0]||{}).id||"")):(safeStore.getSession("ihsan_leaderboard_group")||((S.groups[0]||{}).id||""));
+ const savedScope=safeStore.getSession("ihsan_leaderboard_scope")||"group";
+ const selectedScope=isAdmin&&savedScope==="all"?"__all__":groupId;
+ const sortOptions=[["points","النتيجة العامة"],["attendance_rate","المواظبة والحضور"],["quran_rate","متابعة القرآن"],["quiz_rate","إتقان الاختبارات"],["challenge_rate","التحديات"]];
+ const savedSort=safeStore.getSession("ihsan_leaderboard_sort")||"points";
+ const domainOptions=sortOptions.map(x=>'<option value="'+x[0]+'" '+(savedSort===x[0]?"selected":"")+'>'+x[1]+'</option>').join("");
+ const scopeOptions=(isAdmin?'<option value="__all__" '+(selectedScope==="__all__"?"selected":"")+' >كل الأفواج</option>':"")+S.groups.map(g=>'<option value="'+esc(g.id)+'" '+(selectedScope===g.id?"selected":"")+'>'+esc(g.name)+'</option>').join("");
+ v.innerHTML=head("الترتيب العام","ترتيب تشجيعي يوازن بين المواظبة والقرآن والاختبارات والتحديات، ولا يقيس قيمة الطالب.")+
+ (staff?'<section class="card leaderboard-controls"><div class="form-grid">'+
+ '<label class="field">نطاق الترتيب<select id="leaderboard-group">'+scopeOptions+'</select></label>'+
+ '<label class="field">رتّب حسب<select id="leaderboard-domain">'+domainOptions+'</select></label>'+
+ '</div><p class="muted small">يمكن للمدير العام عرض جميع الأفواج؛ أما بقية الأدوار فتظهر لها الأفواج الواقعة ضمن صلاحياتها فقط.</p><button class="btn" id="leaderboard-refresh">تحديث الترتيب</button></section>':
+ '<p class="muted small">يعرض هذا الترتيب طلاب فوجك فقط. النتيجة العامة: 25٪ المواظبة، 35٪ القرآن، 30٪ إتقان الاختبارات، 10٪ التحديات.</p>')+
+ '<div id="leaderboard-content" class="loading">جار حساب الترتيب…</div>';
  const render=async()=>{
-  const group=staff?($("#leaderboard-group")?.value||""):groupId;
+  const scope=staff?($("#leaderboard-group")?.value||""):"";
+  const all=Boolean(isAdmin&&scope==="__all__");
+  const group=staff&&!all?scope:groupId;
+  const sortKey=staff?($("#leaderboard-domain")?.value||"points"):savedSort;
   const host=$("#leaderboard-content");
-  if(staff&&!group){host.innerHTML='<div class="empty">اختر فوجًا لعرض ترتيبه.</div>';return}
-  host.innerHTML='<div class="loading">جار حساب النقاط…</div>';
+  if(staff&&!all&&!group){host.innerHTML='<div class="empty">اختر فوجًا لعرض ترتيبه.</div>';return}
+  host.innerHTML='<div class="loading">جار حساب الترتيب…</div>';
   try{
-   const rows=await api("/leaderboard"+(staff?"?group_id="+encodeURIComponent(group):""));
+   const query=staff?(all?"?scope=all":"?group_id="+encodeURIComponent(group)):"";
+   const rows=await api("/leaderboard"+query);
    if(!rows.length){host.innerHTML='<div class="card empty">لا توجد بيانات كافية للترتيب بعد. يبدأ الترتيب مع تسجيل الحضور ومتابعة القرآن والاختبارات.</div>';return}
-   host.innerHTML='<section class="card"><div class="notice">ترتيب من 100 نقطة: المواظبة 25٪، انتظام القرآن 35٪، إتقان الاختبارات 30٪، التحديات 10٪. تُحسب النسب بدل جمع مقدار الحفظ الخام، حتى لا يتقدم الأقدم لمجرد طول مدة تسجيله.</div><div class="table-wrap"><table><thead><tr><th>الترتيب</th><th>الطالب</th><th>النتيجة /100</th><th>المواظبة</th><th>القرآن</th><th>إتقان الاختبار</th><th>التحديات</th></tr></thead><tbody>'+rows.map(r=>'<tr '+(r.is_self?'class="leaderboard-self"':"")+'><td>'+r.rank+'</td><td>'+esc(r.name)+(r.is_self?' <span class="pill">أنت</span>':"")+'</td><td><strong>'+r.points+'</strong></td><td>'+Number(r.attendance_rate||0)+'٪</td><td>'+Number(r.quran_rate||0)+'٪</td><td>'+Number(r.quiz_rate||0)+'٪</td><td>'+Number(r.challenge_rate||0)+'٪</td></tr>').join("")+'</tbody></table></div><p class="muted small">الترتيب للتحفيز فقط، ولا يحل محل تقدير المعلم لجودة الحفظ والتجويد والفهم.</p></section>';
+   const sorted=rows.slice().sort((a,b)=>Number(b[sortKey]||0)-Number(a[sortKey]||0)||Number(b.points||0)-Number(a.points||0)||String(a.name||"").localeCompare(String(b.name||""),"ar"));
+   const percent=value=>Number(value||0).toLocaleString("ar-DZ")+"٪";
+   host.innerHTML='<section class="card leaderboard-results"><div class="notice">الترتيب للتحفيز فقط، ولا يستبدل تقييم المعلم لجودة الحفظ والتجويد والفهم.</div><div class="table-wrap"><table><thead><tr><th>الترتيب</th><th>الطالب</th>'+(all?'<th>الفوج</th>':"")+'<th>النتيجة /100</th><th>المواظبة</th><th>القرآن</th><th>الاختبارات</th><th>التحديات</th></tr></thead><tbody>'+sorted.map((r,i)=>'<tr '+(r.is_self?'class="leaderboard-self"':"")+'><td>'+(i+1)+'</td><td>'+esc(r.name)+(r.is_self?' <span class="pill">أنت</span>':"")+'</td>'+(all?'<td>'+esc(r.group_name||"بلا فوج")+'</td>':"")+'<td><strong>'+Number(r.points||0)+'</strong></td><td>'+percent(r.attendance_rate)+'</td><td>'+percent(r.quran_rate)+'</td><td>'+percent(r.quiz_rate)+'</td><td>'+percent(r.challenge_rate)+'</td></tr>').join("")+'</tbody></table></div></section>';
   }catch(e){host.innerHTML='<div class="notice error">'+esc(e.message)+'</div>'}
  };
  $("#leaderboard-refresh")?.addEventListener("click",render);
- $("#leaderboard-group")?.addEventListener("change",render);
+ $("#leaderboard-group")?.addEventListener("change",()=>{
+  const value=$("#leaderboard-group").value;
+  if(isAdmin)safeStore.setSession("ihsan_leaderboard_scope",value==="__all__"?"all":"group");
+  if(value!=="__all__")safeStore.setSession("ihsan_leaderboard_group",value);
+  render();
+ });
+ $("#leaderboard-domain")?.addEventListener("change",()=>{safeStore.setSession("ihsan_leaderboard_sort",$("#leaderboard-domain").value);render()});
  if(!staff||S.groups.length)await render();
 }
+
+
 
 async function systemCheckPage(v){
  if(S.user.role!=="admin"){v.innerHTML=head("فحص النظام","هذه الصفحة متاحة للمدير فقط.")+'<div class="notice error">لا تملك صلاحية فحص بيانات النظام.</div>';return}
