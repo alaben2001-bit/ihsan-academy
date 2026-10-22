@@ -1,6 +1,6 @@
 # Ihsan Academy — Cloudflare Pages + D1
 
-The active Cloudflare build is a lightweight Arabic RTL Progressive Web App backed by Pages Functions and D1. It is a staged rebuild of the earlier Render application, not an automatic continuation of its PostgreSQL database.
+The active Cloudflare build is a lightweight Arabic RTL Progressive Web App backed by Pages Functions and D1. It is a separate Cloudflare deployment, not an automatic continuation of the historical database.
 
 ## Implemented in the current code
 
