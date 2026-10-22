@@ -338,6 +338,8 @@ assert.match(app, /function rememberOfflineUser\(\)/, "offline startup may only 
 assert.match(app, /function startOfflineFromCache\(\)/, "startup must enter a cached offline session after a network failure");
 assert.match(app, /function isOfflineNetworkError\(error\)/, "offline fallback must distinguish network failures from authorization errors");
 assert.match(app, /age>30\*24\*60\*60\*1000/, "the local offline profile must expire after 30 days");
+assert.match(app, /if\(offlineSessionActive\|\|!S\.user\?\.id\)return;/, "offline use must not renew the local profile expiry timestamp");
+assert.match(app, /if\(offlineSessionActive\)\{offlineSessionActive=false;rememberOfflineUser\(\)\}/, "a successful online API response must refresh the profile timestamp and end offline mode");
 assert.match(app, /safeStore\.remove\(offlineUserKey\(\)\);clearSessionToken\(\);auth\(false\)/, "logout must remove the local offline profile");
 
 assert.match(app, /صيانة 22 أكتوبر 2026 · منشورة/, "the feature history must reflect the successful production deployment");
