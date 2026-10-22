@@ -456,6 +456,30 @@ export default {
       }
       return fail(403,"هذه القائمة للمدير العام أو مدير المدرسة ضمن نطاقه");
     }
+    if(path==="/api/admin/student-team-supervisors"&&method==="GET"){
+      if(user.role!=="admin")return fail(403,"تعيين مشرفي الفرق من صلاحية المدير العام فقط");
+      const result=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='student_team_supervisors' ORDER BY updated_at DESC").all();
+      const assignments=[];
+      for(const row of result.results||[]){try{const x=JSON.parse(row.payload_json);assignments.push({id:x.id,group_id:x.group_id,supervisor_student_id:x.supervisor_student_id,supervisor_name:x.supervisor_name,head_supervisor_student_id:x.head_supervisor_student_id,head_supervisor_name:x.head_supervisor_name,updated_at:x.updated_at});}catch{}}
+      return json(assignments);
+    }
+    if(path==="/api/admin/student-team-supervisors"&&method==="POST"){
+      if(user.role!=="admin")return fail(403,"تعيين مشرفي الفرق من صلاحية المدير العام فقط");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      const groupId=clean(b.group_id,80),supervisorId=clean(b.supervisor_student_id,80),headId=clean(b.head_supervisor_student_id,80);
+      if(!groupId||!supervisorId||!headId)return fail(400,"اختر الفوج ومشرف الفرقة وكبير المشرفين");
+      if(supervisorId===headId)return fail(400,"اختر طالبين مختلفين للمهمتين");
+      const group=await groupRow(env,groupId);
+      if(!group||group.active!==1)return fail(404,"الفوج المحدد غير موجود أو متوقف");
+      const supervisor=await env.DB.prepare("SELECT id,display_name,group_id FROM students WHERE id=? AND group_id=? AND active=1").bind(supervisorId,groupId).first();
+      if(!supervisor)return fail(400,"يجب أن يكون مشرف الفرقة طالبًا مسجلًا في الفوج المحدد");
+      const chief=await env.DB.prepare("SELECT id,display_name FROM students WHERE id=? AND active=1").bind(headId).first();
+      if(!chief)return fail(400,"كبير المشرفين يجب أن يكون طالبًا مسجلًا ونشطًا");
+      const assignment={id:groupId,owner_user_id:user.id,group_id:groupId,student_id:supervisor.id,supervisor_student_id:supervisor.id,supervisor_name:supervisor.display_name,head_supervisor_student_id:chief.id,head_supervisor_name:chief.display_name,updated_at:nowIso()};
+      await saveRecord(env,"student_team_supervisors",assignment);
+      await log(env,user.id,"student_team_supervisor_assign",{group_id:groupId,supervisor_student_id:supervisor.id,head_supervisor_student_id:chief.id});
+      return json({ok:true,...assignment},201);
+    }
     if(path==="/api/admin/staff"&&method==="GET"){
       if(user.role!=="admin")return fail(403,"هذه القائمة للمدير العام فقط");
       const rows=await env.DB.prepare("SELECT id,display_name AS name,identity_normalized AS username,role FROM users WHERE active=1 AND role IN ('director','supervisor') ORDER BY role,display_name").all();
