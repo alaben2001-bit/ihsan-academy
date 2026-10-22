@@ -30,10 +30,20 @@
 <link rel="stylesheet" href="/assets/login-redesign.css?v=2.0">
 <link rel="stylesheet" href="/assets/premium-enterprise.css?v=1.0">
 <link rel="stylesheet" href="/assets/immersive-appearance.css?v=3.0">
+<link rel="stylesheet" href="/assets/readability-fixes.css?v=3.0">
 </head>
 <body>
 <section class="login hidden" id="loginView">
-  <div class="login-art"><div class="login-brand"><img src="/assets/ihsan-emblem.svg" alt="شعار أكاديمية الإحسان"><b>أكاديمية الإحسان</b><small>في بناء الإنسان</small></div></div>
+  <div class="login-art"><a class="login-about-link" href="#academyAbout">عن الأكاديمية</a><div class="login-brand"><img src="/assets/ihsan-emblem.svg" alt="شعار أكاديمية الإحسان"><b>أكاديمية الإحسان</b><small>في بناء الإنسان</small></div>  <div class="login-welcome" id="academyAbout">
+    <p class="bismillah">بِسْمِ اللهِ الرَّحْمَنِ الرَّحِيمِ</p>
+    <h2>في بساتين الوحي</h2>
+    <p class="verse">﴿رَبَّنَا لَا تُزِغْ قُلُوبَنَا بَعْدَ إِذْ هَدَيْتَنَا وَهَبْ لَنَا مِنْ لَدُنْكَ رَحْمَةً إِنَّكَ أَنْتَ الْوَهَّابُ﴾</p>
+    <p class="verse-ref">القرآن الكريم، سورة آل عمران: ٨</p>
+    <p class="welcome-description">مساحة علمية تجمع معرفة الله تعالى، وسيرة الرسول ﷺ، والقرآن والسنة، والأدب والعمل الصالح.</p>
+    <p class="welcome-poem">من هُنا تُبنى العقول، وتُهذَّب النفوس، وتُصاغ همم الرجال؛ بالقرآن نهتدي، وبالسنة نقتدي، وبالعلم نرتقي، وبالأخلاق نسمو، وبالعمل نُثمر؛ لنُخرّج جيلًا راسخ العلم، كريم الخُلُق، عظيم الأثر، يحمل نور الوحي إلى العالمين، ويترك في الحياة بصمة المحسنين.</p>
+    <p class="welcome-description"><strong>مناراتُ العلم وبساتينُ الإحسان</strong></p>
+    <button class="btn" type="button" data-act="landing-login">الدخول إلى المنهج ←</button>
+  </div></div>
   <div class="login-form"><div class="login-form-inner">
     <div class="form-brand"><img src="/assets/ihsan-emblem.svg" alt=""><strong>أكاديمية الإحسان</strong></div>
     <form id="loginForm" autocomplete="on">
@@ -44,7 +54,7 @@
       <div class="err-msg" id="loginErr" role="alert"></div>
       <button class="btn" id="loginBtn" type="submit">دخول إلى الأكاديمية <span aria-hidden="true">←</span></button>
     </form>
-    <div class="install-prompt hidden" id="installPrompt"><div><b>ثبّت الأكاديمية على جهازك</b><span>تفتح بسرعة مثل تطبيق مستقل.</span></div><button class="btn sm" id="installBtn">تثبيت</button><button class="btn sec2 sm" id="installClose" aria-label="إغلاق">لاحقًا</button></div><div class="portal-box"><div class="sec"><div><h3>المدارس القرآنية</h3><p class="muted small">اختر بوابة مدرستك بعد تسجيل الحساب.</p></div></div><div id="quranSchools" class="portal-grid"></div></div>
+    <span id="installStatus" class="install-status hidden">التطبيق مثبت</span><div class="install-prompt hidden" id="installPrompt"><div><b>ثبّت الأكاديمية على جهازك</b><span>تفتح بسرعة مثل تطبيق مستقل.</span></div><button class="btn sm" id="installBtn">تثبيت</button><button class="btn sec2 sm" id="installClose" aria-label="إغلاق">لاحقًا</button></div><div class="portal-box"><div class="sec"><div><h3>المدارس القرآنية</h3><p class="muted small">اختر بوابة مدرستك بعد تسجيل الحساب.</p></div></div><div id="quranSchools" class="portal-grid"></div></div>
   </div></div>
 </section>
 <div class="app hidden" id="appView">
@@ -59,6 +69,6 @@
 <div id="audioDock" class="audio-dock hidden" aria-label="مشغل الأكاديمية"><div class="audio-dock-info"><span class="audio-dock-icon">♫</span><div><b id="audioDockTitle">لا يوجد تسجيل</b><small id="audioDockMeta">مشغل الأكاديمية</small></div></div><audio id="academyPlayer" controls preload="metadata"></audio><button class="btn sec2 sm" id="audioDockClose" type="button" aria-label="إغلاق المشغل">×</button></div>
 <div id="overlay"></div><div class="toast" id="toast" role="status"></div>
 
-<script src="/assets/app.js?v=97.0"></script>
+<script src="/assets/app.js?v=98.0"></script>
 </body>
 </html>
