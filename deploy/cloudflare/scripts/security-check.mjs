@@ -218,4 +218,10 @@ assert.match(style, /\.appearance-demo-icon\[data-demo-style="bold"\]/, "bold st
 assert.match(style, /\.appearance-size-demo\[data-demo-size="large"\] svg/, "size samples must visually distinguish large icons");
 assert.match(style, /\.appearance-live-item \.nav-icon/, "live preview must reflect current icon style and size settings");
 
+
+assert.match(backend, /if\(path==="\\/api\\/admin\\/student-team-supervisors"&&method==="POST"\)/, "the admin must be able to assign team supervisors from existing student records");
+assert.match(backend, /SELECT id,display_name,group_id FROM students WHERE id=\? AND group_id=\? AND active=1/, "a team supervisor must be an active student in the selected group");
+assert.match(app, /id="student-supervisors-form"/, "the combined groups screen must expose student supervisor assignment");
+assert.match(app, /data-edit-supervision=/, "saved student supervision assignments must be editable");
+
 console.log("Security regression guardrails passed.");
