@@ -282,7 +282,7 @@ assert.doesNotMatch(app, /id="settings-done"/, "appearance preferences apply imm
 
 assert.match(app, /const dailyWisdomForSheikh=\[/, "teaching advice must be separated from student etiquette advice");
 assert.match(app, /const wisdomPool=\["admin","teacher","director","supervisor"\]\.includes\(S\.user\.role\)\?dailyWisdomForSheikh:dailyWisdom/, "daily educational guidance must match the user's role");
-assert.match(app, /if\(S\.tab==="home"\)return await home\(v\);if\(S\.tab==="groups"\)return groups\(v\);/, "obsolete system-check, audit and backup panels must not be reachable from the active page router");
+assert.match(app, /if\(S\.tab==="home"\)return await home\(v\);if\(S\.tab==="teams"\)return await teamsPage\(v\);if\(S\.tab==="groups"\)return groups\(v\);/, "only current, supported panels must be reachable from the active page router");
 
 
 assert.match(app, /const authSupplications=\[/, "the login welcome panel must show a rotating set of sourced supplications");
