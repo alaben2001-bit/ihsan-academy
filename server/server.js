@@ -936,7 +936,7 @@ async function handler(req, res) {
     if (p === '/api/quran/session' && req.method === 'POST') {
       requireStaff(user); const b=await body(req); const st=quranStudent(b.student_id,true);
       const types=['تسميع','مراجعة','قراءة','اختبار حفظ']; if(!types.includes(b.type)) fail(400,'نوع الحلقة غير صحيح');
-      const date=b.date?(isDate(b.date)?b.date:null):localISO(); const fa=Number(b.from_ayah), ta=Number(b.to_ayah); if(!date) fail(400,'تاريخ الجلسة غير صحيح'); if(date>localISO()) fail(400,'لا يمكن تسجيل جلسة بتاريخ مستقبلي');
+      const date=isDate(b.date)?b.date:localISO(); const fa=Number(b.from_ayah), ta=Number(b.to_ayah);
       if(!b.surah || !Number.isInteger(fa) || !Number.isInteger(ta) || fa<1 || ta<fa || ta>300) fail(400,'بيانات المقطع غير صحيحة');
       const rating=Math.max(1,Math.min(5,Number(b.rating)||1)), taj=Math.max(1,Math.min(5,Number(b.tajweed)||1)), flu=Math.max(1,Math.min(5,Number(b.fluency)||1));
       const row={id:uid('qs'),student_id:st.id,date,type:b.type,surah:clean(b.surah,80),from_ayah:fa,to_ayah:ta,rating,tajweed:taj,fluency:flu,notes:clean(b.notes,800),teacher_id:user.id};
