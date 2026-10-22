@@ -448,7 +448,7 @@ async function pgDashboard() {
         : role === 'chief_supervisor'
           ? [['teams','فرق الإشراف','group'],['school-directory','هيكلة المدرسة','users'],['supervisor-requests','طلبات الإشراف','check'],['learning-hub','برنامج التعلّم','brain'],['media','مكتبة الشيخ','media'],['notifications','الإشعارات','bell']]
           : [['children','متابعة الأبناء','user'],['reports','تقارير التقدم','chart'],['calendar','التقويم','calendar'],['media','مكتبة الشيخ','media'],['messages','المراسلات','bell'],['notifications','الإشعارات','bell']];
-  const visibleQuickLinks = quickLinks.filter(([id]) => !HIDDEN_NAV_IDS.has(id));
+  const visibleQuickLinks = quickLinks.filter(([id]) => Object.prototype.hasOwnProperty.call(PAGES, id));
   const dayIndex = Math.floor(Date.now() / 86400000);
   const dailyDuas = [
     {title:'دعاء من القرآن',text:'رَبِّ زِدْنِي عِلْمًا',source:'سورة طه، الآية 114',note:'دعاء قرآني قصير قبل التعلم وبعده.'},
