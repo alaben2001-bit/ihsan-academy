@@ -1910,3 +1910,94 @@ html[data-appearance="dark"] .admin-focus-toggle{background:#1b3b31!important;co
  .auth-entry-card strong{font-size:12px}
 }
 
+
+
+/* Ihsan accessibility and moonlit dark palette overrides — 2026-10-22 */
+html{font-size:calc(16px * var(--user-font-scale,1))}
+body{font-size:1rem}
+body :is(.small,small,.muted.small,.nav-section-title,.workspace-heading>p,.breadcrumbs,.calendar-weekdays span,.wa-bubble-meta small,.wa-contact-copy small,.settings-help-card p,.settings-section-title p){
+  font-size:max(14px,calc(14px * var(--user-font-scale,1)))!important;
+  line-height:1.7;
+}
+body :is(button,input,select,textarea,.field,.status-select,.nav-btn,.pill){
+  font-size:max(15px,calc(14px * var(--user-font-scale,1)));
+}
+body :is(.nav-btn,.field input,.field select,.field textarea,.status-select,table th,table td,.wa-contact-copy strong,.wa-chat-identity h3){
+  line-height:1.7;
+}
+body :is(.field input,.field select,.field textarea,input[type="search"],input[type="date"],input[type="number"],select,textarea){
+  min-height:44px;
+}
+body textarea{min-height:96px}
+body :is(.panel,.card,.stat,.list-row,.notice,.empty,.settings-section,.settings-help-card,.appearance-live-preview,.date-calendar,.organization-shortcuts,.table-wrap,.wa-contact-panel,.wa-chat-panel,.wa-thread,.wa-contact,.wa-compose,.settings-dialog,.academy-about-dialog,.password-dialog){
+  border-color:var(--line)!important;
+}
+body :is(.table-wrap, .table-responsive, .report-table-wrap){max-width:100%;overflow-x:auto}
+body table{width:100%;border-collapse:collapse}
+body :is(table th,table td){padding:12px 10px;vertical-align:top;white-space:normal;overflow-wrap:anywhere}
+body :is(.nav-btn,.stat-link,.path-card,.module-card){min-width:0}
+body :is(.wa-thread,.wa-contact-list,.content-area,.content,.workspace){min-width:0}
+
+/* Let the selected dark theme cover every surface, including nested legacy white tables and inputs. */
+html[data-appearance-palette="dark"] body,
+html[data-appearance-palette="dark"] .app-shell,
+html[data-appearance-palette="dark"] .workspace,
+html[data-appearance-palette="dark"] .content-area,
+html[data-appearance-palette="dark"] .content{
+  background-color:#0b1517!important;color:#e7f0eb!important;
+}
+html[data-appearance-palette="dark"] :is(.panel,.card,.stat,.sidebar,.workspace-head,.workspace-search,.settings-dialog,.settings-section,.settings-help-card,.appearance-live-preview,.date-calendar,.wa-contact-panel,.wa-chat-panel,.wa-contact,.wa-thread,.wa-compose,.table-wrap,.table-responsive,.report-table-wrap,.settings-foot,.module-card,.student-welcome,.path-card,.organization-shortcuts,.settings-preference,.list-row){
+  background-color:#142321!important;color:#e7f0eb!important;border-color:#304a43!important;
+}
+html[data-appearance-palette="dark"] :is(.hero,.section-head,.settings-section-title,.wa-panel-head,.wa-chat-head){
+  background-color:#11201f!important;color:#e7f0eb!important;border-color:#304a43!important;
+}
+html[data-appearance-palette="dark"] :is(h1,h2,h3,h4,h5,h6,p,li,label,strong,b,.nav-label,.nav-btn,.workspace-heading,.workspace-user,.breadcrumbs strong,.table-wrap th,.table-wrap td,.wa-contact-copy strong,.wa-chat-identity h3,.settings-section-title h3,.settings-help-card h4){
+  color:#e7f0eb!important;
+}
+html[data-appearance-palette="dark"] :is(small,.small,.muted,.nav-section-title,.workspace-heading>p,.breadcrumbs,.calendar-weekdays span,.settings-section-title p,.settings-help-card p,.wa-contact-copy small,.wa-chat-identity p,.wa-bubble-meta small,.empty){
+  color:#b4c8bf!important;
+}
+html[data-appearance-palette="dark"] :is(input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),select,textarea,.status-select,.workspace-search){
+  color:#edf5f0!important;background-color:#101d1d!important;border-color:#496158!important;
+}
+html[data-appearance-palette="dark"] :is(input,select,textarea)::placeholder{color:#a5b9b0!important;opacity:1}
+html[data-appearance-palette="dark"] :is(.btn.secondary,.nav-btn:hover,.nav-btn.active,.appearance-choice,.theme-choice,.module-switch,.settings-close){
+  color:#e8f4ed!important;background-color:#1b332e!important;border-color:#456459!important;
+}
+html[data-appearance-palette="dark"] :is(.appearance-choice.active,.nav-btn.active){box-shadow:inset -3px 0 0 #e8c77c;border-color:#75dfb7!important}
+html[data-appearance-palette="dark"] :is(th,td){border-color:#304a43!important}
+html[data-appearance-palette="dark"] .table-wrap tbody tr:nth-child(even){background:#172a27!important}
+html[data-appearance-palette="dark"] .table-wrap tbody tr:nth-child(odd){background:#12201e!important}
+html[data-appearance-palette="dark"] :is(.wa-bubble,.wa-bubble-row .wa-bubble){
+  background:#192d29!important;color:#e7f0eb!important;border-color:#304a43!important;
+}
+html[data-appearance-palette="dark"] :is(.wa-bubble.outgoing,.outgoing .wa-bubble){background:#174a3d!important;color:#f0faf4!important}
+html[data-appearance-palette="dark"] :is(.pill,.notice){color:#d7efe2!important;background:#18392f!important;border-color:#315c4b!important}
+html[data-appearance-palette="dark"] .calendar-day{background:#182a27!important;color:#e5f0e9!important}
+html[data-appearance-palette="dark"] .calendar-day.has-record{background:#b9f0d2!important;color:#064b31!important;border-color:#62c791!important}
+html[data-appearance-palette="dark"] .calendar-day.has-record.is-selected{background:#8fe3b5!important;color:#053b26!important}
+html[data-appearance-palette="dark"] :is(.calendar-toolbar button,.calendar-day-nav button){background:#1b302c!important;color:#e7f0eb!important;border-color:#456258!important}
+html[data-appearance-palette="dark"] :is(.stat strong,.student-welcome,.eyebrow,.appearance-live-item){color:#91e4bd!important}
+html[data-appearance-palette="dark"] .hero{background:linear-gradient(125deg,#16392f,#152522)!important}
+html[data-appearance-palette="dark"] .welcome{background:linear-gradient(145deg,#092d25,#10201f 58%,#182326)!important}
+html[data-appearance-palette="dark"] .welcome :is(h1,p,.eyebrow){color:#f0f7f2!important}
+html[data-appearance-palette="dark"] .welcome .verse{color:#f0dba8!important}
+html[data-appearance-palette="dark"] :is(.settings-dialog,.academy-about-dialog,.password-dialog)::backdrop{background:#020909c7!important}
+
+/* Compact vertical navigation: use the whole viewport and do not show a horizontal sidebar scroller. */
+@media(min-width:821px){
+  .sidebar{height:100vh;height:100dvh;max-height:none;position:sticky;top:0;display:flex;flex-direction:column;overflow:hidden}
+  .sidebar-navigation{flex:1;min-height:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;overscroll-behavior:contain}
+  .sidebar-navigation::-webkit-scrollbar{display:none}
+  .sidebar-bottom{flex:none}
+  .nav-section{gap:2px;margin-bottom:7px}
+  .nav-section-title{padding:5px 10px 3px}
+  .sidebar .nav-btn{min-height:36px;padding:6px 9px;gap:8px}
+  .sidebar .nav-chevron{display:none}
+}
+@media(max-width:820px){
+  .sidebar{max-width:100%;overflow-x:auto;overflow-y:hidden}
+  body :is(.card,.panel,.stat,.settings-section){padding:clamp(12px,3vw,20px)}
+  body table{min-width:520px}
+}
