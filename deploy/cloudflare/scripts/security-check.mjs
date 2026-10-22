@@ -224,4 +224,14 @@ assert.match(backend, /SELECT id,display_name,group_id FROM students WHERE id=\?
 assert.match(app, /id="student-supervisors-form"/, "the combined groups screen must expose student supervisor assignment");
 assert.match(app, /data-edit-supervision=/, "saved student supervision assignments must be editable");
 
+
+assert.match(app, /crypto\.getRandomValues\(new Uint8Array\(18\)\)/, "blank student password fields must generate a strong random temporary password");
+assert.doesNotMatch(app, /12345678/, "a universal student password must never be shown or submitted");
+assert.match(app, /id="admin-focus-toggle"/, "the director account must be able to switch between daily teaching and administration");
+assert.match(app, /makeGroup\("عمل الشيخ اليومي"/, "admin daily focus must keep teaching tasks separate from administrative tools");
+assert.match(app, /const displayUserName=\["admin","teacher","director"\]/, "the Sheikh honorific must be shown for the director account");
+assert.match(app, /name="thumn" type="number"/, "Quran records must require a thumn number");
+assert.match(app, /id="settings-open-notifications"/, "settings must provide a direct path to notifications");
+assert.doesNotMatch(app, /id="settings-done"/, "appearance preferences apply immediately without a Done button");
+
 console.log("Security regression guardrails passed.");
