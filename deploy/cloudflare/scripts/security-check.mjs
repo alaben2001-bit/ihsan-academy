@@ -22,6 +22,19 @@ assert.equal(academyDate(new Date("2026-10-20T22:30:00.000Z")), "2026-10-20", "A
 assert.equal(academyDate(new Date("2026-10-20T23:30:00.000Z")), "2026-10-21", "Algeria local date must advance after midnight even when UTC is still on the prior date");
 assert.equal(addCalendarDays("2026-10-20", 14), "2026-11-03", "two-week test due dates must advance by calendar days");
 assert.ok(!backend.includes("nowIso().slice(0,10)"), "date-only school workflows must not derive their day from UTC");
+
+// Calendar validation must reject impossible dates in every editable attendance/Quran record.
+assert.match(backend, /if\(!validDateOnly\(date\)\|\|!items\.length\|\|items\.length>200/, "attendance must validate real calendar dates");
+assert.match(backend, /if\(!validDateOnly\(date\)\)return fail\(400,"صيغة التاريخ غير صحيحة"\)/, "Quran progress creation must validate real calendar dates");
+assert.match(backend, /if\(!validDateOnly\(String\(row\.date\|\|""\)\)/, "Quran progress edits must validate real calendar dates");
+assert.doesNotMatch(backend, /!\/\^\\d\{4\}-\\d\{2\}-\\d\{2\}\$\/\.test\(date\)/, "date-shaped strings must not be mistaken for valid calendar dates");
+
+// A full backup must preserve first-login password enforcement and linked Google accounts.
+assert.match(backend, /must_change_password,created_at FROM users ORDER BY created_at/, "full backup must preserve forced password changes");
+assert.match(backend, /google_identities:googleIdentities\.results\|\|\[\]/, "full backup must preserve linked Google identities");
+assert.match(backend, /must_change_password=excluded\.must_change_password/, "restore must retain forced password changes");
+assert.match(backend, /for\(const x of googleIdentities\)statements\.push/, "restore must retain verified Google account links");
+
 assert.match(app, /const localDateISO=/, "browser date inputs must use the local calendar date");
 assert.match(app, /timeZone:"Africa\/Algiers"/, "browser date helpers must use the same Algeria timezone as the backend");
 
