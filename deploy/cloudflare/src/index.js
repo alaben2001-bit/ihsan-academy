@@ -951,6 +951,7 @@ export default {
       const errors=Number(b.errors??0),grade=b.grade===""||b.grade==null?null:Number(b.grade);
       const corrected=b.corrected===true||b.corrected==="true";
       if(!validDateOnly(date))return fail(400,"صيغة التاريخ غير صحيحة");
+      if(date>academyDate())return fail(400,"لا يمكن تسجيل متابعة القرآن بتاريخ مستقبلي");
       const st=await env.DB.prepare("SELECT group_id FROM students WHERE id=? AND active=1").bind(studentId).first();
       if(!st||!await canManageGroup(env,user,st.group_id))return fail(403,"لا تملك صلاحية هذا الطالب");
       if(!allowedActivities.includes(activity))return fail(400,"اختر نوع متابعة صحيحًا");
