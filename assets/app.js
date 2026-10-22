@@ -6,7 +6,7 @@
 (() => {
 const $ = (s, r = document) => r.querySelector(s);
 let deferredInstallPrompt = null;
-window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredInstallPrompt=e; const box=$('#installPrompt'); if(box && !$('#loginView').classList.contains('hidden')) box.classList.remove('hidden'); });
+window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredInstallPrompt=e; const box=$('#installPrompt'); if(box) box.classList.remove('hidden'); });
 window.addEventListener('appinstalled', () => { deferredInstallPrompt=null; const box=$('#installPrompt'); if(box) box.classList.add('hidden'); });
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('/service-worker.js').catch(()=>{}));
 function setupInstallPrompt(){const b=$('#installBtn'),c=$('#installClose');if(b)b.onclick=async()=>{if(!deferredInstallPrompt)return;deferredInstallPrompt.prompt();await deferredInstallPrompt.userChoice;deferredInstallPrompt=null;$('#installPrompt')?.classList.add('hidden');};if(c)c.onclick=()=>$('#installPrompt')?.classList.add('hidden');}
