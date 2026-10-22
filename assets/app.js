@@ -7,9 +7,10 @@
 const $ = (s, r = document) => r.querySelector(s);
 let deferredInstallPrompt = null;
 window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); deferredInstallPrompt=e; const box=$('#installPrompt'); if(box) box.classList.remove('hidden'); });
-window.addEventListener('appinstalled', () => { deferredInstallPrompt=null; const box=$('#installPrompt'); if(box) box.classList.add('hidden'); });
+window.addEventListener('appinstalled', () => { deferredInstallPrompt=null; const box=$('#installPrompt'); if(box) box.classList.add('hidden'); const status=$('#installStatus');if(status)status.classList.remove('hidden'); });
 if ('serviceWorker' in navigator) window.addEventListener('load', () => navigator.serviceWorker.register('/service-worker.js').catch(()=>{}));
-function setupInstallPrompt(){const b=$('#installBtn'),c=$('#installClose');if(b)b.onclick=async()=>{if(!deferredInstallPrompt)return;deferredInstallPrompt.prompt();await deferredInstallPrompt.userChoice;deferredInstallPrompt=null;$('#installPrompt')?.classList.add('hidden');};if(c)c.onclick=()=>$('#installPrompt')?.classList.add('hidden');}
+function updateInstallStatus(){const status=$('#installStatus');const installed=!!(window.matchMedia&&window.matchMedia('(display-mode: standalone)').matches)||navigator.standalone===true;if(status)status.classList.toggle('hidden',!installed);if(installed)$('#installPrompt')?.classList.add('hidden');}
+function setupInstallPrompt(){updateInstallStatus();const b=$('#installBtn'),c=$('#installClose');if(b)b.onclick=async()=>{if(!deferredInstallPrompt)return;deferredInstallPrompt.prompt();await deferredInstallPrompt.userChoice;deferredInstallPrompt=null;$('#installPrompt')?.classList.add('hidden');updateInstallStatus();};if(c)c.onclick=()=>$('#installPrompt')?.classList.add('hidden');}
 window.addEventListener('DOMContentLoaded',setupInstallPrompt);
 /* ── ديكور هادئ متجدد كل أسبوعين + أصوات تفاعلية اختيارية ── */
 function applyAppearanceChoices(){const root=document.documentElement;const mode=localStorage.getItem('academy_appearance_mode')||'auto';const bg=localStorage.getItem('academy_appearance_bg')||'glow';const icons=localStorage.getItem('academy_appearance_icons')||'soft';const iconSize=localStorage.getItem('academy_appearance_icon_size')||'medium';root.dataset.appearance=mode;root.dataset.background=bg;root.dataset.iconStyle=icons;root.dataset.iconSize=iconSize;document.querySelectorAll('[data-mode-option]').forEach(b=>b.classList.toggle('active',b.dataset.modeOption===mode));document.querySelectorAll('[data-bg-option]').forEach(b=>b.classList.toggle('active',b.dataset.bgOption===bg));document.querySelectorAll('[data-icon-option]').forEach(b=>b.classList.toggle('active',b.dataset.iconOption===icons));document.querySelectorAll('[data-icon-size]').forEach(b=>b.classList.toggle('active',b.dataset.iconSize===iconSize));}
@@ -199,7 +200,7 @@ async function guard(fn) { try { return await fn(); } catch (e) { toast(e.messag
 
 /* ── الجلسة ── */
 function endSession() { S.token = null; S.user = null; try { localStorage.removeItem('ab_token'); sessionStorage.removeItem('ab_token'); sessionStorage.removeItem('academy_entry'); } catch { /* */ } try { history.replaceState({ academy: true, page: 'login' }, '', location.pathname); } catch { /* */ } closeOverlay(); showLogin(); }
-function showLogin() { $('#appView').classList.add('hidden'); $('#loginView').classList.remove('hidden'); $('#loginPass').value = ''; const box=$('#installPrompt'); if(box && deferredInstallPrompt) box.classList.remove('hidden'); }
+function showLogin() { $('#appView').classList.add('hidden'); $('#loginView').classList.remove('hidden'); $('#loginPass').value = ''; $('#resumeSessionBtn')?.classList.add('hidden'); const box=$('#installPrompt'); if(box && deferredInstallPrompt) box.classList.remove('hidden'); updateInstallStatus(); }
 function establishHistoryGuard(page = 'dashboard') {
   const url = location.pathname + '#' + encodeURIComponent(page);
   try {
@@ -1305,6 +1306,7 @@ window.addEventListener('popstate', e => {
   showPage(page, { history: false });
 });
 const ACT = {
+  'landing-login': () => { $('#loginForm')?.scrollIntoView({behavior:'smooth',block:'center'}); $('#loginEmail')?.focus({preventScroll:true}); },
   nav: el => showPage(el.dataset.page, { history: true }),
   'teacher-new-group': () => openTeacherGroupModal(), 'teacher-edit-group': el => openTeacherGroupModal(el.dataset.id),
   'teacher-delete-group': el => guard(async()=>{if(!confirm('حذف هذا الفوج؟ لا يمكن حذف فوج مرتبط بطلاب.'))return;await api('/api/teacher/groups/'+encodeURIComponent(el.dataset.id),{method:'DELETE'});toast('تم حذف الفوج');showPage('groups');}),
@@ -1437,13 +1439,15 @@ $('#loginForm').addEventListener('submit', async e => {
     const r = await api('/api/login', { method: 'POST', body: JSON.stringify({ identity: $('#loginEmail').value, password: $('#loginPass').value }) });
     S.token = r.token; try { localStorage.setItem('ab_token', r.token); sessionStorage.removeItem('ab_token'); } catch { try { sessionStorage.setItem('ab_token', r.token); } catch { /* storage unavailable */ } }
     await startSession();
-  } catch (ex) { err.textContent = ex.message; } finally { btn.disabled = false; }
+  } catch (ex) { err.textContent = S.token ? 'تعذّر تحميل بيانات الأكاديمية؛ أعد المحاولة من زر متابعة الجلسة المحفوظة.' : ex.message; if(S.token)$('#resumeSessionBtn')?.classList.remove('hidden'); } finally { btn.disabled = false; }
 });
+const resumeSessionBtn=$('#resumeSessionBtn');
+if(resumeSessionBtn)resumeSessionBtn.addEventListener('click',async()=>{if(!S.token)return;resumeSessionBtn.disabled=true;try{await startSession();}catch(ex){if(S.token){showLogin();resumeSessionBtn.classList.remove('hidden');toast('ما زال تحميل البيانات متعذرًا مؤقتًا؛ أعد المحاولة بعد قليل.',true);}else showLogin();}finally{resumeSessionBtn.disabled=false;}});
 
 (async function boot() {
   try { S.token = localStorage.getItem('ab_token') || sessionStorage.getItem('ab_token'); if (S.token) localStorage.setItem('ab_token', S.token); } catch { try { S.token = sessionStorage.getItem('ab_token'); } catch { S.token = null; } }
   if (!S.token) return showLogin();
-  try { await startSession(); } catch (e) { if (!S.token) return showLogin(); showLogin(); toast('تعذّر تحميل بيانات الأكاديمية مؤقتًا؛ احتفظنا بجلسة الدخول، حدّث الصفحة أو أعد المحاولة دون إدخال بياناتك من جديد.', true); }
+  try { await startSession(); } catch (e) { if (!S.token) return showLogin(); showLogin(); $('#resumeSessionBtn')?.classList.remove('hidden'); toast('تعذّر تحميل بيانات الأكاديمية مؤقتًا؛ يمكنك متابعة الجلسة المحفوظة دون إعادة إدخال كلمة المرور.', true); }
 })();
 })();
 
