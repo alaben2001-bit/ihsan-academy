@@ -6,7 +6,27 @@ let ihsanGoogleScriptPromise=null;
 function ihsanIsInstalled(){return Boolean(window.matchMedia&&window.matchMedia("(display-mode: standalone)").matches)||navigator.standalone===true}
 window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();ihsanInstallPrompt=e;document.documentElement.classList.add("ihsan-install-available")});
 window.addEventListener("appinstalled",()=>{ihsanInstallPrompt=null;const b=document.getElementById("install-app");if(b){b.disabled=true;b.textContent="التطبيق مثبت"}toast("تم تثبيت أكاديمية الإحسان على جهازك.")});
-if("serviceWorker" in navigator&&location.protocol==="https:")window.addEventListener("load",()=>navigator.serviceWorker.register("/service-worker.js").catch(()=>{}));
+function showAcademyUpdateNotice(){
+ if(document.getElementById("academy-update-notice"))return;
+ const box=document.createElement("section");box.id="academy-update-notice";box.className="academy-update-notice";box.setAttribute("role","status");box.setAttribute("dir","rtl");
+ box.innerHTML='<div class="academy-update-copy"><strong>يتوفر تحديث جديد للأكاديمية</strong><span>حدّث الصفحة لتظهر لك أحدث التحسينات على هذا الجهاز.</span></div><div class="academy-update-actions"><button type="button" class="btn" id="academy-update-now">تحديث التطبيق</button><button type="button" class="btn secondary" id="academy-update-dismiss">إخفاء</button></div>';
+ document.body.appendChild(box);
+ document.getElementById("academy-update-now")?.addEventListener("click",()=>location.reload());
+ document.getElementById("academy-update-dismiss")?.addEventListener("click",()=>box.remove());
+ try{if("Notification" in window&&Notification.permission==="granted")new Notification("تحديث أكاديمية الإحسان",{body:"يتوفر إصدار أحدث؛ افتح التطبيق من جديد لتطبيقه."})}catch{}
+}
+if("serviceWorker" in navigator&&location.protocol==="https:")window.addEventListener("load",async()=>{
+ const hadController=Boolean(navigator.serviceWorker.controller);
+ try{
+  const registration=await navigator.serviceWorker.register("/service-worker.js");
+  registration.addEventListener("updatefound",()=>{
+   const installing=registration.installing;
+   installing?.addEventListener("statechange",()=>{if(hadController&&installing.state==="installed")showAcademyUpdateNotice()});
+  });
+  if(hadController&&registration.waiting)showAcademyUpdateNotice();
+  registration.update().catch(()=>{});
+ }catch{}
+});
 async function loadGoogleIdentityLibrary(){
  if(window.google&&window.google.accounts&&window.google.accounts.id)return;
  if(!ihsanGoogleScriptPromise)ihsanGoogleScriptPromise=new Promise((resolve,reject)=>{const s=document.createElement("script");s.src="https://accounts.google.com/gsi/client";s.async=true;s.defer=true;s.onload=resolve;s.onerror=()=>reject(new Error("تعذر تحميل Google Identity Services"));document.head.appendChild(s)});
@@ -118,6 +138,7 @@ applyTheme();
 function applyAppearanceSettings(){
  const root=document.documentElement;
  const mode=safeStore.get("ihsan_appearance_mode")||"auto";
+ const effectiveDark=mode==="dark"||(mode==="auto"&&!!window.matchMedia?.("(prefers-color-scheme: dark)").matches);
  const background=safeStore.get("ihsan_appearance_background")||"glow";
  const iconStyle=safeStore.get("ihsan_icon_style")||"soft";
  const iconSize=safeStore.get("ihsan_icon_size")||"medium";
@@ -126,8 +147,9 @@ function applyAppearanceSettings(){
  applyTheme();
  root.dataset.appearance=mode;root.dataset.appearanceBackground=background;root.dataset.iconStyle=iconStyle;root.dataset.iconSize=iconSize;
  root.style.setProperty("--user-font-scale",String(fontScale));
- root.style.colorScheme=mode==="dark"?"dark":mode==="light"?"light":"light dark";
- if(mode==="dark"){
+ root.dataset.appearancePalette=effectiveDark?"dark":"light";
+ root.style.colorScheme=effectiveDark?"dark":"light";
+ if(effectiveDark){
   const dark={green:"#75dfb7",mint:"#183b32",gold:"#e8c77c",paper:"#0b1517",ink:"#e7f0eb",muted:"#adc0b7",line:"#304a43",surface:"#142321","surface-2":"#1b2d2a",glow:"#75dfb726",shadow:"0 12px 30px #0005", "shadow-raised":"0 24px 52px #0006"};
   for(const [key,value] of Object.entries(dark))root.style.setProperty("--"+key,value);
   const meta=document.querySelector('meta[name="theme-color"]');if(meta)meta.setAttribute("content","#0b1517");
@@ -137,23 +159,157 @@ function applyAppearanceSettings(){
  }
 }
 applyAppearanceSettings();
+if(window.matchMedia){const systemDark=window.matchMedia("(prefers-color-scheme: dark)");systemDark.addEventListener?.("change",()=>{if((safeStore.get("ihsan_appearance_mode")||"auto")==="auto")applyAppearanceSettings()})}
 if(safeStore.get("ihsan_reduce_motion")==="1")document.documentElement.classList.add("ihsan-reduced-motion");
+
 const esc=v=>String(v==null?"":v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 function readCsrfCookie(){try{const part=document.cookie.split(";").map(x=>x.trim()).find(x=>x.startsWith("__Host-ihsan_csrf="));return part?decodeURIComponent(part.slice("__Host-ihsan_csrf=".length)):""}catch{return ""}}
+function offlineUserKey(){return "ihsan_offline_user"}
+function rememberOfflineUser(){
+ if(!S.user?.id)return;
+ const user={id:S.user.id,name:S.user.name,role:S.user.role,student_id:S.user.student_id||null,group_id:S.user.group_id||null,school_ids:S.user.school_ids||[],group_ids:S.user.group_ids||[]};
+ try{safeStore.set(offlineUserKey(),JSON.stringify(user))}catch{}
+}
+function loadOfflineUser(){
+ try{const raw=safeStore.get(offlineUserKey());if(!raw)return null;const u=JSON.parse(raw);return u&&u.id&&u.role?u:null}catch{return null}
+}
+function offlineQueueKey(){return S.user?.id?"ihsan_offline_pending_v1_"+S.user.id:""}
+function readOfflineQueue(){
+ const key=offlineQueueKey();if(!key)return [];
+ try{const q=JSON.parse(safeStore.get(key)||"[]");return Array.isArray(q)?q:[]}catch{return []}
+}
+function writeOfflineQueue(q){const key=offlineQueueKey();if(!key)return false;try{localStorage.setItem(key,JSON.stringify(q.slice(-300)));return true}catch{return false}}
+function offlineCacheKey(path){return "ihsan_offline_cache_"+(S.user?.id||"anonymous")+"_"+encodeURIComponent(path)}
+function cacheableApiPath(path,method){
+ if(method!=="GET")return false;
+ const base=String(path).split("?")[0];
+ return ["/dashboard","/groups","/students","/teachers","/admin/student-team-supervisors","/attendance","/quran","/quran/plan","/quran/progress","/tests","/assignments","/gamification","/leaderboard","/messages","/messages/recipients","/notifications"].includes(base);
+}
+function parseOfflineBody(body){
+ if(body&&typeof body==="object")return body;
+ if(typeof body==="string"){try{return JSON.parse(body)}catch{}}
+ return null;
+}
+function canQueueOffline(path,method){
+ const base=String(path).split("?")[0];
+ return (method==="POST"&&["/attendance","/quran/progress","/groups"].includes(base))||(method==="PATCH"&&/^\/groups\/[^/]+$/.test(base));
+}
+function enqueueOfflineWrite(path,method,body){
+ if(!S.user?.id||!canQueueOffline(path,method)||!body)return false;
+ const q=readOfflineQueue(),base=String(path).split("?")[0],id=String(body.id||"");
+ const entry={queue_id:crypto.randomUUID?crypto.randomUUID():String(Date.now())+"-"+Math.random().toString(36).slice(2),userId:S.user.id,path,method,body,created_at:new Date().toISOString()};
+ if(base==="/attendance"){
+  const day=String(body.date||""),group=String(body.group_id||"");
+  for(let i=q.length-1;i>=0;i--)if(q[i].userId===S.user.id&&q[i].path==="/attendance"&&String(q[i].body?.date)===day&&String(q[i].body?.group_id)===group)q.splice(i,1);
+ }else if(base==="/quran/progress"&&id){
+  for(let i=q.length-1;i>=0;i--)if(q[i].userId===S.user.id&&q[i].path==="/quran/progress"&&String(q[i].body?.id)===id)q.splice(i,1);
+ }else if(base==="/groups"&&method==="POST"&&id){
+  for(let i=q.length-1;i>=0;i--)if(q[i].userId===S.user.id&&q[i].path==="/groups"&&String(q[i].body?.id)===id)q.splice(i,1);
+ }else if(method==="PATCH"){
+  for(let i=q.length-1;i>=0;i--)if(q[i].userId===S.user.id&&q[i].path===path&&q[i].method==="PATCH")q.splice(i,1);
+ }
+ q.push(entry);return writeOfflineQueue(q);
+}
+function mergeOfflineQueue(path,value){
+ if(!Array.isArray(value))return value;
+ const url=new URL(path,location.origin),base=url.pathname,queue=readOfflineQueue().filter(x=>x.userId===S.user?.id);
+ const merged=value.slice();
+ if(base==="/groups"){
+  for(const item of queue){
+   if(item.method==="POST"&&item.path==="/groups"&&item.body?.id&&!merged.some(g=>g.id===item.body.id)){
+    merged.push({id:item.body.id,name:item.body.name,school_id:item.body.school_id||"qs-rahman",teacher_id:item.body.teacher_id||null,active:1,offline_pending:true});
+   }
+   if(item.method==="PATCH"&&/^\/groups\/[^/]+$/.test(item.path)){
+    const id=item.path.split("/").pop(),index=merged.findIndex(g=>g.id===id);
+    if(index>=0)merged[index]={...merged[index],...item.body,offline_pending:true};
+   }
+  }
+ }
+ if(base==="/attendance"){
+  const targetGroup=url.searchParams.get("group_id")||"",targetDate=url.searchParams.get("date")||"";
+  for(const item of queue.filter(x=>x.method==="POST"&&x.path==="/attendance")){
+   const b=item.body||{};
+   if(targetGroup&&String(b.group_id)!==targetGroup)continue;
+   if(targetDate&&String(b.date)!==targetDate)continue;
+   for(const row of (b.items||[])){
+    const r={id:String(b.date)+":"+String(row.student_id),student_id:row.student_id,group_id:b.group_id,date:b.date,status:row.status,note:row.note||"",updated_at:item.created_at,offline_pending:true};
+    const n=merged.findIndex(x=>x.student_id===r.student_id&&x.date===r.date);
+    if(n>=0)merged[n]=r;else merged.push(r);
+   }
+  }
+  merged.sort((a,b)=>String(b.date||"").localeCompare(String(a.date||"")));
+ }
+ if(base==="/quran/progress"){
+  const targetStudent=url.searchParams.get("student_id")||(S.user?.role==="student"?S.user.student_id:"");
+  for(const item of queue.filter(x=>x.method==="POST"&&x.path==="/quran/progress")){
+   const b=item.body||{};if(targetStudent&&String(b.student_id)!==String(targetStudent))continue;
+   const student=S.students.find(st=>st.id===b.student_id);
+   const r={...b,group_id:b.group_id||student?.group_id||"",teacher_id:S.user?.id,created_at:item.created_at,updated_at:item.created_at,offline_pending:true};
+   const n=merged.findIndex(x=>x.id===r.id);if(n>=0)merged[n]=r;else merged.push(r);
+  }
+  merged.sort((a,b)=>String(b.date||"").localeCompare(String(a.date||""))||String(b.created_at||"").localeCompare(String(a.created_at||"")));
+ }
+ return merged;
+}
+let offlineFlushRunning=false;
+async function flushOfflineQueue(quiet=true){
+ if(offlineFlushRunning||!navigator.onLine||!S.user?.id)return;
+ offlineFlushRunning=true;let synced=0;
+ try{
+  const queue=readOfflineQueue();
+  for(const item of queue){
+   if(item.userId!==S.user.id)continue;
+   try{
+    const headers={"content-type":"application/json"},csrf=readCsrfCookie();if(csrf)headers["x-csrf-token"]=csrf;
+    const response=await fetch("/api"+item.path,{method:item.method,credentials:"same-origin",headers,body:JSON.stringify(item.body)});
+    if(!response.ok)break;
+    let latest=readOfflineQueue();latest=latest.filter(x=>x.queue_id!==item.queue_id);writeOfflineQueue(latest);synced++;
+   }catch{break}
+  }
+ }finally{offlineFlushRunning=false}
+ if(synced&&!quiet)toast("تمت مزامنة "+synced+" عملية محفوظة دون اتصال.");
+}
+window.addEventListener("online",()=>flushOfflineQueue(false));
 async function api(path,opt={}){
- const method=String(opt.method||"GET").toUpperCase();
- const h={"content-type":"application/json",...(S.token?{authorization:"Bearer "+S.token}:{}),...(opt.headers||{})};
+ const method=String(opt.method||"GET").toUpperCase(),base=String(path).split("?")[0];
+ let bodyData=parseOfflineBody(opt.body),requestOptions={...opt};
+ if(method==="POST"&&(base==="/quran/progress"||base==="/groups")&&bodyData&&!bodyData.id){
+  bodyData={...bodyData,id:"offline-"+(crypto.randomUUID?crypto.randomUUID():Date.now()+"-"+Math.random().toString(36).slice(2))};
+  requestOptions.body=JSON.stringify(bodyData);
+ }
+ const h={"content-type":"application/json",...(S.token?{authorization:"Bearer "+S.token}:{}),...(requestOptions.headers||{})};
  if(["POST","PUT","PATCH","DELETE"].includes(method)){const csrf=readCsrfCookie();if(csrf)h["x-csrf-token"]=csrf}
  const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),12000);
  try{
-  const r=await fetch("/api"+path,{...opt,credentials:"same-origin",headers:h,signal:controller.signal});
+  const r=await fetch("/api"+path,{...requestOptions,credentials:"same-origin",headers:h,signal:controller.signal});
   const raw=await r.text();let d;
   try{d=raw?JSON.parse(raw):{}}
   catch{const type=r.headers.get("content-type")||"غير محدد";const preview=raw.replace(/\\s+/g," ").slice(0,180);throw Error("رد غير صالح من الخادم — "+r.status+" — نوع المحتوى: "+type+(preview?" — "+preview:" — استجابة فارغة"))}
-  if(!r.ok)throw Error(d.error||("فشل الطلب ("+r.status+")"));return d
- }catch(e){if(e.name==="AbortError")throw Error("انتهت مهلة الاتصال بالخادم بعد 12 ثانية أثناء انتظار الاستجابة. أعد المحاولة؛ إذا تكرر الأمر فالمشكلة في مسار API أو قاعدة البيانات.");if(e instanceof TypeError)throw Error("تعذّر الاتصال بخادم الأكاديمية. تحقق من الاتصال ثم أعد المحاولة.");throw e}
- finally{clearTimeout(timer)}
+  if(!r.ok)throw Error(d.error||("فشل الطلب ("+r.status+")"));
+  if(cacheableApiPath(path,method)){
+   try{const serialized=JSON.stringify({saved_at:Date.now(),value:d});if(serialized.length<1500000)safeStore.set(offlineCacheKey(path),serialized)}catch{}
+  }
+  return d;
+ }catch(e){
+  if(e instanceof TypeError||(!navigator.onLine&&e.name!=="AbortError")){
+   if(canQueueOffline(path,method)&&enqueueOfflineWrite(path,method,bodyData)){
+    if(base==="/attendance")return {ok:true,saved:(bodyData?.items||[]).length,queued_offline:true};
+    if(base==="/quran/progress")return {...bodyData,queued_offline:true};
+    if(base==="/groups"&&method==="POST")return {...bodyData,queued_offline:true};
+    if(method==="PATCH")return {ok:true,queued_offline:true};
+   }
+   if(method==="GET"&&cacheableApiPath(path,method)){
+    try{const raw=safeStore.get(offlineCacheKey(path));if(raw){const cached=JSON.parse(raw),value=mergeOfflineQueue(path,cached.value);return value}}catch{}
+   }
+   if(e.name==="AbortError")throw Error("انتهت مهلة الاتصال بالخادم بعد 12 ثانية. أعد المحاولة عند استقرار الشبكة.");
+   throw Error(method==="GET"?"لا يوجد اتصال؛ تعذّر الاتصال بالخادم ولا توجد نسخة محفوظة لهذا القسم على هذا الجهاز.":"لا يوجد اتصال. لم تُحفظ العملية محليًا لهذا النوع؛ أعدها عند عودة الشبكة.");
+  }
+  if(e.name==="AbortError")throw Error("انتهت مهلة الاتصال بالخادم بعد 12 ثانية أثناء انتظار الاستجابة. أعد المحاولة؛ إذا تكرر الأمر فالمشكلة في مسار API أو قاعدة البيانات.");
+  if(e instanceof TypeError)throw Error("تعذّر الاتصال بخادم الأكاديمية. تحقق من الاتصال ثم أعد المحاولة.");
+  throw e;
+ }finally{clearTimeout(timer)}
 }
+
 function playUiSound(kind="click"){
  if(safeStore.get("ihsan_ui_sounds")==="0")return;
  try{
@@ -318,11 +474,13 @@ const authSupplications=[
  {title:"دعاء قرآني جامع",text:"رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ",source:"القرآن الكريم · البقرة: 201"}
 ];
 const authBenefits=[
- {title:"أدب الطالب مع شيخه",text:"أحسن الاستماع، واستأذن قبل السؤال، واشكر معلمك وادعُ له. قال موسى للخضر عليهما السلام: ﴿هَلْ أَتَّبِعُكَ عَلَى أَنْ تُعَلِّمَنِ مِمَّا عُلِّمْتَ رُشْدًا﴾ [الكهف: 66]."},
- {title:"فائدة في التعلم",text:"بعد الدرس أغلق الكتاب، واسترجع أهم ما تعلمته من الذاكرة، ثم راجع وصحح النقص؛ فالاسترجاع يكشف ما يحتاج إلى تثبيت."},
- {title:"فائدة في التثبت",text:"تحقق من مصدر الحديث أو الفائدة قبل نقلها، وميّز بين الآيات والأحاديث وأقوال العلماء وما تصوغه الأكاديمية."},
- {title:"تحفيز صادق",text:"امدح الاجتهاد الذي رأيته بصدق، وحدد خطوة صغيرة تالية؛ الثناء العادل يشجع على الإتقان دون مبالغة أو مقارنة جارحة."}
+ {title:"بشارة فضيلة تعليم القرآن",text:"«خَيْرُكُمْ مَنْ تَعَلَّمَ الْقُرْآنَ وَعَلَّمَهُ»؛ نسأل الله تعالى أن يجعل تعليمكم مباركًا، وأن يكتب لكم أجر ما تغرسونه من خير.",source:"صحيح البخاري (5027)؛ والتشجيع بصياغة الأكاديمية."},
+ {title:"فضل طريق العلم",text:"«مَنْ سَلَكَ طَرِيقًا يَلْتَمِسُ فِيهِ عِلْمًا، سَهَّلَ اللَّهُ لَهُ بِهِ طَرِيقًا إِلَى الْجَنَّةِ»؛ بارك الله تعالى في مجلس العلم وأهله.",source:"صحيح مسلم (2699)؛ والتشجيع بصياغة الأكاديمية."},
+ {title:"رسالة تقدير لفضيلة الشيخ",text:"فضيلة الشيخ، أحسن الله إليكم، وبارك في وقتكم وعلمكم، ونفع بكم وبطلابكم، وجعل ما تبذلونه في تعليم القرآن وتربية النفوس في ميزان حسناتكم.",source:"دعاء من صياغة الأكاديمية، وليس حديثًا نبويًا."},
+ {title:"الدعوة بالقول والعمل",text:"﴿وَمَنْ أَحْسَنُ قَوْلًا مِمَّنْ دَعَا إِلَى اللَّهِ وَعَمِلَ صَالِحًا﴾؛ نسأل الله تعالى أن يبارك في تعليمكم، ويجمع لكم نفع العلم وصلاح العمل.",source:"القرآن الكريم، سورة فصلت: 33؛ والدعاء من صياغة الأكاديمية."}
 ];
+
+
 const authDua=authSupplications[Math.floor(Math.random()*authSupplications.length)];
 const authWisdom=authBenefits[Math.floor(Math.random()*authBenefits.length)];
 app.innerHTML=app.innerHTML='<div class="auth-layout"><section class="welcome"><div><span class="eyebrow">بِسْمِ اللهِ الرَّحْمَنِ الرَّحِيمِ</span><h1>في بساتين الوحي، نتعلّم لنحيا بالقرآن والسنة.</h1><p>رحلة هادئة بين آيات الهداية، وأحاديث النبي ﷺ، ومعاني أسماء الله الحسنى، وسِيَر الصالحين؛ نقرأ ونتدبّر ونسأل ونعمل، حتى يثمر العلم إيمانًا وعبادةً وأدبًا ورحمة.</p><p class="welcome-description">مساحة علمية تجمع معرفة الله تعالى، وسيرة الرسول ﷺ، والقرآن والسنة، والأدب والعمل الصالح.</p><p class="welcome-poem">من هُنا تُبنى العقول، وتُهذَّب النفوس، وتُصاغ همم الرجال؛ بالقرآن نهتدي، وبالسنة نقتدي، وبالعلم نرتقي، وبالأخلاق نسمو، وبالعمل نُثمر؛ لنُخرّج جيلًا راسخ العلم، كريم الخُلُق، عظيم الأثر، يحمل نور الوحي إلى العالمين، ويترك في الحياة بصمة المحسنين.</p><p class="welcome-motto">مناراتُ العلم وبساتينُ الإحسان</p></div><div class="welcome-bottom"><div class="verse knowledge-verse" id="knowledge-verse" dir="rtl" aria-live="polite" aria-atomic="true"><span class="knowledge-verse-text"></span><small class="knowledge-verse-source"></small></div><div class="auth-entry-nourishment"><article class="auth-entry-card"><strong>'+esc(authDua.title)+'</strong><p>'+esc(authDua.text)+'</p><small>'+esc(authDua.source)+'</small></article><article class="auth-entry-card"><strong>'+esc(authWisdom.title)+'</strong><p>'+esc(authWisdom.text)+'</p><small>فائدة تربوية من إعداد الأكاديمية، وليست نصًا شرعيًا منقولًا.</small></article></div><button type="button" class="btn academy-about-welcome" id="about-open-welcome">التعريف بالأكاديمية ورؤيتها</button></div></section><section class="panel stack">'+(setup?'<div class="notice">أول دخول: أنشئ حساب المدير مرة واحدة.</div>':'')+'<div><h2>'+(setup?"إعداد الأكاديمية":"تسجيل الدخول")+'</h2><p class="muted small">'+(setup?"احتفظ برمز الإعداد لنفسك فقط.":"استخدم اسم الدخول أو البريد الذي أنشأه لك المدير.")+'</p></div><form id="auth-form" class="stack">'+(setup?'<label class="field">رمز الإعداد<input name="code" type="password" required autocomplete="off"></label><label class="field">الاسم الكامل<input name="name" required maxlength="120"></label><label class="field">البريد الإلكتروني<input name="email" type="email" required></label><label class="field">كلمة مرور المدير (14 حرفًا على الأقل)<input name="password" type="password" minlength="14" required autocomplete="new-password"></label>':'<label class="field">اسم الدخول أو الاسم الكامل<input name="username" value="'+esc(safeStore.get("ihsan_last_identity"))+'" required autocomplete="username"></label><label class="field">كلمة المرور<input name="password" type="password" required autocomplete="current-password"></label><p class="password-manager-note">يمكنك حفظ كلمة المرور في مدير كلمات مرور المتصفح عند ظهور الطلب؛ الأكاديمية لا تحفظها كنص مكشوف.</p><label class="remember-option"><input name="remember" type="checkbox" checked> تذكّر دخولي على هذا الجهاز لمدة تصل إلى 30 يومًا. أزل العلامة على الجهاز المشترك.</label>')+'<div id="auth-error" class="notice error hidden"></div><button class="btn" type="submit">'+(setup?"إنشاء حساب المدير":"تسجيل الدخول")+'</button></form>'+(!setup?'<div class="login-divider"><span>أو</span></div><section class="google-login-section" aria-label="تسجيل الدخول باستخدام Google"><div id="google-signin"></div><p id="google-login-note" class="muted small">جارٍ التحقق من إعدادات الدخول بجوجل…</p></section>':'')+'</section></div>';
@@ -347,12 +505,18 @@ ihsanPrayerDialog({title:prayer.title,text:prayer.text,source:prayer.source||(pr
 async function load(){const r=await Promise.allSettled([api("/groups"),api("/students")]);S.groups=r[0].status==="fulfilled"?r[0].value:[];S.students=r[1].status==="fulfilled"?r[1].value:[];if(["admin","director"].includes(S.user.role))try{S.teachers=await api("/teachers")}catch{S.teachers=[]}if(S.user.role==="admin"){const extra=await Promise.allSettled([api("/admin/staff"),api("/public/quran-schools")]);S.staff=extra[0].status==="fulfilled"?extra[0].value:[];S.schools=extra[1].status==="fulfilled"?extra[1].value:[]}}
 function items(){
  if(S.mode==="ihsan")return [["all","نظرة عامة"],["allah","معرفة الله"],["prophet","الرسول ﷺ"],["quranpath","القرآن الكريم"],["hifzprogram","الحال المرتحل"],["sunnah","السنة والمتون"],["adab","الأدب والعمل"]];
- if(S.user.role==="admin"){const full=safeStore.get("ihsan_admin_focus")==="full";if(!full)return [["home","الرئيسية"],["students","طلابي وطلاب المدرسة"],["teams","الفرق الطلابية"],["attendance","الحضور"],["assignments","الواجبات"],["gradebook","السجل التعليمي والترتيب"],["quran","متابعة القرآن"],["tests","الاختبارات"],["notifications","التنبيهات"],["messages","الرسائل"]];return [["home","الرئيسية"],["groups","الأفواج والمعلمون والفرق"],["students","طلابي وطلاب المدرسة"],["teams","الفرق الطلابية"],["attendance","الحضور"],["assignments","الواجبات"],["gradebook","السجل التعليمي والترتيب"],["quran","متابعة القرآن"],["tests","الاختبارات"],["notifications","التنبيهات"],["messages","الرسائل"]];}
- if(S.user.role==="director")return [["home","الرئيسية"],["groups","الأفواج والمعلمون والفرق"],["students","طلابي وطلاب المدرسة"],["teams","الفرق الطلابية"],["attendance","الحضور"],["assignments","الواجبات"],["gradebook","السجل التعليمي والترتيب"],["quran","متابعة القرآن"],["tests","الاختبارات"],["notifications","التنبيهات"],["messages","الرسائل"]];
- if(S.user.role==="supervisor")return [["home","الرئيسية"],["students","طلاب فريقي"],["teams","الفرق الطلابية"],["attendance","الحضور"],["assignments","الواجبات"],["gradebook","السجل التعليمي والترتيب"],["quran","متابعة القرآن"],["tests","الاختبارات"],["notifications","التنبيهات"],["messages","الرسائل"]];
- if(S.user.role==="teacher")return [["home","الرئيسية"],["students","طلبتي"],["teams","الفرق الطلابية"],["attendance","الحضور"],["assignments","الواجبات"],["gradebook","السجل التعليمي والترتيب"],["quran","متابعة القرآن"],["tests","الاختبارات"],["notifications","التنبيهات"],["messages","الرسائل"]];
- return [["home","الرئيسية"],["profile","ملفي"],["teams","فرقتي وطلبات النقل"],["quran","تقدمي في القرآن"],["assignments","واجباتي"],["gradebook","تقدمي ودرجاتي"],["attendance","حضوري"],["tests","اختباراتي"],["notifications","التنبيهات"],["messages","الرسائل"],["leaderboard","ترتيب الفوج"]];
+ if(S.user.role==="admin"){
+  const full=safeStore.get("ihsan_admin_focus")==="full";
+  if(!full)return [["home","الرئيسية"],["students","طلابي وطلاب المدرسة"],["attendance","الحضور"],["quran","متابعة القرآن"],["gradebook","السجل التعليمي"],["reports","التقارير"],["notifications","التنبيهات"],["messages","الرسائل"]];
+  return [["home","الرئيسية"],["groups","الأفواج والمعلمون والفرق"],["students","طلابي وطلاب المدرسة"],["attendance","الحضور"],["quran","متابعة القرآن"],["gradebook","السجل التعليمي"],["reports","التقارير"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"],["system-check","فحص النظام"]];
+ }
+ if(S.user.role==="director")return [["home","الرئيسية"],["groups","الأفواج والمعلمون والفرق"],["students","طلاب المدرسة"],["attendance","الحضور"],["quran","متابعة القرآن"],["gradebook","السجل التعليمي"],["reports","التقارير"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"]];
+ if(S.user.role==="supervisor")return [["home","الرئيسية"],["students","طلاب فريقي"],["teams","فرقي الطلابية"],["attendance","الحضور"],["quran","متابعة القرآن"],["gradebook","السجل التعليمي"],["reports","التقارير"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"]];
+ if(S.user.role==="teacher")return [["home","الرئيسية"],["students","طلبتي"],["teams","فرقي الطلابية"],["attendance","الحضور"],["quran","متابعة القرآن"],["gradebook","السجل التعليمي"],["reports","التقارير"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"]];
+ return [["home","الرئيسية"],["profile","ملفي"],["teams","فرقتي وطلبات النقل"],["quran","تقدمي في القرآن"],["assignments","واجباتي"],["gradebook","تقدمي ودرجاتي"],["attendance","حضوري"],["tests","اختباراتي"],["notifications","التنبيهات"],["messages","الرسائل"],["leaderboard","الترتيب العام"]];
 }
+
+
 function honorificDisplayName(name,role){const clean=String(name||"").replace(/^فضيلة الشيخ[،\s]*/,"").replace(/[،,]?\s*حفظه الله ونفع به$/,"").trim();if(["admin","director","teacher"].includes(role))return "فضيلة الشيخ "+clean+"، حفظه الله ونفع به";return clean||"مستخدم"}
 const ROLE_LABELS={admin:"فضيلة الشيخ · مدير الأكاديمية",director:"فضيلة الشيخ · مدير المدرسة",teacher:"فضيلة الشيخ",supervisor:"مشرف الفرقة الطلابية",student:"الطالب"};
 const NAV_ICON_PATHS={
@@ -384,10 +548,29 @@ function navIcon(id){return '<svg viewBox="0 0 24 24" class="nav-icon" aria-hidd
 function navigationGroups(){
  const list=items();if(S.mode==="ihsan")return [{title:"منهج الإحسان",items:list}];
  const makeGroup=(title,ids)=>({title,items:list.filter(x=>ids.includes(x[0]))});
- if(S.user.role==="admin"){const full=safeStore.get("ihsan_admin_focus")==="full";if(!full)return [makeGroup("عمل الشيخ اليومي",["home","students","teams","attendance","assignments","gradebook","quran","tests"]),makeGroup("التواصل والمتابعة",["reports","notifications","messages"])].filter(g=>g.items.length);return [makeGroup("إدارة الأكاديمية",["home","groups","students","teams"]),makeGroup("المهام الأساسية اليومية",["attendance","assignments","gradebook","quran","tests"]),makeGroup("المتابعة والتقويم",["reports","notifications","messages"])].filter(g=>g.items.length);}
- if(["teacher","director","supervisor"].includes(S.user.role))return [makeGroup(S.user.role==="director"?"إدارة المدرسة والمتابعة":S.user.role==="supervisor"?"متابعة الفريق":"التدريس والمتابعة",["home","groups","students","teams","attendance","assignments","gradebook","reports","quran","tests","notifications","messages"])].filter(g=>g.items.length);
+ if(S.user.role==="admin"){
+  const full=safeStore.get("ihsan_admin_focus")==="full";
+  if(!full)return [
+   makeGroup("مهام الشيخ اليومية",["home","students","attendance","quran"]),
+   makeGroup("المتابعة والتواصل",["gradebook","reports","notifications","messages"])
+  ].filter(g=>g.items.length);
+  return [
+   makeGroup("إدارة الأكاديمية",["home","groups","students"]),
+   makeGroup("المهام الأساسية اليومية",["attendance","quran"]),
+   makeGroup("المتابعة والتقويم",["gradebook","reports","notifications","messages"]),
+   makeGroup("أدوات إضافية وتحسينية",["assignments","tests","system-check"])
+  ].filter(g=>g.items.length);
+ }
+ if(["teacher","director","supervisor"].includes(S.user.role))return [
+  makeGroup(S.user.role==="director"?"إدارة المدرسة":S.user.role==="supervisor"?"متابعة الفريق":"التدريس والمتابعة",["home","groups","students","teams"]),
+  makeGroup("المهام الأساسية اليومية",["attendance","quran"]),
+  makeGroup("المتابعة والتقويم",["gradebook","reports","notifications","messages"]),
+  makeGroup("أدوات إضافية",["assignments","tests"])
+ ].filter(g=>g.items.length);
  return [makeGroup("رحلتي التعليمية",["home","profile","teams","quran","assignments","gradebook","attendance","tests","notifications","messages","leaderboard"])].filter(g=>g.items.length);
 }
+
+
 function navMarkup(){return navigationGroups().map(group=>'<div class="nav-section"><div class="nav-section-title">'+esc(group.title)+'</div>'+group.items.map(x=>'<button class="nav-btn '+(S.tab===x[0]?"active":"")+'" data-tab="'+esc(x[0])+'"><span class="nav-icon-wrap">'+navIcon(x[0])+'</span><span class="nav-label">'+esc(x[1])+'</span><span class="nav-chevron" aria-hidden="true">‹</span></button>').join("")+'</div>').join("")}
 
 async function ihsanPrayerDialog({title,text,source="",icon="✦",primary="متابعة",secondary="لاحقًا",onPrimary=()=>{},onSecondary=()=>{}}){
@@ -459,6 +642,7 @@ $("#open-school").onclick=async()=>{safeStore.setSession("ihsan_last_mode","scho
 $("#open-ihsan").onclick=()=>{safeStore.setSession("ihsan_last_mode","ihsan");safeStore.setSession("ihsan_last_tab","all");try{history.pushState({ihsanMode:"ihsan",ihsanTab:"all"},"",location.pathname)}catch{}S.mode="ihsan";S.tab="all";shell();page()}}
 
 function shell(){
+ const retainedActions=$("#top-actions"),retainedHeader=document.querySelector("header.topbar");if(retainedActions&&retainedHeader&&!retainedHeader.contains(retainedActions))retainedHeader.appendChild(retainedActions);
  document.body.classList.add("app-authenticated");
  const current=items().find(x=>x[0]===S.tab);
  const currentTitle=current?current[1]:(S.mode==="ihsan"?"منهج الإحسان":"الرئيسية");
@@ -467,10 +651,10 @@ function shell(){
  const displayUserName=honorificDisplayName(S.user.name,S.user.role);
  const banner="";
  const options=items().map(x=>'<option value="'+esc(x[1])+'"></option>').join("");
- app.innerHTML='<div class="layout app-shell"><nav class="sidebar" aria-label="القائمة الرئيسية"><div class="sidebar-brand"><span class="sidebar-brand-mark">إ</span><span><strong>أكاديمية الإحسان</strong><small>في بناء الإنسان</small></span></div><div class="sidebar-navigation">'+navMarkup()+'</div><button class="nav-btn mobile-logout" id="mobile-logout" type="button" aria-label="تسجيل الخروج"><span class="nav-icon-wrap" aria-hidden="true">↪</span><span class="nav-label">خروج</span></button><div class="sidebar-bottom"><div class="sidebar-account"><span class="account-mark">'+initial+'</span><span class="account-copy"><strong>'+esc(displayUserName)+'</strong><small>'+esc(role)+'</small></span></div>' +(S.user.role==="admin"?'<button class="admin-focus-toggle" id="admin-focus-toggle" type="button">' +(safeStore.get("ihsan_admin_focus")==="full"?"العودة إلى مهام الشيخ":"واجهة الإدارة") +'</button>':"") +'<button class="module-switch" id="switch-module" type="button"><span aria-hidden="true">↔</span> تبديل الواجهة</button></div></nav><section class="workspace"><header class="workspace-head"><div class="workspace-heading"><div class="breadcrumbs"><span>الأكاديمية</span><span class="breadcrumb-separator" aria-hidden="true">/</span><strong id="workspace-title">'+esc(currentTitle)+'</strong></div><p>آياتٌ تُتلى وتُتدبّر · هديٌ يُتّبع · علمٌ يزكّي القلب ويهذّب السلوك</p></div><label class="workspace-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg><input id="nav-search" type="search" list="nav-search-options" placeholder="ابحث عن صفحة…" aria-label="ابحث عن صفحة في القائمة"><datalist id="nav-search-options">'+options+'</datalist></label><div class="workspace-user"><span class="workspace-status" aria-hidden="true"></span><span>'+esc(displayUserName)+'</span></div></header><div class="content-area">'+banner+'<section id="view" class="content"><div class="loading">جار التحميل…</div></section></div></section></div>';
+ app.innerHTML='<div class="layout app-shell"><nav class="sidebar" aria-label="القائمة الرئيسية"><div class="sidebar-brand"><span class="sidebar-brand-mark">إ</span><span><strong>أكاديمية الإحسان</strong><small>في بناء الإنسان</small></span></div><div class="sidebar-navigation">'+navMarkup()+'</div><button class="nav-btn mobile-logout" id="mobile-logout" type="button" aria-label="تسجيل الخروج"><span class="nav-icon-wrap" aria-hidden="true">↪</span><span class="nav-label">خروج</span></button><div class="sidebar-bottom"><div class="sidebar-account"><span class="account-mark">'+initial+'</span><span class="account-copy"><strong>'+esc(displayUserName)+'</strong><small>'+esc(role)+'</small></span></div>' +(S.user.role==="admin"?'<button class="admin-focus-toggle" id="admin-focus-toggle" type="button">' +(safeStore.get("ihsan_admin_focus")==="full"?"العودة إلى مهام الشيخ":"واجهة الإدارة") +'</button>':"") +'<button class="module-switch" id="switch-module" type="button"><span aria-hidden="true">↔</span> '+(S.mode==="school"?"الذهاب إلى منهج الإحسان":"الذهاب إلى المدرسة القرآنية")+'</button></div></nav><section class="workspace"><header class="workspace-head"><div class="workspace-heading"><div class="breadcrumbs"><span>الأكاديمية</span><span class="breadcrumb-separator" aria-hidden="true">/</span><strong id="workspace-title">'+esc(currentTitle)+'</strong></div><p>آياتٌ تُتلى وتُتدبّر · هديٌ يُتّبع · علمٌ يزكّي القلب ويهذّب السلوك</p></div><label class="workspace-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg><input id="nav-search" type="search" list="nav-search-options" placeholder="ابحث عن صفحة…" aria-label="ابحث عن صفحة في القائمة"><datalist id="nav-search-options">'+options+'</datalist></label><div class="workspace-user"><span class="workspace-status" aria-hidden="true"></span><span>'+esc(displayUserName)+'</span></div></header><div class="content-area">'+banner+'<section id="view" class="content"><div class="loading">جار التحميل…</div></section></div></section></div>';
  const actionBar=$("#top-actions"),innerHeader=document.querySelector(".workspace-head");if(actionBar&&innerHeader)innerHeader.appendChild(actionBar);
  document.querySelectorAll(".nav-btn[data-tab]").forEach(b=>b.onclick=()=>go(b.dataset.tab));$("#mobile-logout")?.addEventListener("click",logout);
- $("#switch-module")?.addEventListener("click",moduleChooser);
+ $("#switch-module")?.addEventListener("click",async()=>{const target=S.mode==="school"?"ihsan":"school";S.mode=target;S.tab=target==="ihsan"?"all":"home";safeStore.setSession("ihsan_last_mode",target);safeStore.setSession("ihsan_last_tab",S.tab);try{history.pushState({ihsanMode:target,ihsanTab:S.tab},"",location.pathname+"#"+encodeURIComponent(S.tab))}catch{}if(target==="school")await load();shell();await page()});
  $("#admin-focus-toggle")?.addEventListener("click",()=>{const next=(safeStore.get("ihsan_admin_focus")==="full"?"daily":"full");safeStore.set("ihsan_admin_focus",next);if(next==="daily"&&["groups","system-check","teachers","backup","audit","school-managers","posts"].includes(S.tab))S.tab="home";shell();page()});
  const search=$("#nav-search");
  search?.addEventListener("keydown",event=>{if(event.key!=="Enter")return;event.preventDefault();const query=search.value.trim().toLocaleLowerCase();const found=items().find(x=>x[1]===search.value.trim())||items().find(x=>x[1].toLocaleLowerCase().includes(query));if(found)go(found[0]);else toast("لم أعثر على صفحة مطابقة",true)});
@@ -539,7 +723,7 @@ const field=(label,name,type="text",min="",placeholder="")=>'<label class="field
 const groupOpts=()=>S.groups.map(g=>'<option value="'+esc(g.id)+'">'+esc(g.name)+'</option>').join("");
 function go(id){if(S.user?.role==="admin"&&id==="groups")safeStore.set("ihsan_admin_focus","full");safeStore.setSession("ihsan_last_mode",S.mode);safeStore.setSession("ihsan_last_tab",id);try{history.pushState({ihsanMode:S.mode,ihsanTab:id},"",location.pathname+"#"+encodeURIComponent(id))}catch{}S.tab=id;shell();page()}
 window.addEventListener("popstate",async e=>{if(!S.user)return;const st=e.state||{};if(st.ihsanMode==="hub"){S.mode="hub";moduleChooser(false);return;}if(st.ihsanMode==="school"||st.ihsanMode==="ihsan"){S.mode=st.ihsanMode;S.tab=st.ihsanTab||(S.mode==="ihsan"?"all":"home");if(S.mode==="school")await load();shell();await page();if(st.ihsanSubView==="student-profile")await studentProfile($("#view"),st.studentId);return;}S.mode="hub";moduleChooser(false);});
-async function page(){const v=$("#view");if(S.mode==="ihsan")return curriculumPage(v);v.innerHTML='<div class="loading">جار تحميل البيانات…</div>';try{if(S.tab==="home")return await home(v);if(S.tab==="teams")return await teamsPage(v);if(S.tab==="groups")return groups(v);if(S.tab==="teachers")return teachers(v);if(S.tab==="students")return students(v);if(S.tab==="attendance")return attendance(v);if(S.tab==="assignments")return await assignmentsPage(v);if(S.tab==="gradebook")return await gradebookPage(v);if(S.tab==="messages")return await messagesPage(v);if(S.tab==="reports")return reportsPage(v);if(S.tab==="leaderboard")return leaderboardPage(v);if(S.tab==="profile")return studentProfile(v,S.user.student_id);if(S.tab==="quran")return quran(v);if(S.tab==="tests")return testsPage(v);if(S.tab==="notifications")return notificationsPage(v);v.innerHTML=head("القسم غير متاح","هذا القسم لم يعد متاحًا. اختر قسمًا من القائمة.")+'<button class="btn" id="back-home">العودة إلى الرئيسية</button>';$("#back-home").onclick=()=>go("home");return}catch(e){v.innerHTML='<div class="panel"><h2>تعذّر تحميل البيانات</h2><p class="notice error">'+esc(e.message)+'</p><button class="btn" id="retry">إعادة المحاولة</button></div>';$("#retry").onclick=page}}
+async function page(){const v=$("#view");if(S.mode==="ihsan")return curriculumPage(v);v.innerHTML='<div class="loading">جار تحميل البيانات…</div>';try{if(S.tab==="system-check"&&S.user.role==="admin")return systemCheckPage(v);if(S.tab==="home")return await home(v);if(S.tab==="teams")return await teamsPage(v);if(S.tab==="groups")return groups(v);if(S.tab==="teachers")return teachers(v);if(S.tab==="students")return students(v);if(S.tab==="attendance")return attendance(v);if(S.tab==="assignments")return await assignmentsPage(v);if(S.tab==="gradebook")return await gradebookPage(v);if(S.tab==="messages")return await messagesPage(v);if(S.tab==="reports")return reportsPage(v);if(S.tab==="leaderboard")return leaderboardPage(v);if(S.tab==="profile")return studentProfile(v,S.user.student_id);if(S.tab==="quran")return quran(v);if(S.tab==="tests")return testsPage(v);if(S.tab==="notifications")return notificationsPage(v);v.innerHTML=head("القسم غير متاح","هذا القسم لم يعد متاحًا. اختر قسمًا من القائمة.")+'<button class="btn" id="back-home">العودة إلى الرئيسية</button>';$("#back-home").onclick=()=>go("home");return}catch(e){v.innerHTML='<div class="panel"><h2>تعذّر تحميل البيانات</h2><p class="notice error">'+esc(e.message)+'</p><button class="btn" id="retry">إعادة المحاولة</button></div>';$("#retry").onclick=page}}
 async function home(v){const d=await api("/dashboard");let html="";
 if(S.user.role!=="student"){
  const studentLabel=["admin","director"].includes(S.user.role)?"طلابي وطلاب المدرسة":"طلبتي";
@@ -582,19 +766,21 @@ const dailyWisdom=[
 {title:"الشكر العملي",text:"اشكر الله تعالى على نعمة القرآن والمعلم والصحبة الصالحة، واجعل شكرها بالمحافظة عليها والعمل بما تعلمت."}
 ];
 const dailyWisdomForSheikh=[
-{title:"لفضيلة الشيخ: التعليم برفق",text:"فضيلة الشيخ، بارك الله تعالى فيكم ونفع بكم: بيّن موضع الخطأ دون تحقير، وامنح الطالب فرصة ليعيد المحاولة؛ فالرفق يعين على قبول الحق."},
-{title:"المدح الذي يحفّز",text:"فضيلة الشيخ، أحسن الله إليكم: امدح جهدًا محددًا رأيته، مثل ثبات الحفظ أو تحسّن التجويد، ثم اقترح خطوة تالية؛ واجعل الثناء صادقًا بلا مبالغة ولا محاباة."},
-{title:"العدل بين الطلاب",text:"بارك الله تعالى في تعليمكم: راعِ تفاوت أعمار الطلاب وقدراتهم، وقارن كل طالب بتقدّمه السابق، ولا تجعل الثناء على أحد سببًا لإحباط غيره."},
-{title:"تثبيت الحفظ",text:"من إحسان التعليم تسجيل مقدار الحفظ والمراجعة مباشرة بعد الحلقة، مع ملاحظة قصيرة محددة؛ حتى يبني اللقاء القادم على سجل واضح."},
-{title:"تصحيحٌ يحفظ الكرامة",text:"فضيلة الشيخ، زادكم الله علمًا: صحّح الخطأ بوضوح وعلى انفراد ما أمكن، وعلّم الطالب كيف يتداركه، لا أن يخاف من السؤال أو المحاولة."},
-{title:"قدوة في الأدب",text:"بارك الله تعالى فيكم: أظهر للطلاب أدب العالم مع الدليل، والتثبت من النقل، والتواضع للحق، والاعتذار عند الخطأ؛ فالقدوة أبلغ من الموعظة وحدها."},
-{title:"هدف صغير قابل للقياس",text:"في نهاية الحلقة، حدّد للطالب مقدارًا واضحًا للحفظ والمراجعة، واطلب منه أن يعيده عليك؛ فالهدف المحدد أيسر متابعةً وتحقيقًا."},
-{title:"دعاء للشيخ",text:"نسأل الله تعالى أن يبارك في علم فضيلة الشيخ وعمله، وأن يجزيه عن تعليم القرآن خير الجزاء، وأن يجعل الرفق والإخلاص والإتقان أثرًا باقيًا في طلابه."}
+{title:"بشارة لمعلّم القرآن",text:"قال رسول الله ﷺ: «خَيْرُكُمْ مَنْ تَعَلَّمَ الْقُرْآنَ وَعَلَّمَهُ». نسأل الله تعالى أن يجعل تعليم فضيلة الشيخ مباركًا، وأن يكتب له أجر ما يغرسه من خير.",source:"صحيح البخاري، حديث 5027."},
+{title:"أجر الدلالة على الخير",text:"قال النبي ﷺ: «مَنْ دَلَّ عَلَى خَيْرٍ فَلَهُ مِثْلُ أَجْرِ فَاعِلِهِ». فما يتركه التعليم الصادق من أثر طيب باب واسع من الخير بإذن الله تعالى.",source:"صحيح مسلم، حديث 1893."},
+{title:"هدي النبوة في التعليم",text:"قال رسول الله ﷺ: «يَسِّرُوا وَلَا تُعَسِّرُوا، وَبَشِّرُوا وَلَا تُنَفِّرُوا». نسأل الله تعالى أن يجعل مجالس فضيلة الشيخ عامرة بالعلم والرفق والبشارة.",source:"صحيح البخاري، حديث 69."},
+{title:"فضل الرحمة",text:"قال النبي ﷺ: «الرَّاحِمُونَ يَرْحَمُهُمُ الرَّحْمَنُ». بارك الله تعالى في رحمة فضيلة الشيخ بطلابه، وجعلها سببًا للسكينة وقبول العلم.",source:"جامع الترمذي، حديث 1924؛ قال الترمذي: حسن صحيح."},
+{title:"شرف الدعوة إلى الله",text:"قال الله تعالى: ﴿وَمَنْ أَحْسَنُ قَوْلًا مِمَّنْ دَعَا إِلَى اللَّهِ وَعَمِلَ صَالِحًا﴾. نسأل الله تعالى أن يبارك في علم فضيلة الشيخ وعمله، وينفع بهما.",source:"القرآن الكريم، سورة فصلت: 33."},
+{title:"ثمرة التعليم",text:"فضيلة الشيخ، أحسن الله إليكم، ورفع قدركم، وبارك في وقتكم وعلمكم، وجعل للقرآن الذي تعلّمونه أثرًا باقيًا في قلوب طلابكم وأعمالهم.",source:"دعاء وصياغة تشجيعية من إعداد الأكاديمية، وليست نصًا شرعيًا منقولًا."},
+{title:"الثناء الصادق",text:"ما يُبذل في تعليم القرآن ورعاية الناشئة عمل جليل؛ نسأل الله تعالى أن يتقبل جهد فضيلة الشيخ، وأن يرزقه الإخلاص والإتقان وحسن الأثر.",source:"صياغة تشجيعية من إعداد الأكاديمية، وليست نصًا شرعيًا منقولًا."},
+{title:"دعاء لأهل القرآن",text:"اللهم بارك لفضيلة الشيخ في علمه وعمله، وانفع به، واجعل ما يعلّمه من كتابك الكريم نورًا وهدايةً وأجرًا جاريًا، وارزقه القبول.",source:"دعاء من صياغة الأكاديمية، وليس حديثًا نبويًا."}
 ];
+
+
 const wisdomPool=["admin","teacher","director","supervisor"].includes(S.user.role)?dailyWisdomForSheikh:dailyWisdom;
 const dua=dailySupplications[((daySeed%dailySupplications.length)+dailySupplications.length)%dailySupplications.length];
 const wisdom=wisdomPool[Math.floor(Math.random()*wisdomPool.length)];
-html+='<section class="daily-nourishment-grid"><article class="card daily-nourishment dua-of-day"><div class="daily-kicker">'+esc(dua.title)+'</div><h3>'+esc(dua.text)+'</h3><p class="daily-source">'+esc(dua.source)+'</p></article><article class="card daily-nourishment wisdom-of-day"><div class="daily-kicker">'+esc(wisdom.title)+'</div><p>'+esc(wisdom.text)+'</p><span class="daily-source">فائدة تربوية من إعداد الأكاديمية، وليست نصًا شرعيًا منقولًا.</span></article></section>';
+html+='<section class="daily-nourishment-grid"><article class="card daily-nourishment dua-of-day"><div class="daily-kicker">'+esc(dua.title)+'</div><h3>'+esc(dua.text)+'</h3><p class="daily-source">'+esc(dua.source)+'</p></article><article class="card daily-nourishment wisdom-of-day"><div class="daily-kicker">'+esc(wisdom.title)+'</div><p>'+esc(wisdom.text)+'</p><span class="daily-source">'+esc(wisdom.source||"فائدة تربوية من إعداد الأكاديمية، وليست نصًا شرعيًا منقولًا.")+'</span></article></section>';
 const quickIds=S.user.role==="admin"?["attendance","quran","tests"]:["teacher","director","supervisor"].includes(S.user.role)?["attendance","quran","tests"]:[];
 const quickItems=items().filter(x=>quickIds.includes(x[0]));
 if(quickItems.length)html+='<section class="card quick-actions-card"><div class="section-head"><div><h3>خطوات سريعة</h3><p>انتقل مباشرةً إلى أكثر المهام استخدامًا.</p></div></div><div class="quick-actions">'+quickItems.map(x=>'<button class="quick-action" type="button" data-go="'+x[0]+'"><span class="quick-action-icon">'+navIcon(x[0])+'</span><span class="quick-action-copy"><strong>'+esc(x[1])+'</strong><small>فتح القسم</small></span><span class="quick-action-arrow" aria-hidden="true">←</span></button>').join("")+'</div></section>';
@@ -910,125 +1096,51 @@ async function reportsPage(v){
 }
 
 async function leaderboardPage(v){
- const isStudent=S.user.role==="student";
+ const isStudent=S.user.role==="student",isAdmin=S.user.role==="admin";
  const staff=["admin","director","teacher","supervisor"].includes(S.user.role);
- let groupId=isStudent?(S.user.group_id||((S.groups[0]||{}).id||"")):"";
- if(staff&&S.groups.length)groupId=S.groups[0].id;
- v.innerHTML=head("ترتيب الفوج","ترتيب تشجيعي يقدّر المواظبة والحفظ ونتائج الاختبارات، لا يقيس قيمة الطالب ولا يستبدل تقييم المعلم.")+
- (staff?'<section class="card"><label class="field">الفوج<select id="leaderboard-group">'+groupOpts()+'</select></label><button class="btn" id="leaderboard-refresh" style="margin-top:12px">تحديث الترتيب</button></section>':'<p class="muted small">يعرض هذا الترتيب طلاب فوجك فقط. النقاط: 5 للحضور المسجّل، و10 لكل متابعة قرآن، و3 لكل إجابة صحيحة في أفضل محاولة لكل اختبار.</p>')+
- '<div id="leaderboard-content" class="loading">جار حساب النقاط…</div>';
+ let groupId=isStudent?(S.user.group_id||((S.groups[0]||{}).id||"")):(safeStore.getSession("ihsan_leaderboard_group")||((S.groups[0]||{}).id||""));
+ const savedScope=safeStore.getSession("ihsan_leaderboard_scope")||"group";
+ const selectedScope=isAdmin&&savedScope==="all"?"__all__":groupId;
+ const sortOptions=[["points","النتيجة العامة"],["attendance_rate","المواظبة والحضور"],["quran_rate","متابعة القرآن"],["quiz_rate","إتقان الاختبارات"],["challenge_rate","التحديات"]];
+ const savedSort=safeStore.getSession("ihsan_leaderboard_sort")||"points";
+ const domainOptions=sortOptions.map(x=>'<option value="'+x[0]+'" '+(savedSort===x[0]?"selected":"")+'>'+x[1]+'</option>').join("");
+ const scopeOptions=(isAdmin?'<option value="__all__" '+(selectedScope==="__all__"?"selected":"")+' >كل الأفواج</option>':"")+S.groups.map(g=>'<option value="'+esc(g.id)+'" '+(selectedScope===g.id?"selected":"")+'>'+esc(g.name)+'</option>').join("");
+ v.innerHTML=head("الترتيب العام","ترتيب تشجيعي يوازن بين المواظبة والقرآن والاختبارات والتحديات، ولا يقيس قيمة الطالب.")+
+ (staff?'<section class="card leaderboard-controls"><div class="form-grid">'+
+ '<label class="field">نطاق الترتيب<select id="leaderboard-group">'+scopeOptions+'</select></label>'+
+ '<label class="field">رتّب حسب<select id="leaderboard-domain">'+domainOptions+'</select></label>'+
+ '</div><p class="muted small">يمكن للمدير العام عرض جميع الأفواج؛ أما بقية الأدوار فتظهر لها الأفواج الواقعة ضمن صلاحياتها فقط.</p><button class="btn" id="leaderboard-refresh">تحديث الترتيب</button></section>':
+ '<p class="muted small">يعرض هذا الترتيب طلاب فوجك فقط. النتيجة العامة: 25٪ المواظبة، 35٪ القرآن، 30٪ إتقان الاختبارات، 10٪ التحديات.</p>')+
+ '<div id="leaderboard-content" class="loading">جار حساب الترتيب…</div>';
  const render=async()=>{
-  const group=staff?($("#leaderboard-group")?.value||""):groupId;
+  const scope=staff?($("#leaderboard-group")?.value||""):"";
+  const all=Boolean(isAdmin&&scope==="__all__");
+  const group=staff&&!all?scope:groupId;
+  const sortKey=staff?($("#leaderboard-domain")?.value||"points"):savedSort;
   const host=$("#leaderboard-content");
-  if(staff&&!group){host.innerHTML='<div class="empty">اختر فوجًا لعرض ترتيبه.</div>';return}
-  host.innerHTML='<div class="loading">جار حساب النقاط…</div>';
+  if(staff&&!all&&!group){host.innerHTML='<div class="empty">اختر فوجًا لعرض ترتيبه.</div>';return}
+  host.innerHTML='<div class="loading">جار حساب الترتيب…</div>';
   try{
-   const rows=await api("/leaderboard"+(staff?"?group_id="+encodeURIComponent(group):""));
+   const query=staff?(all?"?scope=all":"?group_id="+encodeURIComponent(group)):"";
+   const rows=await api("/leaderboard"+query);
    if(!rows.length){host.innerHTML='<div class="card empty">لا توجد بيانات كافية للترتيب بعد. يبدأ الترتيب مع تسجيل الحضور ومتابعة القرآن والاختبارات.</div>';return}
-   host.innerHTML='<section class="card"><div class="notice">ترتيب من 100 نقطة: المواظبة 25٪، انتظام القرآن 35٪، إتقان الاختبارات 30٪، التحديات 10٪. تُحسب النسب بدل جمع مقدار الحفظ الخام، حتى لا يتقدم الأقدم لمجرد طول مدة تسجيله.</div><div class="table-wrap"><table><thead><tr><th>الترتيب</th><th>الطالب</th><th>النتيجة /100</th><th>المواظبة</th><th>القرآن</th><th>إتقان الاختبار</th><th>التحديات</th></tr></thead><tbody>'+rows.map(r=>'<tr '+(r.is_self?'class="leaderboard-self"':"")+'><td>'+r.rank+'</td><td>'+esc(r.name)+(r.is_self?' <span class="pill">أنت</span>':"")+'</td><td><strong>'+r.points+'</strong></td><td>'+Number(r.attendance_rate||0)+'٪</td><td>'+Number(r.quran_rate||0)+'٪</td><td>'+Number(r.quiz_rate||0)+'٪</td><td>'+Number(r.challenge_rate||0)+'٪</td></tr>').join("")+'</tbody></table></div><p class="muted small">الترتيب للتحفيز فقط، ولا يحل محل تقدير المعلم لجودة الحفظ والتجويد والفهم.</p></section>';
+   const sorted=rows.slice().sort((a,b)=>Number(b[sortKey]||0)-Number(a[sortKey]||0)||Number(b.points||0)-Number(a.points||0)||String(a.name||"").localeCompare(String(b.name||""),"ar"));
+   const percent=value=>Number(value||0).toLocaleString("ar-DZ")+"٪";
+   host.innerHTML='<section class="card leaderboard-results"><div class="notice">الترتيب للتحفيز فقط، ولا يستبدل تقييم المعلم لجودة الحفظ والتجويد والفهم.</div><div class="table-wrap"><table><thead><tr><th>الترتيب</th><th>الطالب</th>'+(all?'<th>الفوج</th>':"")+'<th>النتيجة /100</th><th>المواظبة</th><th>القرآن</th><th>الاختبارات</th><th>التحديات</th></tr></thead><tbody>'+sorted.map((r,i)=>'<tr '+(r.is_self?'class="leaderboard-self"':"")+'><td>'+(i+1)+'</td><td>'+esc(r.name)+(r.is_self?' <span class="pill">أنت</span>':"")+'</td>'+(all?'<td>'+esc(r.group_name||"بلا فوج")+'</td>':"")+'<td><strong>'+Number(r.points||0)+'</strong></td><td>'+percent(r.attendance_rate)+'</td><td>'+percent(r.quran_rate)+'</td><td>'+percent(r.quiz_rate)+'</td><td>'+percent(r.challenge_rate)+'</td></tr>').join("")+'</tbody></table></div></section>';
   }catch(e){host.innerHTML='<div class="notice error">'+esc(e.message)+'</div>'}
  };
  $("#leaderboard-refresh")?.addEventListener("click",render);
- $("#leaderboard-group")?.addEventListener("change",render);
+ $("#leaderboard-group")?.addEventListener("change",()=>{
+  const value=$("#leaderboard-group").value;
+  if(isAdmin)safeStore.setSession("ihsan_leaderboard_scope",value==="__all__"?"all":"group");
+  if(value!=="__all__")safeStore.setSession("ihsan_leaderboard_group",value);
+  render();
+ });
+ $("#leaderboard-domain")?.addEventListener("change",()=>{safeStore.setSession("ihsan_leaderboard_sort",$("#leaderboard-domain").value);render()});
  if(!staff||S.groups.length)await render();
 }
 
-async function systemCheckPage(v){
- if(S.user.role!=="admin"){v.innerHTML=head("فحص النظام","هذه الصفحة متاحة للمدير فقط.")+'<div class="notice error">لا تملك صلاحية فحص بيانات النظام.</div>';return}
- v.innerHTML=head("فحص النظام","قراءة تشخيصية لا تعدّل بيانات الطلاب أو الأفواج.")+'<div class="loading">جار فحص سلامة البيانات…</div>';
- try{
-  const result=await api("/admin/system-check"),c=result.counts||{};
-  const checks=[
-   {title:"حساب المدير",value:Number(c.active_admins||0),ok:Number(c.active_admins||0)>0,good:"يوجد مدير نشط",bad:"لا يوجد مدير نشط"},
-   {title:"حسابات الطلاب",value:Number(c.active_students||0),ok:Number(c.students_without_login||0)===0,good:"كل ملفات الطلاب مرتبطة بحسابات دخول",bad:Number(c.students_without_login||0)+" ملف طالب بلا حساب دخول"},
-   {title:"ارتباط الطلاب بالأفواج",value:Number(c.students_without_active_group||0),ok:Number(c.students_without_active_group||0)===0,good:"كل الطلاب مرتبطون بأفواج نشطة",bad:Number(c.students_without_active_group||0)+" طالب بلا فوج نشط"},
-   {title:"تعيين معلمي الأفواج",value:Number(c.groups_without_valid_teacher||0),ok:Number(c.groups_without_valid_teacher||0)===0,good:"كل الأفواج لها معلم صالح",bad:Number(c.groups_without_valid_teacher||0)+" فوج دون معلم صالح"},
-   {title:"إعداد المدير الأول",value:result.bootstrap_setup_enabled?"مفعّل":"مغلق",ok:!result.bootstrap_setup_enabled,good:"مسار الإعداد الأولي مغلق",bad:"تحقق من إغلاق الإعداد الأولي"}
-  ];
-  const roles=Array.isArray(result.roles)?result.roles:[];
-  const roleLabel={admin:"المدير",director:"مدير المدرسة",teacher:"المعلم",supervisor:"المشرف",student:"الطالب"};
-  v.innerHTML=head("فحص النظام","آخر فحص: "+esc(result.checked_at||"غير متاح"))+
-   '<section class="card"><div class="section-head"><div><h3>البيانات الأساسية</h3><p>تتصل الصفحة بقاعدة البيانات الفعلية، وتعرض أعدادًا فقط دون أسماء أو كلمات مرور.</p></div><button class="btn secondary" id="system-check-refresh" type="button">إعادة الفحص</button></div><div class="stats system-check-stats"><div class="stat"><small>حسابات نشطة</small><strong>'+Number(c.active_users||0)+'</strong></div><div class="stat"><small>ملفات الطلاب النشطة</small><strong>'+Number(c.active_students||0)+'</strong></div><div class="stat"><small>السجلات التعليمية</small><strong>'+Number(c.saved_records||0)+'</strong></div><div class="stat"><small>جلسات منتهية</small><strong>'+Number(c.expired_sessions||0)+'</strong></div></div><p class="muted small">التخزين: '+esc(result.storage||"غير معروف")+'</p></section>'+
-   '<section class="card"><h3>مؤشرات سلامة النظام</h3><div class="system-check-list">'+checks.map(x=>'<article class="system-check-item '+(x.ok?"is-ok":"is-warning")+'"><span class="system-check-mark" aria-hidden="true">'+(x.ok?"✓":"!")+'</span><div><strong>'+esc(x.title)+'</strong><small>'+esc(x.ok?x.good:x.bad)+'</small></div><span class="system-check-value">'+esc(x.value)+'</span></article>').join("")+'</div></section>'+
-   '<section class="card"><h3>توزيع الحسابات حسب الدور</h3><div class="system-role-list">'+(roles.length?roles.map(r=>'<div class="system-role-row"><span>'+esc(roleLabel[r.role]||r.role)+'</span><strong>'+Number(r.total||0)+'</strong></div>').join(""):'<p class="muted">لا توجد حسابات نشطة.</p>')+'</div>'+
-   (Number(c.active_director_supervisor_accounts||0)>0?'<div class="notice error">توجد حسابات مدير مدرسة أو مشرف؛ يجب اختبار صلاحياتها وحدود نطاقها قبل الاعتماد.</div>':'<p class="muted small">لا توجد حسابات مدير مدرسة أو مشرف نشطة حاليًا؛ إنشاء هذه الأدوار وتحديد نطاقها ما زال عملًا مستقلًا مطلوبًا قبل استخدامها.</p>')+'</section>'+
-   '<section class="card"><h3>السجلات المحفوظة حسب النوع</h3><div class="system-role-list">'+((result.collections||[]).length?result.collections.map(row=>'<div class="system-role-row"><span>'+esc(row.collection)+'</span><strong>'+Number(row.total||0)+'</strong></div>').join(""):'<p class="muted">لا توجد سجلات بعد.</p>')+'</div></section>'+
-   '<p class="muted small">هذا فحص للاتساق والأعداد فقط، وليس اختبارًا كاملًا لكل صفحة أو لكل صلاحية.</p>';
-  $("#system-check-refresh")?.addEventListener("click",()=>systemCheckPage(v));
- }catch(e){v.innerHTML=head("فحص النظام","تعذّر إكمال الفحص.")+'<div class="notice error">'+esc(e.message)+'</div><button class="btn" id="system-check-retry">إعادة المحاولة</button>';$("#system-check-retry")?.addEventListener("click",()=>systemCheckPage(v))}
-}
-async function auditPage(v){
- if(S.user.role!=="admin"){v.innerHTML=head("سجل العمليات","هذه الصفحة متاحة للمدير فقط.")+'<div class="notice error">لا تملك صلاحية عرض سجل العمليات.</div>';return}
- v.innerHTML=head("سجل العمليات","مراجعة أحدث العمليات الإدارية لتسهيل تتبع التغييرات.")+'<div class="loading">جار تحميل السجل…</div>';
- try{
-  const rows=await api("/admin/audit");
-  const labels={login:"تسجيل دخول",logout:"تسجيل خروج",admin_bootstrap:"إنشاء المدير",password_change:"تغيير كلمة المرور",group_create:"إنشاء فوج",group_update:"تعديل فوج",teacher_create:"إنشاء معلم",teacher_update:"تعديل معلم",student_create:"إنشاء طالب",student_update:"تعديل طالب",attendance_save:"حفظ الحضور",quran_progress_add:"إضافة متابعة قرآنية",quran_progress_update:"تعديل متابعة قرآنية",quran_progress_delete:"حذف متابعة قرآنية",test_create:"إنشاء اختبار",test_submit:"تقديم اختبار",post_create:"نشر محتوى",notification_create:"نشر تنبيه",admin_backup_export:"تصدير نسخة احتياطية",admin_backup_full_export:"تصدير نسخة كاملة",admin_backup_restore:"استعادة نسخة",lesson_create:"إضافة درس",lesson_update:"تعديل درس",lesson_delete:"حذف درس"};
-  v.innerHTML=head("سجل العمليات","أحدث 200 عملية محفوظة في سجل التدقيق.")+'<section class="card"><div class="student-actions"><button class="btn secondary" id="audit-refresh">تحديث السجل</button><span class="muted small">'+rows.length+' عملية معروضة</span></div>'+
-  (rows.length?'<div class="table-wrap"><table><thead><tr><th>الوقت</th><th>الحساب</th><th>العملية</th><th>تفاصيل</th></tr></thead><tbody>'+rows.map(r=>'<tr><td>'+esc(r.created_at||"")+'</td><td>'+esc(r.actor||"")+'</td><td>'+esc(labels[r.action]||r.action||"عملية")+'</td><td><details><summary>عرض التفاصيل</summary><pre class="audit-metadata">'+esc(JSON.stringify(r.metadata||{},null,2))+'</pre></details></td></tr>').join("")+'</tbody></table></div>':'<div class="empty">لا توجد عمليات مسجلة بعد.</div>')+
- '<p class="muted small">سجل التدقيق يساعد على التتبع ولا يغني عن النسخ الاحتياطي. لا تعرض هذه الصفحة كلمات المرور أو رموز الجلسات.</p></section>';
-  $("#audit-refresh")?.addEventListener("click",()=>auditPage(v));
- }catch(e){v.innerHTML=head("سجل العمليات","تعذّر تحميل سجل التدقيق.")+'<div class="notice error">'+esc(e.message)+'</div><button class="btn" id="audit-retry">إعادة المحاولة</button>';$("#audit-retry")?.addEventListener("click",()=>auditPage(v))}
-}
-async function backupPage(v){
- if(S.user.role!=="admin"){v.innerHTML=head("النسخ الاحتياطي","هذه الصفحة متاحة للمدير فقط.")+'<div class="notice error">لا تملك صلاحية تصدير بيانات الأكاديمية.</div>';return}
- v.innerHTML=head("النسخ الاحتياطي","حافظ على بيانات الأكاديمية قبل التعديلات المهمة.")+'<div class="loading">جار فحص بيانات الأكاديمية…</div>';
- let summary;
- try{summary=await api("/admin/backup/summary")}catch(e){v.innerHTML=head("النسخ الاحتياطي","تعذّر فحص بيانات الأكاديمية.")+'<div class="notice error">'+esc(e.message)+'</div><button class="btn" id="backup-retry">إعادة المحاولة</button>';$("#backup-retry")?.addEventListener("click",()=>backupPage(v));return}
- const counts=summary.counts||{};
- v.innerHTML=head("النسخ الاحتياطي","نسختان مختلفتان: نسخة تشغيلية خفيفة، ونسخة كاملة قابلة للدمج والاستعادة.")+
- '<section class="card"><h3>ملخص البيانات الحالية</h3><div class="stats">'+
- '<div class="stat"><small>الحسابات النشطة</small><strong>'+Number(counts.users||0)+'</strong></div>'+
- '<div class="stat"><small>الأفواج النشطة</small><strong>'+Number(counts.groups||0)+'</strong></div>'+
- '<div class="stat"><small>الطلاب النشطون</small><strong>'+Number(counts.students||0)+'</strong></div>'+
- '<div class="stat"><small>السجلات التعليمية</small><strong>'+Number(counts.records||0)+'</strong></div>'+
- '<div class="stat"><small>سجل العمليات</small><strong>'+Number(counts.audit_entries||0)+'</strong></div></div>'+
- '<p class="muted small">آخر فحص: '+esc(summary.created_at||"")+'</p></section>'+
- '<section class="card stack"><h3>١. تصدير نسخة تشغيلية</h3><p>تتضمن بيانات الحسابات دون بصمات كلمات المرور، والأفواج، والطلاب، والسجلات التطبيقية، والمدارس القرآنية، وآخر 5000 عملية.</p>'+
- '<button class="btn secondary" id="backup-export">تنزيل النسخة التشغيلية JSON</button></section>'+
- '<section class="card stack"><h3>٢. النسخة الكاملة للاستعادة</h3><p>تتضمن كل المستخدمين مع بصمات كلمات المرور، وكل الأفواج والطلاب والسجلات والمدارس وسجل التدقيق. لا تتضمن رموز الجلسات ومحاولات الدخول.</p>'+
- '<div class="notice error">ملف النسخة الكاملة سرّي جدًا: يحوي بصمات كلمات المرور وبيانات الطلاب. لا ترسله لأحد، ولا ترفعه إلى GitHub أو أي موقع عام.</div>'+
- '<button class="btn" id="backup-full-export">تنزيل النسخة الكاملة القابلة للاستعادة</button>'+
- '<p class="muted small">الاستعادة أدناه تدمج البيانات وتحدّث السجلات ذات المعرّفات المطابقة؛ لا تحذف سجلات موجودة خارج الملف. جرّبها أولًا في بيئة منفصلة قبل الاعتماد عليها للطوارئ.</p></section>'+
- '<section class="card stack"><h3>٣. دمج نسخة كاملة محفوظة</h3>'+
- '<label class="field">ملف النسخة الكاملة v2<input id="restore-file" type="file" accept=".json,application/json"></label>'+
- '<div id="restore-preview" class="notice hidden">اختر ملفًا لمعاينة محتوياته.</div>'+
- '<label class="field">اكتب «استعادة» للتأكيد<input id="restore-confirm" autocomplete="off" maxlength="20" placeholder="استعادة"></label>'+
- '<label class="remember-option"><input id="restore-approve" type="checkbox"> أفهم أن الاستعادة تحدّث السجلات المطابقة، ولا تحذف سجلات أخرى.</label>'+
- '<button class="btn" id="restore-submit" disabled>دمج النسخة في قاعدة البيانات</button>'+
- '<p class="muted small">الحد الأقصى للملف 8 ميغابايت. إذا توقفت الاستعادة بعد جزء من الدفعات، أعد المحاولة بالملف نفسه؛ الدمج بمعرّفات ثابتة قابل لإعادة المحاولة.</p></section>';
- const download=(data,name)=>{const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json;charset=utf-8"});const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)};
- $("#backup-export")?.addEventListener("click",async e=>{const b=e.currentTarget;b.disabled=true;b.textContent="جار تجهيز النسخة…";try{const data=await api("/admin/backup/export");download(data,"ihsan-academy-operational-backup-"+localDateISO()+".json");toast("تم تنزيل النسخة التشغيلية؛ احفظها في مكان آمن.")}catch(err){toast(err.message||"تعذّر إنشاء النسخة",true)}finally{if(b.isConnected){b.disabled=false;b.textContent="تنزيل النسخة التشغيلية JSON"}}});
- $("#backup-full-export")?.addEventListener("click",async e=>{const b=e.currentTarget;if(!confirm("النسخة الكاملة تتضمن بصمات كلمات المرور وبيانات الطلاب. هل تريد تنزيلها إلى هذا الجهاز؟"))return;b.disabled=true;b.textContent="جار تجهيز النسخة الكاملة…";try{const data=await api("/admin/backup/full-export");download(data,"ihsan-academy-full-backup-"+localDateISO()+".json");toast("تم تنزيل النسخة الكاملة. احفظها بعيدًا عن المشاركة العامة.")}catch(err){toast(err.message||"تعذّر إنشاء النسخة",true)}finally{if(b.isConnected){b.disabled=false;b.textContent="تنزيل النسخة الكاملة القابلة للاستعادة"}}});
- let restoreBackup=null;
- $("#restore-file")?.addEventListener("change",async e=>{const file=e.currentTarget.files?.[0],info=$("#restore-preview"),submit=$("#restore-submit");restoreBackup=null;submit.disabled=true;info.classList.remove("hidden","error");if(!file){info.textContent="اختر ملفًا لمعاينة محتوياته.";return}if(file.size>8*1024*1024){info.textContent="حجم الملف أكبر من 8 ميغابايت.";info.classList.add("error");return}try{const data=JSON.parse(await file.text());if(data.format!=="ihsan-academy-full-backup-v2"||!data.data){throw Error("هذه ليست نسخة كاملة v2؛ لن يتم إرسال الملف.")}restoreBackup=data;const d=data.data;info.textContent="النسخة صالحة مبدئيًا — الحسابات: "+(d.users?.length||0)+"، الأفواج: "+(d.groups?.length||0)+"، الطلاب: "+(d.students?.length||0)+"، السجلات: "+(d.academy_records?.length||0)+"، المدارس: "+(d.quran_schools?.length||0)+"، عمليات التدقيق: "+(d.audit_log?.length||0)+". فحص العلاقات يتم على الخادم قبل الحفظ.";submit.disabled=false}catch(err){info.textContent=err.message||"تعذر قراءة ملف النسخة.";info.classList.add("error")}});
- $("#restore-submit")?.addEventListener("click",async e=>{e.preventDefault();const b=e.currentTarget;if(!restoreBackup)return toast("اختر نسخة كاملة صالحة أولًا.",true);if($("#restore-confirm")?.value.trim()!=="استعادة")return toast("اكتب كلمة «استعادة» لتأكيد العملية.",true);if(!$("#restore-approve")?.checked)return toast("ضع علامة الموافقة قبل الدمج.",true);if(!confirm("سيُدمج الملف في قاعدة البيانات. السجلات ذات المعرّفات المطابقة ستُحدّث من النسخة، ولن تُحذف بقية السجلات. المتابعة؟"))return;b.disabled=true;b.textContent="جار التحقق والدمج…";try{const result=await api("/admin/backup/restore",{method:"POST",body:JSON.stringify({...restoreBackup,confirm_restore:"RESTORE-IHSAN-ACADEMY"})});toast("تم الدمج: "+(result.restored?.students||0)+" سجل طالب و"+(result.restored?.records||0)+" سجلًا تطبيقيًا.");await backupPage(v)}catch(err){toast(err.message||"تعذّرت الاستعادة",true);b.disabled=false;b.textContent="دمج النسخة في قاعدة البيانات"}});
-}
-function questionEditor(n){return '<div class="question-builder" data-question><h4>السؤال '+n+'</h4><label class="field">نص السؤال<textarea data-q-prompt required maxlength="500" placeholder="اكتب السؤال هنا"></textarea></label><div class="form-grid">'+[0,1,2,3].map(i=>'<label class="field">الخيار '+(i+1)+'<input data-q-choice="'+i+'" required maxlength="250" placeholder="نص الخيار"></label>').join("")+'</div><label class="field">الإجابة الصحيحة<select data-q-correct><option value="0">الخيار الأول</option><option value="1">الخيار الثاني</option><option value="2">الخيار الثالث</option><option value="3">الخيار الرابع</option></select></label></div>'}
-async function testsPage(v){
- const isStudent=S.user.role==="student";
- let tests=[];
- try{tests=await api("/tests")}catch(e){v.innerHTML=head("الاختبارات","تعذّر جلب الاختبارات.")+'<div class="notice error">'+esc(e.message)+'</div>';return}
- const activeTests=tests.filter(t=>t.status!=="archived"),archivedTests=tests.filter(t=>t.status==="archived");
- let html=head(isStudent?"اختباراتي":"إدارة الاختبارات","اختبارات اختيار من متعدد تُصحّح آليًا وتُحفظ نتائجها في ملف الطالب.");
- if(!isStudent){
-  html+='<section class="card"><h3>إنشاء اختبار</h3><form id="test-create-form" class="stack"><label class="field">عنوان الاختبار<input name="title" required maxlength="160"></label><label class="field">وصف مختصر<textarea name="description" maxlength="2000"></textarea></label><label class="field">الفوج المستهدف<select name="group_id" '+(S.user.role==="admin"?"":"required")+'>'+(S.user.role==="admin"?'<option value="">اختبار عام لجميع الطلاب</option>':'<option value="">اختر فوجًا</option>')+groupOpts()+'</select></label><label class="field">آخر موعد للاختبار<input name="due_date" type="date"></label><label class="remember-option"><input name="recurring" type="checkbox" checked> كرّر الاختبار كل 14 يومًا، مع حفظ نتائج كل دورة</label><div id="questions-editor">'+questionEditor(1)+'</div><button type="button" class="btn secondary" id="add-question">إضافة سؤال آخر</button><button class="btn" type="submit">نشر الاختبار</button><p class="muted small">اختر الإجابة الصحيحة لكل سؤال. عند ترك الموعد فارغًا، يُضبط موعد المراجعة بعد 14 يومًا. يمكن إضافة حتى 30 سؤالًا.</p></form></section><div class="divider"></div>';
-  html+='<h3>الاختبارات المنشورة</h3><div class="list">'+(activeTests.length?activeTests.map(t=>'<section class="card"><div class="list-row"><div><strong>'+esc(t.title)+'</strong><small>'+(t.group_id?esc((S.groups.find(g=>g.id===t.group_id)||{}).name||"فوج"):"اختبار عام")+' · '+(t.questions||[]).length+' سؤال'+(t.due_date?' · الموعد: '+esc(t.due_date):"")+(t.recurring?' · يتكرر كل '+Number(t.frequency_days||14)+' يومًا':' · اختبار منفرد')+'</small></div><div class="student-actions"><button class="btn secondary" data-test-results="'+esc(t.id)+'">النتائج</button><button class="btn secondary" data-test-archive="'+esc(t.id)+'">أرشفة</button></div></div><div data-results-host="'+esc(t.id)+'"></div></section>').join(""):'<div class="empty">لم تُنشأ اختبارات بعد.</div>')+'</div>'+(archivedTests.length?'<details class="card archived-tests"><summary>الاختبارات المؤرشفة ('+archivedTests.length+')</summary><div class="list">'+archivedTests.map(t=>'<section class="card"><div class="section-head"><div><strong>'+esc(t.title)+'</strong><small class="muted">أُرشف في: '+esc(t.archived_at||"غير محدد")+'</small></div><button class="btn secondary" type="button" data-test-results="'+esc(t.id)+'">النتائج المحفوظة</button></div><div data-results-host="'+esc(t.id)+'"></div></section>').join("")+'</div></details>':"");
- }else{
-  html+='<div class="list">'+(tests.length?tests.map(t=>'<section class="card"><h3>'+esc(t.title)+'</h3><p class="muted small">'+esc(t.description||"")+(t.due_date?' · آخر موعد: '+esc(t.due_date):"")+'</p>'+(t.my_attempt?'<div class="notice">آخر نتيجة: '+t.my_attempt.score+' / '+t.my_attempt.total+' · '+Math.round(100*t.my_attempt.score/Math.max(1,t.my_attempt.total))+'% · '+esc(t.my_attempt.submitted_at||"")+'</div>':"")+'<form class="quiz-form" data-submit-test="'+esc(t.id)+'">'+(t.questions||[]).map((q,qi)=>'<fieldset class="question-view"><legend>'+(qi+1)+'. '+esc(q.prompt)+'</legend>'+(q.choices||[]).map((choice,ci)=>'<label class="quiz-option"><input type="radio" name="q_'+esc(q.id)+'" value="'+ci+'" required> '+esc(choice)+'</label>').join("")+'</fieldset>').join("")+'<button class="btn" type="submit">إرسال الإجابات وتصحيحها</button></form></section>').join(""):'<div class="empty">لا توجد اختبارات منشورة لفوجك حاليًا.</div>')+'</div>';
- }
- let historyRows=[];
- if(isStudent&&S.user.student_id){try{historyRows=await api("/test-history?student_id="+encodeURIComponent(S.user.student_id))}catch{}}
- if(isStudent)html+='<section class="card"><h3>سجل نتائجك</h3><div class="result-list">'+(historyRows.length?historyRows.map(r=>'<div class="list-row"><div><strong>'+esc(r.title||"اختبار")+'</strong><small>'+esc(r.submitted_at||"")+'</small></div><strong>'+Number(r.score||0)+' / '+Number(r.total||0)+' · '+Math.round(Number(r.score||0)*100/Math.max(1,Number(r.total||0)))+'٪</strong></div>').join(""):'<p class="muted">ستظهر نتائجك السابقة هنا بعد إكمال الاختبارات.</p>')+'</div></section>';
- v.innerHTML=html;
- if(!isStudent){
-  $("#add-question")?.addEventListener("click",()=>{const host=$("#questions-editor");if(host.querySelectorAll("[data-question]").length>=30)return toast("الحد الأقصى 30 سؤالًا",true);host.insertAdjacentHTML("beforeend",questionEditor(host.querySelectorAll("[data-question]").length+1))});
-  $("#test-create-form")?.addEventListener("submit",async e=>{e.preventDefault();const form=e.currentTarget,f=new FormData(form);const questions=[...form.querySelectorAll("[data-question]")].map(q=>({prompt:q.querySelector("[data-q-prompt]").value.trim(),choices:[...q.querySelectorAll("[data-q-choice]")].map(x=>x.value.trim()),correct_index:Number(q.querySelector("[data-q-correct]").value)}));if(questions.some(q=>!q.prompt||q.choices.some(c=>!c))){toast("أكمل نص كل سؤال وخياراته الأربعة",true);return}try{const result=await api("/tests",{method:"POST",body:JSON.stringify({title:f.get("title"),description:f.get("description"),group_id:f.get("group_id"),due_date:f.get("due_date"),recurring:form.elements.recurring.checked,questions})});toast("نُشر الاختبار وحُفظت إجاباته الصحيحة");await load();shell();await page()}catch(x){toast(x.message,true)}});
-  v.querySelectorAll("[data-test-archive]").forEach(b=>b.onclick=async()=>{const selected=tests.find(t=>t.id===b.dataset.testArchive);const prompt=selected?.recurring?"أرشفة سلسلة هذا الاختبار المتكرر بالكامل؟ ستبقى نتائج الطلاب محفوظة ولن تُنشأ دورات جديدة.":"أرشفة هذا الاختبار؟ سيختفي عن الطلاب وتبقى النتائج وسياق الاختبار محفوظين.";if(!confirm(prompt))return;b.disabled=true;try{await api("/test-delete",{method:"POST",body:JSON.stringify({id:b.dataset.testArchive,action:"archive"})});toast("أُرشف الاختبار مع الحفاظ على نتائجه");await page()}catch(x){toast(x.message,true);b.disabled=false}});
-  v.querySelectorAll("[data-test-results]").forEach(b=>b.onclick=async()=>{const host=v.querySelector('[data-results-host="'+b.dataset.testResults+'"]');try{const rows=await api("/test-results?id="+encodeURIComponent(b.dataset.testResults));host.innerHTML='<div class="result-list">'+(rows.length?rows.map(r=>'<div class="list-row"><span>'+esc((S.students.find(st=>st.id===r.student_id)||{}).name||"طالب")+'</span><strong>'+r.score+' / '+r.total+'</strong><small>'+esc(r.submitted_at||"")+'</small></div>').join(""):'<p class="muted">لم يقدّم أي طالب هذا الاختبار بعد.</p>')+'</div>'}catch(x){toast(x.message,true)}});
- }else{
-  v.querySelectorAll("[data-submit-test]").forEach(form=>form.onsubmit=async e=>{e.preventDefault();const test=tests.find(t=>t.id===form.dataset.submitTest);if(!test)return;const answers=(test.questions||[]).map(q=>{const chosen=form.querySelector('input[name="q_'+q.id+'"]:checked');return {question_id:q.id,selected_index:chosen?Number(chosen.value):-1}});if(answers.some(a=>a.selected_index<0)){toast("أجب عن جميع الأسئلة أولًا",true);return}try{const result=await api("/test-submit?id="+encodeURIComponent(test.id),{method:"POST",body:JSON.stringify({answers})});toast("نتيجتك: "+result.score+" من "+result.total+" ("+result.percent+"%)");await page()}catch(x){toast(x.message,true)}});
- }
-}
+
 async function gradebookPage(v){
  const isStudent=S.user.role==="student";
  const allowedStaff=["admin","director","teacher","supervisor"].includes(S.user.role);
