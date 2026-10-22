@@ -317,4 +317,14 @@ assert.match(style, /data-appearance-palette="dark"/, "dark surfaces must use de
 assert.match(backend, /requestedRecordId&&\/\^offline-\[a-f0-9-\]/, "Quran offline retries must keep a stable record identifier");
 assert.match(backend, /requestedId&&!\/\^offline-\[a-f0-9-\]/, "offline group creation must be restricted to generated stable identifiers");
 
+
+assert.match(app, /const dailyWisdomForSheikh=\[/, "the Sheikh dashboard must have its own respectful teaching and encouragement pool");
+assert.match(app, /صحيح البخاري، حديث 5027/, "the Sheikh encouragement pool must cite the verified Quran-teaching hadith");
+assert.match(app, /صحيح مسلم، حديث 1893/, "the Sheikh encouragement pool must cite the verified hadith about guiding to good");
+assert.doesNotMatch(app, /title:"هدف صغير قابل للقياس",text:"في نهاية الحلقة، حدّد للطالب/, "the direct instructional card aimed at the Sheikh must stay removed");
+assert.match(app, /const sortOptions=\[\["points","النتيجة العامة"\]/, "the general leaderboard must sort by multiple educational domains");
+assert.match(app, /const scopeAll=user\.role==="admin"&&url\.searchParams\.get\("scope"\)==="all"/, "only the administrator can request the all-groups ranking");
+assert.match(app, /group_name:st\.group_name\|\|""/, "the all-groups leaderboard must identify each student's group");
+assert.match(app, /async function flushOfflineQueue\(quiet=true\)/, "offline data must be synchronized after connectivity is restored");
+
 console.log("Security regression guardrails passed.");
