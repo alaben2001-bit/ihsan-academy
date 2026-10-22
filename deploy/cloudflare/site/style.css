@@ -1936,9 +1936,13 @@ html[data-appearance="dark"] .admin-focus-toggle{background:#1b3b31!important;co
 /* Ihsan accessibility and moonlit dark palette overrides — 2026-10-22 */
 html{font-size:calc(16px * var(--user-font-scale,1))}
 body{font-size:1rem}
-body :is(.small,small,.muted.small,.nav-section-title,.workspace-heading>p,.breadcrumbs,.calendar-weekdays span,.wa-bubble-meta small,.wa-contact-copy small,.settings-help-card p,.settings-section-title p){
+body :is(.small,small,.muted,.nav-section-title,.workspace-heading>p,.breadcrumbs,.calendar-weekdays span,.wa-bubble-meta small,.wa-contact-copy small,.settings-help-card p,.settings-section-title p,.list-row small,.empty,table th,table td,.table-wrap th,.table-wrap td,.field small,.settings-preference small,.settings-help-card h4,.wa-contact-copy p){
   font-size:max(14px,calc(14px * var(--user-font-scale,1)))!important;
   line-height:1.7;
+}
+body :is(.field label,.list-row,.stat small,.student-actions .muted,.system-check-item small,.release-history-item p){
+  font-size:max(14px,calc(14px * var(--user-font-scale,1)))!important;
+  line-height:1.75;
 }
 body :is(button,input,select,textarea,.field,.status-select,.nav-btn,.pill){
   font-size:max(15px,calc(14px * var(--user-font-scale,1)));
