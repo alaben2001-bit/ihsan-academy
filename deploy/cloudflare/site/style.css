@@ -1923,3 +1923,21 @@ html[data-appearance="dark"] .calendar-legend i{background:#194d36!important;bor
 .appearance-live-item .nav-icon{width:var(--nav-icon-size,24px);height:var(--nav-icon-size,24px)}
 html[data-appearance="dark"] .appearance-live-preview{background:#132a24!important;color:var(--ink)!important;border-color:var(--line)!important}
 
+
+
+/* Respect the full 85–180% font control, including secondary labels and tables. */
+html{font-size:calc(16px * var(--user-font-scale,1))!important}
+body{font-size:1rem!important;line-height:1.8}
+.small,.muted.small,.field-hint,.nav-section-title,.appearance-range-labels{font-size:.8125rem!important;line-height:1.75}
+.stat small,.quick-action-copy small,.list-row small,.field,.field label,.table-wrap table{font-size:.875rem}
+h2{font-size:clamp(1.375rem,2vw,1.6875rem)}
+h3{font-size:clamp(1.125rem,1.6vw,1.3125rem)}
+html[data-appearance="dark"] .content td,
+html[data-appearance="dark"] .content th,
+html[data-appearance="dark"] .table-wrap td,
+html[data-appearance="dark"] .table-wrap th{background-color:transparent!important;color:var(--ink)!important}
+html[data-appearance="dark"] .table-wrap thead th{background:#1c3930!important;color:#effbf5!important}
+html[data-appearance="dark"] .content .card .card{background:var(--surface)!important;color:var(--ink)!important}
+html[data-appearance="dark"] .academy-about-footnote{background:#1c2b24!important;border-color:#5f5739!important;color:#f0d894!important}
+html[data-appearance="dark"] .google-signin-placeholder{background:#132321!important;color:#eef7f2!important;border-color:#486359!important}
+
