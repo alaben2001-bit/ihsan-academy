@@ -1410,7 +1410,7 @@ export default {
     }
     if(path==="/api/admin/backup/export"&&method==="GET"){
       if(user.role!=="admin")return fail(403,"forbidden");
-      const [users,groups,students,recordsResult,schools,audit]=await Promise.all([
+      const [users,groups,students,recordsResult,schools,audit,googleIdentities]=await Promise.all([
         env.DB.prepare("SELECT id,display_name,identity_normalized,role,active,created_at FROM users ORDER BY created_at").all(),
         env.DB.prepare("SELECT id,name,school_id,teacher_id,active,created_at FROM groups ORDER BY created_at").all(),
         env.DB.prepare("SELECT id,user_id,display_name,group_id,active,created_at FROM students ORDER BY created_at").all(),
@@ -1428,15 +1428,17 @@ export default {
       try { await log(env,user.id,"admin_backup_full_export",{format:"ihsan-academy-full-backup-v2"}); }
       catch (auditError) { console.error("Ihsan full-backup audit failed",{message:String(auditError?.message||auditError)}); }
       const [users,groups,students,recordsResult,schools,audit]=await Promise.all([
-        env.DB.prepare("SELECT id,display_name,identity_normalized,password_hash,role,active,created_at FROM users ORDER BY created_at").all(),
+        env.DB.prepare("SELECT id,display_name,identity_normalized,password_hash,role,active,must_change_password,created_at FROM users ORDER BY created_at").all(),
         env.DB.prepare("SELECT id,name,school_id,active,created_at,teacher_id FROM groups ORDER BY created_at").all(),
         env.DB.prepare("SELECT id,user_id,display_name,group_id,active,created_at FROM students ORDER BY created_at").all(),
         env.DB.prepare("SELECT collection,id,owner_user_id,group_id,student_id,payload_json,updated_at FROM academy_records ORDER BY collection,updated_at").all(),
         env.DB.prepare("SELECT id,name,description,active,sort_order,created_at FROM quran_schools ORDER BY sort_order,name").all(),
-        env.DB.prepare("SELECT id,user_id,action,metadata_json,created_at FROM audit_log ORDER BY created_at").all()
+        env.DB.prepare("SELECT id,user_id,action,metadata_json,created_at FROM audit_log ORDER BY created_at").all(),
+        env.DB.prepare("SELECT google_sub,user_id,email,linked_at FROM google_identities ORDER BY linked_at").all()
       ]);
-      const payload={format:"ihsan-academy-full-backup-v2",created_at:nowIso(),notice:"نسخة كاملة قابلة للدمج والاستعادة: تتضمن بصمات كلمات المرور؛ تعامل معها كملف سري. لا تتضمن رموز الجلسات أو محاولات الدخول؛ سيحتاج المستخدمون إلى تسجيل الدخول مجددًا عند النقل إلى قاعدة جديدة.",data:{
+      const payload={format:"ihsan-academy-full-backup-v2",created_at:nowIso(),notice:"نسخة كاملة قابلة للدمج والاستعادة: تتضمن بصمات كلمات المرور وروابط Google؛ تعامل معها كملف سري. لا تتضمن رموز الجلسات أو محاولات الدخول؛ سيحتاج المستخدمون إلى تسجيل الدخول مجددًا عند النقل إلى قاعدة جديدة.",data:{
         users:users.results||[],
+        google_identities:googleIdentities.results||[],
         groups:groups.results||[],
         students:students.results||[],
         academy_records:(recordsResult.results||[]).map(r=>{let value=null;try{value=JSON.parse(r.payload_json)}catch{}return {collection:r.collection,id:r.id,owner_user_id:r.owner_user_id,group_id:r.group_id,student_id:r.student_id,updated_at:r.updated_at,payload:value}}),
@@ -1452,7 +1454,8 @@ export default {
       if(b.confirm_restore!=="RESTORE-IHSAN-ACADEMY")return fail(400,"أكد الاستعادة من واجهة الإدارة قبل الإرسال");
       if(!b.data||b.format!=="ihsan-academy-full-backup-v2")return fail(400,"صيغة النسخة غير مدعومة؛ يلزم ملف النسخة الكاملة v2");
       const d=b.data;
-      const limits={users:10000,groups:10000,students:100000,academy_records:100000,quran_schools:1000,audit_log:100000};
+      if(!Array.isArray(d.google_identities))d.google_identities=[]; // Backward compatibility with earlier v2 backups.
+       const limits={users:10000,groups:10000,students:100000,academy_records:100000,quran_schools:1000,audit_log:100000,google_identities:10000};
       for(const [key,max] of Object.entries(limits)){
         if(!Array.isArray(d[key])||d[key].length>max)return fail(400,"قائمة غير صالحة أو أكبر من الحد المسموح: "+key);
       }
@@ -1464,34 +1467,41 @@ export default {
       const activeOk=x=>x===0||x===1;
       const dateOk=x=>txt(x,80);
       const unique=values=>new Set(values).size===values.length;
-      const users=d.users.map(x=>isObj(x)?{id:x.id,display_name:x.display_name,identity_normalized:typeof x.identity_normalized==="string"?x.identity_normalized.toLowerCase():x.identity_normalized,password_hash:x.password_hash,role:x.role,active:x.active,created_at:x.created_at}:null);
+      const users=d.users.map(x=>isObj(x)?{id:x.id,display_name:x.display_name,identity_normalized:typeof x.identity_normalized==="string"?x.identity_normalized.toLowerCase():x.identity_normalized,password_hash:x.password_hash,role:x.role,active:x.active,must_change_password:x.must_change_password===undefined?0:x.must_change_password,created_at:x.created_at}:null);
+       const googleIdentities=d.google_identities.map(x=>isObj(x)?{google_sub:x.google_sub,user_id:x.user_id,email:x.email,linked_at:x.linked_at}:null);
       const groups=d.groups.map(x=>isObj(x)?{id:x.id,name:x.name,school_id:x.school_id??null,active:x.active,created_at:x.created_at,teacher_id:x.teacher_id??null}:null);
       const students=d.students.map(x=>isObj(x)?{id:x.id,user_id:x.user_id??null,display_name:x.display_name,group_id:x.group_id??null,active:x.active,created_at:x.created_at}:null);
       const schools=d.quran_schools.map(x=>isObj(x)?{id:x.id,name:x.name,description:x.description,active:x.active,sort_order:x.sort_order,created_at:x.created_at}:null);
       const records=d.academy_records.map(x=>isObj(x)?{collection:x.collection,id:x.id,owner_user_id:x.owner_user_id??null,group_id:x.group_id??null,student_id:x.student_id??null,updated_at:x.updated_at,payload:x.payload}:null);
       const audit=d.audit_log.map(x=>isObj(x)?{id:x.id,user_id:x.user_id??null,action:x.action,metadata_json:x.metadata_json,created_at:x.created_at}:null);
-      if(users.some(x=>!x||!idOk(x.id)||!txt(x.display_name,120)||!txt(x.identity_normalized,200)||!/^[a-f0-9]{32}$/.test(String(x.password_hash||"").split("$")[2]||"")||!/^pbkdf2-sha256\$50000\$[a-f0-9]{32}\$[a-f0-9]{64}$/.test(String(x.password_hash||""))||!["admin","director","teacher","supervisor","student"].includes(x.role)||!activeOk(x.active)||!dateOk(x.created_at)))return fail(400,"تحتوي النسخة على بيانات حساب غير صالحة");
+      if(users.some(x=>!x||!idOk(x.id)||!txt(x.display_name,120)||!txt(x.identity_normalized,200)||!/^[a-f0-9]{32}$/.test(String(x.password_hash||"").split("$")[2]||"")||!/^pbkdf2-sha256\$50000\$[a-f0-9]{32}\$[a-f0-9]{64}$/.test(String(x.password_hash||""))||!["admin","director","teacher","supervisor","student"].includes(x.role)||!activeOk(x.active)||!(x.must_change_password===0||x.must_change_password===1)||!dateOk(x.created_at)))return fail(400,"تحتوي النسخة على بيانات حساب غير صالحة");
       if(groups.some(x=>!x||!idOk(x.id)||!txt(x.name,160)||!optIdOk(x.school_id)||!optIdOk(x.teacher_id)||!activeOk(x.active)||!dateOk(x.created_at)))return fail(400,"تحتوي النسخة على بيانات فوج غير صالحة");
       if(students.some(x=>!x||!idOk(x.id)||!optIdOk(x.user_id)||!txt(x.display_name,160)||!optIdOk(x.group_id)||!activeOk(x.active)||!dateOk(x.created_at)))return fail(400,"تحتوي النسخة على بيانات طالب غير صالحة");
       if(schools.some(x=>!x||!idOk(x.id)||!txt(x.name,200)||typeof x.description!=="string"||x.description.length>10000||!activeOk(x.active)||!Number.isInteger(x.sort_order)||!dateOk(x.created_at)))return fail(400,"تحتوي النسخة على بيانات مدرسة غير صالحة");
       if(records.some(x=>!x||!txt(x.collection,100)||!idOk(x.id)||!optIdOk(x.owner_user_id)||!optIdOk(x.group_id)||!optIdOk(x.student_id)||!dateOk(x.updated_at)||!("payload" in x)))return fail(400,"تحتوي النسخة على سجل تطبيقي غير صالح");
       if(audit.some(x=>!x||!idOk(x.id)||!optIdOk(x.user_id)||!txt(x.action,120)||typeof x.metadata_json!=="string"||x.metadata_json.length>100000||!dateOk(x.created_at)))return fail(400,"تحتوي النسخة على سجل تدقيق غير صالح");
-      if(!unique(users.map(x=>x.id))||!unique(users.map(x=>x.identity_normalized))||!unique(groups.map(x=>x.id))||!unique(students.map(x=>x.id))||!unique(schools.map(x=>x.id))||!unique(records.map(x=>x.collection+"\u0000"+x.id))||!unique(audit.map(x=>x.id)))return fail(400,"تحتوي النسخة على معرفات مكررة");
+      if(!unique(googleIdentities.map(x=>x?.google_sub))||!unique(googleIdentities.map(x=>x?.user_id))||googleIdentities.some(x=>!x||!txt(x.google_sub,255)||!idOk(x.user_id)||!txt(x.email,200)||!dateOk(x.linked_at))||!unique(users.map(x=>x.id))||!unique(users.map(x=>x.identity_normalized))||!unique(groups.map(x=>x.id))||!unique(students.map(x=>x.id))||!unique(schools.map(x=>x.id))||!unique(records.map(x=>x.collection+"\u0000"+x.id))||!unique(audit.map(x=>x.id)))return fail(400,"تحتوي النسخة على معرفات مكررة");
       const userIds=new Set(users.map(x=>x.id)), groupIds=new Set(groups.map(x=>x.id));
+       if(googleIdentities.some(x=>!userIds.has(x.user_id)))return fail(400,"يوجد ربط Google لحساب غير موجود داخل النسخة");
       const currentAdminBackup=users.find(x=>x.id===user.id); if(!currentAdminBackup||currentAdminBackup.role!=="admin"||currentAdminBackup.active!==1)return fail(400,"يجب أن تتضمن النسخة حساب المدير الحالي نشطًا بصلاحيات المدير");
       if(students.some(x=>(x.user_id&&!userIds.has(x.user_id))||(x.group_id&&!groupIds.has(x.group_id))))return fail(400,"توجد إحالات طالب إلى حساب أو فوج غير موجود داخل النسخة");
       if(audit.some(x=>x.user_id&&!userIds.has(x.user_id)))return fail(400,"توجد إحالات في سجل التدقيق إلى حساب غير موجود داخل النسخة");
       for(const r of records){try{JSON.stringify(r.payload)}catch{return fail(400,"تعذّر قراءة محتوى أحد السجلات")}}
-      const [existingUsers,existingStudents]=await Promise.all([
+      const [existingUsers,existingStudents,existingGoogle]=await Promise.all([
         env.DB.prepare("SELECT id,identity_normalized FROM users").all(),
-        env.DB.prepare("SELECT id,user_id FROM students WHERE user_id IS NOT NULL").all()
+        env.DB.prepare("SELECT id,user_id FROM students WHERE user_id IS NOT NULL").all(),
+        env.DB.prepare("SELECT google_sub,user_id FROM google_identities").all()
       ]);
       const currentIdentity=new Map((existingUsers.results||[]).map(x=>[x.identity_normalized,x.id]));
       if(users.some(x=>currentIdentity.has(x.identity_normalized)&&currentIdentity.get(x.identity_normalized)!==x.id))return fail(409,"يوجد حساب حالي بالبريد/اسم الدخول نفسه ومعرّف مختلف؛ لم تبدأ الاستعادة");
       const currentStudentUsers=new Map((existingStudents.results||[]).filter(x=>x.user_id).map(x=>[x.user_id,x.id]));
+      const currentGoogleBySub=new Map((existingGoogle.results||[]).map(x=>[x.google_sub,x.user_id]));
+      const currentGoogleByUser=new Map((existingGoogle.results||[]).map(x=>[x.user_id,x.google_sub]));
+      if(googleIdentities.some(x=>(currentGoogleBySub.has(x.google_sub)&&currentGoogleBySub.get(x.google_sub)!==x.user_id)||(currentGoogleByUser.has(x.user_id)&&currentGoogleByUser.get(x.user_id)!==x.google_sub)))return fail(409,"يوجد تعارض مع ربط Google محفوظ حاليًا؛ لم تبدأ الاستعادة.");
       if(students.some(x=>x.user_id&&currentStudentUsers.has(x.user_id)&&currentStudentUsers.get(x.user_id)!==x.id))return fail(409,"يوجد حساب طالب مرتبط بسجل طالب مختلف؛ لم تبدأ الاستعادة");
       const statements=[];
-      for(const x of users)statements.push(env.DB.prepare("INSERT INTO users (id,display_name,identity_normalized,password_hash,role,active,created_at) VALUES (?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET display_name=excluded.display_name,identity_normalized=excluded.identity_normalized,password_hash=excluded.password_hash,role=excluded.role,active=excluded.active,created_at=excluded.created_at").bind(x.id,x.display_name,x.identity_normalized,x.password_hash,x.role,x.active,x.created_at));
+      for(const x of users)statements.push(env.DB.prepare("INSERT INTO users (id,display_name,identity_normalized,password_hash,role,active,must_change_password,created_at) VALUES (?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET display_name=excluded.display_name,identity_normalized=excluded.identity_normalized,password_hash=excluded.password_hash,role=excluded.role,active=excluded.active,must_change_password=excluded.must_change_password,created_at=excluded.created_at").bind(x.id,x.display_name,x.identity_normalized,x.password_hash,x.role,x.active,x.must_change_password,x.created_at));
+      for(const x of googleIdentities)statements.push(env.DB.prepare("INSERT INTO google_identities (google_sub,user_id,email,linked_at) VALUES (?,?,?,?) ON CONFLICT(google_sub) DO UPDATE SET user_id=excluded.user_id,email=excluded.email,linked_at=excluded.linked_at").bind(x.google_sub,x.user_id,x.email,x.linked_at));
       for(const x of schools)statements.push(env.DB.prepare("INSERT INTO quran_schools (id,name,description,active,sort_order,created_at) VALUES (?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,description=excluded.description,active=excluded.active,sort_order=excluded.sort_order,created_at=excluded.created_at").bind(x.id,x.name,x.description,x.active,x.sort_order,x.created_at));
       for(const x of groups)statements.push(env.DB.prepare("INSERT INTO groups (id,name,school_id,active,created_at,teacher_id) VALUES (?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,school_id=excluded.school_id,active=excluded.active,created_at=excluded.created_at,teacher_id=excluded.teacher_id").bind(x.id,x.name,x.school_id,x.active,x.created_at,x.teacher_id));
       for(const x of students)statements.push(env.DB.prepare("INSERT INTO students (id,user_id,display_name,group_id,active,created_at) VALUES (?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET user_id=excluded.user_id,display_name=excluded.display_name,group_id=excluded.group_id,active=excluded.active,created_at=excluded.created_at").bind(x.id,x.user_id,x.display_name,x.group_id,x.active,x.created_at));
