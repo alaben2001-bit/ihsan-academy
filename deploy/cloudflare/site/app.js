@@ -6,7 +6,27 @@ let ihsanGoogleScriptPromise=null;
 function ihsanIsInstalled(){return Boolean(window.matchMedia&&window.matchMedia("(display-mode: standalone)").matches)||navigator.standalone===true}
 window.addEventListener("beforeinstallprompt",e=>{e.preventDefault();ihsanInstallPrompt=e;document.documentElement.classList.add("ihsan-install-available")});
 window.addEventListener("appinstalled",()=>{ihsanInstallPrompt=null;const b=document.getElementById("install-app");if(b){b.disabled=true;b.textContent="التطبيق مثبت"}toast("تم تثبيت أكاديمية الإحسان على جهازك.")});
-if("serviceWorker" in navigator&&location.protocol==="https:")window.addEventListener("load",()=>navigator.serviceWorker.register("/service-worker.js").catch(()=>{}));
+function showAcademyUpdateNotice(){
+ if(document.getElementById("academy-update-notice"))return;
+ const box=document.createElement("section");box.id="academy-update-notice";box.className="academy-update-notice";box.setAttribute("role","status");box.setAttribute("dir","rtl");
+ box.innerHTML='<div class="academy-update-copy"><strong>يتوفر تحديث جديد للأكاديمية</strong><span>حدّث الصفحة لتظهر لك أحدث التحسينات على هذا الجهاز.</span></div><div class="academy-update-actions"><button type="button" class="btn" id="academy-update-now">تحديث التطبيق</button><button type="button" class="btn secondary" id="academy-update-dismiss">إخفاء</button></div>';
+ document.body.appendChild(box);
+ document.getElementById("academy-update-now")?.addEventListener("click",()=>location.reload());
+ document.getElementById("academy-update-dismiss")?.addEventListener("click",()=>box.remove());
+ try{if("Notification" in window&&Notification.permission==="granted")new Notification("تحديث أكاديمية الإحسان",{body:"يتوفر إصدار أحدث؛ افتح التطبيق من جديد لتطبيقه."})}catch{}
+}
+if("serviceWorker" in navigator&&location.protocol==="https:")window.addEventListener("load",async()=>{
+ const hadController=Boolean(navigator.serviceWorker.controller);
+ try{
+  const registration=await navigator.serviceWorker.register("/service-worker.js");
+  registration.addEventListener("updatefound",()=>{
+   const installing=registration.installing;
+   installing?.addEventListener("statechange",()=>{if(hadController&&installing.state==="installed")showAcademyUpdateNotice()});
+  });
+  if(hadController&&registration.waiting)showAcademyUpdateNotice();
+  registration.update().catch(()=>{});
+ }catch{}
+});
 async function loadGoogleIdentityLibrary(){
  if(window.google&&window.google.accounts&&window.google.accounts.id)return;
  if(!ihsanGoogleScriptPromise)ihsanGoogleScriptPromise=new Promise((resolve,reject)=>{const s=document.createElement("script");s.src="https://accounts.google.com/gsi/client";s.async=true;s.defer=true;s.onload=resolve;s.onerror=()=>reject(new Error("تعذر تحميل Google Identity Services"));document.head.appendChild(s)});
