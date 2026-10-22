@@ -1,0 +1,26 @@
+/* تحسينات مقروئية وتباعد لأكاديمية الإحسان — طبقة آمنة فوق الأنماط الحالية */
+html { font-size: 17px; }
+body, button, input, select, textarea { font-size: 1rem; }
+p, .muted, .small, small { line-height: 1.85; }
+.login-brand b, .form-brand strong, .brand b { color: #fff !important; text-shadow: 0 2px 8px rgba(0,0,0,.45); font-weight: 800; }
+.login-brand small, .brand small { color: #f7f4e9 !important; text-shadow: 0 1px 5px rgba(0,0,0,.55); }
+.login-art { color: #fff; }
+.login-art .login-brand { background: rgba(6,35,29,.35); border-radius: 18px; padding: 1rem; }
+.login h2, .login-form h2 { font-size: clamp(1.55rem,2vw,2rem); line-height: 1.5; }
+.login p, .login-form p { font-size: 1.03rem; line-height: 1.95; }
+#view { font-size: 1rem; }
+#view p, #view .muted { font-size: 1rem; line-height: 1.9; }
+#view h2 { font-size: clamp(1.45rem,2vw,1.9rem); line-height: 1.55; }
+#view h3 { font-size: 1.2rem; line-height: 1.6; }
+#view label, #view input, #view select, #view textarea { font-size: 1rem; }
+#view .field > span { font-weight: 700; }
+#view .btn, .modalbox .btn { font-size: .98rem; min-height: 42px; }
+.modalbox { max-height: min(88dvh,900px); overflow-y: auto; }
+.modalbox .muted, .modalbox small { line-height: 1.8; }
+.side .brand b { font-size: 1.03rem; }
+.side .brand small { font-size: .9rem; }
+.nav button, .nav a, .bottom button { font-size: .95rem; }
+.att-row { gap: 14px; padding-block: 14px; }
+.att-row .person b { font-size: 1.03rem; }
+.att-row .seg label span { min-height: 42px; display: inline-flex; align-items: center; justify-content: center; }
+@media (max-width:720px) { html { font-size:16px; } .login-brand b { font-size:1.4rem; } .login-brand small { font-size:1rem; } #view .toolbar { gap:12px; } .att-row { grid-template-columns:1fr; } }
