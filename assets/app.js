@@ -990,9 +990,9 @@ function tallyHtml() {
 }
 function drawSheet() {
   const A = S.att, box = $('#attSheet'); if (!box) return;
-  put(box, A.rows.length ? html`${A.loaded ? html`<p class="muted small" style="margin-bottom:6px">تم تحميل الحضور المسجَّل سابقًا لهذا اليوم؛ يمكنك تعديله.</p>` : ''}
+  put(box, A.rows.length ? html`${A.loaded ? html`<p class="muted small" style="margin-bottom:6px">تم تحميل الحضور المسجَّل سابقًا لهذا اليوم؛ يمكنك تعديله.</p>` : html`<p class="attendance-start-note" role="status">لم يُسجَّل حضور هذا اليوم بعد. حدّد حالة كل طالب ثم احفظ السجل.</p>`}
     ${A.rows.map(r => html`<div class="att-row" data-row="${r.id}"><div class="person"><span class="avatar">${initial(r.name)}</span><b>${r.name}</b></div><div class="ctrl"><div class="seg" role="radiogroup" aria-label="حضور ${r.name}">${ATT.map(([k, l]) => html`<label><input type="radio" name="st_${r.id}" value="${k}" data-ch="attStatus" data-sid="${r.id}"${r.status === k ? raw(' checked') : ''}><span class="s-${k}">${l}</span></label>`)}</div><input class="note-in" placeholder="ملاحظة (اختياري)" maxlength="300" value="${r.note || ''}" data-in="attNote" data-sid="${r.id}"></div></div>`)}
-    <div class="row wrap" style="margin-top:16px"><div class="tally" id="tally">${tallyHtml()}</div><button class="btn" data-act="att-save">${ico('save')}<span>حفظ حضور الجميع</span></button></div>` : empty('لا يوجد طلاب في هذا الفوج'));
+    <div class="row wrap" style="margin-top:16px"><div class="tally" id="tally">${tallyHtml()}</div><button class="btn" data-act="att-save">${ico('save')}<span>حفظ حضور الجميع</span></button></div>` : empty('لا يوجد طلاب في هذا الفوج', 'أضف الطلاب إلى الفوج أولًا، ثم ارجع لتسجيل حضورهم.'));
 }
 async function saveAttendance(btn) {
   const A = S.att;
