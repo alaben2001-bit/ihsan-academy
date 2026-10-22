@@ -1168,17 +1168,6 @@ export default {
       if(!message.read_at){message.read_at=nowIso();await saveRecord(env,"messages",{...message,owner_user_id:user.id});}
       return json({ok:true,read_at:message.read_at});
     }
-    if(path==="/api/posts"&&method==="GET")return json(await scopedRecords(env,user,"posts",user.role==="student"));
-    if(path==="/api/posts"&&method==="POST"){
-      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"النشر للمعلم أو المدير");
-      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
-      const title=clean(b.title,160),content=clean(b.content,6000),groupId=clean(b.group_id,80)||null;
-      if(!title||!content)return fail(400,"أدخل عنوان المنشور ومحتواه");
-      if(!groupId&&user.role!=="admin")return fail(403,"يمكن للمدير وحده نشر محتوى عام");
-      if(groupId&&!await canManageGroup(env,user,groupId))return fail(403,"لا تملك صلاحية هذا الفوج");
-      const post={id:uuid(),title,content,group_id:groupId,status:"published",created_by:user.id,created_at:nowIso()};
-      await saveRecord(env,"posts",post);await log(env,user.id,"post_create",{post_id:post.id,group_id:groupId});return json(post,201);
-    }
     if(path==="/api/notifications"&&method==="GET")return json(await scopedRecords(env,user,"notifications",user.role==="student"));
     if(path==="/api/notifications"&&method==="POST"){
       if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"إنشاء التنبيهات للمعلم أو المدير");
