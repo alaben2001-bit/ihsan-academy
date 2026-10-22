@@ -81,7 +81,7 @@ assert.match(backend, /if\(path==="\/api\/gradebook"&&method==="GET"\)/, "gradeb
 assert.match(backend, /اختر الفوج لعرض سجله التعليمي/, "staff gradebook requests must select a group");
 assert.match(backend, /canManageGroup\(env,user,groupId\)/, "gradebook must validate access to the selected group");
 assert.match(app, /async function gradebookPage\(v\)/, "the gradebook UI must be available");
-assert.match(app, /"gradebook","السجل التعليمي"/, "staff navigation must expose gradebook");
+assert.match(app, /"gradebook","السجل التعليمي(?: والترتيب)?"/, "staff navigation must expose gradebook");
 assert.match(app, /"gradebook","تقدمي ودرجاتي"/, "student navigation must expose personal progress");
 
 assert.match(backend, /if\(path==="\/api\/assignments"&&method==="POST"\)/, "assignment creation API must exist");
