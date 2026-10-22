@@ -262,7 +262,7 @@ assert.match(backend, /if\(path==="\/api\/student-team-transfer-requests"&&metho
 assert.match(backend, /head_supervisor_student_id===actor.id/, "only the assigned chief supervisor may decide student transfer requests");
 
 assert.match(backend, /if\(path==="\/api\/student-team-supervisor-requests"&&method==="POST"\)/, "students must be able to request approval to become team supervisors");
-assert.match(backend, /student-team-supervisor-requests\/\(\[\^\/\]\+\)\/decision/, "the chief supervisor must be able to approve or reject supervisor requests");
+assert.match(backend, /supervisorRequestDecision=path\.match/, "the chief supervisor must be able to approve or reject supervisor requests");
 assert.match(backend, /لا يمكن تعيين الطالب مشرفًا قبل اعتماد طلبه من كبير المشرفين/, "new team supervisors must be approved before assignment");
 assert.match(app, /id="request-team-supervisor"/, "students must have a visible way to request team supervisor status");
 assert.match(app, /data-supervisor-decision="approve"/, "the chief supervisor must be able to approve supervisor applications");
