@@ -338,4 +338,5 @@ assert.match(style, /\.release-history-item/, "the release history must have rea
 assert.match(index, /app\.js\?v=20261022-147/, "latest frontend asset version must be served");
 assert.match(serviceWorker, /ihsan-academy-pwa-v110-20261022-147/, "service worker must have a refreshed cache namespace");
 
+assert.match(app, /function shell\(\)\{\s*const retainedActions=\$\("#top-actions"\),retainedHeader=document\.querySelector\("header\.topbar"\)/, "settings and workspace actions must survive authenticated navigation re-renders");
 console.log("Security regression guardrails passed.");
