@@ -647,6 +647,7 @@ $("#open-school").onclick=async()=>{safeStore.setSession("ihsan_last_mode","scho
 $("#open-ihsan").onclick=()=>{safeStore.setSession("ihsan_last_mode","ihsan");safeStore.setSession("ihsan_last_tab","all");try{history.pushState({ihsanMode:"ihsan",ihsanTab:"all"},"",location.pathname)}catch{}S.mode="ihsan";S.tab="all";shell();page()}}
 
 function shell(){
+ const retainedActions=$("#top-actions"),retainedHeader=document.querySelector("header.topbar");if(retainedActions&&retainedHeader&&!retainedHeader.contains(retainedActions))retainedHeader.appendChild(retainedActions);
  document.body.classList.add("app-authenticated");
  const current=items().find(x=>x[0]===S.tab);
  const currentTitle=current?current[1]:(S.mode==="ihsan"?"منهج الإحسان":"الرئيسية");
