@@ -171,11 +171,11 @@ function readCsrfCookie(){try{const part=document.cookie.split(";").map(x=>x.tri
 function offlineUserKey(){return "ihsan_offline_user"}
 function rememberOfflineUser(){
  if(!S.user?.id)return;
- const user={id:S.user.id,name:S.user.name,role:S.user.role,student_id:S.user.student_id||null,group_id:S.user.group_id||null,school_ids:S.user.school_ids||[],group_ids:S.user.group_ids||[]};
+ const user={id:S.user.id,name:S.user.name,role:S.user.role,student_id:S.user.student_id||null,group_id:S.user.group_id||null,school_ids:S.user.school_ids||[],group_ids:S.user.group_ids||[],saved_at:Date.now()};
  try{safeStore.set(offlineUserKey(),JSON.stringify(user))}catch{}
 }
 function loadOfflineUser(){
- try{const raw=safeStore.get(offlineUserKey());if(!raw)return null;const u=JSON.parse(raw);return u&&u.id&&u.role?u:null}catch{return null}
+ try{const raw=safeStore.get(offlineUserKey());if(!raw)return null;const u=JSON.parse(raw),age=Date.now()-Number(u?.saved_at||0);if(!u?.id||!u?.role||!Number.isFinite(age)||age<0||age>30*24*60*60*1000){safeStore.remove(offlineUserKey());return null}return u}catch{return null}
 }
 function offlineQueueKey(){return S.user?.id?"ihsan_offline_pending_v1_"+S.user.id:""}
 function readOfflineQueue(){
@@ -501,7 +501,30 @@ $("#auth-form").onsubmit=async e=>{e.preventDefault();const f=new FormData(e.cur
  $("#about-open-welcome")?.addEventListener("click",showAcademyAbout);
  if(!setup)initGoogleSignIn();
 }
-async function boot(){try{const st=await api("/setup/status");try{S.user=await api("/me");if(S.user?.must_change_password){renderTopActions();showPasswordChange(true)}else{await start()}}catch{S.token="";clearSessionToken();auth(st.needs_admin&&st.setup_enabled)}}catch{app.innerHTML='<div class="panel"><h2>تعذّر الاتصال</h2><p class="muted">تعذّر الوصول إلى قاعدة البيانات. حدّث الصفحة بعد قليل.</p><button class="btn" id="boot-retry">إعادة المحاولة</button></div>';$("#boot-retry")?.addEventListener("click",()=>location.reload())}}
+function isOfflineNetworkError(error){
+ const message=String(error?.message||error||"");
+ return !navigator.onLine||/لا يوجد اتصال|تعذّر الاتصال بالخادم|تعذر الاتصال بخادم الأكاديمية|انتهت مهلة الاتصال بالخادم/.test(message);
+}
+function startOfflineFromCache(){
+ const cachedUser=loadOfflineUser();if(!cachedUser)return false;
+ S.user=cachedUser;S.token="";start();toast("وضع دون اتصال: عُرضت البيانات المحفوظة على هذا الجهاز. ستُزامن العمليات المعلّقة عند عودة الاتصال.");return true;
+}
+async function boot(){
+ try{
+  const st=await api("/setup/status");
+  try{
+   S.user=await api("/me");
+   if(S.user?.must_change_password){renderTopActions();showPasswordChange(true)}else{await start()}
+  }catch(error){
+   if(isOfflineNetworkError(error)&&startOfflineFromCache())return;
+   S.token="";clearSessionToken();auth(st.needs_admin&&st.setup_enabled)
+  }
+ }catch(error){
+  if(isOfflineNetworkError(error)&&startOfflineFromCache())return;
+  app.innerHTML='<div class="panel"><h2>تعذّر الاتصال</h2><p class="muted">تعذّر الوصول إلى قاعدة البيانات. حدّث الصفحة بعد قليل.</p><button class="btn" id="boot-retry">إعادة المحاولة</button></div>';
+  $("#boot-retry")?.addEventListener("click",()=>location.reload())
+ }
+}
 
 async function logout(){
 const prayers=[
@@ -514,7 +537,7 @@ const prayers=[
 {title:"استوداع وأمل",text:"حفظك الله أينما كنت، وفتح لك أبواب الخير، وجعل علمك نافعًا وعملك صالحًا، ورزقك الإخلاص والقبول.",kind:"دعاء بصياغة الأكاديمية"}
 ];
 const prayer=prayers[Math.floor(Math.random()*prayers.length)];
-ihsanPrayerDialog({title:prayer.title,text:prayer.text,source:prayer.source||(prayer.kind?prayer.kind+"؛ ليس نصًا منسوبًا إلى السنة":""),icon:"☾",primary:"تسجيل الخروج",secondary:"البقاء في الأكاديمية",onPrimary:async()=>{try{await api("/logout",{method:"POST",body:"{}"})}catch{}try{history.replaceState({ihsanMode:"auth"},"",location.pathname+"#login")}catch{}document.body.classList.remove("app-authenticated");S.token="";S.user=null;S.mode="hub";S.tab="home";clearSessionToken();auth(false)}})}
+ihsanPrayerDialog({title:prayer.title,text:prayer.text,source:prayer.source||(prayer.kind?prayer.kind+"؛ ليس نصًا منسوبًا إلى السنة":""),icon:"☾",primary:"تسجيل الخروج",secondary:"البقاء في الأكاديمية",onPrimary:async()=>{try{await api("/logout",{method:"POST",body:"{}"})}catch{}try{history.replaceState({ihsanMode:"auth"},"",location.pathname+"#login")}catch{}document.body.classList.remove("app-authenticated");S.token="";S.user=null;S.mode="hub";S.tab="home";safeStore.remove(offlineUserKey());clearSessionToken();auth(false)}})}
 async function load(){const r=await Promise.allSettled([api("/groups"),api("/students")]);S.groups=r[0].status==="fulfilled"?r[0].value:[];S.students=r[1].status==="fulfilled"?r[1].value:[];if(["admin","director"].includes(S.user.role))try{S.teachers=await api("/teachers")}catch{S.teachers=[]}if(S.user.role==="admin"){const extra=await Promise.allSettled([api("/admin/staff"),api("/public/quran-schools")]);S.staff=extra[0].status==="fulfilled"?extra[0].value:[];S.schools=extra[1].status==="fulfilled"?extra[1].value:[]}}
 function items(){
  if(S.mode==="ihsan")return [["all","نظرة عامة"],["allah","معرفة الله"],["prophet","الرسول ﷺ"],["quranpath","القرآن الكريم"],["hifzprogram","الحال المرتحل"],["sunnah","السنة والمتون"],["adab","الأدب والعمل"]];
