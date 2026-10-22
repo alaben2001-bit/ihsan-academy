@@ -7,6 +7,8 @@ on:
       - "assets/**"
       - "index.html"
       - "manifest.json"
+      - "server/**"
+      - ".github/workflows/cloudflare-free-check.yml"
   push:
     branches: ["migration/cloudflare-student-platform"]
     paths:
@@ -14,6 +16,8 @@ on:
       - "assets/**"
       - "index.html"
       - "manifest.json"
+      - "server/**"
+      - ".github/workflows/cloudflare-free-check.yml"
 jobs:
   validate:
     runs-on: ubuntu-latest
