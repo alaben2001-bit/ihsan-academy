@@ -2,7 +2,8 @@
 html { font-size: 17px; }
 body, button, input, select, textarea { font-size: 1rem; }
 p, .muted, .small, small { line-height: 1.85; }
-.login-brand b, .form-brand strong, .brand b { color: #fff !important; text-shadow: 0 2px 8px rgba(0,0,0,.45); font-weight: 800; }
+.login-brand b, .brand b { color: #fff !important; text-shadow: 0 2px 8px rgba(0,0,0,.45); font-weight: 800; }
+.form-brand strong { color: #064e3b !important; text-shadow: none; font-weight: 800; }
 .login-brand small, .brand small { color: #f7f4e9 !important; text-shadow: 0 1px 5px rgba(0,0,0,.55); }
 .login-art { color: #fff; }
 .login-art .login-brand { background: rgba(6,35,29,.35); border-radius: 18px; padding: 1rem; }
