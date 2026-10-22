@@ -194,7 +194,7 @@ function renderTopActions(){
  const installed=ihsanIsInstalled();
  const entryView=!S.user||S.mode==="hub";
  let actions=!S.user?'<button class="btn secondary academy-about-trigger" id="academy-about-open" type="button" aria-label="التعريف بالأكاديمية ورؤيتها">عن الأكاديمية</button> ':"";
- if(S.user&&!entryView)actions+='<button class="btn secondary" id="settings-open" type="button" aria-label="إعدادات الأكاديمية">الإعدادات</button> ';
+ if(S.user)actions+='<button class="btn secondary" id="settings-open" type="button" aria-label="إعدادات الأكاديمية">الإعدادات</button> ';
  if(entryView)actions+='<button class="btn secondary install-app-button" id="install-app" type="button" '+(installed?'disabled aria-label="التطبيق مثبت بالفعل"':'aria-label="تثبيت أكاديمية الإحسان على الهاتف"')+'>'+(installed?'التطبيق مثبت':'تثبيت التطبيق')+'</button>';
  if(S.user)actions+=' <button class="btn secondary" id="logout" type="button">خروج</button>';
  const topActions=$("#top-actions");if(topActions)topActions.innerHTML=actions;
