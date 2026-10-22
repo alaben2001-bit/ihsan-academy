@@ -7,6 +7,7 @@ The active Cloudflare build is a lightweight Arabic RTL Progressive Web App back
 - RTL Arabic interface, mobile layouts, installable PWA shell, random-per-session palettes, and a fixed-palette option.
 - One-time administrator bootstrap protected by the `BOOTSTRAP_SECRET` Pages secret.
 - Password login with PBKDF2-SHA-256 hashes, hashed session tokens, login throttling, and role/group scope checks in API handlers.
+- The public health endpoint reports service availability only; it does not reveal account totals.
 - Student/group records, account creation and reset, attendance, and Quran memorization/revision records.
 - Quran plans and progress, curriculum/subjects and student curriculum progress, multiple-choice tests, submitted test attempts/results, and recurring test records.
 - Text-based posts and notifications, daily challenge claims, leaderboard/metrics, admin audit view, and manual D1 backup export/restore endpoints.
