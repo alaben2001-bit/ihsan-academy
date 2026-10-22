@@ -11,3 +11,14 @@
 !.env.example
 !.env.production.example
 /deploy/.env
+
+# Dependencies and generated Cloudflare build output
+node_modules/
+coverage/
+/deploy/cloudflare/public/
+/deploy/cloudflare/.wrangler/
+
+# Local Cloudflare secrets (never commit)
+.dev.vars
+.dev.vars.*
+!.dev.vars.example
