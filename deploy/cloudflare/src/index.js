@@ -488,8 +488,12 @@ export default {
         try{existing=JSON.parse(row.payload_json)}catch{}
         if(!existing||existing.group_id!==groupId)return fail(400,"لا يمكن نقل الفرقة إلى فوج آخر من شاشة التعديل؛ أنشئها ضمن الفوج الصحيح");
       }
+      const approvalRows=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='student_team_supervisor_requests' AND student_id=? AND group_id=?").bind(supervisorId,groupId).all();
+      const approved= (approvalRows.results||[]).some(row=>{try{return JSON.parse(row.payload_json).status==="approved"}catch{return false}});
+      const currentSupervisor=existing&&(existing.supervisor_student_id||existing.student_id)===supervisorId;
+      if(!approved&&!currentSupervisor)return fail(403,"لا يمكن تعيين الطالب مشرفًا قبل اعتماد طلبه من كبير المشرفين");
       const peers=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='student_team_supervisors' AND group_id=?").bind(groupId).all();
-      for(const row of peers.results||[]){try{const x=JSON.parse(row.payload_json);if(String(x.id)!==teamId&&String(x.team_name||"الفرقة الأولى").trim().toLocaleLowerCase()===teamName.toLocaleLowerCase())return fail(409,"اسم هذه الفرقة مستخدم في الفوج؛ اختر اسمًا مميزًا");}catch{}}
+      for(const row of peers.results||[]){try{const x=JSON.parse(row.payload_json);if(String(x.id)!==teamId&&String(x.team_name||"الفرقة الأولى").trim().toLocaleLowerCase()===teamName.toLocaleLowerCase())return fail(409,"اسم هذه الفرقة مستخدم في الفوج؛ اختر اسمًا مميزًا");if(String(x.id)!==teamId&&(x.supervisor_student_id||x.student_id)===supervisor.id)return fail(409,"مشرف الفرقة معيّن بالفعل لفرقة أخرى");}catch{}}
       const id=teamId||uuid();
       for(const row of peers.results||[]){try{const x=JSON.parse(row.payload_json);if(String(x.id)===teamId)continue;if(x.head_supervisor_student_id!==chief.id){x.head_supervisor_student_id=chief.id;x.head_supervisor_name=chief.display_name;x.updated_at=nowIso();await saveRecord(env,"student_team_supervisors",x);}}catch{}}
       const assignment={id,owner_user_id:user.id,group_id:groupId,team_name:teamName,student_id:supervisor.id,supervisor_student_id:supervisor.id,supervisor_name:supervisor.display_name,head_supervisor_student_id:chief.id,head_supervisor_name:chief.display_name,updated_at:nowIso()};
@@ -514,17 +518,62 @@ export default {
       let memberships=(memberRows.results||[]).flatMap(row=>{try{return [JSON.parse(row.payload_json)]}catch{return []}});
       const requestRows=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='student_team_transfer_requests' AND group_id=? ORDER BY updated_at DESC").bind(groupId).all();
       let requests=(requestRows.results||[]).flatMap(row=>{try{return [JSON.parse(row.payload_json)]}catch{return []}});
+      const supervisorRequestRows=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='student_team_supervisor_requests' AND group_id=? ORDER BY updated_at DESC").bind(groupId).all();
+      let supervisorRequests=(supervisorRequestRows.results||[]).flatMap(row=>{try{return [JSON.parse(row.payload_json)]}catch{return []}});
       if(currentStudent){
         if(isTeamSupervisor)memberships=memberships.filter(m=>teams.some(t=>t.id===m.team_id&&t.supervisor_student_id===currentStudent.id));
         else memberships=memberships.filter(m=>m.student_id===currentStudent.id);
         if(!isChiefSupervisor)requests=requests.filter(r=>r.student_id===currentStudent.id);
         else requests=requests.filter(r=>r.status==="pending");
+        if(!isChiefSupervisor)supervisorRequests=supervisorRequests.filter(r=>r.student_id===currentStudent.id);
+        else supervisorRequests=supervisorRequests.filter(r=>r.status==="pending");
       }
       const teamById=new Map(teams.map(t=>[t.id,t]));
       memberships=memberships.map(m=>({...m,team_name:teamById.get(m.team_id)?.team_name||m.team_name||"فرقة غير متاحة"}));
       const eligibleRows=currentStudent&&isTeamSupervisor?await env.DB.prepare("SELECT s.id,s.display_name AS name,(SELECT json_extract(ar.payload_json,'$.team_id') FROM academy_records ar WHERE ar.collection='student_team_memberships' AND ar.student_id=s.id LIMIT 1) AS assigned_team_id FROM students s WHERE s.group_id=? AND s.active=1 ORDER BY s.display_name").bind(groupId).all():{results:[]};
       let currentMembership=null;if(currentStudent){const currentRow=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='student_team_memberships' AND id=?").bind(currentStudent.id).first();if(currentRow){try{currentMembership=JSON.parse(currentRow.payload_json)}catch{}}}
-      return json({group_id:groupId,current_student_id:currentStudent?.id||null,current_membership:currentMembership,teams,memberships,requests,eligible_students:eligibleRows.results||[],can_assign_members:!currentStudent||isTeamSupervisor,can_approve_transfers:user.role==="admin"||isChiefSupervisor});
+      const approvedSupervisorIds=supervisorRequests.filter(r=>r.status==="approved").map(r=>r.student_id);
+      return json({group_id:groupId,current_student_id:currentStudent?.id||null,current_membership:currentMembership,teams,memberships,requests,supervisor_requests:supervisorRequests,approved_supervisor_ids:approvedSupervisorIds,eligible_students:eligibleRows.results||[],can_assign_members:!currentStudent||isTeamSupervisor,can_approve_transfers:user.role==="admin"||isChiefSupervisor,can_approve_supervisor_requests:user.role==="admin"||isChiefSupervisor});
+    }
+    if(path==="/api/student-team-supervisor-requests"&&method==="POST"){
+      if(user.role!=="student")return fail(403,"طلبات الانضمام إلى مشرفي الفرق مخصصة للطلبة");
+      const student=await env.DB.prepare("SELECT id,display_name,group_id FROM students WHERE user_id=? AND active=1 LIMIT 1").bind(user.id).first();
+      if(!student)return fail(404,"ملف الطالب غير موجود");
+      const assignments=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='student_team_supervisors' AND group_id=?").bind(student.group_id).all();
+      if((assignments.results||[]).some(row=>{try{return JSON.parse(row.payload_json).supervisor_student_id===student.id}catch{return false}}))return fail(409,"أنت مشرف فرقة بالفعل");
+      const existing=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='student_team_supervisor_requests' AND student_id=? AND group_id=?").bind(student.id,student.group_id).all();
+      for(const row of existing.results||[]){try{const x=JSON.parse(row.payload_json);if(["pending","approved"].includes(x.status))return fail(409,x.status==="approved"?"سبق اعتمادك ضمن مشرفي الفرق":"لديك طلب انضمام قيد المراجعة بالفعل")}catch{}}
+      const record={id:uuid(),student_id:student.id,student_name:student.display_name,group_id:student.group_id,status:"pending",requested_at:nowIso(),updated_at:nowIso()};
+      await saveRecord(env,"student_team_supervisor_requests",record);
+      await log(env,user.id,"student_team_supervisor_request",{request_id:record.id,student_id:student.id,group_id:student.group_id});
+      return json({ok:true,request:record},201);
+    }
+    const supervisorRequestDecision=path.match(/^\/api\/student-team-supervisor-requests\/([^/]+)\/decision$/);
+    if(supervisorRequestDecision&&method==="POST"){
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const decision=clean(parsed.value.decision,20);
+      if(!["approve","reject"].includes(decision))return fail(400,"اختر الموافقة أو الرفض");
+      const row=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='student_team_supervisor_requests' AND id=?").bind(supervisorRequestDecision[1]).first();
+      if(!row)return fail(404,"طلب الانضمام غير موجود");
+      let supervisorRequest;try{supervisorRequest=JSON.parse(row.payload_json)}catch{return fail(500,"تعذر قراءة طلب الانضمام")};
+      if(supervisorRequest.status!=="pending")return fail(409,"تمت معالجة هذا الطلب من قبل");
+      let authorized=user.role==="admin";
+      if(user.role==="student"){
+        const actor=await env.DB.prepare("SELECT id,group_id FROM students WHERE user_id=? AND active=1 LIMIT 1").bind(user.id).first();
+        if(actor&&actor.group_id===supervisorRequest.group_id){
+          const chiefRows=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='student_team_supervisors' AND group_id=?").bind(supervisorRequest.group_id).all();
+          authorized=(chiefRows.results||[]).some(r=>{try{return JSON.parse(r.payload_json).head_supervisor_student_id===actor.id}catch{return false}});
+        }
+      }
+      if(!authorized)return fail(403,"اعتماد مشرفي الفرق من صلاحية كبير المشرفين المعيّن أو المدير العام");
+      if(decision==="approve"){
+        const student=await env.DB.prepare("SELECT id,display_name,group_id,active FROM students WHERE id=? AND group_id=? AND active=1").bind(supervisorRequest.student_id,supervisorRequest.group_id).first();
+        if(!student)return fail(409,"الطالب لم يعد نشطًا في الفوج");
+        supervisorRequest.status="approved";
+      }else supervisorRequest.status="rejected";
+      supervisorRequest.decided_by=user.id;supervisorRequest.decided_at=nowIso();supervisorRequest.updated_at=nowIso();
+      await saveRecord(env,"student_team_supervisor_requests",supervisorRequest);
+      await log(env,user.id,"student_team_supervisor_request_decision",{request_id:supervisorRequest.id,student_id:supervisorRequest.student_id,group_id:supervisorRequest.group_id,decision});
+      return json({ok:true,request:supervisorRequest});
     }
     if(path==="/api/student-team-memberships"&&method==="POST"){
       const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
