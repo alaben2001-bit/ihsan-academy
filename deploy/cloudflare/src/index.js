@@ -522,8 +522,9 @@ export default {
       }
       const teamById=new Map(teams.map(t=>[t.id,t]));
       memberships=memberships.map(m=>({...m,team_name:teamById.get(m.team_id)?.team_name||m.team_name||"فرقة غير متاحة"}));
-      const eligibleRows=currentStudent&&isTeamSupervisor?await env.DB.prepare("SELECT id,display_name AS name FROM students WHERE group_id=? AND active=1 ORDER BY display_name").bind(groupId).all():{results:[]};
-      return json({group_id:groupId,current_student_id:currentStudent?.id||null,teams,memberships,requests,eligible_students:eligibleRows.results||[],can_assign_members:!currentStudent||isTeamSupervisor,can_approve_transfers:user.role==="admin"||isChiefSupervisor});
+      const eligibleRows=currentStudent&&isTeamSupervisor?await env.DB.prepare("SELECT s.id,s.display_name AS name,(SELECT json_extract(ar.payload_json,'$.team_id') FROM academy_records ar WHERE ar.collection='student_team_memberships' AND ar.student_id=s.id LIMIT 1) AS assigned_team_id FROM students s WHERE s.group_id=? AND s.active=1 ORDER BY s.display_name").bind(groupId).all():{results:[]};
+      let currentMembership=null;if(currentStudent){const currentRow=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='student_team_memberships' AND id=?").bind(currentStudent.id).first();if(currentRow){try{currentMembership=JSON.parse(currentRow.payload_json)}catch{}}}
+      return json({group_id:groupId,current_student_id:currentStudent?.id||null,current_membership:currentMembership,teams,memberships,requests,eligible_students:eligibleRows.results||[],can_assign_members:!currentStudent||isTeamSupervisor,can_approve_transfers:user.role==="admin"||isChiefSupervisor});
     }
     if(path==="/api/student-team-memberships"&&method==="POST"){
       const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
