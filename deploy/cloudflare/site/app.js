@@ -77,6 +77,7 @@ const shiftLocalDateISO=(dateOnly,days)=>{
  return shifted.getUTCFullYear()+"-"+String(shifted.getUTCMonth()+1).padStart(2,"0")+"-"+String(shifted.getUTCDate()).padStart(2,"0");
 };
 const S={token:"",user:null,tab:"home",mode:"hub",groups:[],students:[],teachers:[],staff:[],schools:[],date:safeStore.get("ihsan_attendance_date")||localDateISO()};
+let offlineSessionActive=false;
 
 const knowledgeVerses=[
  {text:"رَبَّنَا لَا تُزِغْ قُلُوبَنَا بَعْدَ إِذْ هَدَيْتَنَا وَهَبْ لَنَا مِنْ لَدُنْكَ رَحْمَةً إِنَّكَ أَنْتَ الْوَهَّابُ",reference:"سورة آل عمران، الآية 8"},
@@ -170,7 +171,7 @@ const esc=v=>String(v==null?"":v).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;"
 function readCsrfCookie(){try{const part=document.cookie.split(";").map(x=>x.trim()).find(x=>x.startsWith("__Host-ihsan_csrf="));return part?decodeURIComponent(part.slice("__Host-ihsan_csrf=".length)):""}catch{return ""}}
 function offlineUserKey(){return "ihsan_offline_user"}
 function rememberOfflineUser(){
- if(!S.user?.id)return;
+ if(offlineSessionActive||!S.user?.id)return;
  const user={id:S.user.id,name:S.user.name,role:S.user.role,student_id:S.user.student_id||null,group_id:S.user.group_id||null,school_ids:S.user.school_ids||[],group_ids:S.user.group_ids||[],saved_at:Date.now()};
  try{safeStore.set(offlineUserKey(),JSON.stringify(user))}catch{}
 }
@@ -290,6 +291,7 @@ async function api(path,opt={}){
   try{d=raw?JSON.parse(raw):{}}
   catch{const type=r.headers.get("content-type")||"غير محدد";const preview=raw.replace(/\\s+/g," ").slice(0,180);throw Error("رد غير صالح من الخادم — "+r.status+" — نوع المحتوى: "+type+(preview?" — "+preview:" — استجابة فارغة"))}
   if(!r.ok)throw Error(d.error||("فشل الطلب ("+r.status+")"));
+  if(offlineSessionActive){offlineSessionActive=false;rememberOfflineUser()}
   if(cacheableApiPath(path,method)){
    try{const serialized=JSON.stringify({saved_at:Date.now(),value:d});if(serialized.length<1500000)safeStore.set(offlineCacheKey(path),serialized)}catch{}
   }
@@ -507,7 +509,7 @@ function isOfflineNetworkError(error){
 }
 function startOfflineFromCache(){
  const cachedUser=loadOfflineUser();if(!cachedUser)return false;
- S.user=cachedUser;S.token="";start();toast("وضع دون اتصال: عُرضت البيانات المحفوظة على هذا الجهاز. ستُزامن العمليات المعلّقة عند عودة الاتصال.");return true;
+ offlineSessionActive=true;S.user=cachedUser;S.token="";start();toast("وضع دون اتصال: عُرضت البيانات المحفوظة على هذا الجهاز. ستُزامن العمليات المعلّقة عند عودة الاتصال.");return true;
 }
 async function boot(){
  try{
@@ -537,7 +539,7 @@ const prayers=[
 {title:"استوداع وأمل",text:"حفظك الله أينما كنت، وفتح لك أبواب الخير، وجعل علمك نافعًا وعملك صالحًا، ورزقك الإخلاص والقبول.",kind:"دعاء بصياغة الأكاديمية"}
 ];
 const prayer=prayers[Math.floor(Math.random()*prayers.length)];
-ihsanPrayerDialog({title:prayer.title,text:prayer.text,source:prayer.source||(prayer.kind?prayer.kind+"؛ ليس نصًا منسوبًا إلى السنة":""),icon:"☾",primary:"تسجيل الخروج",secondary:"البقاء في الأكاديمية",onPrimary:async()=>{try{await api("/logout",{method:"POST",body:"{}"})}catch{}try{history.replaceState({ihsanMode:"auth"},"",location.pathname+"#login")}catch{}document.body.classList.remove("app-authenticated");S.token="";S.user=null;S.mode="hub";S.tab="home";safeStore.remove(offlineUserKey());clearSessionToken();auth(false)}})}
+ihsanPrayerDialog({title:prayer.title,text:prayer.text,source:prayer.source||(prayer.kind?prayer.kind+"؛ ليس نصًا منسوبًا إلى السنة":""),icon:"☾",primary:"تسجيل الخروج",secondary:"البقاء في الأكاديمية",onPrimary:async()=>{try{await api("/logout",{method:"POST",body:"{}"})}catch{}try{history.replaceState({ihsanMode:"auth"},"",location.pathname+"#login")}catch{}document.body.classList.remove("app-authenticated");offlineSessionActive=false;S.token="";S.user=null;S.mode="hub";S.tab="home";safeStore.remove(offlineUserKey());clearSessionToken();auth(false)}})}
 async function load(){const r=await Promise.allSettled([api("/groups"),api("/students")]);S.groups=r[0].status==="fulfilled"?r[0].value:[];S.students=r[1].status==="fulfilled"?r[1].value:[];if(["admin","director"].includes(S.user.role))try{S.teachers=await api("/teachers")}catch{S.teachers=[]}if(S.user.role==="admin"){const extra=await Promise.allSettled([api("/admin/staff"),api("/public/quran-schools")]);S.staff=extra[0].status==="fulfilled"?extra[0].value:[];S.schools=extra[1].status==="fulfilled"?extra[1].value:[]}}
 function items(){
  if(S.mode==="ihsan")return [["all","نظرة عامة"],["allah","معرفة الله"],["prophet","الرسول ﷺ"],["quranpath","القرآن الكريم"],["hifzprogram","الحال المرتحل"],["sunnah","السنة والمتون"],["adab","الأدب والعمل"]];
