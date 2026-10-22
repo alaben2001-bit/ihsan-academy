@@ -1,0 +1,167 @@
+/* Ihsan Academy — Living Experience layer
+   Motion with purpose, tactile controls, layered depth, and lightweight ambience.
+   No external libraries, no tracking, and respects reduced-motion preferences. */
+:root{
+  --live-radius:20px;
+  --live-shadow:0 12px 34px rgba(10,52,39,.065);
+  --live-shadow-hover:0 20px 44px rgba(10,52,39,.115);
+  --live-ease:cubic-bezier(.2,.75,.25,1);
+}
+html{scroll-behavior:smooth}
+body{
+  background:
+    radial-gradient(ellipse at 8% 8%,rgba(197,168,128,.105),transparent 28rem),
+    radial-gradient(ellipse at 88% 22%,rgba(16,120,86,.075),transparent 34rem),
+    #f4f5f2;
+}
+.main{isolation:isolate}
+.main::after{
+  content:"";position:fixed;z-index:-1;pointer-events:none;
+  width:26rem;height:26rem;left:-15rem;bottom:-16rem;border-radius:50%;
+  background:radial-gradient(circle,rgba(197,168,128,.12),transparent 70%);
+  animation:live-drift 24s ease-in-out infinite alternate;
+}
+.side{
+  background:linear-gradient(160deg,#07533f 0%,#064632 52%,#073a30 100%);
+  box-shadow:-12px 0 38px rgba(7,54,41,.12);
+}
+.side::before{
+  content:"";position:absolute;inset:0;pointer-events:none;opacity:.18;
+  background-image:var(--pattern);background-size:76px 76px;
+  mask-image:linear-gradient(180deg,#000,transparent 78%);
+}
+.side>.brand,.side>.nav,.side>.account{position:relative;z-index:1}
+.brandmark{
+  width:48px;height:48px;border-radius:15px;
+  box-shadow:0 7px 18px rgba(0,0,0,.13);
+  transition:transform .35s var(--live-ease),box-shadow .35s;
+}
+.brandmark img{width:100%;height:100%;object-fit:contain;padding:5px}
+.brand:hover .brandmark{transform:translateY(-2px) rotate(-3deg);box-shadow:0 12px 24px rgba(0,0,0,.2)}
+.nav button{
+  min-height:44px;border:1px solid transparent;
+  transition:background .22s var(--live-ease),color .22s,border-color .22s,transform .22s,box-shadow .22s;
+}
+.nav button:hover{transform:translateX(-3px);border-color:rgba(255,255,255,.09)}
+.nav button svg.i{transition:transform .22s var(--live-ease),opacity .22s}
+.nav button:hover svg.i{transform:scale(1.09)}
+.nav button.active{
+  background:linear-gradient(115deg,#f5efdf,#fffaf0);
+  box-shadow:0 7px 18px rgba(0,0,0,.12),inset -3px 0 #c5a880;
+}
+.nav button.active svg.i{opacity:1}
+.top{animation:live-enter .55s var(--live-ease) both}
+.top h1{letter-spacing:-.025em}
+.top::after{width:58px;height:4px;box-shadow:0 2px 10px rgba(78,146,122,.2)}
+#view{animation:live-enter .48s .04s var(--live-ease) both}
+#view .card,#view .metric,#view .appearance-studio{
+  border-radius:var(--live-radius);
+  transition:transform .28s var(--live-ease),box-shadow .28s var(--live-ease),border-color .28s,background-color .28s;
+}
+#view .card{
+  box-shadow:var(--live-shadow);
+  border-color:color-mix(in srgb,var(--line) 76%,transparent);
+}
+#view .card:hover{
+  box-shadow:var(--live-shadow-hover);
+  border-color:color-mix(in srgb,var(--g500) 38%,var(--line));
+}
+#view .card[role=button]:hover{transform:translateY(-3px)}
+#view .grid>.card,#view .grid>.stat,#view .cols>.card{animation:live-card-in .45s var(--live-ease) both}
+#view .grid>.card:nth-child(2),#view .grid>.stat:nth-child(2){animation-delay:.045s}
+#view .grid>.card:nth-child(3),#view .grid>.stat:nth-child(3){animation-delay:.09s}
+#view .grid>.card:nth-child(4),#view .grid>.stat:nth-child(4){animation-delay:.135s}
+.hero,.hero-main{
+  position:relative;isolation:isolate;overflow:hidden;
+  border-radius:24px;
+  background:
+    radial-gradient(ellipse at 88% 0%,rgba(218,190,126,.2),transparent 42%),
+    linear-gradient(125deg,#075b45,#064633 68%,#073b30);
+  box-shadow:0 18px 42px rgba(6,78,59,.17);
+}
+.hero::before,.hero-main::before{
+  content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;
+  background-image:var(--pattern);background-size:82px 82px;opacity:.52;
+  mask-image:linear-gradient(115deg,transparent 4%,#000 75%);
+}
+.hero::after,.hero-main::after{
+  content:"";position:absolute;z-index:-1;pointer-events:none;
+  width:220px;height:220px;left:-65px;bottom:-145px;border-radius:50%;
+  border:1px solid rgba(255,255,255,.14);
+  box-shadow:0 0 0 22px rgba(255,255,255,.025),0 0 0 48px rgba(255,255,255,.02);
+}
+.hero-orbit{animation:live-orbit 8s ease-in-out infinite}
+.hero-orbit span{backdrop-filter:blur(8px);transition:transform .4s var(--live-ease)}
+.hero:hover .hero-orbit span{transform:scale(1.055) rotate(4deg)}
+.stat .ic{
+  border-radius:15px;
+  background:linear-gradient(145deg,#e5f1e9,#d5e8dc);
+  box-shadow:inset 0 1px rgba(255,255,255,.9),0 5px 14px rgba(10,70,50,.06);
+  transition:transform .28s var(--live-ease),box-shadow .28s;
+}
+.stat:hover .ic{transform:translateY(-3px) rotate(-3deg);box-shadow:0 9px 18px rgba(10,70,50,.1)}
+.avatar{box-shadow:inset 0 1px rgba(255,255,255,.75);border:1px solid rgba(16,95,72,.08)}
+.progress{background:color-mix(in srgb,var(--g100) 78%,#fff);box-shadow:inset 0 1px 2px rgba(0,0,0,.04)}
+.progress i{background:linear-gradient(90deg,#3f8a73,#79b69a);box-shadow:0 0 12px rgba(63,138,115,.15)}
+.btn{
+  border-radius:12px;
+  box-shadow:0 4px 12px rgba(6,78,59,.12);
+  transition:transform .22s var(--live-ease),box-shadow .22s,background .22s,border-color .22s;
+}
+.btn:hover{transform:translateY(-1px);box-shadow:0 8px 18px rgba(6,78,59,.17)}
+.btn:active{transform:translateY(1px) scale(.985);box-shadow:none}
+.btn.sec2{box-shadow:none}
+.btn.sec2:hover{box-shadow:0 5px 13px rgba(6,78,59,.07)}
+input,select,textarea{
+  border-radius:12px;
+  transition:border-color .2s,box-shadow .2s,background-color .2s;
+}
+input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px color-mix(in srgb,var(--g100) 80%,transparent)}
+.tbl tbody tr{transition:background .18s}
+.tbl tr.click:hover{background:color-mix(in srgb,var(--g50) 75%,white)}
+.rail button{transition:color .2s,background .2s,transform .2s}
+.rail button:active{transform:scale(.98)}
+.bottom{
+  background:rgba(255,255,255,.93);
+  backdrop-filter:blur(18px) saturate(150%);
+  box-shadow:0 -8px 30px rgba(18,48,38,.06);
+}
+.bottom button{transition:color .2s,transform .2s}
+.bottom button.active{position:relative}
+.bottom button.active::before{
+  content:"";position:absolute;top:0;left:28%;right:28%;height:3px;
+  background:var(--g500);border-radius:0 0 4px 4px;
+}
+.toast{backdrop-filter:blur(12px);box-shadow:0 12px 34px rgba(0,0,0,.16)}
+.modalbox{box-shadow:0 28px 90px rgba(0,0,0,.26);border:1px solid rgba(255,255,255,.55)}
+::selection{background:#c6e1d1;color:#064e3b}
+@keyframes live-enter{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:translateY(0)}}
+@keyframes live-card-in{from{opacity:0;transform:translateY(8px) scale(.992)}to{opacity:1;transform:translateY(0) scale(1)}}
+@keyframes live-drift{from{transform:translate3d(0,0,0) scale(.95)}to{transform:translate3d(8vw,-5vh,0) scale(1.12)}}
+@keyframes live-orbit{0%,100%{transform:translateY(0)}50%{transform:translateY(-7px)}}
+@media(max-width:1000px){
+  .side{width:264px}
+  .main{margin-right:264px}
+}
+@media(max-width:720px){
+  body{background:radial-gradient(ellipse at 85% 0,rgba(16,120,86,.06),transparent 24rem),#f4f5f2}
+  .main::after{position:absolute;width:14rem;height:14rem;left:-9rem;bottom:4rem}
+  .top{gap:12px}
+  .top h1{font-size:clamp(1.25rem,5vw,1.65rem)}
+  #view .hero,#view .hero-main{border-radius:20px}
+  #view .grid>.card,#view .grid>.stat,#view .cols>.card{animation-duration:.35s}
+  .bottom button{min-height:58px;padding-top:10px}
+  .bottom button svg.i{transition:transform .2s}
+  .bottom button.active svg.i{transform:translateY(-1px)}
+}
+@media(prefers-reduced-motion:reduce){
+  html{scroll-behavior:auto}
+  .main::after,.hero-orbit{animation:none!important}
+  #view .grid>.card,#view .grid>.stat,#view .cols>.card,#view,.top{animation:none!important}
+  #view .card,#view .metric,#view .appearance-studio,.btn,.nav button,.bottom button{transition:none!important}
+}
+@media print{
+  body{background:#fff!important}
+  .main::after{display:none}
+  #view .card{box-shadow:none}
+}
