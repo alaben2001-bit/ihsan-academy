@@ -1502,18 +1502,20 @@ export default {
       return json({student_id:user.student_id,points:present*5+days*10+score*3+claims.reduce((n,c)=>n+(Number(c.points)||0),0),stats:{attendance:present,quran_days:days,tests,answers_correct:score},badges,daily_challenge:challenge,plan:plans[0]||null,hearts:Math.max(0,5-attempts.filter(a=>(a.day||(a.submitted_at?academyDate(new Date(a.submitted_at)):""))===day).reduce((n,a)=>n+Math.max(0,Number(a.total||0)-Number(a.score||0)),0)),challenge_claimed:claims.some(c=>c.day===day),updated_at:nowIso()});
     }
     if(path==="/api/leaderboard"&&method==="GET"){
+      const scopeAll=user.role==="admin"&&url.searchParams.get("scope")==="all";
       const groupId=user.role==="student"?user.group_id:clean(url.searchParams.get("group_id"),80);
-      if(!groupId)return fail(400,"لا يوجد فوج مرتبط بالحساب");
-      if(user.role!=="student"&&!await canManageGroup(env,user,groupId))return fail(403,"لا تملك صلاحية هذا الفوج");
+      if(!scopeAll&&!groupId)return fail(400,"لا يوجد فوج مرتبط بالحساب");
+      if(scopeAll&&user.role!=="admin")return fail(403,"الترتيب العام متاح للمدير فقط");
+      if(!scopeAll&&user.role!=="student"&&!await canManageGroup(env,user,groupId))return fail(403,"لا تملك صلاحية هذا الفوج");
       if(user.role==="student"&&groupId!==user.group_id)return fail(403,"يمكنك رؤية ترتيب فوجك فقط");
-      const students=await env.DB.prepare("SELECT id,display_name FROM students WHERE group_id=? AND active=1 ORDER BY display_name").bind(groupId).all();
+      const students=scopeAll?await env.DB.prepare("SELECT s.id,s.display_name,s.group_id,g.name AS group_name FROM students s LEFT JOIN groups g ON g.id=s.group_id WHERE s.active=1 ORDER BY g.name,s.display_name").all():await env.DB.prepare("SELECT s.id,s.display_name,s.group_id,g.name AS group_name FROM students s LEFT JOIN groups g ON g.id=s.group_id WHERE s.group_id=? AND s.active=1 ORDER BY s.display_name").bind(groupId).all();
       const roster=students.results||[];
       const parseStored=rows=>(rows.results||[]).flatMap(row=>{try{return [JSON.parse(row.payload_json)]}catch{return []}});
       const [attendanceResult,quranResult,testResult,claimResult]=await Promise.all([
-        env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='attendance' AND group_id=?").bind(groupId).all(),
-        env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='quran_progress' AND group_id=?").bind(groupId).all(),
-        env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='test_attempts' AND group_id=?").bind(groupId).all(),
-        env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='daily_claims' AND group_id=?").bind(groupId).all()
+        env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='attendance'"+(scopeAll?"":" AND group_id=?")).bind(...(scopeAll?[]:[groupId])).all(),
+        env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='quran_progress'"+(scopeAll?"":" AND group_id=?")).bind(...(scopeAll?[]:[groupId])).all(),
+        env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='test_attempts'"+(scopeAll?"":" AND group_id=?")).bind(...(scopeAll?[]:[groupId])).all(),
+        env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='daily_claims'"+(scopeAll?"":" AND group_id=?")).bind(...(scopeAll?[]:[groupId])).all()
       ]);
       const attendanceRows=parseStored(attendanceResult),quranRows=parseStored(quranResult),testRows=parseStored(testResult),claimRows=parseStored(claimResult);
       const activeDays=new Set(attendanceRows.map(a=>String(a.date||"")).filter(Boolean)).size||1;
@@ -1532,7 +1534,7 @@ export default {
         // Normalized 0–100 score rewards steady participation and mastery, not raw memorization volume.
         const points=Math.round(attendanceRate*.25+quranRate*.35+quizRate*.30+challengeRate*.10);
         const quizCorrect=testRows.filter(a=>a.student_id===st.id).reduce((n,a)=>n+(Number(a.score)||0),0);
-        return {name:st.display_name,points,attendance_rate:attendanceRate,quran_rate:quranRate,quiz_rate:quizRate,challenge_rate:challengeRate,present_days:present,quran_records:quran,quiz_correct:quizCorrect,is_self:user.role==="student"&&st.id===user.student_id};
+        return {name:st.display_name,group_id:st.group_id,group_name:st.group_name||"",points,attendance_rate:attendanceRate,quran_rate:quranRate,quiz_rate:quizRate,challenge_rate:challengeRate,present_days:present,quran_records:quran,quiz_correct:quizCorrect,is_self:user.role==="student"&&st.id===user.student_id};
       }).sort((a,b)=>b.points-a.points||b.attendance_rate-a.attendance_rate||a.name.localeCompare(b.name,"ar"));
       return json(ranked.map((r,i)=>({...r,rank:i+1})));
     }
