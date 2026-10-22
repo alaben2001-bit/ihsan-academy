@@ -920,17 +920,62 @@ async function openAttendanceWeeklyReport(){
   const start = `${startDate.getFullYear()}-${p2(startDate.getMonth()+1)}-${p2(startDate.getDate())}`;
   const group=S.att.group_id||'';
   const r=await api(`/api/attendance/weekly-report?start=${start}&end=${end}${group?'&group_id='+encodeURIComponent(group):''}`);
-  openModal('التقرير الأسبوعي الآلي للحضور',html`<div class="stack">
-    <div class="card flat"><div class="row wrap"><div><b>${r.period.label}</b><p class="muted small">التقرير مساعد للشيخ: يعرض الحضور الذي أُدخل يدويًا أو استورد كملخص أسبوعي، ثم يقترح متابعة لطيفة بدل كتابة التعليقات يدويًا.</p></div><span class="badge">${r.totals.real_students} طالبًا حقيقيًا</span></div><div class="chips" style="margin-top:10px"><span class="chip">غيابات: ${r.totals.absent_events}</span><span class="chip">حضور: ${r.totals.present_events}</span><span class="chip">يحتاجون متابعة: ${r.totals.followup_count}</span></div></div>
+  S.weeklyAttendanceReport=r;
+  const groupName=(S.groups.find(g=>g.id===group)||{}).name||'كل الأفواج';
+  S.weeklyAttendanceGroupName=groupName;
+  openModal('التقرير الأسبوعي للحضور',html`<div class="stack attendance-report">
+    <div class="row wrap report-actions"><button class="btn" data-act="share-weekly-attendance">مشاركة التقرير</button><button class="btn sec2" data-act="print-weekly-attendance">تحميل PDF</button></div>
+    <div class="card flat"><div class="row wrap"><div><b>${r.period.label}</b><p class="muted small">الفوج: ${groupName}. ملخص للحضور المسجّل خلال الفترة، مع اقتراح متابعة للطلاب الذين يحتاجون عناية.</p></div><span class="badge">${r.totals.real_students} طالبًا</span></div><div class="chips" style="margin-top:10px"><span class="chip">غيابات: ${r.totals.absent_events}</span><span class="chip">حضور: ${r.totals.present_events}</span><span class="chip">يحتاجون متابعة: ${r.totals.followup_count}</span></div></div>
     <div class="card"><h3>المتابعة المقترحة</h3>${r.followup.length?r.followup.map(x=>html`<div class="item"><div class="row wrap"><b>${x.name}</b><span class="badge late">${x.absent} غياب</span></div><p>${x.comment}</p><p class="muted small">النصيحة: ${x.advice}</p></div>`):empty('لا توجد حالات تحتاج متابعة مهمة')}</div>
     <div class="card"><h3>تفصيل الطلبة</h3><div class="scroll"><table class="tbl"><thead><tr><th>الطالب</th><th>الحضور</th><th>الغياب</th><th>التعليق</th></tr></thead><tbody>${r.rows.map(x=>html`<tr><td><b>${x.name}</b>${x.demo?html`<span class="badge" style="margin-right:6px">نموذج</span>`:''}</td><td>${x.present}</td><td>${x.absent}</td><td><span class="badge">${x.priority}</span><div class="small muted" style="margin-top:5px">${x.comment}</div></td></tr>`)}</tbody></table></div></div>
   </div>`);
 }
+function openPrintableDocument(title,content){
+  const w=window.open('','_blank');
+  if(!w){toast('اسمح بفتح نافذة التقرير ثم أعد المحاولة.',true);return;}
+  w.opener=null;
+  w.document.open();
+  w.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>'+esc(title)+'</title><style>body{font-family:Arial,Tahoma,sans-serif;color:#172b25;margin:24px;line-height:1.8}h1,h2{color:#064e3b}table{width:100%;border-collapse:collapse;margin-top:16px}th,td{border:1px solid #cbd5d1;padding:8px;text-align:right;vertical-align:top}th{background:#edf3ef}.summary{display:flex;gap:18px;flex-wrap:wrap;padding:12px;background:#f4f6f3;border-radius:8px}.muted{color:#53635d;font-size:12px}@page{size:A4;margin:14mm}@media print{body{margin:0}}</style></head><body><h1>'+esc(title)+'</h1>'+content+'</body></html>');
+  w.document.close();w.focus();window.setTimeout(()=>w.print(),250);
+}
+async function shareReportText(title,textValue){
+  try{
+    if(navigator.share){await navigator.share({title,text:textValue});return;}
+    if(navigator.clipboard&&navigator.clipboard.writeText){await navigator.clipboard.writeText(textValue);toast('نُسخ التقرير؛ يمكنك لصقه في تطبيق المشاركة.');return;}
+    window.prompt('انسخ التقرير لمشاركته:',textValue);
+  }catch(e){if(e&&e.name!=='AbortError')toast('تعذرت المشاركة تلقائيًا؛ يمكنك نسخ نص التقرير.',true);}
+}
+function weeklyAttendanceText(){
+  const r=S.weeklyAttendanceReport;if(!r)return 'لا يوجد تقرير جاهز للمشاركة.';
+  return ['التقرير الأسبوعي للحضور',S.weeklyAttendanceGroupName||'',r.period?.label||'',`عدد الطلاب: ${r.totals?.real_students??0}`,`الحضور: ${r.totals?.present_events??0}`,`الغيابات: ${r.totals?.absent_events??0}`,`يحتاجون متابعة: ${r.totals?.followup_count??0}`,'','المتابعة المقترحة:',...(r.followup||[]).map(x=>`• ${x.name}: ${x.absent} غياب — ${x.comment} — ${x.advice}`)].join('\n');
+}
+function printWeeklyAttendance(){
+  const r=S.weeklyAttendanceReport;if(!r)return toast('افتح التقرير الأسبوعي أولًا.',true);
+  const rows=(r.rows||[]).map(x=>'<tr><td>'+esc(x.name)+'</td><td>'+esc(x.present)+'</td><td>'+esc(x.absent)+'</td><td>'+esc(x.priority)+'</td><td>'+esc(x.comment)+'</td></tr>').join('');
+  const follow=(r.followup||[]).map(x=>'<li><b>'+esc(x.name)+'</b> — '+esc(x.absent)+' غياب؛ '+esc(x.comment)+' <span class="muted">النصيحة: '+esc(x.advice)+'</span></li>').join('');
+  openPrintableDocument('التقرير الأسبوعي للحضور','<p>'+esc(S.weeklyAttendanceGroupName||'كل الأفواج')+' · '+esc(r.period?.label||'')+'</p><div class="summary"><b>الطلاب: '+esc(r.totals?.real_students??0)+'</b><b>الحضور: '+esc(r.totals?.present_events??0)+'</b><b>الغيابات: '+esc(r.totals?.absent_events??0)+'</b><b>متابعة: '+esc(r.totals?.followup_count??0)+'</b></div><h2>المتابعة المقترحة</h2><ul>'+follow+'</ul><h2>تفصيل الطلبة</h2><table><thead><tr><th>الطالب</th><th>الحضور</th><th>الغياب</th><th>الأولوية</th><th>التعليق</th></tr></thead><tbody>'+rows+'</tbody></table>');
+}
+function attendanceStatusLabel(status){return (ATT.find(x=>x[0]===status)||[])[1]||'لم يُحدَّد';}
+function attendancePreviewText(){
+  const A=S.att,group=(S.groups.find(g=>g.id===A.group_id)||{}).name||'الفوج';
+  return ['سجل الحضور',group,A.date||today(),...(A.rows||[]).map(r=>`${r.name}: ${attendanceStatusLabel(r.status)}${r.note?' — '+r.note:''}`)].join('\n');
+}
+function openAttendancePreview(){
+  const A=S.att,group=(S.groups.find(g=>g.id===A.group_id)||{}).name||'الفوج',rows=A.rows||[];
+  const counts=ATT.map(([k,l])=>({label:l,count:rows.filter(r=>r.status===k).length}));
+  openModal('معاينة سجل الحضور',html`<div class="stack attendance-report"><div class="row wrap report-actions"><button class="btn" data-act="share-attendance-preview">مشاركة السجل</button><button class="btn sec2" data-act="print-attendance-preview">تحميل PDF</button></div><div class="card flat"><b>${group}</b><p class="muted small">التاريخ: ${A.date||today()}</p><div class="chips">${counts.map(x=>html`<span class="chip">${x.label}: ${x.count}</span>`)}</div></div><div class="scroll"><table class="tbl"><thead><tr><th>الطالب</th><th>الحالة</th><th>الملاحظة</th></tr></thead><tbody>${rows.map(r=>html`<tr><td>${r.name}</td><td>${attendanceStatusLabel(r.status)}</td><td>${r.note||'—'}</td></tr>`)}</tbody></table></div></div>`);
+}
+function printAttendancePreview(){
+  const A=S.att,group=(S.groups.find(g=>g.id===A.group_id)||{}).name||'الفوج',rows=(A.rows||[]).map(r=>'<tr><td>'+esc(r.name)+'</td><td>'+esc(attendanceStatusLabel(r.status))+'</td><td>'+esc(r.note||'—')+'</td></tr>').join('');
+  const counts=ATT.map(([k,l])=>'<b>'+esc(l)+': '+(A.rows||[]).filter(r=>r.status===k).length+'</b>').join(' ');
+  openPrintableDocument('سجل الحضور','<p>'+esc(group)+' · '+esc(A.date||today())+'</p><div class="summary">'+counts+'</div><table><thead><tr><th>الطالب</th><th>الحالة</th><th>الملاحظة</th></tr></thead><tbody>'+rows+'</tbody></table>');
+}
+
 /* ═══════════ الحضور (واجهة المعلم) ═══════════ */
 async function pgAttendance() {
   if (!S.groups.length) return render(html`<div class="card">${empty('لا توجد أفواج مسندة إليك', 'اطلب من الإدارة إسناد فوج لحسابك.')}</div>`);
   const A = S.att; if (!S.groups.some(g => g.id === A.group_id)) A.group_id = (S.groups.find(g => g.id === 'g5') || S.groups[0]).id; A.date = A.date || today();
-  render(html`<div class="card"><div class="toolbar"><label class="field"><span>الفوج</span><select data-ch="attGroup">${S.groups.map(g => html`<option value="${g.id}"${g.id === A.group_id ? raw(' selected') : ''}>${g.name}</option>`)}</select></label><label class="field"><span>التاريخ</span><input type="date" value="${A.date}" max="${today()}" data-ch="attDate"></label><button class="btn sec2" data-act="att-all">الكل حاضر</button><button class="btn sec2" data-act="attendance-weekly-report">التقارير الأسبوعية</button></div><div id="attSheet"></div></div>`);
+  render(html`<div class="stack attendance-page"><div class="card hero"><span class="eyebrow">الحضور والانضباط</span><h2>تسجيل الحضور ومعاينة السجل</h2><p>اختر الفوج والتاريخ، حدّد الحالات، ثم احفظ السجل. يمكنك معاينته أو مشاركته أو حفظه PDF.</p></div><div class="card"><div class="toolbar"><label class="field"><span>الفوج</span><select data-ch="attGroup">${S.groups.map(g => html`<option value="${g.id}"${g.id === A.group_id ? raw(' selected') : ''}>${g.name}</option>`)}</select></label><label class="field"><span>التاريخ</span><input type="date" value="${A.date}" max="${today()}" data-ch="attDate"></label><button class="btn sec2" data-act="att-all">الكل حاضر</button><button class="btn sec2" data-act="attendance-preview">معاينة السجل</button><button class="btn sec2" data-act="attendance-weekly-report">التقارير الأسبوعية</button></div><div id="attSheet"></div></div></div>`);
   await loadSheet();
 }
 async function loadSheet() {
@@ -1277,7 +1322,13 @@ const ACT = {
   'file-tab': el => { S.file.tab = el.dataset.tab; drawFile(); },
   'print-report': printReport,
   'save-report': el => guard(async () => { el.disabled = true; try { await post('/api/reports/generate', { student_id: S.file.id, month: S.file.month }); toast('تم حفظ التقرير في السجل'); await pgFile(); } finally { el.disabled = false; } }),
-  'attendance-weekly-report': ()=>guard(openAttendanceWeeklyReport), 'new-transport-route': ()=>guard(()=>openTransportRouteModal()), 'edit-transport-route': el=>guard(()=>openTransportRouteModal(el.dataset.id)), 'add-transport-student': el=>guard(()=>openTransportStudentModal(el.dataset.id)), 'remove-transport': el=>guard(async()=>{await api('/api/admin/transport/assign/'+encodeURIComponent(el.dataset.id),{method:'DELETE'});toast('تمت إزالة الطالب من خط النقل');showPage('transport');}), 'att-all': () => { (S.att.rows || []).forEach(r => { r.status = 'present'; }); drawSheet(); },
+  'attendance-weekly-report': ()=>guard(openAttendanceWeeklyReport),
+  'attendance-preview': ()=>openAttendancePreview(),
+  'share-weekly-attendance': ()=>shareReportText('التقرير الأسبوعي للحضور',weeklyAttendanceText()),
+  'print-weekly-attendance': printWeeklyAttendance,
+  'share-attendance-preview': ()=>shareReportText('سجل الحضور',attendancePreviewText()),
+  'print-attendance-preview': printAttendancePreview,
+  'new-transport-route': ()=>guard(()=>openTransportRouteModal()), 'edit-transport-route': el=>guard(()=>openTransportRouteModal(el.dataset.id)), 'add-transport-student': el=>guard(()=>openTransportStudentModal(el.dataset.id)), 'remove-transport': el=>guard(async()=>{await api('/api/admin/transport/assign/'+encodeURIComponent(el.dataset.id),{method:'DELETE'});toast('تمت إزالة الطالب من خط النقل');showPage('transport');}), 'att-all': () => { (S.att.rows || []).forEach(r => { r.status = 'present'; }); drawSheet(); },
   'att-save': el => saveAttendance(el),
   'grade-test': el => showPage('tests', { grading: el.dataset.id }),
   'back-tests': () => showPage('tests', { grading: null }),
