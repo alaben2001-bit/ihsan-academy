@@ -2025,3 +2025,13 @@ html[data-appearance-palette="dark"] .academy-update-copy span{color:#b4c8bf!imp
  .academy-update-actions{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
  .academy-update-notice .btn{width:100%;white-space:normal;font-size:14px}
 }
+
+
+/* Version history inside account settings. */
+.release-history-list{display:grid;gap:10px;margin-top:14px}
+.release-history-item{padding:13px 15px;border:1px solid var(--line);border-radius:13px;background:var(--surface-2);color:var(--ink)}
+.release-history-item strong{display:block;color:var(--green);font-size:15px;line-height:1.7}
+.release-history-item p{margin:5px 0 0;color:var(--muted);font-size:14px;line-height:1.85}
+html[data-appearance-palette="dark"] .release-history-item{background:#142321!important;border-color:#304a43!important;color:#e7f0eb!important}
+html[data-appearance-palette="dark"] .release-history-item strong{color:#91e4bd!important}
+html[data-appearance-palette="dark"] .release-history-item p{color:#b4c8bf!important}
