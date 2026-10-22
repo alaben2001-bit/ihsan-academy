@@ -458,27 +458,37 @@ export default {
       return fail(403,"هذه القائمة للمدير العام أو مدير المدرسة ضمن نطاقه");
     }
     if(path==="/api/admin/student-team-supervisors"&&method==="GET"){
-      if(user.role!=="admin")return fail(403,"تعيين مشرفي الفرق من صلاحية المدير العام فقط");
+      if(user.role!=="admin")return fail(403,"إدارة الفرق الطلابية من صلاحية المدير العام فقط");
       const result=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='student_team_supervisors' ORDER BY updated_at DESC").all();
       const assignments=[];
-      for(const row of result.results||[]){try{const x=JSON.parse(row.payload_json);assignments.push({id:x.id,group_id:x.group_id,supervisor_student_id:x.supervisor_student_id,supervisor_name:x.supervisor_name,head_supervisor_student_id:x.head_supervisor_student_id,head_supervisor_name:x.head_supervisor_name,updated_at:x.updated_at});}catch{}}
+      for(const row of result.results||[]){try{const x=JSON.parse(row.payload_json);assignments.push({id:x.id,group_id:x.group_id,team_name:x.team_name||"الفرقة الأولى",supervisor_student_id:x.supervisor_student_id||x.student_id,supervisor_name:x.supervisor_name,head_supervisor_student_id:x.head_supervisor_student_id,head_supervisor_name:x.head_supervisor_name,updated_at:x.updated_at});}catch{}}
       return json(assignments);
     }
     if(path==="/api/admin/student-team-supervisors"&&method==="POST"){
-      if(user.role!=="admin")return fail(403,"تعيين مشرفي الفرق من صلاحية المدير العام فقط");
+      if(user.role!=="admin")return fail(403,"إدارة الفرق الطلابية من صلاحية المدير العام فقط");
       const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
-      const groupId=clean(b.group_id,80),supervisorId=clean(b.supervisor_student_id,80),headId=clean(b.head_supervisor_student_id,80);
-      if(!groupId||!supervisorId||!headId)return fail(400,"اختر الفوج ومشرف الفرقة وكبير المشرفين");
-      if(supervisorId===headId)return fail(400,"اختر طالبين مختلفين للمهمتين");
+      const groupId=clean(b.group_id,80),teamName=clean(b.team_name,80),teamId=clean(b.team_id,100),supervisorId=clean(b.supervisor_student_id,80),headId=clean(b.head_supervisor_student_id,80);
+      if(!groupId||!teamName||!supervisorId||!headId)return fail(400,"اختر الفوج واسم الفرقة ومشرفها وكبير المشرفين");
+      if(supervisorId===headId)return fail(400,"اختر طالبين مختلفين لمهمة مشرف الفرقة وكبير المشرفين");
       const group=await groupRow(env,groupId);
       if(!group||group.active!==1)return fail(404,"الفوج المحدد غير موجود أو متوقف");
       const supervisor=await env.DB.prepare("SELECT id,display_name,group_id FROM students WHERE id=? AND group_id=? AND active=1").bind(supervisorId,groupId).first();
-      if(!supervisor)return fail(400,"يجب أن يكون مشرف الفرقة طالبًا مسجلًا في الفوج المحدد");
-      const chief=await env.DB.prepare("SELECT id,display_name FROM students WHERE id=? AND active=1").bind(headId).first();
-      if(!chief)return fail(400,"كبير المشرفين يجب أن يكون طالبًا مسجلًا ونشطًا");
-      const assignment={id:groupId,owner_user_id:user.id,group_id:groupId,student_id:supervisor.id,supervisor_student_id:supervisor.id,supervisor_name:supervisor.display_name,head_supervisor_student_id:chief.id,head_supervisor_name:chief.display_name,updated_at:nowIso()};
+      if(!supervisor)return fail(400,"مشرف الفرقة يجب أن يكون طالبًا نشطًا من الفوج نفسه");
+      const chief=await env.DB.prepare("SELECT id,display_name,group_id FROM students WHERE id=? AND group_id=? AND active=1").bind(headId,groupId).first();
+      if(!chief)return fail(400,"كبير المشرفين يجب أن يكون طالبًا نشطًا من الفوج نفسه");
+      let existing=null;
+      if(teamId){
+        const row=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='student_team_supervisors' AND id=?").bind(teamId).first();
+        if(!row)return fail(404,"الفرقة المراد تعديلها غير موجودة");
+        try{existing=JSON.parse(row.payload_json)}catch{}
+        if(!existing||existing.group_id!==groupId)return fail(400,"لا يمكن نقل الفرقة إلى فوج آخر من شاشة التعديل؛ أنشئها ضمن الفوج الصحيح");
+      }
+      const peers=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='student_team_supervisors' AND group_id=?").bind(groupId).all();
+      for(const row of peers.results||[]){try{const x=JSON.parse(row.payload_json);if(String(x.id)!==teamId&&String(x.team_name||"الفرقة الأولى").trim().toLocaleLowerCase()===teamName.toLocaleLowerCase())return fail(409,"اسم هذه الفرقة مستخدم في الفوج؛ اختر اسمًا مميزًا");}catch{}}
+      const id=teamId||uuid();
+      const assignment={id,owner_user_id:user.id,group_id:groupId,team_name:teamName,student_id:supervisor.id,supervisor_student_id:supervisor.id,supervisor_name:supervisor.display_name,head_supervisor_student_id:chief.id,head_supervisor_name:chief.display_name,updated_at:nowIso()};
       await saveRecord(env,"student_team_supervisors",assignment);
-      await log(env,user.id,"student_team_supervisor_assign",{group_id:groupId,supervisor_student_id:supervisor.id,head_supervisor_student_id:chief.id});
+      await log(env,user.id,"student_team_supervisor_assign",{group_id:groupId,team_id:id,team_name:teamName,supervisor_student_id:supervisor.id,head_supervisor_student_id:chief.id});
       return json({ok:true,...assignment},201);
     }
     if(path==="/api/admin/staff"&&method==="GET"){
