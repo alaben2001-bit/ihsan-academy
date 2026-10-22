@@ -240,4 +240,10 @@ assert.match(app, /const dailyWisdomForSheikh=\[/, "teaching advice must be sepa
 assert.match(app, /const wisdomPool=\["admin","teacher","director","supervisor"\]\.includes\(S\.user\.role\)\?dailyWisdomForSheikh:dailyWisdom/, "daily educational guidance must match the user's role");
 assert.match(app, /if\(S\.tab==="home"\)return await home\(v\);if\(S\.tab==="groups"\)return groups\(v\);/, "obsolete system-check, audit and backup panels must not be reachable from the active page router");
 
+
+assert.match(app, /const authSupplications=\[/, "the login welcome panel must show a rotating set of sourced supplications");
+assert.match(app, /const authBenefits=\[/, "the login welcome panel must show a separate educational benefit");
+assert.match(app, /class="auth-entry-nourishment"/, "the rotating dua and educational benefit must appear on the login welcome screen");
+assert.match(style, /\.auth-entry-card/, "login dua and educational benefit cards must be styled legibly");
+
 console.log("Security regression guardrails passed.");
