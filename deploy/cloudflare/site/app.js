@@ -597,9 +597,9 @@ async function ihsanPrayerDialog({title,text,source="",icon="✦",primary="مت�
  const sourceLine=document.createElement("p");sourceLine.textContent=source;sourceLine.style.cssText="font-size:12px;line-height:1.8;color:var(--muted);margin:0 auto 22px;max-width:46ch";sourceLine.hidden=!source;
  const actions=document.createElement("div");actions.style.cssText="display:flex;flex-wrap:wrap;gap:10px;justify-content:center";
  const makeButton=(label,primary)=>{const b=document.createElement("button");b.type="button";b.textContent=label;b.style.cssText="min-height:44px;border-radius:12px;padding:10px 18px;cursor:pointer;font:inherit;font-weight:700;border:1px solid "+(primary?"var(--green)":"var(--line)")+";background:"+(primary?"var(--green)":"var(--surface-2)")+";color:"+(primary?"#fff":"var(--ink)");return b};
- const yes=makeButton(primary,true),no=makeButton(secondary,false);actions.append(yes,no);wrap.append(mark,brand,h,p,sourceLine,actions);dialog.append(wrap);document.body.append(dialog);
+ const yes=makeButton(primary,true),no=secondary?makeButton(secondary,false):null;actions.append(yes);if(no)actions.append(no);wrap.append(mark,brand,h,p,sourceLine,actions);dialog.append(wrap);document.body.append(dialog);
  const close=async fn=>{try{if(dialog.open)dialog.close()}catch{}dialog.remove();await fn()};
- yes.addEventListener("click",()=>close(onPrimary));no.addEventListener("click",()=>close(onSecondary));dialog.addEventListener("cancel",e=>{e.preventDefault();close(onSecondary)});dialog.addEventListener("click",e=>{if(e.target===dialog)close(onSecondary)});
+ yes.addEventListener("click",()=>close(onPrimary));if(no)no.addEventListener("click",()=>close(onSecondary));dialog.addEventListener("cancel",e=>{e.preventDefault();close(onSecondary)});dialog.addEventListener("click",e=>{if(e.target===dialog)close(onSecondary)});
  if(typeof dialog.showModal==="function")dialog.showModal();else dialog.setAttribute("open","");
  yes.focus()
 }
@@ -609,7 +609,6 @@ function start(){
  const savedMode=safeStore.getSession("ihsan_last_mode"),savedTab=safeStore.getSession("ihsan_last_tab");
  if(savedMode==="school"||savedMode==="ihsan"){
   S.mode=savedMode;S.tab=savedTab||(savedMode==="ihsan"?"all":"home");if(["system-check","backup","audit","school-managers","posts","teachers"].includes(S.tab))S.tab=S.user?.role==="admin"?"groups":"home";
-  showRotatingEntryPrayer();
   if(S.mode==="school")load().then(()=>{shell();page()});else{shell();page()}
   return;
  }
@@ -632,8 +631,8 @@ function showRotatingEntryPrayer(){
  const inHub=currentMode==="hub"||!currentMode;
  return ihsanPrayerDialog({
   title:picked.p.title,text:picked.p.text,source:picked.p.source,icon:"☾",
-  primary:inHub?(student?"ابدأ رحلتي":"الدخول إلى المدرسة القرآنية"):"متابعة",
-  secondary:"لاحقًا",
+  primary:"متابعة",
+  secondary:"",
   onPrimary:student?()=>{
    if(!inHub){S.mode=currentMode;S.tab=currentTab;return}
    S.mode="ihsan";S.tab="all";safeStore.setSession("ihsan_last_mode","ihsan");safeStore.setSession("ihsan_last_tab","all");
