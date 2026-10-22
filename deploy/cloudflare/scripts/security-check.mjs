@@ -327,4 +327,15 @@ assert.match(app, /const scopeAll=user\.role==="admin"&&url\.searchParams\.get\(
 assert.match(app, /group_name:st\.group_name\|\|""/, "the all-groups leaderboard must identify each student's group");
 assert.match(app, /async function flushOfflineQueue\(quiet=true\)/, "offline data must be synchronized after connectivity is restored");
 
+
+assert.match(app, /function showAcademyUpdateNotice\(\)/, "the installed app must announce an available update");
+assert.match(app, /id="settings-notifications-enable"/, "users must be able to request browser notification permission explicitly");
+assert.match(app, /id="settings-notifications-test"/, "notification settings must include a user-triggered test notification");
+assert.match(app, /release-history-section/, "the user settings must show the major feature and version history");
+assert.match(app, /V56–V58/, "the version history must distinguish the curriculum-content milestones");
+assert.match(style, /\.academy-update-notice/, "the update notice must have responsive styling");
+assert.match(style, /\.release-history-item/, "the release history must have readable item styling");
+assert.match(index, /app\.js\?v=20261022-147/, "latest frontend asset version must be served");
+assert.match(serviceWorker, /ihsan-academy-pwa-v110-20261022-147/, "service worker must have a refreshed cache namespace");
+
 console.log("Security regression guardrails passed.");
