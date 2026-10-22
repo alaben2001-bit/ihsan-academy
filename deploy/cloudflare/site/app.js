@@ -579,13 +579,48 @@ const quickIds=S.user.role==="admin"?["attendance","quran","tests"]:["teacher","
 const quickItems=items().filter(x=>quickIds.includes(x[0]));
 if(quickItems.length)html+='<section class="card quick-actions-card"><div class="section-head"><div><h3>خطوات سريعة</h3><p>انتقل مباشرةً إلى أكثر المهام استخدامًا.</p></div></div><div class="quick-actions">'+quickItems.map(x=>'<button class="quick-action" type="button" data-go="'+x[0]+'"><span class="quick-action-icon">'+navIcon(x[0])+'</span><span class="quick-action-copy"><strong>'+esc(x[1])+'</strong><small>فتح القسم</small></span><span class="quick-action-arrow" aria-hidden="true">←</span></button>').join("")+'</div></section>';
 v.innerHTML=html;v.querySelectorAll("[data-go]").forEach(b=>b.onclick=()=>go(b.dataset.go));v.querySelectorAll("[data-open-ihsan]").forEach(b=>b.onclick=()=>{S.mode="ihsan";S.tab="all";try{history.pushState({ihsanMode:"ihsan",ihsanTab:"all"},"",location.pathname)}catch{}shell();page()});v.querySelectorAll("[data-claim-challenge]").forEach(b=>b.onclick=async()=>{b.disabled=true;try{await api("/gamification/claim",{method:"POST",body:JSON.stringify({challenge_id:b.dataset.claimChallenge})});toast("تم تسجيل إنجازك ومكافأتك اليومية");await page()}catch(e){toast(e.message,true);b.disabled=false}})}
-function groups(v){
+async function groups(v){
 const teacherOptions=(selected)=>'<option value="">غير معيّن</option>'+(S.user.role==="admin"?'<option value="'+esc(S.user.id)+'" '+(S.user.id===selected?'selected':'')+'>'+esc(S.user.name)+' — مدير ومعلم</option>':"")+S.teachers.map(t=>'<option value="'+esc(t.id)+'" '+(t.id===selected?'selected':'')+'>'+esc(t.name)+' ('+esc(t.username)+')</option>').join("");
-v.innerHTML=head("الأفواج والمعلمون والفرق","تنظيم الأفواج وإسناد المعلمين؛ إدارة المعلمين متاحة من هذا الموضع أيضًا.")+(S.user.role==="admin"?'<div class="organization-shortcuts"><button type="button" class="btn secondary" id="open-teachers-panel">إدارة المعلمين وتعيينهم</button><p class="muted small">اختر المعلمين أولًا ثم اربط كل فوج بمعلمه المسؤول.</p></div>':"")+'<div class="card"><form id="gform" class="form-grid"><div class="wide">'+field("اسم الفوج","name")+'</div><label class="field wide">المعلم المسؤول<select name="teacher_id">'+teacherOptions("")+'</select></label><div class="wide"><button class="btn">إضافة الفوج</button></div></form></div><div class="divider"></div><div class="list">'+(S.groups.length?S.groups.map(g=>'<div class="list-row"><div style="flex:1;min-width:220px"><strong>'+esc(g.name)+'</strong><label class="field small">المعلم المسؤول<select data-teacher-for="'+esc(g.id)+'">'+teacherOptions(g.teacher_id)+'</select></label></div><button class="btn" data-save-group="'+esc(g.id)+'">حفظ التعيين</button><button class="btn danger" data-del="'+esc(g.id)+'">إيقاف</button></div>').join(""):'<div class="empty">لا توجد أفواج بعد.</div>')+'</div>';
+v.innerHTML=head("الأفواج والمعلمون والفرق","تنظيم واحد للأفواج والمعلمين والفرق والإشراف الطلابي.")+(S.user.role==="admin"?'<div class="organization-shortcuts"><button type="button" class="btn secondary" id="open-teachers-panel">إدارة المعلمين وتعيينهم</button><p class="muted small">تُسند مهمة مشرف الفرقة إلى طالب من الفوج نفسه، ويُعيّن كبير المشرفين من الطلبة المسجلين؛ هذا تكليف تنظيمي ولا يمنح صلاحيات إدارية في الحساب.</p></div>':"")+'<div class="card"><form id="gform" class="form-grid"><div class="wide">'+field("اسم الفوج","name")+'</div><label class="field wide">المعلم المسؤول<select name="teacher_id">'+teacherOptions("")+'</select></label><div class="wide"><button class="btn">إضافة الفوج</button></div></form></div><div class="divider"></div><div class="list">'+(S.groups.length?S.groups.map(g=>'<div class="list-row"><div style="flex:1;min-width:220px"><strong>'+esc(g.name)+'</strong><label class="field small">المعلم المسؤول<select data-teacher-for="'+esc(g.id)+'">'+teacherOptions(g.teacher_id)+'</select></label></div><button class="btn" data-save-group="'+esc(g.id)+'">حفظ التعيين</button><button class="btn danger" data-del="'+esc(g.id)+'">إيقاف</button></div>').join(""):'<div class="empty">لا توجد أفواج بعد.</div>')+'</div>';
 $("#open-teachers-panel")?.addEventListener("click",()=>go("teachers"));
 $("#gform").onsubmit=async e=>{e.preventDefault();const f=new FormData(e.currentTarget);try{await api("/groups",{method:"POST",body:JSON.stringify({name:f.get("name"),teacher_id:f.get("teacher_id")})});toast("تمت إضافة الفوج");await load();shell();page()}catch(x){toast(x.message,true)}};
 v.querySelectorAll("[data-save-group]").forEach(b=>b.onclick=async()=>{const id=b.dataset.saveGroup,sel=v.querySelector('[data-teacher-for="'+id+'"]');try{await api("/groups/"+encodeURIComponent(id),{method:"PATCH",body:JSON.stringify({teacher_id:sel.value||null})});toast("تم حفظ تعيين المعلم");await load();shell();page()}catch(x){toast(x.message,true)}});
-v.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{if(!confirm("إيقاف الفوج؟"))return;try{await api("/groups/"+b.dataset.del,{method:"DELETE"});await load();shell();page()}catch(x){toast(x.message,true)}})
+v.querySelectorAll("[data-del]").forEach(b=>b.onclick=async()=>{if(!confirm("إيقاف الفوج؟"))return;try{await api("/groups/"+b.dataset.del,{method:"DELETE"});await load();shell();page()}catch(x){toast(x.message,true)}});
+if(S.user.role!=="admin")return;
+let assignments=[];
+try{assignments=await api("/admin/student-team-supervisors")}catch(error){toast("تعذّر تحميل تعيينات مشرفي الفرق: "+error.message,true)}
+const students=S.students.slice().sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"ar"));
+const groupName=id=>(S.groups.find(g=>g.id===id)||{}).name||"فوج غير معروف";
+const byGroup=new Map(assignments.map(a=>[a.group_id,a]));
+const assignmentList=assignments.length?assignments.map(a=>'<div class="list-row"><div><strong>'+esc(groupName(a.group_id))+'</strong><small>مشرف الفرقة: '+esc(a.supervisor_name||"—")+'</small><small>كبير المشرفين: '+esc(a.head_supervisor_name||"—")+'</small></div><button type="button" class="btn secondary" data-edit-supervision="'+esc(a.group_id)+'">تعديل التعيين</button></div>').join(""):'<div class="empty">لم تُسند مهام إشرافية طلابية بعد.</div>';
+v.insertAdjacentHTML("beforeend",'<section class="card student-supervisors-section"><div class="section-head"><div><span class="eyebrow">التنظيم الطلابي</span><h3>تعيين مشرف فرقة وكبير المشرفين</h3><p>اختر مشرف الفرقة من طلاب الفوج نفسه، ثم عيّن كبير المشرفين من الطلبة. لا تُنشأ حسابات جديدة لهذا التكليف.</p></div></div><form id="student-supervisors-form" class="form-grid"><label class="field">الفوج<select id="supervisor-group" name="group_id" required><option value="">اختر الفوج</option>'+S.groups.map(g=>'<option value="'+esc(g.id)+'">'+esc(g.name)+'</option>').join("")+'</select></label><label class="field">مشرف الفرقة من طلبة الفوج<select id="supervisor-student" name="supervisor_student_id" required><option value="">اختر الفوج أولًا</option></select></label><label class="field wide">كبير المشرفين من الطلبة<select id="head-supervisor-student" name="head_supervisor_student_id" required><option value="">اختر كبير المشرفين</option>'+students.map(st=>'<option value="'+esc(st.id)+'">'+esc(st.name)+' — '+esc(groupName(st.group_id))+'</option>').join("")+'</select></label><div class="wide"><button class="btn" type="submit" '+(S.groups.length&&students.length>1?"":"disabled")+' >حفظ التعيين</button></div><p class="muted small wide">لا يمكن اختيار الطالب نفسه للمهمتين. تُحفظ التعيينات التنظيمية مع بيانات الفوج دون تغيير حسابات الدخول أو درجات الطلبة.</p></form><div class="divider"></div><h3>التعيينات الحالية</h3><div class="list" id="student-supervisor-assignment-list">'+assignmentList+'</div></section>');
+const groupSelect=$("#supervisor-group"),supervisorSelect=$("#supervisor-student"),headSelect=$("#head-supervisor-student"),assignmentForm=$("#student-supervisors-form");
+function fillSupervisorOptions(groupId,selected=""){
+ const roster=students.filter(st=>st.group_id===groupId);
+ supervisorSelect.innerHTML='<option value="">اختر طالبًا من هذا الفوج</option>'+roster.map(st=>'<option value="'+esc(st.id)+'">'+esc(st.name)+'</option>').join("");
+ if(selected&&roster.some(st=>st.id===selected))supervisorSelect.value=selected;
+}
+function selectGroup(groupId){
+ groupSelect.value=groupId;
+ const current=byGroup.get(groupId);
+ fillSupervisorOptions(groupId,current?.supervisor_student_id||"");
+ headSelect.value=current?.head_supervisor_student_id||"";
+}
+groupSelect.onchange=()=>selectGroup(groupSelect.value);
+v.querySelectorAll("[data-edit-supervision]").forEach(button=>button.addEventListener("click",()=>{selectGroup(button.dataset.editSupervision);assignmentForm.scrollIntoView({behavior:"smooth",block:"center"})}));
+assignmentForm.onsubmit=async e=>{
+ e.preventDefault();
+ const fd=new FormData(assignmentForm),groupId=String(fd.get("group_id")||""),supervisorId=String(fd.get("supervisor_student_id")||""),headId=String(fd.get("head_supervisor_student_id")||""),button=assignmentForm.querySelector('button[type="submit"]');
+ if(!groupId||!supervisorId||!headId){toast("اختر الفوج ومشرف الفرقة وكبير المشرفين",true);return}
+ if(supervisorId===headId){toast("اختر طالبين مختلفين للمهمتين",true);return}
+ button.disabled=true;
+ try{
+  await api("/admin/student-team-supervisors",{method:"POST",body:JSON.stringify({group_id:groupId,supervisor_student_id:supervisorId,head_supervisor_student_id:headId})});
+  toast("حُفظ تعيين مشرف الفرقة وكبير المشرفين");
+  await groups(v);
+ }catch(error){toast(error.message,true);button.disabled=false}
+};
+if(S.groups.length)selectGroup(S.groups[0].id);
 }
 async function teachers(v){
  const isAdmin=S.user.role==="admin";
