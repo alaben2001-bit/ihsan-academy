@@ -1373,7 +1373,7 @@ $('#loginForm').addEventListener('submit', async e => {
 (async function boot() {
   try { S.token = localStorage.getItem('ab_token') || sessionStorage.getItem('ab_token'); if (S.token) localStorage.setItem('ab_token', S.token); } catch { try { S.token = sessionStorage.getItem('ab_token'); } catch { S.token = null; } }
   if (!S.token) return showLogin();
-  try { await startSession(); } catch { endSession(); }
+  try { await startSession(); } catch (e) { if (!S.token) return showLogin(); showLogin(); toast('تعذّر تحميل بيانات الأكاديمية مؤقتًا؛ احتفظنا بجلسة الدخول، حدّث الصفحة أو أعد المحاولة دون إدخال بياناتك من جديد.', true); }
 })();
 })();
 
