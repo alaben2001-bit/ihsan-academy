@@ -326,9 +326,9 @@ assert.match(backend, /يتعارض معرّف التسجيل مع سجل آخر
 assert.match(style, /data-appearance-palette="dark"/, "dark mode must have dedicated contrast rules");
 assert.match(style, /\.academy-update-notice/, "the update banner must have responsive styling");
 assert.match(style, /\.release-history-item/, "the in-app release history must be styled");
-assert.match(index, /app\.js\?v=20261022-152/, "frontend cache busting must use the latest asset version");
-assert.match(index, /style\.css\?v=20261022-152/, "stylesheet cache busting must use the latest asset version");
-assert.match(index, /startup\.js\?v=20261022-152/, "startup cache busting must use the latest asset version");
+assert.match(index, /app\.js\?v=20261022-153/, "frontend cache busting must use the latest asset version");
+assert.match(index, /style\.css\?v=20261022-153/, "stylesheet cache busting must use the latest asset version");
+assert.match(index, /startup\.js\?v=20261022-153/, "startup cache busting must use the latest asset version");
 assert.match(serviceWorker, /ihsan-academy-pwa-v117-20261022-153/, "service worker cache namespace must match this release");
 assert.match(app, /secondary:""/, "welcome dua must have one Continue button rather than Later");
 assert.match(app, /primary:"متابعة"/, "the rotating welcome dua must use the requested Continue label");
