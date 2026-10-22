@@ -231,6 +231,7 @@ assert.match(app, /id="admin-focus-toggle"/, "the director account must be able 
 assert.match(app, /makeGroup\("عمل الشيخ اليومي"/, "admin daily focus must keep teaching tasks separate from administrative tools");
 assert.match(app, /const displayUserName=\["admin","teacher","director"\]/, "the Sheikh honorific must be shown for the director account");
 assert.match(app, /name="thumn" type="number"/, "Quran records must require a thumn number");
+assert.match(app, /name="thumn" type="number" inputmode="numeric" min="1" max="480" step="1" required/, "Quran thumn numbering must support all 480 eighths of the hizb");
 assert.match(app, /id="settings-open-notifications"/, "settings must provide a direct path to notifications");
 assert.doesNotMatch(app, /id="settings-done"/, "appearance preferences apply immediately without a Done button");
 
