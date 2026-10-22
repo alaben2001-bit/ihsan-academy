@@ -2,12 +2,13 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { validDateOnly, academyDate, addCalendarDays } from "../src/index.js";
 
-const [backend, app, index, serviceWorker, migration, style] = await Promise.all([
+const [backend, app, index, serviceWorker, migration, initialMigration, style] = await Promise.all([
   readFile("src/index.js", "utf8"),
   readFile("site/app.js", "utf8"),
   readFile("site/index.html", "utf8"),
   readFile("site/service-worker.js", "utf8"),
   readFile("migrations/0003_temporary_student_passwords.sql", "utf8"),
+  readFile("migrations/0001_initial.sql", "utf8"),
   readFile("site/style.css", "utf8"),
 ]);
 
@@ -18,6 +19,7 @@ assert.equal(validDateOnly("2026-13-01"), false, "out-of-range months must be re
 assert.equal(validDateOnly("2026-00-10"), false, "zero months must be rejected");
 assert.equal(validDateOnly("not-a-date"), false, "non-date values must be rejected");
 assert.equal(validDateOnly(""), false, "empty dates must be rejected");
+assert.equal((initialMigration.match(/CREATE TABLE IF NOT EXISTS login_attempts/g)||[]).length, 1, "the initial D1 schema must declare the login-attempt table only once");
 assert.equal(academyDate(new Date("2026-10-20T22:30:00.000Z")), "2026-10-20", "Algeria local date must remain the same before local midnight");
 assert.equal(academyDate(new Date("2026-10-20T23:30:00.000Z")), "2026-10-21", "Algeria local date must advance after midnight even when UTC is still on the prior date");
 assert.equal(addCalendarDays("2026-10-20", 14), "2026-11-03", "two-week test due dates must advance by calendar days");
