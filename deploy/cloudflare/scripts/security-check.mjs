@@ -40,6 +40,8 @@ assert.match(backend, /INSERT INTO users \(id,display_name,identity_normalized,p
 assert.match(backend, /for\(const x of googleIdentities\)statements\.push/, "restore must retain verified Google account links");
 
 assert.match(app, /const localDateISO=/, "browser date inputs must use the local calendar date");
+assert.match(app, /const head=\(a,b\)=>.*esc\(a\).*esc\(b\)/, "shared section headings must escape dynamic text before inserting HTML");
+assert.match(app, /field\("كلمة مرور مؤقتة \(اختيارية\)","password","password","","اتركها فارغة للتوليد الآمن"\)/, "the optional student password field must use a real placeholder, not an invalid minlength value");
 assert.match(app, /timeZone:"Africa\/Algiers"/, "browser date helpers must use the same Algeria timezone as the backend");
 
 
