@@ -1203,3 +1203,36 @@ button.stat-link:active{transform:translateY(0)}
   #view .att-row .seg { grid-template-columns: minmax(0,1fr); }
   #view .empty { padding: 20px 10px; }
 }
+
+
+/* V80 — responsive attendance toolbar and calendar on narrow screens. */
+#view .attendance-page .toolbar { display:flex; flex-wrap:wrap; align-items:flex-end; gap:10px; }
+#view .attendance-page .toolbar .field { flex:1 1 180px; min-width:0; }
+#view .attendance-page .toolbar > .btn { flex:0 1 auto; }
+#view .attendance-page .attendance-start-note {
+  margin: 10px 0 14px; padding: 10px 12px; border: 1px solid var(--line);
+  border-radius: 10px; color: var(--muted); line-height: 1.8;
+  background: color-mix(in srgb, var(--white) 70%, transparent);
+}
+#view .calendar-grid { width:100%; min-width:0; grid-template-columns:repeat(7,minmax(0,1fr)); gap:clamp(2px,.8vw,7px); }
+#view .calendar-weekday { min-width:0; overflow-wrap:anywhere; text-align:center; }
+#view .calendar-day { min-width:0; padding:5px 2px; }
+#view .calendar-monthbar { display:flex; align-items:center; justify-content:space-between; gap:8px; flex-wrap:wrap; }
+#view .calendar-monthbar strong { min-width:0; flex:1 1 120px; text-align:center; }
+@media (max-width:720px) {
+  #view .attendance-page .toolbar { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); align-items:stretch; }
+  #view .attendance-page .toolbar .field { grid-column:1 / -1; width:100%; }
+  #view .attendance-page .toolbar > .btn { width:100%; min-width:0; white-space:normal; padding-inline:8px; }
+  #view .calendar-weekday { font-size:clamp(9px,2.5vw,12px); line-height:1.35; }
+  #view .calendar-day { min-height:clamp(36px,10vw,48px); font-size:14px; }
+  #view .calendar-monthbar .btn { min-height:40px; padding-inline:9px; }
+  #view .calendar-focus-date { display:block; margin-top:2px; }
+}
+@media (max-width:380px) {
+  #view .attendance-page .toolbar { grid-template-columns:1fr; }
+  #view .calendar-monthbar { gap:6px; }
+  #view .calendar-monthbar strong { order:-1; flex-basis:100%; }
+  #view .calendar-monthbar .btn { flex:1; }
+  #view .calendar-weekday { font-size:9px; }
+  #view .calendar-day { min-height:34px; }
+}
