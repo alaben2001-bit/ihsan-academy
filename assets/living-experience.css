@@ -165,3 +165,23 @@ input:focus,select:focus,textarea:focus{box-shadow:0 0 0 4px color-mix(in srgb,v
   .main::after{display:none}
   #view .card{box-shadow:none}
 }
+
+/* V2: richer learning cards, depth, and dark-theme harmony */
+.daily-garden>.card{position:relative;isolation:isolate;overflow:hidden;padding:clamp(18px,2.4vw,28px)}
+.daily-garden>.card:before{content:"";position:absolute;z-index:-1;left:-45px;bottom:-55px;width:160px;height:160px;border:1px solid rgba(63,138,115,.2);border-radius:50%;box-shadow:0 0 0 18px rgba(63,138,115,.035),0 0 0 38px rgba(63,138,115,.025);transition:transform .6s var(--live-ease)}
+.daily-garden>.card:hover:before{transform:scale(1.1) rotate(8deg)}
+.daily-dua-card{background:linear-gradient(145deg,var(--g50),var(--white));border-color:rgba(63,138,115,.2)}
+.daily-dua-card .daily-arabic{font-size:clamp(1.3rem,2.2vw,1.9rem);line-height:2.05;color:var(--g800)}
+.daily-benefit-card{background:linear-gradient(145deg,var(--white),var(--b100))}
+.daily-benefit-card h3{font-size:clamp(1rem,1.5vw,1.22rem);line-height:1.9}
+.quick-actions-grid .btn{min-height:52px;justify-content:space-between;text-align:right}
+.quick-actions-grid .btn span{font-size:.78em;opacity:.68}
+#view .card.stat{position:relative;overflow:hidden}
+#view .card.stat:after{content:"";position:absolute;right:-30px;bottom:-44px;width:110px;height:110px;border-radius:50%;background:radial-gradient(circle,rgba(63,138,115,.1),transparent 70%);pointer-events:none;transition:transform .35s var(--live-ease)}
+#view .card.stat:hover:after{transform:scale(1.4)}
+:root[data-appearance="dark"] .daily-dua-card,:root[data-appearance="dark"] .daily-benefit-card{color:var(--ink);background:linear-gradient(145deg,#1b2c23,#19271f);border-color:var(--line)}
+:root[data-appearance="dark"] .daily-dua-card .daily-arabic{color:#b6dfc7}
+:root[data-appearance="dark"] .bottom{background:rgba(20,32,25,.94);border-color:var(--line)}
+:root[data-appearance="dark"] .stat .ic{background:linear-gradient(145deg,#263e32,#203229);color:#b6dfc7}
+:root[data-appearance="dark"] .progress{background:#24362b}
+@media(max-width:720px){.daily-garden>.card{padding:18px}.daily-dua-card .daily-arabic{font-size:1.28rem;line-height:2}.quick-actions-grid{grid-template-columns:1fr}#view .card:hover,#view .card.stat:hover{transform:none}}
