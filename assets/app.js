@@ -1436,8 +1436,13 @@ $('#showPass').addEventListener('change', e => { $('#loginPass').type = e.target
 $('#loginForm').addEventListener('submit', async e => {
   e.preventDefault(); const btn = $('#loginBtn'), err = $('#loginErr'); err.textContent = ''; btn.disabled = true;
   try {
-    const r = await api('/api/login', { method: 'POST', body: JSON.stringify({ identity: $('#loginEmail').value, password: $('#loginPass').value }) });
-    S.token = r.token; try { localStorage.setItem('ab_token', r.token); sessionStorage.removeItem('ab_token'); } catch { try { sessionStorage.setItem('ab_token', r.token); } catch { /* storage unavailable */ } }
+    const r = await api('/api/login', { method: 'POST', body: JSON.stringify({ identity: $('#loginEmail').value, password: $('#loginPass').value, remember: $('#rememberLogin')?.checked !== false }) });
+    S.token = r.token;
+    const remember = $('#rememberLogin')?.checked !== false;
+    try {
+      if (remember) { localStorage.setItem('ab_token', r.token); sessionStorage.removeItem('ab_token'); }
+      else { localStorage.removeItem('ab_token'); sessionStorage.setItem('ab_token', r.token); }
+    } catch { try { sessionStorage.setItem('ab_token', r.token); } catch { /* storage unavailable */ } }
     await startSession();
   } catch (ex) { err.textContent = S.token ? 'تعذّر تحميل بيانات الأكاديمية؛ أعد المحاولة من زر متابعة الجلسة المحفوظة.' : ex.message; if(S.token)$('#resumeSessionBtn')?.classList.remove('hidden'); } finally { btn.disabled = false; }
 });
