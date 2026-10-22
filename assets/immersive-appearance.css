@@ -180,3 +180,300 @@ html[data-appearance="dark"] #bottomNav {
     border-top-color: #35483d !important;
   }
 }
+
+
+/* V3 — Lunar dark theme and shared semantic tokens.
+   New components must use these tokens instead of hard-coded light-only colors,
+   so every feature remains readable in both light and dark appearance modes. */
+html[data-appearance="dark"],
+@media (prefers-color-scheme: dark) {
+  html[data-appearance="auto"] {}
+}
+html[data-appearance="dark"] {
+  color-scheme: dark;
+  --ui-page: #14232b;
+  --ui-surface: #1c3038;
+  --ui-surface-raised: #243b43;
+  --ui-surface-soft: #20353b;
+  --ui-border: #3b555a;
+  --ui-text: #edf5f2;
+  --ui-muted: #b8c9c9;
+  --ui-accent: #9ed4b7;
+  --ui-accent-strong: #b8e4c9;
+  --ui-gold: #dfc58d;
+  --ui-shadow: 0 12px 32px rgba(0,0,0,.18);
+  --appearance-panel: rgba(28,48,56,.94);
+  --appearance-border: rgba(170,205,198,.22);
+  --appearance-ink: #edf5f2;
+  --appearance-glow-a: rgba(112,190,162,.12);
+  --appearance-glow-b: rgba(223,197,141,.10);
+}
+@media (prefers-color-scheme: dark) {
+  html[data-appearance="auto"] {
+    color-scheme: dark;
+    --ui-page: #14232b;
+    --ui-surface: #1c3038;
+    --ui-surface-raised: #243b43;
+    --ui-surface-soft: #20353b;
+    --ui-border: #3b555a;
+    --ui-text: #edf5f2;
+    --ui-muted: #b8c9c9;
+    --ui-accent: #9ed4b7;
+    --ui-accent-strong: #b8e4c9;
+    --ui-gold: #dfc58d;
+    --ui-shadow: 0 12px 32px rgba(0,0,0,.18);
+    --appearance-panel: rgba(28,48,56,.94);
+    --appearance-border: rgba(170,205,198,.22);
+    --appearance-ink: #edf5f2;
+    --appearance-glow-a: rgba(112,190,162,.12);
+    --appearance-glow-b: rgba(223,197,141,.10);
+  }
+}
+html[data-appearance="dark"] body,
+html[data-appearance="dark"] #appView,
+html[data-appearance="dark"] #view,
+html[data-appearance="dark"] .app,
+html[data-appearance="dark"] .main,
+html[data-appearance="dark"] .content,
+html[data-appearance="dark"] .page,
+html[data-appearance="dark"] .page-content {
+  background-color: var(--ui-page) !important;
+  color: var(--ui-text) !important;
+}
+html[data-appearance="dark"] body {
+  background-image:
+    radial-gradient(ellipse at 10% 0%, rgba(122,190,164,.14), transparent 38%),
+    radial-gradient(ellipse at 92% 7%, rgba(223,197,141,.10), transparent 34%),
+    linear-gradient(160deg, #172a31 0%, #14232b 58%, #17252d 100%) !important;
+}
+html[data-appearance="dark"] .side,
+html[data-appearance="dark"] .side .brand,
+html[data-appearance="dark"] .account {
+  background: #172b32 !important;
+  color: var(--ui-text) !important;
+  border-color: var(--ui-border) !important;
+}
+html[data-appearance="dark"] .side .brand b,
+html[data-appearance="dark"] .account b { color: #f4f8f5 !important; }
+html[data-appearance="dark"] .side .brand small,
+html[data-appearance="dark"] .account small,
+html[data-appearance="dark"] #nav .nav-label { color: #b8cfca !important; }
+html[data-appearance="dark"] .card,
+html[data-appearance="dark"] .panel,
+html[data-appearance="dark"] .stat,
+html[data-appearance="dark"] .stat-card,
+html[data-appearance="dark"] .table-wrap,
+html[data-appearance="dark"] .sheet,
+html[data-appearance="dark"] .modal,
+html[data-appearance="dark"] .modalbox,
+html[data-appearance="dark"] .overlay-card,
+html[data-appearance="dark"] .settings-panel,
+html[data-appearance="dark"] .dropdown,
+html[data-appearance="dark"] .popover,
+html[data-appearance="dark"] .toolbar,
+html[data-appearance="dark"] .appearance-studio,
+html[data-appearance="dark"] .appearance-control,
+html[data-appearance="dark"] .knowledge-card,
+html[data-appearance="dark"] .daily-garden > .card {
+  background-color: var(--ui-surface) !important;
+  color: var(--ui-text) !important;
+  border-color: var(--ui-border) !important;
+  box-shadow: var(--ui-shadow);
+}
+html[data-appearance="dark"] .card.flat,
+html[data-appearance="dark"] .notice,
+html[data-appearance="dark"] .muted-box,
+html[data-appearance="dark"] .stat,
+html[data-appearance="dark"] .stat-card,
+html[data-appearance="dark"] .knowledge-action,
+html[data-appearance="dark"] .academy-adab-goals .grid > div {
+  background-color: var(--ui-surface-soft) !important;
+  color: var(--ui-text) !important;
+  border-color: var(--ui-border) !important;
+}
+html[data-appearance="dark"] h1,
+html[data-appearance="dark"] h2,
+html[data-appearance="dark"] h3,
+html[data-appearance="dark"] h4,
+html[data-appearance="dark"] p,
+html[data-appearance="dark"] label,
+html[data-appearance="dark"] li,
+html[data-appearance="dark"] th,
+html[data-appearance="dark"] td,
+html[data-appearance="dark"] dt,
+html[data-appearance="dark"] dd,
+html[data-appearance="dark"] .sec,
+html[data-appearance="dark"] .field span,
+html[data-appearance="dark"] .appearance-label,
+html[data-appearance="dark"] .appearance-heading,
+html[data-appearance="dark"] .knowledge-text,
+html[data-appearance="dark"] .daily-arabic { color: var(--ui-text) !important; }
+html[data-appearance="dark"] .muted,
+html[data-appearance="dark"] small,
+html[data-appearance="dark"] .sub,
+html[data-appearance="dark"] .hint,
+html[data-appearance="dark"] .page-subtitle,
+html[data-appearance="dark"] .calendar-focus-date,
+html[data-appearance="dark"] .appearance-heading p,
+html[data-appearance="dark"] .knowledge-reference { color: var(--ui-muted) !important; }
+html[data-appearance="dark"] .hero,
+html[data-appearance="dark"] .login-art {
+  background-color: #203b3e !important;
+  background-image: radial-gradient(ellipse at 90% 0%, rgba(223,197,141,.12), transparent 45%), var(--pattern) !important;
+  color: #f1f7f3 !important;
+}
+html[data-appearance="dark"] .hero p,
+html[data-appearance="dark"] .login-art p { color: #d3e4de !important; }
+html[data-appearance="dark"] input:not([type="checkbox"]):not([type="radio"]),
+html[data-appearance="dark"] textarea,
+html[data-appearance="dark"] select,
+html[data-appearance="dark"] .field input,
+html[data-appearance="dark"] .field select,
+html[data-appearance="dark"] .field textarea {
+  color: var(--ui-text) !important;
+  background-color: #172a31 !important;
+  border-color: #486268 !important;
+  color-scheme: dark;
+}
+html[data-appearance="dark"] input::placeholder,
+html[data-appearance="dark"] textarea::placeholder { color: #a8bfbd !important; opacity: 1; }
+html[data-appearance="dark"] table,
+html[data-appearance="dark"] table thead,
+html[data-appearance="dark"] table tbody,
+html[data-appearance="dark"] table tr,
+html[data-appearance="dark"] table th,
+html[data-appearance="dark"] table td {
+  color: var(--ui-text) !important;
+  border-color: var(--ui-border) !important;
+  background-color: var(--ui-surface) !important;
+}
+html[data-appearance="dark"] table th { background-color: var(--ui-surface-raised) !important; }
+html[data-appearance="dark"] table tbody tr:nth-child(even) td { background-color: #20353b !important; }
+html[data-appearance="dark"] #nav button,
+html[data-appearance="dark"] .nav button,
+html[data-appearance="dark"] #bottomNav button,
+html[data-appearance="dark"] .bottom button,
+html[data-appearance="dark"] .more-grid button,
+html[data-appearance="dark"] .appearance-choice,
+html[data-appearance="dark"] .theme-swatch,
+html[data-appearance="dark"] .tab,
+html[data-appearance="dark"] .chip {
+  color: var(--ui-text) !important;
+  background: var(--ui-surface-raised) !important;
+  border-color: var(--ui-border) !important;
+}
+html[data-appearance="dark"] #nav button.active,
+html[data-appearance="dark"] .nav button.active,
+html[data-appearance="dark"] #bottomNav button.active,
+html[data-appearance="dark"] .bottom button.active,
+html[data-appearance="dark"] .appearance-choice.active,
+html[data-appearance="dark"] .tab.active {
+  color: #f7fbf7 !important;
+  background: linear-gradient(135deg, #315e4b, #254b42) !important;
+  border-color: #7da991 !important;
+  box-shadow: inset -3px 0 var(--ui-gold), 0 5px 16px rgba(0,0,0,.12) !important;
+}
+html[data-appearance="dark"] .btn,
+html[data-appearance="dark"] button.primary,
+html[data-appearance="dark"] .btn.primary {
+  color: #f6fbf7 !important;
+  background: #326b53 !important;
+  border-color: #5f9879 !important;
+}
+html[data-appearance="dark"] .btn.sec2,
+html[data-appearance="dark"] .btn.secondary,
+html[data-appearance="dark"] button.secondary {
+  color: var(--ui-text) !important;
+  background: var(--ui-surface-raised) !important;
+  border-color: var(--ui-border) !important;
+}
+html[data-appearance="dark"] .badge,
+html[data-appearance="dark"] .pill,
+html[data-appearance="dark"] .tag {
+  color: #dff2e6 !important;
+  background: #2b4a3f !important;
+  border-color: #527467 !important;
+}
+html[data-appearance="dark"] .progress,
+html[data-appearance="dark"] progress { background-color: #344d50 !important; }
+html[data-appearance="dark"] .item { border-color: var(--ui-border) !important; }
+html[data-appearance="dark"] .item p { color: var(--ui-muted) !important; }
+html[data-appearance="dark"] .knowledge-icon,
+html[data-appearance="dark"] .knowledge-text,
+html[data-appearance="dark"] .knowledge-action { background-color: var(--ui-surface-raised) !important; }
+html[data-appearance="dark"] .appearance-kicker,
+html[data-appearance="dark"] .eyebrow { color: var(--ui-gold) !important; }
+html[data-appearance="dark"] .modal-backdrop,
+html[data-appearance="dark"] .overlay { background: rgba(4,12,16,.66) !important; }
+
+/* Keep automatic mode visually identical to the lunar palette on dark system settings. */
+@media (prefers-color-scheme: dark) {
+  html[data-appearance="auto"] body,
+  html[data-appearance="auto"] #appView,
+  html[data-appearance="auto"] #view,
+  html[data-appearance="auto"] .app,
+  html[data-appearance="auto"] .main,
+  html[data-appearance="auto"] .content,
+  html[data-appearance="auto"] .page,
+  html[data-appearance="auto"] .page-content { background-color: var(--ui-page) !important; color: var(--ui-text) !important; }
+  html[data-appearance="auto"] body {
+    background-image: radial-gradient(ellipse at 10% 0%,rgba(122,190,164,.14),transparent 38%),radial-gradient(ellipse at 92% 7%,rgba(223,197,141,.10),transparent 34%),linear-gradient(160deg,#172a31 0%,#14232b 58%,#17252d 100%) !important;
+  }
+  html[data-appearance="auto"] .side,
+  html[data-appearance="auto"] .side .brand,
+  html[data-appearance="auto"] .account { background:#172b32 !important; color:var(--ui-text) !important; border-color:var(--ui-border) !important; }
+  html[data-appearance="auto"] .card,
+  html[data-appearance="auto"] .panel,
+  html[data-appearance="auto"] .stat,
+  html[data-appearance="auto"] .stat-card,
+  html[data-appearance="auto"] .table-wrap,
+  html[data-appearance="auto"] .sheet,
+  html[data-appearance="auto"] .modal,
+  html[data-appearance="auto"] .modalbox,
+  html[data-appearance="auto"] .overlay-card,
+  html[data-appearance="auto"] .settings-panel,
+  html[data-appearance="auto"] .dropdown,
+  html[data-appearance="auto"] .popover,
+  html[data-appearance="auto"] .toolbar,
+  html[data-appearance="auto"] .appearance-studio,
+  html[data-appearance="auto"] .appearance-control,
+  html[data-appearance="auto"] .knowledge-card,
+  html[data-appearance="auto"] .daily-garden > .card { background-color:var(--ui-surface) !important; color:var(--ui-text) !important; border-color:var(--ui-border) !important; box-shadow:var(--ui-shadow); }
+  html[data-appearance="auto"] h1,
+  html[data-appearance="auto"] h2,
+  html[data-appearance="auto"] h3,
+  html[data-appearance="auto"] h4,
+  html[data-appearance="auto"] p,
+  html[data-appearance="auto"] label,
+  html[data-appearance="auto"] li,
+  html[data-appearance="auto"] th,
+  html[data-appearance="auto"] td,
+  html[data-appearance="auto"] .sec { color:var(--ui-text) !important; }
+  html[data-appearance="auto"] .muted,
+  html[data-appearance="auto"] small,
+  html[data-appearance="auto"] .sub,
+  html[data-appearance="auto"] .hint,
+  html[data-appearance="auto"] .page-subtitle { color:var(--ui-muted) !important; }
+  html[data-appearance="auto"] input:not([type="checkbox"]):not([type="radio"]),
+  html[data-appearance="auto"] textarea,
+  html[data-appearance="auto"] select { background:#172a31 !important; color:var(--ui-text) !important; border-color:#486268 !important; color-scheme:dark; }
+  html[data-appearance="auto"] table,
+  html[data-appearance="auto"] table thead,
+  html[data-appearance="auto"] table tbody,
+  html[data-appearance="auto"] table tr,
+  html[data-appearance="auto"] table th,
+  html[data-appearance="auto"] table td { color:var(--ui-text) !important; border-color:var(--ui-border) !important; background-color:var(--ui-surface) !important; }
+  html[data-appearance="auto"] table th { background-color:var(--ui-surface-raised) !important; }
+  html[data-appearance="auto"] #nav button,
+  html[data-appearance="auto"] .nav button,
+  html[data-appearance="auto"] #bottomNav button,
+  html[data-appearance="auto"] .bottom button,
+  html[data-appearance="auto"] .appearance-choice,
+  html[data-appearance="auto"] .tab { color:var(--ui-text) !important; background:var(--ui-surface-raised) !important; border-color:var(--ui-border) !important; }
+  html[data-appearance="auto"] #nav button.active,
+  html[data-appearance="auto"] .nav button.active,
+  html[data-appearance="auto"] #bottomNav button.active,
+  html[data-appearance="auto"] .bottom button.active,
+  html[data-appearance="auto"] .appearance-choice.active,
+  html[data-appearance="auto"] .tab.active { color:#f7fbf7 !important; background:linear-gradient(135deg,#315e4b,#254b42) !important; border-color:#7da991 !important; box-shadow:inset -3px 0 var(--ui-gold) !important; }
+}
