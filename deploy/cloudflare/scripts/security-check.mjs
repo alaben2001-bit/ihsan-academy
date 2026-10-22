@@ -279,7 +279,7 @@ assert.match(app, /data-transfer-decision="approve"/, "the chief supervisor must
 assert.match(app, /crypto\.getRandomValues\(new Uint8Array\(18\)\)/, "blank student password fields must generate a strong random temporary password");
 assert.doesNotMatch(app, /12345678/, "a universal student password must never be shown or submitted");
 assert.match(app, /id="admin-focus-toggle"/, "the director account must be able to switch between daily teaching and administration");
-assert.match(app, /makeGroup\("عمل الشيخ اليومي"/, "admin daily focus must keep teaching tasks separate from administrative tools");
+assert.match(app, /makeGroup\("مهام الشيخ اليومية"/, "admin daily focus must keep teaching tasks separate from administrative tools");
 assert.match(app, /function honorificDisplayName\(name,role\)/, "staff names must use the shared Sheikh honorific formatter");
 assert.match(app, /const displayUserName=honorificDisplayName\(S\.user\.name,S\.user\.role\)/, "the signed-in director, teacher and administrator names must use the shared honorific formatter");
 assert.match(app, /name="thumn" type="number"/, "Quran records must require a thumn number");
@@ -305,5 +305,31 @@ const healthStart = backend.indexOf('if (path === "/api/health"');
 const healthEnd = backend.indexOf('if (path === "/api/setup/status"', healthStart);
 const healthBlock = healthStart >= 0 && healthEnd > healthStart ? backend.slice(healthStart, healthEnd) : "";
 assert.ok(healthBlock && !healthBlock.includes("COUNT(*) AS n FROM users") && !healthBlock.includes("users:users?.n"), "public health checks must not disclose account totals");
+
+
+assert.match(app, /function enqueueOfflineWrite\(/, "offline writes must enter an explicit local queue");
+assert.match(app, /function mergeOfflineQueue\(/, "cached reads must merge queued attendance and Quran records");
+assert.match(app, /async function flushOfflineQueue\(quiet=true\)/, "queued records must sync when connectivity returns");
+assert.match(app, /function showAcademyUpdateNotice\(\)/, "the installed app must announce an available update");
+assert.match(app, /id="settings-notifications-enable"/, "notification permission must be a user-controlled setting");
+assert.match(app, /id="settings-notifications-test"/, "notification settings must provide a test action");
+assert.match(app, /release-history-section/, "settings must expose the feature and release history");
+assert.match(app, /const retainedActions=\$\("#top-actions"\),retainedHeader=document\.querySelector\("header\.topbar"\)/, "the global action bar must survive page rerenders");
+assert.match(app, /const sortOptions=\[\["points","النتيجة العامة"\]/, "the ranking must support multiple sorting domains");
+assert.match(app, /كل الأفواج/, "the manager must be offered an all-groups ranking option");
+assert.match(backend, /const scopeAll=user\.role==="admin"&&url\.searchParams\.get\("scope"\)==="all"/, "only the general admin may request all-groups ranking");
+assert.match(backend, /group_name:st\.group_name\|\|""/, "overall ranking must include group names");
+assert.match(backend, /يتعارض معرّف الفوج مع سجل موجود؛ لم تُغيّر البيانات/, "offline retries must not overwrite an existing unrelated group");
+assert.match(backend, /يتعارض معرّف التسجيل مع سجل آخر؛ لم تُغيّر البيانات/, "offline Quran retry must not overwrite another record");
+assert.match(style, /data-appearance-palette="dark"/, "dark mode must have dedicated contrast rules");
+assert.match(style, /\.academy-update-notice/, "the update banner must have responsive styling");
+assert.match(style, /\.release-history-item/, "the in-app release history must be styled");
+assert.match(index, /app\.js\?v=20261022-147/, "frontend cache busting must use the latest asset version");
+assert.match(index, /style\.css\?v=20261022-147/, "stylesheet cache busting must use the latest asset version");
+assert.match(index, /startup\.js\?v=20261022-147/, "startup cache busting must use the latest asset version");
+assert.match(serviceWorker, /ihsan-academy-pwa-v111-20261022-147/, "service worker cache namespace must match this release");
+assert.match(app, /secondary:""/, "welcome dua must have one Continue button rather than Later");
+assert.match(app, /primary:"متابعة"/, "the rotating welcome dua must use the requested Continue label");
+assert.match(app, /function rememberOfflineUser\(\)/, "offline startup may only rely on the minimal stored profile, never the password");
 
 console.log("Security regression guardrails passed.");
