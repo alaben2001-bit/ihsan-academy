@@ -2001,3 +2001,27 @@ html[data-appearance-palette="dark"] :is(.settings-dialog,.academy-about-dialog,
   body :is(.card,.panel,.stat,.settings-section){padding:clamp(12px,3vw,20px)}
   body table{min-width:520px}
 }
+
+
+/* Installable-app update notice: visible, dismissible, and theme-aware. */
+.academy-update-notice{
+ position:fixed;z-index:9999;inset-inline:clamp(12px,3vw,28px);bottom:calc(14px + env(safe-area-inset-bottom,0px));
+ display:flex;align-items:center;justify-content:space-between;gap:16px;
+ max-width:900px;margin-inline:auto;padding:15px 18px;
+ color:var(--ink);background:var(--surface);
+ border:1px solid var(--green);border-radius:18px;
+ box-shadow:0 18px 50px #071e1680;
+}
+.academy-update-copy{display:grid;gap:5px;min-width:0}
+.academy-update-copy strong{font-size:16px;color:var(--green)}
+.academy-update-copy span{font-size:14px;line-height:1.7;color:var(--muted)}
+.academy-update-actions{display:flex;align-items:center;gap:8px;flex:none;flex-wrap:wrap}
+.academy-update-notice .btn{min-height:42px;white-space:nowrap}
+html[data-appearance-palette="dark"] .academy-update-notice{background:#142321!important;color:#e7f0eb!important;border-color:#75dfb7!important}
+html[data-appearance-palette="dark"] .academy-update-copy strong{color:#91e4bd!important}
+html[data-appearance-palette="dark"] .academy-update-copy span{color:#b4c8bf!important}
+@media(max-width:600px){
+ .academy-update-notice{inset-inline:10px;bottom:calc(10px + env(safe-area-inset-bottom,0px));padding:13px;gap:10px;align-items:stretch;flex-direction:column}
+ .academy-update-actions{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
+ .academy-update-notice .btn{width:100%;white-space:normal;font-size:14px}
+}
