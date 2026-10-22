@@ -237,7 +237,7 @@ assert.doesNotMatch(app, /id="settings-done"/, "appearance preferences apply imm
 
 
 assert.match(app, /const dailyWisdomForSheikh=\[/, "teaching advice must be separated from student etiquette advice");
-assert.match(app, /const wisdomPool=\["admin","teacher","director","supervisor"\]\?dailyWisdomForSheikh:dailyWisdom/, "daily educational guidance must match the user's role");
+assert.match(app, /const wisdomPool=\["admin","teacher","director","supervisor"\]\.includes\(S\.user\.role\)\?dailyWisdomForSheikh:dailyWisdom/, "daily educational guidance must match the user's role");
 assert.match(app, /if\(S\.tab==="home"\)return await home\(v\);if\(S\.tab==="groups"\)return groups\(v\);/, "obsolete system-check, audit and backup panels must not be reachable from the active page router");
 
 console.log("Security regression guardrails passed.");
