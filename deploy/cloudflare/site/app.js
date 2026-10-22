@@ -70,13 +70,16 @@ const knowledgeVerses=[
  {text:"فَاسْأَلُوا أَهْلَ الذِّكْرِ إِن كُنتُمْ لَا تَعْلَمُونَ",reference:"سورة النحل، الآية 43"},
  {text:"وَمَا أُوتِيتُم مِّنَ الْعِلْمِ إِلَّا قَلِيلًا",reference:"سورة الإسراء، الآية 85"}
 ];
-let knowledgeVerseTimer=null;
 function rotateKnowledgeVerses(){
  const box=$("#knowledge-verse");if(!box)return;
  const quote=box.querySelector(".knowledge-verse-text"),source=box.querySelector(".knowledge-verse-source");
  if(!quote||!source)return;
- if(knowledgeVerseTimer!==null){clearInterval(knowledgeVerseTimer);knowledgeVerseTimer=null}
- const verse=knowledgeVerses[Math.floor(Math.random()*knowledgeVerses.length)];
+ const previousRaw=safeStore.get("ihsan_last_knowledge_verse_index");
+ const previous=previousRaw===""?-1:Number(previousRaw);
+ const choices=knowledgeVerses.map((_,index)=>index).filter(index=>index!==previous);
+ const index=choices[Math.floor(Math.random()*choices.length)]??0;
+ safeStore.set("ihsan_last_knowledge_verse_index",String(index));
+ const verse=knowledgeVerses[index];
  quote.textContent="﴿ "+verse.text+" ﴾";source.textContent=verse.reference;
 }
 
