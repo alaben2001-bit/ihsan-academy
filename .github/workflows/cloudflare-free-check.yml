@@ -1,7 +1,7 @@
 name: Cloudflare free migration checks
 on:
   pull_request:
-    branches: [main]
+    branches: [main, "migration/cloudflare-student-platform"]
     paths:
       - "deploy/cloudflare/**"
       - "assets/**"
