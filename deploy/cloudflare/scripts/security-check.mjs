@@ -28,6 +28,8 @@ assert.ok(!backend.includes("nowIso().slice(0,10)"), "date-only school workflows
 // Calendar validation must reject impossible dates in every editable attendance/Quran record.
 assert.match(backend, /if\(!validDateOnly\(date\)\|\|!items\.length\|\|items\.length>200/, "attendance must validate real calendar dates");
 assert.match(backend, /if\(!validDateOnly\(date\)\)return fail\(400,"صيغة التاريخ غير صحيحة"\)/, "Quran progress creation must validate real calendar dates");
+assert.match(backend, /if\(date>academyDate\(\)\)return fail\(400,"لا يمكن تسجيل متابعة القرآن بتاريخ مستقبلي"\)/, "Quran progress creation must reject future dates at the API");
+assert.match(app, /date>S\.date\)\{toast\("اختر تاريخًا صحيحًا لا يتجاوز اليوم",true\);return\}/, "Quran progress form must reject future dates before submission");
 assert.match(backend, /if\(!validDateOnly\(String\(row\.date\|\|""\)\)/, "Quran progress edits must validate real calendar dates");
 assert.match(backend, /if\(!value\|\|typeof value!=="object"\|\|Array\.isArray\(value\)\)throw new Error\("invalid_json"\)/, "API bodies must be JSON objects, not nulls, arrays, or primitives");
 assert.match(backend, /const seenStudentIds=new Set\(\);for\(const item of items\)/, "attendance must detect duplicate student rows before database writes");
