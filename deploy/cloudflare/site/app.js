@@ -1,3 +1,5 @@
+/* Arabic anti-self-XSS notice for the academy's own developer console. */
+console.warn("تنبيه أمني من أكاديمية الإحسان:\\nقد يتيح استخدام وحدة التحكم (Console) للمهاجمين انتحال هويتك وسرقة معلوماتك عبر هجوم يُعرف باسم Self-XSS.\\nلا تُدخل أو تلصق أي شيفرة لا تفهمها، ولا تنفّذ تعليمات يرسلها إليك مجهول.");
 let ihsanInstallPrompt=null;
 let ihsanGoogleNonce="";
 let ihsanGoogleScriptPromise=null;
