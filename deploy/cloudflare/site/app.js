@@ -488,7 +488,7 @@ function items(){
  if(S.user.role==="admin"){
   const full=safeStore.get("ihsan_admin_focus")==="full";
   if(!full)return [["home","الرئيسية"],["students","طلابي وطلاب المدرسة"],["attendance","الحضور"],["quran","متابعة القرآن"],["gradebook","السجل التعليمي"],["reports","التقارير"],["notifications","التنبيهات"],["messages","الرسائل"]];
-  return [["home","الرئيسية"],["groups","الأفواج والمعلمون والفرق"],["students","طلابي وطلاب المدرسة"],["attendance","الحضور"],["quran","متابعة القرآن"],["gradebook","السجل التعليمي"],["reports","التقارير"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"],["system-check","فحص النظام"]];
+  return [["home","الرئيسية"],["groups","الأفواج والمعلمون والفرق"],["students","طلابي وطلاب المدرسة"],["attendance","الحضور"],["quran","متابعة القرآن"],["gradebook","السجل التعليمي"],["reports","التقارير"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"],["system-check","فحص النظام"],["leaderboard","الترتيب العام"]];
  }
  if(S.user.role==="director")return [["home","الرئيسية"],["groups","الأفواج والمعلمون والفرق"],["students","طلاب المدرسة"],["attendance","الحضور"],["quran","متابعة القرآن"],["gradebook","السجل التعليمي"],["reports","التقارير"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"]];
  if(S.user.role==="supervisor")return [["home","الرئيسية"],["students","طلاب فريقي"],["teams","فرقي الطلابية"],["attendance","الحضور"],["quran","متابعة القرآن"],["gradebook","السجل التعليمي"],["reports","التقارير"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"]];
@@ -537,7 +537,7 @@ function navigationGroups(){
    makeGroup("إدارة الأكاديمية",["home","groups","students"]),
    makeGroup("المهام الأساسية اليومية",["attendance","quran"]),
    makeGroup("المتابعة والتقويم",["gradebook","reports","notifications","messages"]),
-   makeGroup("أدوات إضافية وتحسينية",["assignments","tests","system-check"])
+   makeGroup("أدوات إضافية وتحسينية",["assignments","tests","system-check","leaderboard"])
   ].filter(g=>g.items.length);
  }
  if(["teacher","director","supervisor"].includes(S.user.role))return [
@@ -1064,125 +1064,50 @@ async function reportsPage(v){
 }
 
 async function leaderboardPage(v){
- const isStudent=S.user.role==="student";
+ const isStudent=S.user.role==="student",isAdmin=S.user.role==="admin";
  const staff=["admin","director","teacher","supervisor"].includes(S.user.role);
- let groupId=isStudent?(S.user.group_id||((S.groups[0]||{}).id||"")):"";
- if(staff&&S.groups.length)groupId=S.groups[0].id;
- v.innerHTML=head("ترتيب الفوج","ترتيب تشجيعي يقدّر المواظبة والحفظ ونتائج الاختبارات، لا يقيس قيمة الطالب ولا يستبدل تقييم المعلم.")+
- (staff?'<section class="card"><label class="field">الفوج<select id="leaderboard-group">'+groupOpts()+'</select></label><button class="btn" id="leaderboard-refresh" style="margin-top:12px">تحديث الترتيب</button></section>':'<p class="muted small">يعرض هذا الترتيب طلاب فوجك فقط. النقاط: 5 للحضور المسجّل، و10 لكل متابعة قرآن، و3 لكل إجابة صحيحة في أفضل محاولة لكل اختبار.</p>')+
- '<div id="leaderboard-content" class="loading">جار حساب النقاط…</div>';
+ let groupId=isStudent?(S.user.group_id||((S.groups[0]||{}).id||"")):(safeStore.getSession("ihsan_leaderboard_group")||((S.groups[0]||{}).id||""));
+ const savedScope=safeStore.getSession("ihsan_leaderboard_scope")||"group";
+ const selectedScope=isAdmin&&savedScope==="all"?"__all__":groupId;
+ const sortOptions=[["points","النتيجة العامة"],["attendance_rate","المواظبة والحضور"],["quran_rate","متابعة القرآن"],["quiz_rate","إتقان الاختبارات"],["challenge_rate","التحديات"]];
+ const savedSort=safeStore.getSession("ihsan_leaderboard_sort")||"points";
+ const domainOptions=sortOptions.map(x=>'<option value="'+x[0]+'" '+(savedSort===x[0]?"selected":"")+'>'+x[1]+'</option>').join("");
+ const scopeOptions=(isAdmin?'<option value="__all__" '+(selectedScope==="__all__"?"selected":"")+' >كل الأفواج</option>':"")+S.groups.map(g=>'<option value="'+esc(g.id)+'" '+(selectedScope===g.id?"selected":"")+'>'+esc(g.name)+'</option>').join("");
+ v.innerHTML=head("الترتيب العام","ترتيب تشجيعي يوازن بين المواظبة والقرآن والاختبارات والتحديات، ولا يقيس قيمة الطالب.")+
+ (staff?'<section class="card leaderboard-controls"><div class="form-grid">'+
+ '<label class="field">نطاق الترتيب<select id="leaderboard-group">'+scopeOptions+'</select></label>'+
+ '<label class="field">رتّب حسب<select id="leaderboard-domain">'+domainOptions+'</select></label>'+
+ '</div><p class="muted small">يمكن للمدير العام عرض جميع الأفواج؛ أما بقية الأدوار فتظهر لها الأفواج الواقعة ضمن صلاحياتها فقط.</p><button class="btn" id="leaderboard-refresh">تحديث الترتيب</button></section>':
+ '<p class="muted small">يعرض هذا الترتيب طلاب فوجك فقط. النتيجة العامة: 25٪ المواظبة، 35٪ القرآن، 30٪ إتقان الاختبارات، 10٪ التحديات.</p>')+
+ '<div id="leaderboard-content" class="loading">جار حساب الترتيب…</div>';
  const render=async()=>{
-  const group=staff?($("#leaderboard-group")?.value||""):groupId;
+  const scope=staff?($("#leaderboard-group")?.value||""):"";
+  const all=Boolean(isAdmin&&scope==="__all__");
+  const group=staff&&!all?scope:groupId;
+  const sortKey=staff?($("#leaderboard-domain")?.value||"points"):savedSort;
   const host=$("#leaderboard-content");
-  if(staff&&!group){host.innerHTML='<div class="empty">اختر فوجًا لعرض ترتيبه.</div>';return}
-  host.innerHTML='<div class="loading">جار حساب النقاط…</div>';
+  if(staff&&!all&&!group){host.innerHTML='<div class="empty">اختر فوجًا لعرض ترتيبه.</div>';return}
+  host.innerHTML='<div class="loading">جار حساب الترتيب…</div>';
   try{
-   const rows=await api("/leaderboard"+(staff?"?group_id="+encodeURIComponent(group):""));
+   const query=staff?(all?"?scope=all":"?group_id="+encodeURIComponent(group)):"";
+   const rows=await api("/leaderboard"+query);
    if(!rows.length){host.innerHTML='<div class="card empty">لا توجد بيانات كافية للترتيب بعد. يبدأ الترتيب مع تسجيل الحضور ومتابعة القرآن والاختبارات.</div>';return}
-   host.innerHTML='<section class="card"><div class="notice">ترتيب من 100 نقطة: المواظبة 25٪، انتظام القرآن 35٪، إتقان الاختبارات 30٪، التحديات 10٪. تُحسب النسب بدل جمع مقدار الحفظ الخام، حتى لا يتقدم الأقدم لمجرد طول مدة تسجيله.</div><div class="table-wrap"><table><thead><tr><th>الترتيب</th><th>الطالب</th><th>النتيجة /100</th><th>المواظبة</th><th>القرآن</th><th>إتقان الاختبار</th><th>التحديات</th></tr></thead><tbody>'+rows.map(r=>'<tr '+(r.is_self?'class="leaderboard-self"':"")+'><td>'+r.rank+'</td><td>'+esc(r.name)+(r.is_self?' <span class="pill">أنت</span>':"")+'</td><td><strong>'+r.points+'</strong></td><td>'+Number(r.attendance_rate||0)+'٪</td><td>'+Number(r.quran_rate||0)+'٪</td><td>'+Number(r.quiz_rate||0)+'٪</td><td>'+Number(r.challenge_rate||0)+'٪</td></tr>').join("")+'</tbody></table></div><p class="muted small">الترتيب للتحفيز فقط، ولا يحل محل تقدير المعلم لجودة الحفظ والتجويد والفهم.</p></section>';
+   const sorted=rows.slice().sort((a,b)=>Number(b[sortKey]||0)-Number(a[sortKey]||0)||Number(b.points||0)-Number(a.points||0)||String(a.name||"").localeCompare(String(b.name||""),"ar"));
+   const percent=value=>Number(value||0).toLocaleString("ar-DZ")+"٪";
+   host.innerHTML='<section class="card leaderboard-results"><div class="notice">الترتيب للتحفيز فقط، ولا يستبدل تقييم المعلم لجودة الحفظ والتجويد والفهم.</div><div class="table-wrap"><table><thead><tr><th>الترتيب</th><th>الطالب</th>'+(all?'<th>الفوج</th>':"")+'<th>النتيجة /100</th><th>المواظبة</th><th>القرآن</th><th>الاختبارات</th><th>التحديات</th></tr></thead><tbody>'+sorted.map((r,i)=>'<tr '+(r.is_self?'class="leaderboard-self"':"")+'><td>'+(i+1)+'</td><td>'+esc(r.name)+(r.is_self?' <span class="pill">أنت</span>':"")+'</td>'+(all?'<td>'+esc(r.group_name||"بلا فوج")+'</td>':"")+'<td><strong>'+Number(r.points||0)+'</strong></td><td>'+percent(r.attendance_rate)+'</td><td>'+percent(r.quran_rate)+'</td><td>'+percent(r.quiz_rate)+'</td><td>'+percent(r.challenge_rate)+'</td></tr>').join("")+'</tbody></table></div></section>';
   }catch(e){host.innerHTML='<div class="notice error">'+esc(e.message)+'</div>'}
  };
  $("#leaderboard-refresh")?.addEventListener("click",render);
- $("#leaderboard-group")?.addEventListener("change",render);
+ $("#leaderboard-group")?.addEventListener("change",()=>{
+  const value=$("#leaderboard-group").value;
+  if(isAdmin)safeStore.setSession("ihsan_leaderboard_scope",value==="__all__"?"all":"group");
+  if(value!=="__all__")safeStore.setSession("ihsan_leaderboard_group",value);
+  render();
+ });
+ $("#leaderboard-domain")?.addEventListener("change",()=>{safeStore.setSession("ihsan_leaderboard_sort",$("#leaderboard-domain").value);render()});
  if(!staff||S.groups.length)await render();
 }
 
-async function systemCheckPage(v){
- if(S.user.role!=="admin"){v.innerHTML=head("فحص النظام","هذه الصفحة متاحة للمدير فقط.")+'<div class="notice error">لا تملك صلاحية فحص بيانات النظام.</div>';return}
- v.innerHTML=head("فحص النظام","قراءة تشخيصية لا تعدّل بيانات الطلاب أو الأفواج.")+'<div class="loading">جار فحص سلامة البيانات…</div>';
- try{
-  const result=await api("/admin/system-check"),c=result.counts||{};
-  const checks=[
-   {title:"حساب المدير",value:Number(c.active_admins||0),ok:Number(c.active_admins||0)>0,good:"يوجد مدير نشط",bad:"لا يوجد مدير نشط"},
-   {title:"حسابات الطلاب",value:Number(c.active_students||0),ok:Number(c.students_without_login||0)===0,good:"كل ملفات الطلاب مرتبطة بحسابات دخول",bad:Number(c.students_without_login||0)+" ملف طالب بلا حساب دخول"},
-   {title:"ارتباط الطلاب بالأفواج",value:Number(c.students_without_active_group||0),ok:Number(c.students_without_active_group||0)===0,good:"كل الطلاب مرتبطون بأفواج نشطة",bad:Number(c.students_without_active_group||0)+" طالب بلا فوج نشط"},
-   {title:"تعيين معلمي الأفواج",value:Number(c.groups_without_valid_teacher||0),ok:Number(c.groups_without_valid_teacher||0)===0,good:"كل الأفواج لها معلم صالح",bad:Number(c.groups_without_valid_teacher||0)+" فوج دون معلم صالح"},
-   {title:"إعداد المدير الأول",value:result.bootstrap_setup_enabled?"مفعّل":"مغلق",ok:!result.bootstrap_setup_enabled,good:"مسار الإعداد الأولي مغلق",bad:"تحقق من إغلاق الإعداد الأولي"}
-  ];
-  const roles=Array.isArray(result.roles)?result.roles:[];
-  const roleLabel={admin:"المدير",director:"مدير المدرسة",teacher:"المعلم",supervisor:"المشرف",student:"الطالب"};
-  v.innerHTML=head("فحص النظام","آخر فحص: "+esc(result.checked_at||"غير متاح"))+
-   '<section class="card"><div class="section-head"><div><h3>البيانات الأساسية</h3><p>تتصل الصفحة بقاعدة البيانات الفعلية، وتعرض أعدادًا فقط دون أسماء أو كلمات مرور.</p></div><button class="btn secondary" id="system-check-refresh" type="button">إعادة الفحص</button></div><div class="stats system-check-stats"><div class="stat"><small>حسابات نشطة</small><strong>'+Number(c.active_users||0)+'</strong></div><div class="stat"><small>ملفات الطلاب النشطة</small><strong>'+Number(c.active_students||0)+'</strong></div><div class="stat"><small>السجلات التعليمية</small><strong>'+Number(c.saved_records||0)+'</strong></div><div class="stat"><small>جلسات منتهية</small><strong>'+Number(c.expired_sessions||0)+'</strong></div></div><p class="muted small">التخزين: '+esc(result.storage||"غير معروف")+'</p></section>'+
-   '<section class="card"><h3>مؤشرات سلامة النظام</h3><div class="system-check-list">'+checks.map(x=>'<article class="system-check-item '+(x.ok?"is-ok":"is-warning")+'"><span class="system-check-mark" aria-hidden="true">'+(x.ok?"✓":"!")+'</span><div><strong>'+esc(x.title)+'</strong><small>'+esc(x.ok?x.good:x.bad)+'</small></div><span class="system-check-value">'+esc(x.value)+'</span></article>').join("")+'</div></section>'+
-   '<section class="card"><h3>توزيع الحسابات حسب الدور</h3><div class="system-role-list">'+(roles.length?roles.map(r=>'<div class="system-role-row"><span>'+esc(roleLabel[r.role]||r.role)+'</span><strong>'+Number(r.total||0)+'</strong></div>').join(""):'<p class="muted">لا توجد حسابات نشطة.</p>')+'</div>'+
-   (Number(c.active_director_supervisor_accounts||0)>0?'<div class="notice error">توجد حسابات مدير مدرسة أو مشرف؛ يجب اختبار صلاحياتها وحدود نطاقها قبل الاعتماد.</div>':'<p class="muted small">لا توجد حسابات مدير مدرسة أو مشرف نشطة حاليًا؛ إنشاء هذه الأدوار وتحديد نطاقها ما زال عملًا مستقلًا مطلوبًا قبل استخدامها.</p>')+'</section>'+
-   '<section class="card"><h3>السجلات المحفوظة حسب النوع</h3><div class="system-role-list">'+((result.collections||[]).length?result.collections.map(row=>'<div class="system-role-row"><span>'+esc(row.collection)+'</span><strong>'+Number(row.total||0)+'</strong></div>').join(""):'<p class="muted">لا توجد سجلات بعد.</p>')+'</div></section>'+
-   '<p class="muted small">هذا فحص للاتساق والأعداد فقط، وليس اختبارًا كاملًا لكل صفحة أو لكل صلاحية.</p>';
-  $("#system-check-refresh")?.addEventListener("click",()=>systemCheckPage(v));
- }catch(e){v.innerHTML=head("فحص النظام","تعذّر إكمال الفحص.")+'<div class="notice error">'+esc(e.message)+'</div><button class="btn" id="system-check-retry">إعادة المحاولة</button>';$("#system-check-retry")?.addEventListener("click",()=>systemCheckPage(v))}
-}
-async function auditPage(v){
- if(S.user.role!=="admin"){v.innerHTML=head("سجل العمليات","هذه الصفحة متاحة للمدير فقط.")+'<div class="notice error">لا تملك صلاحية عرض سجل العمليات.</div>';return}
- v.innerHTML=head("سجل العمليات","مراجعة أحدث العمليات الإدارية لتسهيل تتبع التغييرات.")+'<div class="loading">جار تحميل السجل…</div>';
- try{
-  const rows=await api("/admin/audit");
-  const labels={login:"تسجيل دخول",logout:"تسجيل خروج",admin_bootstrap:"إنشاء المدير",password_change:"تغيير كلمة المرور",group_create:"إنشاء فوج",group_update:"تعديل فوج",teacher_create:"إنشاء معلم",teacher_update:"تعديل معلم",student_create:"إنشاء طالب",student_update:"تعديل طالب",attendance_save:"حفظ الحضور",quran_progress_add:"إضافة متابعة قرآنية",quran_progress_update:"تعديل متابعة قرآنية",quran_progress_delete:"حذف متابعة قرآنية",test_create:"إنشاء اختبار",test_submit:"تقديم اختبار",post_create:"نشر محتوى",notification_create:"نشر تنبيه",admin_backup_export:"تصدير نسخة احتياطية",admin_backup_full_export:"تصدير نسخة كاملة",admin_backup_restore:"استعادة نسخة",lesson_create:"إضافة درس",lesson_update:"تعديل درس",lesson_delete:"حذف درس"};
-  v.innerHTML=head("سجل العمليات","أحدث 200 عملية محفوظة في سجل التدقيق.")+'<section class="card"><div class="student-actions"><button class="btn secondary" id="audit-refresh">تحديث السجل</button><span class="muted small">'+rows.length+' عملية معروضة</span></div>'+
-  (rows.length?'<div class="table-wrap"><table><thead><tr><th>الوقت</th><th>الحساب</th><th>العملية</th><th>تفاصيل</th></tr></thead><tbody>'+rows.map(r=>'<tr><td>'+esc(r.created_at||"")+'</td><td>'+esc(r.actor||"")+'</td><td>'+esc(labels[r.action]||r.action||"عملية")+'</td><td><details><summary>عرض التفاصيل</summary><pre class="audit-metadata">'+esc(JSON.stringify(r.metadata||{},null,2))+'</pre></details></td></tr>').join("")+'</tbody></table></div>':'<div class="empty">لا توجد عمليات مسجلة بعد.</div>')+
- '<p class="muted small">سجل التدقيق يساعد على التتبع ولا يغني عن النسخ الاحتياطي. لا تعرض هذه الصفحة كلمات المرور أو رموز الجلسات.</p></section>';
-  $("#audit-refresh")?.addEventListener("click",()=>auditPage(v));
- }catch(e){v.innerHTML=head("سجل العمليات","تعذّر تحميل سجل التدقيق.")+'<div class="notice error">'+esc(e.message)+'</div><button class="btn" id="audit-retry">إعادة المحاولة</button>';$("#audit-retry")?.addEventListener("click",()=>auditPage(v))}
-}
-async function backupPage(v){
- if(S.user.role!=="admin"){v.innerHTML=head("النسخ الاحتياطي","هذه الصفحة متاحة للمدير فقط.")+'<div class="notice error">لا تملك صلاحية تصدير بيانات الأكاديمية.</div>';return}
- v.innerHTML=head("النسخ الاحتياطي","حافظ على بيانات الأكاديمية قبل التعديلات المهمة.")+'<div class="loading">جار فحص بيانات الأكاديمية…</div>';
- let summary;
- try{summary=await api("/admin/backup/summary")}catch(e){v.innerHTML=head("النسخ الاحتياطي","تعذّر فحص بيانات الأكاديمية.")+'<div class="notice error">'+esc(e.message)+'</div><button class="btn" id="backup-retry">إعادة المحاولة</button>';$("#backup-retry")?.addEventListener("click",()=>backupPage(v));return}
- const counts=summary.counts||{};
- v.innerHTML=head("النسخ الاحتياطي","نسختان مختلفتان: نسخة تشغيلية خفيفة، ونسخة كاملة قابلة للدمج والاستعادة.")+
- '<section class="card"><h3>ملخص البيانات الحالية</h3><div class="stats">'+
- '<div class="stat"><small>الحسابات النشطة</small><strong>'+Number(counts.users||0)+'</strong></div>'+
- '<div class="stat"><small>الأفواج النشطة</small><strong>'+Number(counts.groups||0)+'</strong></div>'+
- '<div class="stat"><small>الطلاب النشطون</small><strong>'+Number(counts.students||0)+'</strong></div>'+
- '<div class="stat"><small>السجلات التعليمية</small><strong>'+Number(counts.records||0)+'</strong></div>'+
- '<div class="stat"><small>سجل العمليات</small><strong>'+Number(counts.audit_entries||0)+'</strong></div></div>'+
- '<p class="muted small">آخر فحص: '+esc(summary.created_at||"")+'</p></section>'+
- '<section class="card stack"><h3>١. تصدير نسخة تشغيلية</h3><p>تتضمن بيانات الحسابات دون بصمات كلمات المرور، والأفواج، والطلاب، والسجلات التطبيقية، والمدارس القرآنية، وآخر 5000 عملية.</p>'+
- '<button class="btn secondary" id="backup-export">تنزيل النسخة التشغيلية JSON</button></section>'+
- '<section class="card stack"><h3>٢. النسخة الكاملة للاستعادة</h3><p>تتضمن كل المستخدمين مع بصمات كلمات المرور، وكل الأفواج والطلاب والسجلات والمدارس وسجل التدقيق. لا تتضمن رموز الجلسات ومحاولات الدخول.</p>'+
- '<div class="notice error">ملف النسخة الكاملة سرّي جدًا: يحوي بصمات كلمات المرور وبيانات الطلاب. لا ترسله لأحد، ولا ترفعه إلى GitHub أو أي موقع عام.</div>'+
- '<button class="btn" id="backup-full-export">تنزيل النسخة الكاملة القابلة للاستعادة</button>'+
- '<p class="muted small">الاستعادة أدناه تدمج البيانات وتحدّث السجلات ذات المعرّفات المطابقة؛ لا تحذف سجلات موجودة خارج الملف. جرّبها أولًا في بيئة منفصلة قبل الاعتماد عليها للطوارئ.</p></section>'+
- '<section class="card stack"><h3>٣. دمج نسخة كاملة محفوظة</h3>'+
- '<label class="field">ملف النسخة الكاملة v2<input id="restore-file" type="file" accept=".json,application/json"></label>'+
- '<div id="restore-preview" class="notice hidden">اختر ملفًا لمعاينة محتوياته.</div>'+
- '<label class="field">اكتب «استعادة» للتأكيد<input id="restore-confirm" autocomplete="off" maxlength="20" placeholder="استعادة"></label>'+
- '<label class="remember-option"><input id="restore-approve" type="checkbox"> أفهم أن الاستعادة تحدّث السجلات المطابقة، ولا تحذف سجلات أخرى.</label>'+
- '<button class="btn" id="restore-submit" disabled>دمج النسخة في قاعدة البيانات</button>'+
- '<p class="muted small">الحد الأقصى للملف 8 ميغابايت. إذا توقفت الاستعادة بعد جزء من الدفعات، أعد المحاولة بالملف نفسه؛ الدمج بمعرّفات ثابتة قابل لإعادة المحاولة.</p></section>';
- const download=(data,name)=>{const blob=new Blob([JSON.stringify(data,null,2)],{type:"application/json;charset=utf-8"});const url=URL.createObjectURL(blob),a=document.createElement("a");a.href=url;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)};
- $("#backup-export")?.addEventListener("click",async e=>{const b=e.currentTarget;b.disabled=true;b.textContent="جار تجهيز النسخة…";try{const data=await api("/admin/backup/export");download(data,"ihsan-academy-operational-backup-"+localDateISO()+".json");toast("تم تنزيل النسخة التشغيلية؛ احفظها في مكان آمن.")}catch(err){toast(err.message||"تعذّر إنشاء النسخة",true)}finally{if(b.isConnected){b.disabled=false;b.textContent="تنزيل النسخة التشغيلية JSON"}}});
- $("#backup-full-export")?.addEventListener("click",async e=>{const b=e.currentTarget;if(!confirm("النسخة الكاملة تتضمن بصمات كلمات المرور وبيانات الطلاب. هل تريد تنزيلها إلى هذا الجهاز؟"))return;b.disabled=true;b.textContent="جار تجهيز النسخة الكاملة…";try{const data=await api("/admin/backup/full-export");download(data,"ihsan-academy-full-backup-"+localDateISO()+".json");toast("تم تنزيل النسخة الكاملة. احفظها بعيدًا عن المشاركة العامة.")}catch(err){toast(err.message||"تعذّر إنشاء النسخة",true)}finally{if(b.isConnected){b.disabled=false;b.textContent="تنزيل النسخة الكاملة القابلة للاستعادة"}}});
- let restoreBackup=null;
- $("#restore-file")?.addEventListener("change",async e=>{const file=e.currentTarget.files?.[0],info=$("#restore-preview"),submit=$("#restore-submit");restoreBackup=null;submit.disabled=true;info.classList.remove("hidden","error");if(!file){info.textContent="اختر ملفًا لمعاينة محتوياته.";return}if(file.size>8*1024*1024){info.textContent="حجم الملف أكبر من 8 ميغابايت.";info.classList.add("error");return}try{const data=JSON.parse(await file.text());if(data.format!=="ihsan-academy-full-backup-v2"||!data.data){throw Error("هذه ليست نسخة كاملة v2؛ لن يتم إرسال الملف.")}restoreBackup=data;const d=data.data;info.textContent="النسخة صالحة مبدئيًا — الحسابات: "+(d.users?.length||0)+"، الأفواج: "+(d.groups?.length||0)+"، الطلاب: "+(d.students?.length||0)+"، السجلات: "+(d.academy_records?.length||0)+"، المدارس: "+(d.quran_schools?.length||0)+"، عمليات التدقيق: "+(d.audit_log?.length||0)+". فحص العلاقات يتم على الخادم قبل الحفظ.";submit.disabled=false}catch(err){info.textContent=err.message||"تعذر قراءة ملف النسخة.";info.classList.add("error")}});
- $("#restore-submit")?.addEventListener("click",async e=>{e.preventDefault();const b=e.currentTarget;if(!restoreBackup)return toast("اختر نسخة كاملة صالحة أولًا.",true);if($("#restore-confirm")?.value.trim()!=="استعادة")return toast("اكتب كلمة «استعادة» لتأكيد العملية.",true);if(!$("#restore-approve")?.checked)return toast("ضع علامة الموافقة قبل الدمج.",true);if(!confirm("سيُدمج الملف في قاعدة البيانات. السجلات ذات المعرّفات المطابقة ستُحدّث من النسخة، ولن تُحذف بقية السجلات. المتابعة؟"))return;b.disabled=true;b.textContent="جار التحقق والدمج…";try{const result=await api("/admin/backup/restore",{method:"POST",body:JSON.stringify({...restoreBackup,confirm_restore:"RESTORE-IHSAN-ACADEMY"})});toast("تم الدمج: "+(result.restored?.students||0)+" سجل طالب و"+(result.restored?.records||0)+" سجلًا تطبيقيًا.");await backupPage(v)}catch(err){toast(err.message||"تعذّرت الاستعادة",true);b.disabled=false;b.textContent="دمج النسخة في قاعدة البيانات"}});
-}
-function questionEditor(n){return '<div class="question-builder" data-question><h4>السؤال '+n+'</h4><label class="field">نص السؤال<textarea data-q-prompt required maxlength="500" placeholder="اكتب السؤال هنا"></textarea></label><div class="form-grid">'+[0,1,2,3].map(i=>'<label class="field">الخيار '+(i+1)+'<input data-q-choice="'+i+'" required maxlength="250" placeholder="نص الخيار"></label>').join("")+'</div><label class="field">الإجابة الصحيحة<select data-q-correct><option value="0">الخيار الأول</option><option value="1">الخيار الثاني</option><option value="2">الخيار الثالث</option><option value="3">الخيار الرابع</option></select></label></div>'}
-async function testsPage(v){
- const isStudent=S.user.role==="student";
- let tests=[];
- try{tests=await api("/tests")}catch(e){v.innerHTML=head("الاختبارات","تعذّر جلب الاختبارات.")+'<div class="notice error">'+esc(e.message)+'</div>';return}
- const activeTests=tests.filter(t=>t.status!=="archived"),archivedTests=tests.filter(t=>t.status==="archived");
- let html=head(isStudent?"اختباراتي":"إدارة الاختبارات","اختبارات اختيار من متعدد تُصحّح آليًا وتُحفظ نتائجها في ملف الطالب.");
- if(!isStudent){
-  html+='<section class="card"><h3>إنشاء اختبار</h3><form id="test-create-form" class="stack"><label class="field">عنوان الاختبار<input name="title" required maxlength="160"></label><label class="field">وصف مختصر<textarea name="description" maxlength="2000"></textarea></label><label class="field">الفوج المستهدف<select name="group_id" '+(S.user.role==="admin"?"":"required")+'>'+(S.user.role==="admin"?'<option value="">اختبار عام لجميع الطلاب</option>':'<option value="">اختر فوجًا</option>')+groupOpts()+'</select></label><label class="field">آخر موعد للاختبار<input name="due_date" type="date"></label><label class="remember-option"><input name="recurring" type="checkbox" checked> كرّر الاختبار كل 14 يومًا، مع حفظ نتائج كل دورة</label><div id="questions-editor">'+questionEditor(1)+'</div><button type="button" class="btn secondary" id="add-question">إضافة سؤال آخر</button><button class="btn" type="submit">نشر الاختبار</button><p class="muted small">اختر الإجابة الصحيحة لكل سؤال. عند ترك الموعد فارغًا، يُضبط موعد المراجعة بعد 14 يومًا. يمكن إضافة حتى 30 سؤالًا.</p></form></section><div class="divider"></div>';
-  html+='<h3>الاختبارات المنشورة</h3><div class="list">'+(activeTests.length?activeTests.map(t=>'<section class="card"><div class="list-row"><div><strong>'+esc(t.title)+'</strong><small>'+(t.group_id?esc((S.groups.find(g=>g.id===t.group_id)||{}).name||"فوج"):"اختبار عام")+' · '+(t.questions||[]).length+' سؤال'+(t.due_date?' · الموعد: '+esc(t.due_date):"")+(t.recurring?' · يتكرر كل '+Number(t.frequency_days||14)+' يومًا':' · اختبار منفرد')+'</small></div><div class="student-actions"><button class="btn secondary" data-test-results="'+esc(t.id)+'">النتائج</button><button class="btn secondary" data-test-archive="'+esc(t.id)+'">أرشفة</button></div></div><div data-results-host="'+esc(t.id)+'"></div></section>').join(""):'<div class="empty">لم تُنشأ اختبارات بعد.</div>')+'</div>'+(archivedTests.length?'<details class="card archived-tests"><summary>الاختبارات المؤرشفة ('+archivedTests.length+')</summary><div class="list">'+archivedTests.map(t=>'<section class="card"><div class="section-head"><div><strong>'+esc(t.title)+'</strong><small class="muted">أُرشف في: '+esc(t.archived_at||"غير محدد")+'</small></div><button class="btn secondary" type="button" data-test-results="'+esc(t.id)+'">النتائج المحفوظة</button></div><div data-results-host="'+esc(t.id)+'"></div></section>').join("")+'</div></details>':"");
- }else{
-  html+='<div class="list">'+(tests.length?tests.map(t=>'<section class="card"><h3>'+esc(t.title)+'</h3><p class="muted small">'+esc(t.description||"")+(t.due_date?' · آخر موعد: '+esc(t.due_date):"")+'</p>'+(t.my_attempt?'<div class="notice">آخر نتيجة: '+t.my_attempt.score+' / '+t.my_attempt.total+' · '+Math.round(100*t.my_attempt.score/Math.max(1,t.my_attempt.total))+'% · '+esc(t.my_attempt.submitted_at||"")+'</div>':"")+'<form class="quiz-form" data-submit-test="'+esc(t.id)+'">'+(t.questions||[]).map((q,qi)=>'<fieldset class="question-view"><legend>'+(qi+1)+'. '+esc(q.prompt)+'</legend>'+(q.choices||[]).map((choice,ci)=>'<label class="quiz-option"><input type="radio" name="q_'+esc(q.id)+'" value="'+ci+'" required> '+esc(choice)+'</label>').join("")+'</fieldset>').join("")+'<button class="btn" type="submit">إرسال الإجابات وتصحيحها</button></form></section>').join(""):'<div class="empty">لا توجد اختبارات منشورة لفوجك حاليًا.</div>')+'</div>';
- }
- let historyRows=[];
- if(isStudent&&S.user.student_id){try{historyRows=await api("/test-history?student_id="+encodeURIComponent(S.user.student_id))}catch{}}
- if(isStudent)html+='<section class="card"><h3>سجل نتائجك</h3><div class="result-list">'+(historyRows.length?historyRows.map(r=>'<div class="list-row"><div><strong>'+esc(r.title||"اختبار")+'</strong><small>'+esc(r.submitted_at||"")+'</small></div><strong>'+Number(r.score||0)+' / '+Number(r.total||0)+' · '+Math.round(Number(r.score||0)*100/Math.max(1,Number(r.total||0)))+'٪</strong></div>').join(""):'<p class="muted">ستظهر نتائجك السابقة هنا بعد إكمال الاختبارات.</p>')+'</div></section>';
- v.innerHTML=html;
- if(!isStudent){
-  $("#add-question")?.addEventListener("click",()=>{const host=$("#questions-editor");if(host.querySelectorAll("[data-question]").length>=30)return toast("الحد الأقصى 30 سؤالًا",true);host.insertAdjacentHTML("beforeend",questionEditor(host.querySelectorAll("[data-question]").length+1))});
-  $("#test-create-form")?.addEventListener("submit",async e=>{e.preventDefault();const form=e.currentTarget,f=new FormData(form);const questions=[...form.querySelectorAll("[data-question]")].map(q=>({prompt:q.querySelector("[data-q-prompt]").value.trim(),choices:[...q.querySelectorAll("[data-q-choice]")].map(x=>x.value.trim()),correct_index:Number(q.querySelector("[data-q-correct]").value)}));if(questions.some(q=>!q.prompt||q.choices.some(c=>!c))){toast("أكمل نص كل سؤال وخياراته الأربعة",true);return}try{const result=await api("/tests",{method:"POST",body:JSON.stringify({title:f.get("title"),description:f.get("description"),group_id:f.get("group_id"),due_date:f.get("due_date"),recurring:form.elements.recurring.checked,questions})});toast("نُشر الاختبار وحُفظت إجاباته الصحيحة");await load();shell();await page()}catch(x){toast(x.message,true)}});
-  v.querySelectorAll("[data-test-archive]").forEach(b=>b.onclick=async()=>{const selected=tests.find(t=>t.id===b.dataset.testArchive);const prompt=selected?.recurring?"أرشفة سلسلة هذا الاختبار المتكرر بالكامل؟ ستبقى نتائج الطلاب محفوظة ولن تُنشأ دورات جديدة.":"أرشفة هذا الاختبار؟ سيختفي عن الطلاب وتبقى النتائج وسياق الاختبار محفوظين.";if(!confirm(prompt))return;b.disabled=true;try{await api("/test-delete",{method:"POST",body:JSON.stringify({id:b.dataset.testArchive,action:"archive"})});toast("أُرشف الاختبار مع الحفاظ على نتائجه");await page()}catch(x){toast(x.message,true);b.disabled=false}});
-  v.querySelectorAll("[data-test-results]").forEach(b=>b.onclick=async()=>{const host=v.querySelector('[data-results-host="'+b.dataset.testResults+'"]');try{const rows=await api("/test-results?id="+encodeURIComponent(b.dataset.testResults));host.innerHTML='<div class="result-list">'+(rows.length?rows.map(r=>'<div class="list-row"><span>'+esc((S.students.find(st=>st.id===r.student_id)||{}).name||"طالب")+'</span><strong>'+r.score+' / '+r.total+'</strong><small>'+esc(r.submitted_at||"")+'</small></div>').join(""):'<p class="muted">لم يقدّم أي طالب هذا الاختبار بعد.</p>')+'</div>'}catch(x){toast(x.message,true)}});
- }else{
-  v.querySelectorAll("[data-submit-test]").forEach(form=>form.onsubmit=async e=>{e.preventDefault();const test=tests.find(t=>t.id===form.dataset.submitTest);if(!test)return;const answers=(test.questions||[]).map(q=>{const chosen=form.querySelector('input[name="q_'+q.id+'"]:checked');return {question_id:q.id,selected_index:chosen?Number(chosen.value):-1}});if(answers.some(a=>a.selected_index<0)){toast("أجب عن جميع الأسئلة أولًا",true);return}try{const result=await api("/test-submit?id="+encodeURIComponent(test.id),{method:"POST",body:JSON.stringify({answers})});toast("نتيجتك: "+result.score+" من "+result.total+" ("+result.percent+"%)");await page()}catch(x){toast(x.message,true)}});
- }
-}
 async function gradebookPage(v){
  const isStudent=S.user.role==="student";
  const allowedStaff=["admin","director","teacher","supervisor"].includes(S.user.role);
