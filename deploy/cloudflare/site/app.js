@@ -789,7 +789,7 @@ const dailySupplications=[
 {title:"دعاء من القرآن",text:"وَقُلْ رَبِّ زِدْنِي عِلْمًا",source:"سورة طه: 114"},
 {title:"دعاء من القرآن",text:"رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ",source:"سورة البقرة: 201"},
 {title:"دعاء من القرآن",text:"رَبَّنَا لَا تُزِغْ قُلُوبَنَا بَعْدَ إِذْ هَدَيْتَنَا وَهَبْ لَنَا مِنْ لَدُنْكَ رَحْمَةً إِنَّكَ أَنْتَ الْوَهَّابُ",source:"سورة آل عمران: 8"},
-{title:"دعاء نبوي",text:"اللَّهُمَّ أَعِنِّي عَلَى ذِكْرِكَ وَشُكْرِكَ وَحُسْنِ عِبَادَتِكَ",source:"أبو داود: 1522؛ النسائي: 1303"}
+{title:"دعاء نبوي",text:"اللَّهُمَّ أَعِنِّي عَلَى ذِكْرِكَ وَشُكْرِكَ وَحُسْنِ عِبَادَتِكَ",source:"سنن أبي داود (1522)، والنسائي (1303)؛ صححه الألباني."}
 ];
 const dailyWisdom=[
 {title:"من أدب موسى عليه السلام في طلب العلم",text:"طلب موسى عليه السلام الإذن من الخضر بأدب فقال: ﴿هَلْ أَتَّبِعُكَ عَلَى أَنْ تُعَلِّمَنِ مِمَّا عُلِّمْتَ رُشْدًا﴾؛ جمع السؤال بين التواضع ووضوح المقصد.",source:"القرآن الكريم، سورة الكهف: 66."},
@@ -820,7 +820,7 @@ const dailyWisdomForSheikh=[
 
 
 const wisdomPool=["admin","teacher","director","supervisor"].includes(S.user.role)?dailyWisdomForSheikh:dailyWisdom;
-const dua=dailySupplications[((daySeed%dailySupplications.length)+dailySupplications.length)%dailySupplications.length];
+const previousDuaRaw=safeStore.getSession("ihsan_last_dashboard_dua_index"),previousDuaIndex=previousDuaRaw===""?-1:Number(previousDuaRaw);const duaChoices=dailySupplications.map((_,index)=>index).filter(index=>index!==previousDuaIndex);const duaIndex=duaChoices[Math.floor(Math.random()*duaChoices.length)]??0;safeStore.setSession("ihsan_last_dashboard_dua_index",String(duaIndex));const dua=dailySupplications[duaIndex];
 const wisdom=wisdomPool[Math.floor(Math.random()*wisdomPool.length)];
 html+='<section class="daily-nourishment-grid"><article class="card daily-nourishment dua-of-day"><div class="daily-kicker">'+esc(dua.title)+'</div><h3>'+esc(dua.text)+'</h3><p class="daily-source">'+esc(dua.source)+'</p></article><article class="card daily-nourishment wisdom-of-day"><div class="daily-kicker">'+esc(wisdom.title)+'</div><p>'+esc(wisdom.text)+'</p><span class="daily-source">'+esc(wisdom.source||"فائدة تربوية من إعداد الأكاديمية، وليست نصًا شرعيًا منقولًا.")+'</span></article></section>';
 const quickIds=S.user.role==="admin"?["attendance","quran","tests"]:["teacher","director","supervisor"].includes(S.user.role)?["attendance","quran","tests"]:[];
