@@ -53,3 +53,10 @@ p, .muted, .small, small { line-height: 1.85; }
  .login-welcome .welcome-poem { font-size: .9rem; }
  .login-about-link { top: 8px; left: 8px; padding: 6px 10px; font-size: .85rem; }
 }
+
+.settings-section-label { margin: 10px 4px 0; padding: 8px 12px; border-right: 4px solid #b89a5a; color: var(--text, #164b3b); font-weight: 800; font-size: 1.02rem; }
+.settings-page > .card { min-width: 0; }
+.settings-page .appearance-studio { margin-top: 0; }
+.settings-page .settings-auto-save { padding: 8px 10px; border-radius: 10px; background: rgba(16,110,79,.07); }
+#resumeSessionBtn { width: 100%; margin-top: 8px; }
+@media (max-width: 900px) { .login-welcome { max-height: none; } }
