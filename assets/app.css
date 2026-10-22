@@ -964,3 +964,50 @@ input:focus,select:focus,textarea:focus{outline:none!important;border-color:#58a
   #bottomNav.bottom button svg{width:19px;height:19px;}
   #bottomNav.bottom button span{font-size:10px;}
 }
+
+
+/* V78 — readability, helpful empty states, and mobile attendance polish. */
+#view .top h1, .top h1 { font-size: clamp(27px, 2.1vw, 34px); line-height: 1.45; }
+#view .sec h3 { font-size: clamp(19px, 1.45vw, 22px); line-height: 1.55; }
+#view .empty {
+  display: grid;
+  justify-items: center;
+  gap: 5px;
+  padding: clamp(22px, 4vw, 34px) 14px;
+  border: 1px dashed var(--g200);
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--g50) 68%, transparent);
+  line-height: 1.85;
+}
+#view .empty b { font-size: 1.02rem; line-height: 1.7; }
+#view .empty:not(:has(b + br)) { overflow-wrap: anywhere; }
+#view .scroll, #view .table-wrap {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+  -webkit-overflow-scrolling: touch;
+}
+#view .tbl { border-collapse: separate; border-spacing: 0; }
+#view .tbl th { white-space: nowrap; }
+#view .tbl td { overflow-wrap: anywhere; }
+#view .att-row { min-width: 0; }
+#view .att-row .person { flex: 1 1 150px; }
+#view .att-row .ctrl { flex: 1 1 100%; min-width: 0; }
+#view .att-row .seg { max-width: 100%; }
+@media (max-width: 720px) {
+  #view .top h1, .top h1 { font-size: clamp(25px, 6vw, 30px); }
+  #view .sec h3 { font-size: 19px; }
+  #view .att-row { align-items: stretch; gap: 9px; padding: 14px 0; }
+  #view .att-row .ctrl { display: grid; grid-template-columns: minmax(0,1fr); gap: 8px; }
+  #view .att-row .seg { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); width: 100%; }
+  #view .att-row .seg label, #view .att-row .seg span { min-width: 0; width: 100%; }
+  #view .att-row .seg span { min-height: 42px; padding: 8px 6px; text-align: center; white-space: normal; }
+  #view .att-row .note-in { width: 100%; min-width: 0; }
+  #view .tbl:not(.stack-m) { min-width: 560px; }
+  #view .tbl.stack-m { min-width: 0; width: 100%; }
+  #view .toolbar .btn, #view .toolbar button { min-height: 42px; }
+}
+@media (max-width: 380px) {
+  #view .att-row .seg { grid-template-columns: minmax(0,1fr); }
+  #view .empty { padding: 20px 10px; }
+}
