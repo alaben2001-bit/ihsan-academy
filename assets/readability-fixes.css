@@ -2,9 +2,22 @@
 html { font-size: 17px; }
 body, button, input, select, textarea { font-size: 1rem; }
 p, .muted, .small, small { line-height: 1.85; }
-.login-brand b, .brand b { color: #fff !important; text-shadow: 0 2px 8px rgba(0,0,0,.45); font-weight: 800; }
+.login-brand b { color: #064e3b !important; text-shadow: 0 1px 8px rgba(255,255,255,.9); font-weight: 800; }
+.brand b { color: #fff !important; text-shadow: 0 2px 8px rgba(0,0,0,.45); font-weight: 800; }
 .form-brand strong { color: #064e3b !important; text-shadow: none; font-weight: 800; }
-.login-brand small, .brand small { color: #f7f4e9 !important; text-shadow: 0 1px 5px rgba(0,0,0,.55); }
+.login-brand small { color: #124e3c !important; text-shadow: 0 1px 8px rgba(255,255,255,.9); }
+.brand small { color: #f7f4e9 !important; text-shadow: 0 1px 5px rgba(0,0,0,.55); }
+.login:not(.hidden) .login-art { flex-direction: column; align-items: center; overflow-y: auto; }
+.login-welcome { position: relative; z-index: 1; width: min(760px, 100%); margin: clamp(12px,2vh,24px) auto 0; padding: clamp(14px,2vw,24px); color: #123f35; text-align: center; border: 1px solid rgba(255,255,255,.75); border-radius: 22px; background: rgba(250,250,241,.84); box-shadow: 0 12px 35px rgba(12,48,38,.12); backdrop-filter: blur(7px); }
+.login-welcome .bismillah { font-size: clamp(1.1rem,1.6vw,1.4rem); font-weight: 800; color: #075540; margin: 0 0 8px; }
+.login-welcome h2 { font-size: clamp(1.35rem,2vw,1.9rem); line-height: 1.5; margin: 4px 0 10px; color: #064e3b; }
+.login-welcome .verse { font-size: clamp(.98rem,1.25vw,1.12rem); line-height: 2; margin: 12px 0 5px; font-weight: 700; }
+.login-welcome .verse-ref { font-size: .9rem; color: #53665e; margin: 0 0 10px; }
+.login-welcome .welcome-description { font-size: clamp(.94rem,1.15vw,1.06rem); line-height: 1.95; margin: 10px auto; max-width: 62ch; }
+.login-welcome .welcome-poem { font-size: .95rem; line-height: 2; margin: 12px auto; max-width: 66ch; }
+.login-welcome .btn { margin-top: 8px; min-height: 44px; }
+.login-about-link { position: absolute; top: 16px; left: 18px; z-index: 2; color: #064e3b; font-weight: 800; background: rgba(255,255,245,.9); border: 1px solid rgba(6,78,59,.2); border-radius: 999px; padding: 8px 14px; text-decoration: none; }
+.install-status { display: inline-flex; align-items: center; border-radius: 999px; padding: 7px 11px; background: #e3f3e9; color: #075540; font-weight: 800; font-size: .88rem; }
 .login-art { color: #fff; }
 .login-art .login-brand { background: rgba(6,35,29,.35); border-radius: 18px; padding: 1rem; }
 .login h2, .login-form h2 { font-size: clamp(1.55rem,2vw,2rem); line-height: 1.5; }
@@ -25,3 +38,18 @@ p, .muted, .small, small { line-height: 1.85; }
 .att-row .person b { font-size: 1.03rem; }
 .att-row .seg label span { min-height: 42px; display: inline-flex; align-items: center; justify-content: center; }
 @media (max-width:720px) { html { font-size:16px; } .login-brand b { font-size:1.4rem; } .login-brand small { font-size:1rem; } #view .toolbar { gap:12px; } .att-row { grid-template-columns:1fr; } }
+
+.student-optional-fields { margin-top: 10px; padding-top: 10px; border-top: 1px solid var(--border, #d9e3dc); }
+.student-optional-fields summary { cursor: pointer; font-weight: 800; color: var(--accent, #075540); padding: 8px 0; }
+.student-optional-fields[open] { display: grid; gap: 10px; }
+.student-optional-fields small { display: block; margin-top: 5px; }
+.attendance-page .toolbar { align-items: flex-end; gap: 10px; flex-wrap: wrap; }
+.attendance-page .toolbar .btn { min-height: 42px; }
+.attendance-report .report-actions { justify-content: flex-start; }
+.attendance-report .scroll { max-height: 52vh; overflow: auto; }
+@media (max-width: 900px) {
+ .login:not(.hidden) .login-art { min-height: 0; max-height: none; overflow: visible; }
+ .login-welcome { margin-top: 10px; padding: 14px; }
+ .login-welcome .welcome-poem { font-size: .9rem; }
+ .login-about-link { top: 8px; left: 8px; padding: 6px 10px; font-size: .85rem; }
+}
