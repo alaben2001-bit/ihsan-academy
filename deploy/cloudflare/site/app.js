@@ -667,7 +667,7 @@ async function teamsPage(v){
   let roster=isStaff?await api("/students?group_id="+encodeURIComponent(groupId)):(data.eligible_students||[]);
   const teams=data.teams||[],memberships=data.memberships||[],requests=data.requests||[];
   const teamById=new Map(teams.map(t=>[t.id,t]));
-  const ownMembership=memberships.find(m=>m.student_id===data.current_student_id)||null;
+  const ownMembership=data.current_membership||memberships.find(m=>m.student_id===data.current_student_id)||null;
   const groupOptions=S.groups.map(g=>'<option value="'+esc(g.id)+'" '+(g.id===groupId?"selected":"")+'>'+esc(g.name)+'</option>').join("");
   const memberRows=memberships.length?memberships.map(m=>'<div class="list-row"><div><strong>'+esc(m.student_name||"طالب")+'</strong><small>'+esc(m.team_name||teamById.get(m.team_id)?.team_name||"فرقة غير معروفة")+'</small></div></div>').join(""):'<div class="empty">لا توجد عضويات ظاهرة في هذا النطاق بعد.</div>';
   const requestRows=requests.length?requests.map(r=>'<div class="list-row"><div style="flex:1;min-width:180px"><strong>'+esc(r.student_name||"طالب")+'</strong><small>'+esc(r.from_team_name||"بلا فرقة")+' ← '+esc(r.target_team_name||"فرقة أخرى")+'</small><small>الحالة: '+esc(({pending:"قيد انتظار موافقة كبير المشرفين",approved:"مقبول",rejected:"مرفوض"})[r.status]||r.status)+'</small></div>'+(data.can_approve_transfers&&r.status==="pending"?'<button class="btn" data-transfer-decision="approve" data-request-id="'+esc(r.id)+'">موافقة</button><button class="btn secondary" data-transfer-decision="reject" data-request-id="'+esc(r.id)+'">رفض</button>':"")+'</div>').join(""):'<div class="empty">لا توجد طلبات نقل ظاهرة.</div>';
@@ -682,7 +682,7 @@ async function teamsPage(v){
   if(data.can_assign_members){
    const supervisedTeam=isStudent?teams.find(t=>t.supervisor_student_id===data.current_student_id):null;
    const assignableTeams=isStudent?(supervisedTeam?[supervisedTeam]:[]):teams;
-   const eligible=roster.filter(st=>!memberships.some(m=>m.student_id===st.id&&(!supervisedTeam||m.team_id!==supervisedTeam.id)));
+   const eligible=roster.filter(st=>!st.assigned_team_id&&!memberships.some(m=>m.student_id===st.id));
    html+='<section class="card"><h3>إسناد طالب إلى فرقة</h3><p class="muted small">لا يُضاف الطالب إلى فرقتين. إذا كان مسجلًا في فرقة أخرى، فيلزم طلب نقل رسمي وموافقة كبير المشرفين.</p>'+(assignableTeams.length?'<form id="team-member-form" class="form-grid"><label class="field">الطالب<select name="student_id" required><option value="">اختر طالبًا</option>'+eligible.map(st=>'<option value="'+esc(st.id)+'">'+esc(st.name)+'</option>').join("")+'</select></label><label class="field">الفرقة<select name="team_id" required><option value="">اختر الفرقة</option>'+assignableTeams.map(t=>'<option value="'+esc(t.id)+'">'+esc(t.team_name)+'</option>').join("")+'</select></label><div class="wide"><button class="btn" type="submit">إسناد الطالب</button></div></form>':'<p class="empty">لم تُنشأ فرق أو لم تُعيّن لك فرقة للإشراف.</p>')+'</section>';
   }
   html+='<section class="card"><h3>أعضاء الفرق</h3><div class="list">'+memberRows+'</div></section><section class="card"><h3>طلبات النقل</h3><p class="muted small">كبير المشرفين هو المسؤول عن الموافقة أو الرفض.</p><div class="list">'+requestRows+'</div></section>';
