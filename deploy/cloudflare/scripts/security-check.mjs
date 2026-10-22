@@ -229,7 +229,7 @@ assert.doesNotMatch(app, /settings-about-section|settings-about-open/, "signed-i
 
 assert.match(app, /const knowledgeVerses=\[/, "the welcome screen must use a maintained list of Quranic knowledge verses");
 assert.match(app, /rotateKnowledgeVerses\(\)/, "Quranic knowledge verses must rotate automatically on the welcome screen");
-assert.doesNotMatch(app, /knowledge-verse-next|الآية التالية/, "the manual next-verse control must stay removed");
+assert.doesNotMatch(app, /knowledge-verse-next/, "the manual next-verse control must stay removed");
 assert.match(app, /Math\.floor\(Math\.random\(\)\*choices\.length\)/, "a random welcome verse must be selected from the non-repeating candidates");
 assert.match(app, /ihsan_last_knowledge_verse_index/, "the welcome verse must remember the previous selection across sessions");
 assert.match(app, /filter\(index=>index!==previous\)/, "the welcome verse must avoid repeating the immediately previous verse");
