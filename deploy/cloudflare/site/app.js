@@ -747,7 +747,6 @@ async function quran(v){
  else if(S.students.length){studentSelect.value=S.students.slice().sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"ar"))[0].id;safeStore.setSession("ihsan_quran_student",studentSelect.value);await refreshHistory(studentSelect.value)}
 }
 
-}
 async function studentProfile(v,id){
  const st=S.students.find(x=>x.id===id);
  if(!st){v.innerHTML=head("ملف الطالب","لم يعد الطالب ظاهرًا في هذا الفوج.");return}
