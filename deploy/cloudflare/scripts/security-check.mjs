@@ -260,6 +260,13 @@ assert.match(backend, /collection='student_team_memberships'/, "team membership 
 assert.match(backend, /الطالب ضمن فرقة أخرى؛ يجب تقديم طلب نقل رسمي والموافقة عليه/, "students must not be assigned to two teams without an approved transfer");
 assert.match(backend, /if\(path==="\/api\/student-team-transfer-requests"&&method==="POST"\)/, "students must be able to submit formal team transfer requests");
 assert.match(backend, /head_supervisor_student_id===actor.id/, "only the assigned chief supervisor may decide student transfer requests");
+
+assert.match(backend, /if\(path==="\/api\/student-team-supervisor-requests"&&method==="POST"\)/, "students must be able to request approval to become team supervisors");
+assert.match(backend, /student-team-supervisor-requests\/\(\[\^\/\]\+\)\/decision/, "the chief supervisor must be able to approve or reject supervisor requests");
+assert.match(backend, /لا يمكن تعيين الطالب مشرفًا قبل اعتماد طلبه من كبير المشرفين/, "new team supervisors must be approved before assignment");
+assert.match(app, /id="request-team-supervisor"/, "students must have a visible way to request team supervisor status");
+assert.match(app, /data-supervisor-decision="approve"/, "the chief supervisor must be able to approve supervisor applications");
+
 assert.match(app, /async function teamsPage\(v\)/, "the teams and transfer screen must be available in the app");
 assert.match(app, /id="team-member-form"/, "team supervisors and staff must be able to assign students to teams");
 assert.match(app, /id="team-transfer-form"/, "students must be able to submit formal transfer requests");
