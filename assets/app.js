@@ -565,7 +565,7 @@ async function openGroupModal(id) {
 async function openGroupTeachers(id){
   const [groups,teachers]=await Promise.all([api('/api/admin/groups'),api('/api/admin/teachers')]); const g=groups.find(x=>x.id===id); if(!g)return;
   const assigned=new Set(g.teachers.map(x=>x.id));
-  openModal('إسناد شيوخ الفوج',html`<form data-form="admin-group-teachers" data-id="${id}" class="stack"><p class="muted">اختر الشيوخ المسؤولين عن هذا الفوج. الإسناد يؤثر مباشرة في نطاق الوصول للطلاب.</p><div class="chips">${teachers.map(t=>html`<label class="check"><input type="checkbox" name="teacher_ids" value="${t.id}"${assigned.has(t.id)?' checked':''}><span>${t.name}</span></label>`)}</div><button class="btn">حفظ الإسناد</button></form>`);
+  openModal('إسناد المعلمين إلى الفوج',html`<form data-form="admin-group-teachers" data-id="${id}" class="stack"><div class="card flat"><b>${g.name}</b><p class="muted">عيّن الشيخ المسؤول عن متابعة هذا الفوج، ويمكنك إسناد أكثر من شيخ عند الحاجة. لا يُحفظ أي تغيير حتى تضغط زر الحفظ.</p><p class="muted small">بارك الله في تعليمكم، ونفع بكم، وجعل هذا العمل خالصًا لوجهه الكريم.</p></div><div class="stack">${teachers.map(t=>html`<label class="check"><input type="checkbox" name="teacher_ids" value="${t.id}"${assigned.has(t.id)?' checked':''}><span><b>${t.name}</b><small class="muted">فضيلة الشيخ، حفظه الله ونفع به</small></span></label>`)}</div>${!teachers.length?empty('لا يوجد معلمون متاحون للإسناد بعد'):''}<button class="btn" ${teachers.length?'':'disabled'}>حفظ تعيين المعلمين</button></form>`);
 }
 async function copyCredentialText(value) {
   try {
