@@ -1,5 +1,5 @@
 {
-  "name": "academy-build-human",
+  "name": "ihsan-academy-android",
   "version": "65.0.0",
   "private": true,
   "description": "أكاديمية الإحسان في بناء الإنسان — V65 (public learning-path preview)",
@@ -22,12 +22,18 @@
     "backup:scheduler": "node tools/backup-scheduler.js",
     "backup:verify": "node tools/verify-backups.js",
     "prod:compose": "docker compose --env-file deploy/.env -f deploy/docker-compose.yml up -d --build",
-    "test": "node --check server/server.js && node --check server/advanced.js && node --check server/educational-content.js && node --check assets/app.js && node tests/smoke.js && node tests/educational-content.test.js"
+    "test": "node --check server/server.js && node --check server/advanced.js && node --check server/educational-content.js && node --check assets/app.js && node tests/smoke.js && node tests/educational-content.test.js",
+    "android:prepare": "cap add android && cap sync android"
   },
   "engines": {
     "node": ">=18"
   },
   "dependencies": {
-    "pg": "^8.16.3"
+    "pg": "^8.16.3",
+    "@capacitor/android": "^7.4.3",
+    "@capacitor/core": "^7.4.3"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^7.4.3"
   }
 }
