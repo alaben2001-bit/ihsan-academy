@@ -678,7 +678,7 @@ async function teamsPage(v){
    html+='<section class="card"><span class="eyebrow">عضويتك الحالية</span><h3>'+(ownTeam?esc(ownTeam.team_name):"لم تُسند إلى فرقة بعد")+'</h3><p>'+(ownTeam?"مشرف الفرقة: "+esc(ownTeam.supervisor_name||"لم يُعيّن بعد")+" · كبير المشرفين: "+esc(ownTeam.head_supervisor_name||"لم يُعيّن بعد"):"تواصل مع مشرف الفرقة أو الشيخ لإسنادك إلى فرقة.")+'</p>';
    if(ownMembership&&teams.length>1)html+='<form id="team-transfer-form" class="form-grid"><label class="field wide">طلب الانتقال إلى فرقة أخرى<select name="target_team_id" required><option value="">اختر الفرقة الجديدة</option>'+teams.filter(t=>t.id!==ownMembership.team_id).map(t=>'<option value="'+esc(t.id)+'">'+esc(t.team_name)+'</option>').join("")+'</select></label><div class="wide"><button class="btn" type="submit">إرسال طلب النقل الرسمي</button></div><p class="muted small wide">لن تتغير عضويتك حتى يوافق كبير المشرفين.</p></form>';
    const mySupervisorRequest=supervisorRequests.find(r=>r.student_id===data.current_student_id);
-   if(!teams.some(t=>t.supervisor_student_id===data.current_student_id)){
+   if(!data.is_chief_supervisor&&!teams.some(t=>t.supervisor_student_id===data.current_student_id)){
     if(mySupervisorRequest?.status==="pending")html+='<div class="notice">طلب الانضمام إلى مشرفي الفرق قيد مراجعة كبير المشرفين.</div>';
     else if(mySupervisorRequest?.status==="approved")html+='<div class="notice">تم اعتمادك ضمن مشرفي الفرق. يتولى المدير تعيينك على فرقة مناسبة.</div>';
     else html+='<button type="button" class="btn" id="request-team-supervisor">طلب الانضمام إلى مشرفي الفرق</button>';
