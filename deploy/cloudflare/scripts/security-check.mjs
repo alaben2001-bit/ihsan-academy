@@ -255,6 +255,17 @@ assert.match(backend, /const groupId=clean\(b\.group_id,80\),teamName=clean\(b\.
 assert.match(backend, /WHERE id=\? AND group_id=\? AND active=1\"\)\.bind\(headId,groupId\)/, "the chief supervisor must be an active student in the same group");
 assert.match(backend, /اسم هذه الفرقة مستخدم في الفوج/, "team names must be unique within a group");
 
+assert.match(backend, /if\(path==="\/api\/student-teams"&&method==="GET"\)/, "team page API must return scoped teams and membership data");
+assert.match(backend, /collection='student_team_memberships'/, "team membership must be persisted separately from supervisor assignments");
+assert.match(backend, /الطالب ضمن فرقة أخرى؛ يجب تقديم طلب نقل رسمي والموافقة عليه/, "students must not be assigned to two teams without an approved transfer");
+assert.match(backend, /if\(path==="\/api\/student-team-transfer-requests"&&method==="POST"\)/, "students must be able to submit formal team transfer requests");
+assert.match(backend, /head_supervisor_student_id===actor.id/, "only the assigned chief supervisor may decide student transfer requests");
+assert.match(app, /async function teamsPage\(v\)/, "the teams and transfer screen must be available in the app");
+assert.match(app, /id="team-member-form"/, "team supervisors and staff must be able to assign students to teams");
+assert.match(app, /id="team-transfer-form"/, "students must be able to submit formal transfer requests");
+assert.match(app, /data-transfer-decision="approve"/, "the chief supervisor must have a visible transfer approval action");
+
+
 
 
 assert.match(app, /crypto\.getRandomValues\(new Uint8Array\(18\)\)/, "blank student password fields must generate a strong random temporary password");
