@@ -626,7 +626,8 @@ function fillStudentOptions(select,groupId,placeholder,selected=""){
 function selectGroup(groupId,assignment=null){
  groupSelect.value=groupId;
  fillStudentOptions(supervisorSelect,groupId,"اختر مشرف الفرقة",assignment?.supervisor_student_id||"");
- fillStudentOptions(headSelect,groupId,"اختر كبير المشرفين",assignment?.head_supervisor_student_id||"");
+ const groupHead=assignments.find(a=>a.group_id===groupId)?.head_supervisor_student_id||assignment?.head_supervisor_student_id||"";
+ fillStudentOptions(headSelect,groupId,"اختر كبير المشرفين",groupHead);
  if(assignment){teamIdInput.value=assignment.id||"";teamNameInput.value=assignment.team_name||"الفرقة الأولى"}
  else{teamIdInput.value="";teamNameInput.value=""}
 }
