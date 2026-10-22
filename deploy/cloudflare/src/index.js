@@ -250,7 +250,12 @@ export default {
     try {
     if (method === "OPTIONS") return new Response(null, { status:204, headers:{ ...JSON_HEADERS, "access-control-allow-methods":"GET, POST, PUT, PATCH, DELETE, OPTIONS", "access-control-allow-headers":"Content-Type, Authorization, X-CSRF-Token" }});
     if (path === "/api/health" && method === "GET") {
-      try { const [db, users] = await Promise.all([env.DB.prepare("SELECT 1 AS ok").first(), env.DB.prepare("SELECT COUNT(*) AS n FROM users").first()]); return json({ok:db?.ok===1,app:"ihsan-academy",runtime:"cloudflare-pages-functions",storage:"d1",users:users?.n||0}); } catch { return fail(503,"database_unavailable"); }
+      try {
+        const db = await env.DB.prepare("SELECT 1 AS ok").first();
+        return json({ ok: db?.ok === 1, app: "ihsan-academy", runtime: "cloudflare-pages-functions", storage: "d1" });
+      } catch {
+        return fail(503, "database_unavailable");
+      }
     }
     if (path === "/api/setup/status" && method === "GET") {
       try { const r=await env.DB.prepare("SELECT COUNT(*) AS n FROM users WHERE role='admin' AND active=1").first(); return json({needs_admin:(r?.n||0)===0,setup_enabled:!!env.BOOTSTRAP_SECRET}); } catch { return fail(503,"database_unavailable"); }

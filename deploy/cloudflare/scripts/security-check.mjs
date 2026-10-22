@@ -282,4 +282,9 @@ assert.match(style, /\.auth-entry-card/, "login dua and educational benefit card
 assert.match(app, /console\.warn\("تنبيه أمني من أكاديمية الإحسان:/, "the academy must show an Arabic anti-self-XSS warning in the browser console");
 assert.match(app, /لا تُدخل أو تلصق أي شيفرة لا تفهمها/, "the Arabic console warning must advise users not to paste unknown code");
 
+const healthStart = backend.indexOf('if (path === "/api/health"');
+const healthEnd = backend.indexOf('if (path === "/api/setup/status"', healthStart);
+const healthBlock = healthStart >= 0 && healthEnd > healthStart ? backend.slice(healthStart, healthEnd) : "";
+assert.ok(healthBlock && !healthBlock.includes("COUNT(*) AS n FROM users") && !healthBlock.includes("users:users?.n"), "public health checks must not disclose account totals");
+
 console.log("Security regression guardrails passed.");
