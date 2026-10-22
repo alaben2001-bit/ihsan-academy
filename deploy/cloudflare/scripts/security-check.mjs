@@ -229,7 +229,8 @@ assert.match(app, /crypto\.getRandomValues\(new Uint8Array\(18\)\)/, "blank stud
 assert.doesNotMatch(app, /12345678/, "a universal student password must never be shown or submitted");
 assert.match(app, /id="admin-focus-toggle"/, "the director account must be able to switch between daily teaching and administration");
 assert.match(app, /makeGroup\("عمل الشيخ اليومي"/, "admin daily focus must keep teaching tasks separate from administrative tools");
-assert.match(app, /const displayUserName=\["admin","teacher","director"\]/, "the Sheikh honorific must be shown for the director account");
+assert.match(app, /function honorificDisplayName\(name,role\)/, "staff names must use the shared Sheikh honorific formatter");
+assert.match(app, /const displayUserName=honorificDisplayName\(S\.user\.name,S\.user\.role\)/, "the signed-in director, teacher and administrator names must use the shared honorific formatter");
 assert.match(app, /name="thumn" type="number"/, "Quran records must require a thumn number");
 assert.match(app, /name="thumn" type="number" inputmode="numeric" min="1" max="480" step="1" required/, "Quran thumn numbering must support all 480 eighths of the hizb");
 assert.match(app, /id="settings-open-notifications"/, "settings must provide a direct path to notifications");
