@@ -25,7 +25,7 @@ This rebuild does **not** yet provide feature parity with the old application. T
 - A complete end-to-end test suite for every role and school/group boundary. The current `npm run check` is primarily syntax/build validation, not proof that all business flows work.
 - Automated scheduled/off-site backups and a verified restore drill. Admin export/restore endpoints are manual safety tools, not a backup schedule.
 - Final end-to-end verification of all Quran pathways, weekly goals, two-week assessments, progress calculations, and student-facing daily guidance.
-- Historical migration of the former Render/PostgreSQL accounts and records. The existence of current D1 records does not mean the historical database has been imported.
+- Import of historical accounts and records from the previous system. Existing D1 records do not prove that historical records have been imported.
 
 ### Temporary-account warning
 
