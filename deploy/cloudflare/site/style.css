@@ -1366,11 +1366,6 @@ dialog,.settings-dialog,.password-dialog{border:1px solid color-mix(in srgb,var(
 }
 .notice.hifz-program-note--important strong{color:#76510b !important}
 
-.hifz-program-stack>.card{min-width:0;padding:clamp(17px,2vw,25px)}
-.hifz-stat-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:18px}
-
-.hifz-daily-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin:14px 0}
-
 .hifz-milestone-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:15px}
 .hifz-milestone-grid article{min-width:0;display:flex;flex-direction:column;gap:7px;padding:15px;border-radius:14px;border:1px solid var(--line,#dce8df);background:var(--surface,#fff)}
 .hifz-milestone-grid article strong{font-size:20px;color:var(--green,#174b3b);line-height:1.5}
