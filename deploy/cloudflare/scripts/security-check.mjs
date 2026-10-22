@@ -235,4 +235,9 @@ assert.match(app, /name="thumn" type="number" inputmode="numeric" min="1" max="4
 assert.match(app, /id="settings-open-notifications"/, "settings must provide a direct path to notifications");
 assert.doesNotMatch(app, /id="settings-done"/, "appearance preferences apply immediately without a Done button");
 
+
+assert.match(app, /const dailyWisdomForSheikh=\[/, "teaching advice must be separated from student etiquette advice");
+assert.match(app, /const wisdomPool=\["admin","teacher","director","supervisor"\]\?dailyWisdomForSheikh:dailyWisdom/, "daily educational guidance must match the user's role");
+assert.match(app, /if\(S\.tab==="home"\)return await home\(v\);if\(S\.tab==="groups"\)return groups\(v\);/, "obsolete system-check, audit and backup panels must not be reachable from the active page router");
+
 console.log("Security regression guardrails passed.");
