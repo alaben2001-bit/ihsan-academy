@@ -142,6 +142,8 @@ assert.ok(backend.includes('studentProfileMatch&&method==="PATCH"'), "student ac
 assert.ok(backend.includes('if(count>=target){skipped++;continue}'), "re-running roster insertion must not create extra duplicate-name records");
 assert.ok(!app.includes('id="roster-add-form"'), "the requested obsolete roster insertion form must stay removed from the UI");
 assert.doesNotMatch(app, /async function postsPage\(v\)/, "the removed Sheikh Library screen must not remain in the frontend");
+assert.doesNotMatch(backend, /path===\"\/api\/posts\"/, "the removed Sheikh Library API must not remain exposed");
+
 assert.doesNotMatch(app, /"tests","posts","notifications"/, "the removed Sheikh Library must not appear in staff or student navigation");
 assert.match(app, /القسم غير متاح/, "stale or unknown navigation state must show a recovery message rather than remain loading");
 assert.doesNotMatch(app, /\["school-managers","مديرو المدارس"\]/, "the obsolete school managers navigation entry must stay removed");
