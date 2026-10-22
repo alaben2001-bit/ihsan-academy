@@ -1236,14 +1236,3 @@ button.stat-link:active{transform:translateY(0)}
   #view .calendar-weekday { font-size:9px; }
   #view .calendar-day { min-height:34px; }
 }
-
-
-/* Archive follow-up — improve sidebar readability while preserving viewport fit. */
-.app .side{height:100dvh;min-height:100vh;display:flex;flex-direction:column;box-sizing:border-box}
-.app .side .nav{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;scrollbar-width:none;-ms-overflow-style:none;overscroll-behavior:contain}
-.app .side .nav::-webkit-scrollbar{display:none;width:0;height:0}
-.app .side .nav-label{font-size:12px;line-height:1.6;padding:5px 12px}
-.app .side .nav button{min-height:41px;padding:9px 12px;font-size:13px;line-height:1.55;gap:10px}
-.app .side .nav button span{font-size:13px;line-height:1.55;white-space:normal;overflow-wrap:anywhere}
-@media(max-height:760px){.app .side .nav button{min-height:37px;padding:7px 10px}.app .side .nav-label{font-size:11.5px;padding:3px 10px}}
-@media(prefers-reduced-motion:reduce){.app .side .nav button{transition:none!important;scroll-behavior:auto!important}}
