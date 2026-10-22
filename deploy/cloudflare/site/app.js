@@ -611,7 +611,7 @@ function start(){
  renderTopActions();
  const savedMode=safeStore.getSession("ihsan_last_mode"),savedTab=safeStore.getSession("ihsan_last_tab");
  if(savedMode==="school"||savedMode==="ihsan"){
-  S.mode=savedMode;S.tab=savedTab||(savedMode==="ihsan"?"all":"home");if(["system-check","backup","audit","school-managers","posts","teachers"].includes(S.tab))S.tab=S.user?.role==="admin"?"groups":"home";
+  S.mode=savedMode;S.tab=savedTab||(savedMode==="ihsan"?"all":"home");if(["backup","audit","school-managers","posts","teachers"].includes(S.tab))S.tab=S.user?.role==="admin"?"groups":"home";if(S.tab==="system-check"&&S.user?.role!=="admin")S.tab="home";
   if(S.mode==="school")load().then(()=>{shell();page()});else{shell();page()}
   return;
  }
