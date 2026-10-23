@@ -2060,3 +2060,21 @@ html[data-appearance-palette="dark"] .academy-update-copy span{color:#b4c8bf!imp
 html[data-appearance-palette="dark"] .release-history-item{background:#142321!important;border-color:#304a43!important;color:#e7f0eb!important}
 html[data-appearance-palette="dark"] .release-history-item strong{color:#91e4bd!important}
 html[data-appearance-palette="dark"] .release-history-item p{color:#b4c8bf!important}
+
+
+/* Cloudflare production UI: readable navigation and compact viewport fit. */
+.sidebar{min-height:0;max-height:calc(100dvh - 108px);overflow:hidden}
+.sidebar-navigation{min-height:0;max-height:calc(100dvh - 205px);overflow-y:auto;overscroll-behavior:contain;scrollbar-width:none;-ms-overflow-style:none}
+.sidebar-navigation::-webkit-scrollbar{display:none;width:0;height:0}
+.nav-section{gap:5px;margin-bottom:14px}
+.nav-section-title{padding:5px 12px 8px;color:#65766d;font-size:12px;line-height:1.6}
+.nav-btn{min-height:44px;padding:10px 12px;font-size:14px;line-height:1.65;font-weight:600;color:#34483e}
+.nav-icon-wrap{width:24px;height:24px;flex-basis:24px}
+.nav-btn:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+html[data-appearance-palette="dark"] .sidebar{background:#142321!important;border-color:#304a43!important}
+html[data-appearance-palette="dark"] .nav-section-title{color:#b4c8bf!important}
+html[data-appearance-palette="dark"] .nav-btn{color:#d9e7df!important}
+html[data-appearance-palette="dark"] .nav-icon-wrap{color:#a9c4b7!important}
+html[data-appearance-palette="dark"] .nav-btn.active,html[data-appearance-palette="dark"] .nav-btn:hover{background:#214b3d!important;color:#a7efc9!important}
+@media(max-height:720px) and (min-width:761px){.sidebar{top:8px;max-height:calc(100dvh - 16px)}.sidebar-navigation{max-height:calc(100dvh - 150px)}.nav-section{margin-bottom:9px}.nav-btn{min-height:39px;padding-block:7px}}
+@media(prefers-reduced-motion:reduce){.nav-btn{transition:none!important}}

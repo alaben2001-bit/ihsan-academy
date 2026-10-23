@@ -951,6 +951,7 @@ export default {
       const errors=Number(b.errors??0),grade=b.grade===""||b.grade==null?null:Number(b.grade);
       const corrected=b.corrected===true||b.corrected==="true";
       if(!validDateOnly(date))return fail(400,"صيغة التاريخ غير صحيحة");
+      if(date>academyDate())return fail(400,"لا يمكن تسجيل متابعة القرآن بتاريخ مستقبلي");
       const st=await env.DB.prepare("SELECT group_id FROM students WHERE id=? AND active=1").bind(studentId).first();
       if(!st||!await canManageGroup(env,user,st.group_id))return fail(403,"لا تملك صلاحية هذا الطالب");
       if(!allowedActivities.includes(activity))return fail(400,"اختر نوع متابعة صحيحًا");
@@ -973,7 +974,7 @@ export default {
       if(!st||!await canManageGroup(env,user,st.group_id))return fail(403,"لا تملك صلاحية تعديل هذا السجل");
       const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
       const row={...old,date:b.date===undefined?old.date:clean(b.date,10),activity:b.activity===undefined?old.activity:clean(b.activity,24),memorized:b.memorized===undefined?old.memorized:clean(b.memorized,300),reviewed:b.reviewed===undefined?old.reviewed:clean(b.reviewed,300),recitation:b.recitation===undefined?old.recitation:clean(b.recitation,500),errors:b.errors===undefined?old.errors:Number(b.errors),grade:b.grade===undefined?old.grade:(b.grade===""||b.grade==null?null:Number(b.grade)),corrected:b.corrected===undefined?old.corrected:(b.corrected===true||b.corrected==="true"),feedback:b.feedback===undefined?old.feedback:clean(b.feedback,800),next_assignment:b.next_assignment===undefined?old.next_assignment:clean(b.next_assignment,300),notes:b.notes===undefined?old.notes:clean(b.notes,500),updated_at:nowIso()};
-      if(!validDateOnly(String(row.date||""))||!["memorization","revision","recitation","correction"].includes(row.activity)||!Number.isInteger(Number(row.errors))||Number(row.errors)<0||Number(row.errors)>200||(row.grade!==null&&(!Number.isFinite(Number(row.grade))||Number(row.grade)<0||Number(row.grade)>10)))return fail(400,"تحقق من التاريخ والنوع وعدد الأخطاء والتقدير");
+      if(!validDateOnly(String(row.date||""))||String(row.date)>academyDate()||!["memorization","revision","recitation","correction"].includes(row.activity)||!Number.isInteger(Number(row.errors))||Number(row.errors)<0||Number(row.errors)>200||(row.grade!==null&&(!Number.isFinite(Number(row.grade))||Number(row.grade)<0||Number(row.grade)>10)))return fail(400,"تحقق من التاريخ والنوع وعدد الأخطاء والتقدير");
       await saveRecord(env,"quran_progress",row);await log(env,user.id,"quran_progress_update",{student_id:row.student_id,record_id:row.id});
       return json({ok:true,record:row});
     }

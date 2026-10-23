@@ -28,6 +28,9 @@ assert.ok(!backend.includes("nowIso().slice(0,10)"), "date-only school workflows
 // Calendar validation must reject impossible dates in every editable attendance/Quran record.
 assert.match(backend, /if\(!validDateOnly\(date\)\|\|!items\.length\|\|items\.length>200/, "attendance must validate real calendar dates");
 assert.match(backend, /if\(!validDateOnly\(date\)\)return fail\(400,"صيغة التاريخ غير صحيحة"\)/, "Quran progress creation must validate real calendar dates");
+assert.match(backend, /if\(date>academyDate\(\)\)return fail\(400,"لا يمكن تسجيل متابعة القرآن بتاريخ مستقبلي"\)/, "Quran progress creation must reject future dates at the API");
+assert.match(app, /date>S\.date\)\{toast\("اختر تاريخًا صحيحًا لا يتجاوز اليوم",true\);return\}/, "Quran progress form must reject future dates before submission");
+assert.match(backend, /String\(row\.date\)>academyDate\(\)/, "Quran progress edits must reject future dates too");
 assert.match(backend, /if\(!validDateOnly\(String\(row\.date\|\|""\)\)/, "Quran progress edits must validate real calendar dates");
 assert.match(backend, /if\(!value\|\|typeof value!=="object"\|\|Array\.isArray\(value\)\)throw new Error\("invalid_json"\)/, "API bodies must be JSON objects, not nulls, arrays, or primitives");
 assert.match(backend, /const seenStudentIds=new Set\(\);for\(const item of items\)/, "attendance must detect duplicate student rows before database writes");
@@ -58,8 +61,8 @@ assert.doesNotMatch(backend, /return json\(\{token,user:safeUser/, "raw session 
 assert.doesNotMatch(app, /safeStore\.set\(["']ihsan_token["']/, "the UI must not store reusable bearer tokens");
 assert.match(app, /credentials:"same-origin"/, "API requests must send same-origin cookies");
 assert.match(app, /h\["x-csrf-token"\]=csrf/, "mutating API requests must send the CSRF token");
-assert.match(index, /app\.js\?v=20261022-\d+/, "the current frontend asset version must be explicit");
-assert.match(serviceWorker, /ihsan-academy-pwa-v\d+-20261022-\d+/, "the PWA cache must be invalidated with the frontend build");
+assert.match(index, /app\.js\?v=20261023-\d+/, "the current frontend asset version must be explicit");
+assert.match(serviceWorker, /ihsan-academy-pwa-v\d+-20261023-\d+/, "the PWA cache must be invalidated with the frontend build");
 assert.match(style, /\.daily-nourishment-grid/, "daily supplication and learning cards must retain their styling");
 
 // These are static regression guardrails, not a replacement for live role-by-role acceptance tests.

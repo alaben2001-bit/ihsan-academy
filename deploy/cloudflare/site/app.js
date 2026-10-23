@@ -1079,6 +1079,7 @@ async function quran(v){
   const f=new FormData(form),studentId=String(f.get("student_id")||""),number=Number(f.get("thumn")),activity=String(f.get("activity")||"memorization");
   if(!studentId){toast("اختر الطالب أولًا",true);return}
   if(!Number.isInteger(number)||number<1||number>480){toast("رقم الثمن يجب أن يكون بين 1 و480",true);return}
+  const date=String(f.get("date")||"");if(!/^\\d{4}-\\d{2}-\\d{2}$/.test(date)||date>S.date){toast("اختر تاريخًا صحيحًا لا يتجاوز اليوم",true);return}
   const amount="الثمن رقم "+number;
   const body={student_id:studentId,date:f.get("date"),activity,memorized:activity==="memorization"?amount:"",reviewed:activity==="revision"?amount:"",recitation:"",errors:0,grade:null,corrected:false,feedback:"",next_assignment:"",notes:String(f.get("notes")||"").trim()};
   const submit=form.querySelector('button[type="submit"]');submit.disabled=true;
