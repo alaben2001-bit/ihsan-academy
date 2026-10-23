@@ -174,3 +174,20 @@
 @media(prefers-reduced-motion:reduce){
   .login:not(.hidden) .login-feature-card,.login:not(.hidden) .login-about-link,.login:not(.hidden) .login-welcome .btn{transition:none}
 }
+
+
+/* Mobile-first finishing: keep the sign-in action easy to reach */
+@media(max-width:900px){
+  .login:not(.hidden) .login-welcome .welcome-poem{display:none}
+  .login:not(.hidden) .login-welcome h2{margin:7px 0 9px}
+  .login:not(.hidden) .login-welcome .verse{font-size:18px;line-height:1.75}
+  .login:not(.hidden) .login-welcome .welcome-description{margin-top:9px;line-height:1.7}
+  .login:not(.hidden) .login-feature-card{box-shadow:0 5px 16px rgba(0,0,0,.08)}
+  .login:not(.hidden) .login-form-inner{box-shadow:0 14px 34px rgba(22,51,43,.10)}
+  .login:not(.hidden) #loginBtn{width:100%;justify-content:center}
+}
+@media(max-width:420px){
+  .login:not(.hidden) .login-welcome .verse{font-size:16px}
+  .login:not(.hidden) .login-welcome .verse-ref{font-size:12px}
+  .login:not(.hidden) .login-feature-card .feature-mark{font-size:20px}
+}
