@@ -88,3 +88,89 @@
  .login:not(.hidden) .login-art{min-height:190px}
  .login:not(.hidden) .login-form-inner{padding:18px 14px}
 }
+
+
+/* Premium Arabic login refinement — cream, emerald and champagne gold */
+.login:not(.hidden){
+  --login-green:#0d4a3a;--login-deep:#0a3a2e;--login-gold:#d8b46a;
+  background:#faf6ec;color:#16332b;
+}
+.login:not(.hidden) .login-art{
+  background-color:#0d4a3a;
+  background-image:linear-gradient(145deg,rgba(7,48,36,.94),rgba(13,74,58,.82) 55%,rgba(10,58,46,.94)),url('/assets/login-scene.svg');
+  color:#faf6ec;
+  justify-content:center;align-items:center;
+  padding:clamp(22px,4vw,58px);
+}
+.login:not(.hidden) .login-art:before{
+  background:radial-gradient(ellipse at 50% 18%,rgba(216,180,106,.17),transparent 52%),linear-gradient(135deg,transparent 55%,rgba(216,180,106,.07));
+}
+.login:not(.hidden) .login-brand{color:#fff8e8;text-shadow:0 2px 18px #001e18aa}
+.login:not(.hidden) .login-brand small{color:#efd9a0}
+.login:not(.hidden) .login-about-link{
+  position:absolute;z-index:2;top:clamp(14px,2.4vw,28px);inset-inline-start:clamp(16px,2.6vw,32px);
+  display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:7px 15px;
+  color:#fff8e8;text-decoration:none;border:1px solid rgba(239,217,160,.62);border-radius:999px;
+  background:rgba(255,255,255,.07);backdrop-filter:blur(8px);font-weight:700;transition:background .2s,transform .2s;
+}
+.login:not(.hidden) .login-about-link:hover{background:rgba(216,180,106,.18);transform:translateY(-1px)}
+.login:not(.hidden) .login-welcome{width:min(650px,100%);margin:clamp(24px,4vh,44px) auto 0;position:relative;z-index:1}
+.login:not(.hidden) .login-welcome .bismillah{color:#efd9a0;font-weight:700;letter-spacing:.02em}
+.login:not(.hidden) .login-welcome h2{color:#fff8e8;font-size:clamp(27px,3vw,43px);margin:10px 0 14px}
+.login:not(.hidden) .login-welcome .verse{color:#fff8e8;font-family:'Amiri',serif;font-size:clamp(18px,1.65vw,23px);line-height:1.9}
+.login:not(.hidden) .login-welcome .verse-ref{color:#efd9a0;font-size:13px;margin-top:4px}
+.login:not(.hidden) .login-welcome .welcome-description{color:#f3ead5;line-height:1.9;margin-top:15px}
+.login:not(.hidden) .login-welcome .welcome-poem{color:#f5f0e4;line-height:2;margin:14px auto;max-width:600px}
+.login:not(.hidden) .login-welcome .welcome-description strong{color:#efd9a0}
+.login:not(.hidden) .login-feature-cards{
+  display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px;margin:20px 0 16px;
+}
+.login:not(.hidden) .login-feature-card{
+  min-width:0;padding:15px 9px 13px;border:1px solid rgba(239,217,160,.36);border-radius:16px;
+  background:linear-gradient(145deg,rgba(255,255,255,.105),rgba(255,255,255,.035));
+  box-shadow:inset 0 1px rgba(255,255,255,.08);display:flex;flex-direction:column;align-items:center;gap:6px;
+  transition:transform .22s,border-color .22s,background .22s;
+}
+.login:not(.hidden) .login-feature-card:hover{transform:translateY(-3px);border-color:#d8b46a;background:rgba(216,180,106,.12)}
+.login:not(.hidden) .login-feature-card .feature-mark{color:#efd9a0;font-size:23px;line-height:1.1}
+.login:not(.hidden) .login-feature-card b{color:#fff8e8;font-size:clamp(13px,1.2vw,16px)}
+.login:not(.hidden) .login-feature-card small{color:#e4e9df;font-size:12px;line-height:1.6;text-align:center}
+.login:not(.hidden) .login-welcome .btn{
+  min-height:46px;padding-inline:24px;border:1px solid #efd9a0;border-radius:999px;
+  color:#163d30;background:linear-gradient(120deg,#efd9a0,#d8b46a);font-weight:800;
+  box-shadow:0 8px 22px rgba(0,0,0,.15);transition:transform .2s,filter .2s;
+}
+.login:not(.hidden) .login-welcome .btn:hover{transform:translateY(-2px);filter:brightness(1.04)}
+.login:not(.hidden) .login-form{background:#faf6ec}
+.login:not(.hidden) .login-form:before{border-color:#d8b46a}
+.login:not(.hidden) .login-form-inner{
+  border-color:#e4d9b8;border-radius:24px;background:#fffdf7;
+  box-shadow:0 22px 60px rgba(22,51,43,.12),0 2px 8px rgba(22,51,43,.04);
+}
+.login:not(.hidden) .login-form h2{color:#0d4a3a;font-size:clamp(23px,2vw,29px);margin-bottom:10px}
+.login:not(.hidden) #loginForm .field span{color:#245e4b}
+.login:not(.hidden) #loginForm input:not([type=checkbox]){border-color:#ded6c2;background:#fffefa;border-radius:14px}
+.login:not(.hidden) #loginForm input:not([type=checkbox]):focus{border-color:#146651;box-shadow:0 0 0 4px rgba(20,102,81,.12)}
+.login:not(.hidden) #loginBtn{background:linear-gradient(110deg,#146651,#0a3a2e);border-color:#146651}
+.login:not(.hidden) .portal-box{border-color:#e4d9b8}
+.login:not(.hidden) .portal-box h3{color:#0d4a3a}
+.login:not(.hidden) .portal-box .muted{color:#6a7d75}
+@media(max-width:900px){
+  .login:not(.hidden) .login-art{min-height:0;padding:70px 18px 24px;background-position:center;background-size:cover}
+  .login:not(.hidden) .login-welcome{margin-top:18px}
+  .login:not(.hidden) .login-welcome .welcome-poem{font-size:14px;line-height:1.85}
+  .login:not(.hidden) .login-feature-cards{gap:7px;margin:15px 0}
+  .login:not(.hidden) .login-feature-card{padding:12px 5px;border-radius:13px}
+  .login:not(.hidden) .login-feature-card small{font-size:11px}
+  .login:not(.hidden) .login-form{padding:14px 12px 24px}
+}
+@media(max-width:420px){
+  .login:not(.hidden) .login-art{padding:64px 14px 20px}
+  .login:not(.hidden) .login-welcome h2{font-size:27px}
+  .login:not(.hidden) .login-feature-cards{gap:6px}
+  .login:not(.hidden) .login-feature-card b{font-size:12px}
+  .login:not(.hidden) .login-feature-card small{font-size:10px}
+}
+@media(prefers-reduced-motion:reduce){
+  .login:not(.hidden) .login-feature-card,.login:not(.hidden) .login-about-link,.login:not(.hidden) .login-welcome .btn{transition:none}
+}
