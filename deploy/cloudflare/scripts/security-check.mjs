@@ -174,7 +174,9 @@ assert.match(app, /safeStore\.setSession\("ihsan_last_mode","school"\)/, "the se
 assert.match(app, /allah:'<path d="M12 21v-9"/, "knowledge/Allah area must use a botanical icon rather than a sparkle");
 assert.match(app, /prophet:'<path d="M7 3\.5/, "Prophet biography area must use a manuscript icon rather than a sparkle");
 assert.match(app, /daily-nourishment-grid/, "the dashboard must render daily supplication and learning-benefit cards");
-assert.match(app, /onPrimary:student\?\(\)=>/, "the welcome action must route students to the learning gardens");
+assert.match(app, /\$\("#open-school"\)\.onclick=async\(\)=>/, "the platform chooser must open the Quran school workspace");
+assert.match(app, /\$\("#open-ihsan"\)\.onclick=\(\)=>/, "the platform chooser must open the Ihsan learning workspace");
+assert.match(app, /safeStore\.setSession\("ihsan_last_mode","school"\)/, "the selected school workspace must be persisted across reloads");
 const styleVersion = index.match(/style\.css\?v=([\w-]+)/)?.[1];
 assert.ok(styleVersion && serviceWorker.includes(styleVersion), "service-worker cache must match the stylesheet asset version");
 assert.match(app, /title:"وداع اليوم بدعاء من القرآن"/, "logout dialog must rotate in authentic Quranic supplications");
