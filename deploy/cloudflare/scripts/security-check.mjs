@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { validDateOnly, academyDate, addCalendarDays } from "../src/index.js";
 
-const [backend, app, index, serviceWorker, migration, initialMigration, style] = await Promise.all([
+const [backend, app, index, serviceWorker, migration, initialMigration, style, about, privacy] = await Promise.all([
   readFile("src/index.js", "utf8"),
   readFile("site/app.js", "utf8"),
   readFile("site/index.html", "utf8"),
@@ -10,6 +10,8 @@ const [backend, app, index, serviceWorker, migration, initialMigration, style] =
   readFile("migrations/0003_temporary_student_passwords.sql", "utf8"),
   readFile("migrations/0001_initial.sql", "utf8"),
   readFile("site/style.css", "utf8"),
+  readFile("site/about.html", "utf8"),
+  readFile("site/privacy.html", "utf8"),
 ]);
 
 assert.equal(validDateOnly("2024-02-29"), true, "valid leap-day due dates must be accepted");
