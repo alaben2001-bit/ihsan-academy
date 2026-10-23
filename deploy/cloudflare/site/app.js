@@ -354,7 +354,7 @@ function renderTopActions(){
  const installed=ihsanIsInstalled();
  const entryView=!S.user||S.mode==="hub";
  let actions=!S.user?'<button class="btn secondary academy-about-trigger" id="academy-about-open" type="button" aria-label="التعريف بالأكاديمية ورؤيتها">عن الأكاديمية</button> ':"";
- if(S.user)actions+='<button class="btn secondary" id="settings-open" type="button" aria-label="إعدادات الأكاديمية">الإعدادات</button> ';
+ actions+='<button class="btn secondary" id="settings-open" type="button" aria-label="إعدادات الأكاديمية">الإعدادات</button> ';
  if(entryView)actions+='<button class="btn secondary install-app-button" id="install-app" type="button" '+(installed?'disabled aria-label="التطبيق مثبت بالفعل"':'aria-label="تثبيت أكاديمية الإحسان على الهاتف"')+'>'+(installed?'التطبيق مثبت':'تثبيت التطبيق')+'</button>';
  if(S.user)actions+=' <button class="btn secondary" id="logout" type="button">خروج</button>';
  const topActions=$("#top-actions");if(topActions)topActions.innerHTML=actions;
@@ -661,16 +661,9 @@ function showRotatingEntryPrayer(){
   title:picked.p.title,text:picked.p.text,source:picked.p.source,icon:"☾",
   primary:"متابعة",
   secondary:"",
-  onPrimary:student?()=>{
+  onPrimary:()=>{
    if(!inHub){S.mode=currentMode;S.tab=currentTab;return}
-   S.mode="ihsan";S.tab="all";safeStore.setSession("ihsan_last_mode","ihsan");safeStore.setSession("ihsan_last_tab","all");
-   try{history.pushState({ihsanMode:"ihsan",ihsanTab:"all"},"",location.pathname)}catch{}
-   shell();page();
-  }:async()=>{
-   if(!inHub){S.mode=currentMode;S.tab=currentTab;return}
-   S.mode="school";S.tab="home";safeStore.setSession("ihsan_last_mode","school");safeStore.setSession("ihsan_last_tab","home");
-   try{history.pushState({ihsanMode:"school",ihsanTab:"home"},"",location.pathname)}catch{}
-   await load();shell();await page();
+   moduleChooser();
   },
   onSecondary:()=>{}
  });
