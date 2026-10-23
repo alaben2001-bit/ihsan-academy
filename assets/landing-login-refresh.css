@@ -1,0 +1,178 @@
+/* Ihsan Academy — landing/login refresh, 2026-10-23
+   The hero artwork is intentionally optional: set --ihsan-hero-image to url('your-image.jpg') later. */
+:root{
+  --ihsan-green:#0a4d3e;
+  --ihsan-gold:#d4af37;
+  --ihsan-cream:#f8f5ec;
+  --ihsan-hero-image:none;
+}
+.login:not(.hidden){
+  font-family:"Tajawal","Noto Sans Arabic",Tahoma,sans-serif;
+  background:var(--ihsan-cream);
+  color:var(--ihsan-green);
+}
+.login:not(.hidden) .login-art{
+  align-items:center;
+  justify-content:flex-start;
+  padding:clamp(22px,3vw,42px);
+  background-color:var(--ihsan-cream);
+  background-image:
+    linear-gradient(145deg,rgba(248,245,236,.94),rgba(248,245,236,.78)),
+    radial-gradient(ellipse at 14% 16%,rgba(212,175,55,.20),transparent 38%),
+    radial-gradient(ellipse at 90% 84%,rgba(10,77,62,.15),transparent 42%),
+    var(--ihsan-hero-image);
+  background-size:cover;
+  background-position:center;
+}
+.login:not(.hidden) .login-art:before{
+  background:repeating-linear-gradient(45deg,transparent 0 30px,rgba(10,77,62,.035) 31px 32px,transparent 33px 62px);
+  opacity:.6;
+}
+.login:not(.hidden) .login-brand{display:none}
+.login:not(.hidden) .login-welcome{
+  position:relative;
+  z-index:1;
+  width:min(650px,100%);
+  margin:auto;
+  padding:clamp(20px,3vw,36px);
+  border:1px solid rgba(212,175,55,.48);
+  border-radius:28px;
+  background:rgba(255,254,249,.64);
+  box-shadow:0 22px 60px rgba(10,77,62,.08);
+  backdrop-filter:blur(5px);
+  text-align:center;
+}
+.login:not(.hidden) .login-welcome .bismillah{
+  margin:0 0 12px;
+  color:#8c6b16;
+  font-size:clamp(14px,1.5vw,17px);
+  font-weight:700;
+  letter-spacing:.02em;
+}
+.login:not(.hidden) .login-welcome h2{
+  color:var(--ihsan-green);
+  font-size:clamp(28px,3vw,43px);
+  font-weight:800;
+  line-height:1.45;
+  margin:0 0 14px;
+}
+.login:not(.hidden) .login-welcome .verse{
+  color:#245d4c;
+  font-family:"Noto Naskh Arabic","Amiri",serif;
+  font-size:clamp(16px,1.6vw,20px);
+  line-height:2;
+  margin:0 auto 4px;
+  max-width:42ch;
+}
+.login:not(.hidden) .login-welcome .verse-ref{color:#8c6b16;font-size:12px;margin-bottom:18px}
+.login:not(.hidden) .login-welcome .welcome-description{
+  color:#3e6254;
+  font-size:clamp(14px,1.3vw,17px);
+  line-height:1.9;
+  margin:12px auto;
+  max-width:48ch;
+}
+.login:not(.hidden) .login-welcome .welcome-poem{
+  color:#536b60;
+  font-size:13px;
+  line-height:2;
+  max-width:58ch;
+  margin:12px auto 18px;
+}
+.ihsan-feature-grid{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:10px;
+  margin:22px 0 18px;
+}
+.ihsan-feature-card{
+  min-width:0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:6px;
+  padding:15px 9px 13px;
+  border:1px solid rgba(10,77,62,.12);
+  border-radius:18px;
+  background:rgba(255,255,255,.78);
+  box-shadow:0 8px 22px rgba(10,77,62,.055);
+  transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease;
+}
+.ihsan-feature-card:hover{
+  transform:translateY(-3px);
+  border-color:rgba(212,175,55,.7);
+  box-shadow:0 13px 26px rgba(10,77,62,.09);
+}
+.ihsan-feature-icon{
+  display:grid;
+  place-items:center;
+  width:42px;
+  height:42px;
+  border-radius:14px;
+  background:#edf3ed;
+  color:var(--ihsan-green);
+}
+.ihsan-feature-icon svg{
+  width:23px;height:23px;fill:none;stroke:currentColor;stroke-width:1.7;
+  stroke-linecap:round;stroke-linejoin:round;
+}
+.ihsan-feature-card b{font-size:14px;color:var(--ihsan-green);font-weight:800}
+.ihsan-feature-card small{font-size:11px;line-height:1.6;color:#65776c}
+.login:not(.hidden) .login-welcome>.btn{
+  min-height:48px;
+  padding:11px 24px;
+  border:1px solid #286c57;
+  border-radius:999px;
+  background:linear-gradient(120deg,#0a4d3e,#176a53);
+  color:#fff;
+  font-weight:800;
+  box-shadow:0 10px 22px rgba(10,77,62,.16);
+}
+.login:not(.hidden) .login-form{background:var(--ihsan-cream)}
+.login:not(.hidden) .login-form:before{border-color:rgba(212,175,55,.55)}
+.login:not(.hidden) .login-form-inner{
+  border-color:#e8dfca;
+  border-radius:26px;
+  background:#fff;
+  box-shadow:0 22px 60px rgba(10,77,62,.10);
+}
+.login:not(.hidden) .form-brand strong,
+.login:not(.hidden) .login-form h2,
+.login:not(.hidden) .portal-box h3{color:var(--ihsan-green)}
+.login:not(.hidden) #loginForm .field span{color:#285f4e}
+.login:not(.hidden) #loginForm input:not([type=checkbox]){
+  border-color:#d7e2d9;
+  border-radius:13px;
+  background:#fff;
+}
+.login:not(.hidden) #loginForm input:not([type=checkbox]):focus{
+  border-color:var(--ihsan-green);
+  box-shadow:0 0 0 4px rgba(10,77,62,.12);
+}
+.login:not(.hidden) #loginBtn{
+  background:linear-gradient(115deg,#0a4d3e,#176b53);
+  border-color:#286c57;
+}
+.login:not(.hidden) .showpw{accent-color:var(--ihsan-green)}
+@media(max-width:900px){
+  .login:not(.hidden) .login-art{padding:16px 12px 8px;min-height:0;background-position:center}
+  .login:not(.hidden) .login-welcome{padding:21px 15px;border-radius:22px}
+  .login:not(.hidden) .login-welcome h2{font-size:clamp(26px,7vw,34px)}
+  .login:not(.hidden) .login-welcome .welcome-poem{font-size:12px;margin:10px auto}
+  .ihsan-feature-grid{gap:8px;margin:17px 0 12px}
+  .ihsan-feature-card{padding:12px 5px 10px;border-radius:15px}
+  .ihsan-feature-icon{width:36px;height:36px;border-radius:12px}
+  .ihsan-feature-card b{font-size:12px}
+  .ihsan-feature-card small{font-size:10px}
+  .login:not(.hidden) .login-form{padding:12px 12px 25px}
+}
+@media(max-width:360px){
+  .ihsan-feature-grid{grid-template-columns:1fr;gap:8px}
+  .ihsan-feature-card{display:grid;grid-template-columns:38px 1fr;justify-items:start;text-align:right;align-items:center;column-gap:10px}
+  .ihsan-feature-icon{grid-row:span 2}
+  .ihsan-feature-card small{grid-column:2}
+}
+@media(prefers-reduced-motion:reduce){
+  .ihsan-feature-card{transition:none}
+  .ihsan-feature-card:hover{transform:none}
+}
