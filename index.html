@@ -24,6 +24,9 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="application-name" content="أكاديمية الإحسان">
 <meta name="mobile-web-app-capable" content="yes">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/assets/app.css?v=85.0">
 <link rel="stylesheet" href="/assets/admin-mobile.css?v=70.0">
 <link rel="stylesheet" href="/assets/ui-organize.css?v=1.0">
@@ -32,6 +35,7 @@
 <link rel="stylesheet" href="/assets/immersive-appearance.css?v=3.0">
 <link rel="stylesheet" href="/assets/readability-fixes.css?v=5.0">
 <link rel="stylesheet" href="/assets/living-experience.css?v=1.3">
+<link rel="stylesheet" href="/assets/landing-login-refresh.css?v=1.0">
 </head>
 <body>
 <section class="login hidden" id="loginView">
@@ -42,8 +46,13 @@
     <p class="verse-ref">القرآن الكريم، سورة آل عمران: ٨</p>
     <p class="welcome-description">مساحة علمية تجمع معرفة الله تعالى، وسيرة الرسول ﷺ، والقرآن والسنة، والأدب والعمل الصالح.</p>
     <p class="welcome-poem">من هُنا تُبنى العقول، وتُهذَّب النفوس، وتُصاغ همم الرجال؛ بالقرآن نهتدي، وبالسنة نقتدي، وبالعلم نرتقي، وبالأخلاق نسمو، وبالعمل نُثمر؛ لنُخرّج جيلًا راسخ العلم، كريم الخُلُق، عظيم الأثر، يحمل نور الوحي إلى العالمين، ويترك في الحياة بصمة المحسنين.</p>
+    <div class="ihsan-feature-grid" aria-label="مجالات الأكاديمية">
+      <article class="ihsan-feature-card"><span class="ihsan-feature-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21z"/><path d="M4 5.5v13A2.5 2.5 0 0 1 6.5 16H20M8 7h8M8 10h6"/></svg></span><b>القرآن والسنة</b><small>وحيٌ نتعلّمه ونعمل به</small></article>
+      <article class="ihsan-feature-card"><span class="ihsan-feature-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M3 9 12 4l9 5-9 5z"/><path d="M7 12v5c3 2 7 2 10 0v-5M21 9v6"/></svg></span><b>العلم النافع</b><small>معرفةٌ ترشد وتثمر</small></article>
+      <article class="ihsan-feature-card"><span class="ihsan-feature-icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20.8 8.8c0 5.2-8.8 11-8.8 11s-8.8-5.8-8.8-11A4.8 4.8 0 0 1 12 6.5a4.8 4.8 0 0 1 8.8 2.3Z"/><path d="M8 12h2l1.2-2.5L13 15l1.2-3H16"/></svg></span><b>الأدب والإحسان</b><small>خُلُقٌ يزيّن العلم والعمل</small></article>
+    </div>
     <p class="welcome-description"><strong>مناراتُ العلم وبساتينُ الإحسان</strong></p>
-    <button class="btn" type="button" data-act="landing-login">الدخول إلى المنهج ←</button>
+    <button class="btn" type="button" data-act="landing-login">الدخول إلى المنهج <span aria-hidden="true">←</span></button>
   </div></div>
   <div class="login-form"><div class="login-form-inner">
     <div class="form-brand"><img src="/assets/ihsan-emblem.svg" alt=""><strong>أكاديمية الإحسان</strong></div>
