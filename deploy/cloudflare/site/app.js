@@ -1462,7 +1462,7 @@ async function messagesPage(v){
  v.querySelectorAll("[data-wa-contact]").forEach(button=>button.addEventListener("click",()=>{safeStore.setSession("ihsan_message_contact",button.dataset.waContact);page()}));
  $("#wa-refresh")?.addEventListener("click",()=>page());
  v.querySelectorAll("[data-message-read]").forEach(button=>button.addEventListener("click",async()=>{button.disabled=true;try{await api("/messages/read",{method:"POST",body:JSON.stringify({id:button.dataset.messageRead})});await page()}catch(err){toast(err.message,true);button.disabled=false}}));
- $("#private-message-form")?.addEventListener("submit",async e=>{e.preventDefault();const form=e.currentTarget,fd=new FormData(form),button=form.querySelector('button[type="submit"]'),content=String(fd.get("content")||"").trim();if(!content){toast("اكتب الرسالة أولًا",true);return}button.disabled=true;try{await api("/messages",{method:"POST",body:JSON.stringify({recipient_user_id:fd.get("recipient_user_id"),title:fd.get("title")||"محادثة خاصة",content})});toast("أُرسلت الرسالة");await page()}catch(err){toast(err.message,true);button.disabled=false}});
+ $("#private-message-form")?.addEventListener("submit",async e=>{e.preventDefault();const form=e.currentTarget,fd=new FormData(form),button=form.querySelector('button[type="submit"]'),content=String(fd.get("content")||"").trim();if(!content){toast("اكتب الرسالة أولًا",true);return}button.disabled=true;try{await api("/messages",{method:"POST",body:JSON.stringify({recipient_user_id:fd.get("recipient_user_id"),title:fd.get("title")||"محادثة خاصة",content})});await page();toast("تم إرسال الرسالة بنجاح")}catch(err){toast(err.message,true);button.disabled=false}});
 }
 async function assignmentsPage(v){
  const isStudent=S.user.role==="student";
