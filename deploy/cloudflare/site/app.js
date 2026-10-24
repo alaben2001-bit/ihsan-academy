@@ -788,7 +788,8 @@ if(S.user.role!=="student"){
 }
 if(["admin","director","teacher","supervisor"].includes(S.user.role)){
  html+='<section class="card" id="sheikh-combined-ranking"><div class="section-head"><div><h3>ترتيب الطلاب: الحضور والحفظ والمراجعة</h3><p class="muted small">ترتيب موحّد يجمع إنجاز الطالب في المهام الثلاث، بحسب السجلات المحفوظة.</p></div></div><div class="form-grid"><label class="field">الفوج<select id="combined-rank-group"><option value="">كل الأفواج المتاحة</option>'+groupOpts()+'</select></label><label class="field">الفترة<select id="combined-rank-period"><option value="week">أسبوعي · آخر 7 أيام</option><option value="month">شهري · الشهر الحالي</option></select></label></div><div id="combined-rank-results"><p class="muted small">اختر الفترة والفوج لعرض الترتيب.</p></div></section>';
-}\ndocument.addEventListener("change",e=>{if(e.target?.matches("#combined-rank-group,#combined-rank-period"))loadCombinedStudentRanking()});
+}
+document.addEventListener("change",e=>{if(e.target?.matches("#combined-rank-group,#combined-rank-period"))loadCombinedStudentRanking()});
 async function loadCombinedStudentRanking(){
  const host=$("#combined-rank-results"),group=$("#combined-rank-group")?.value||"",period=$("#combined-rank-period")?.value||"week";if(!host)return;
  host.innerHTML='<p class="muted small">جارٍ جمع سجلات الحضور والحفظ والمراجعة…</p>';
