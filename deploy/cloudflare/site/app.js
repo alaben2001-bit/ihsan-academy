@@ -1072,8 +1072,40 @@ async function quran(v){
   v.innerHTML=head("تقدمي في القرآن","مسارك وهدفك الأسبوعي، مع سجل الحفظ والمراجعة والتسميع وتصحيح المعلم.")+quranPlanMarkup(levels,plan,S.user.student_id,true)+quranProgressSummary(rows)+quranPeriodReportMarkup(rows)+'<section class="card"><h3>سجل الحفظ والمراجعة والتسميع</h3><div class="list">'+(rows.length?rows.map(r=>'<article class="list-row"><div><strong>'+esc(r.date)+' · '+esc(quranActivityName(r.activity))+'</strong><small>الحفظ: '+esc(r.memorized||"—")+' · المراجعة: '+esc(r.reviewed||"—")+' · التسميع: '+esc(r.recitation||"—")+'</small><small>الأخطاء: '+Number(r.errors||0)+' · التقدير: '+(r.grade===null||r.grade===undefined?"—":esc(r.grade+"/10"))+' · التصحيح: '+(r.corrected?"تم":"قيد المتابعة")+'</small><small>ملاحظة المعلم: '+esc(r.feedback||r.notes||"—")+'</small><small>المهمة القادمة: '+esc(r.next_assignment||"—")+'</small></div><span class="pill">متابعة</span></article>').join(""):'<div class="empty">لم تُسجّل متابعة بعد. سيظهر تقدمك هنا عند تسميع القرآن للمعلم.</div>')+'</div></section>';
   wireQuranPlan(v,levels);return;
  }
- v.innerHTML=head("متابعة القرآن","تسجيل مختصر للحفظ من الأثمان أو مراجعتها، مع ترتيب السجل من الأحدث إلى الأقدم.")+
- '<section class="card quran-quick-entry"><form id="qform" class="form-grid"><label class="field wide">الطالب<select name="student_id" required><option value="">اختر الطالب</option>'+S.students.slice().sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"ar")).map(st=>'<option value="'+esc(st.id)+'">'+esc(st.name)+' — '+esc((S.groups.find(g=>g.id===st.group_id)||{}).name||"بلا فوج")+'</option>').join("")+'</select></label><label class="field">نوع التسجيل<select name="activity" required><option value="memorization">حفظ ثمن</option><option value="revision">مراجعة ثمن</option></select></label><label class="field">كم ثمن الحفظ؟<input name="thumn" type="number" inputmode="numeric" min="1" max="480" step="1" required placeholder="أدخل رقم الثمن من 1 إلى 480"></label><label class="field">التاريخ<input name="date" type="date" required value="'+esc(S.date)+'"></label><label class="field wide">ملاحظة مختصرة (اختياري)<input name="notes" maxlength="300" placeholder="موضع يحتاج إلى تثبيت أو تنبيه"></label><div class="wide student-actions"><button class="btn" type="submit">حفظ التسجيل</button></div></form><p class="muted small">رقم الثمن مطلوب من 1 إلى 480. السجلات السابقة محفوظة كما هي.</p></section><section class="card"><div class="section-head"><div><h3>سجل الحفظ والمراجعة</h3><p class="muted small">مرتب من الأحدث إلى الأقدم.</p></div></div><div id="qhistory" class="list"><div class="empty">اختر طالبًا لعرض السجل.</div></div></section>';
+ const quranGroups=S.groups.slice().sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"ar"));
+ const studentsByGroup=new Map();
+ for(const st of S.students){const key=String(st.group_id||"");if(!studentsByGroup.has(key))studentsByGroup.set(key,[]);studentsByGroup.get(key).push(st)}
+ for(const list of studentsByGroup.values())list.sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"ar"));
+ const savedStudent=safeStore.getSession("ihsan_quran_student");
+ const savedGroup=safeStore.getSession("ihsan_quran_group");
+ const chosenStudent=S.students.find(st=>st.id===savedStudent);
+ const initialGroup=chosenStudent?String(chosenStudent.group_id||""):savedGroup;
+ const groupOptions=quranGroups.map(g=>'<option value="'+esc(g.id)+'"'+(String(g.id)===initialGroup?' selected':'')+'>'+esc(g.name)+'</option>').join("");
+ const renderStudentOptions=(groupId,selectedId="")=>{
+  const members=studentsByGroup.get(String(groupId||""))||[];
+  return '<option value="">اختر الطالب</option>'+members.map(st=>'<option value="'+esc(st.id)+'"'+(st.id===selectedId?' selected':'')+'>'+esc(st.name)+'</option>').join("")+(studentsByGroup.has("")?'<optgroup label="بلا فوج">'+studentsByGroup.get("").map(st=>'<option value="'+esc(st.id)+'"'+(st.id===selectedId?' selected':'')+'>'+esc(st.name)+'</option>').join("")+'</optgroup>':"");
+ };
+ v.innerHTML=head("متابعة القرآن","اختر الفوج أولًا، ثم الطالب من قائمة مرتبة بأسماء ذلك الفوج.")+
+ '<section class="card quran-quick-entry"><form id="qform" class="form-grid"><label class="field">الفوج<select name="group_id" required><option value="">اختر الفوج أولًا</option>'+groupOptions+'</select></label><label class="field">الطالب<select name="student_id" required disabled><option value="">اختر الفوج أولًا</option></select></label><label class="field">نوع التسجيل<select name="activity" required><option value="memorization">حفظ ثمن</option><option value="revision">مراجعة ثمن</option></select></label><label class="field">رقم الثمن<input name="thumn" type="number" inputmode="numeric" min="1" max="480" step="1" required placeholder="1–480"></label><label class="field">التاريخ<input name="date" type="date" required value="'+esc(S.date)+'"></label><label class="field wide">ملاحظة مختصرة (اختياري)<input name="notes" maxlength="300" placeholder="موضع يحتاج إلى تثبيت أو تنبيه"></label><div class="wide student-actions"><button class="btn" type="submit">حفظ التسجيل</button></div></form><p class="muted small">رقم الثمن مطلوب من 1 إلى 480. السجلات السابقة محفوظة كما هي.</p></section><section class="card"><div class="section-head"><div><h3>سجل الحفظ والمراجعة</h3><p class="muted small">مرتب من الأحدث إلى الأقدم.</p></div></div><div id="qhistory" class="list"><div class="empty">اختر الفوج والطالب لعرض السجل.</div></div></section>';
+ const form=$("#qform"),hist=$("#qhistory"),groupSelect=form.elements.group_id,studentSelect=form.elements.student_id;
+ if(initialGroup){studentSelect.innerHTML=renderStudentOptions(initialGroup,savedStudent);studentSelect.disabled=false;if(!studentSelect.value)studentSelect.value=""}
+ async function refreshHistory(id){
+  if(!id){hist.innerHTML='<div class="empty">اختر الفوج والطالب لعرض السجل.</div>';return}
+  try{
+   const rows=await api("/quran/progress?student_id="+encodeURIComponent(id));
+   rows.sort((a,b)=>String(b.date||"").localeCompare(String(a.date||""))||String(b.created_at||"").localeCompare(String(a.created_at||"")));
+   hist.innerHTML=rows.length?rows.map(r=>{
+    const activity=r.activity==="revision"?"مراجعة ثمن":"حفظ ثمن";
+    const amount=r.activity==="revision"?(r.reviewed||"—"):(r.memorized||"—");
+    return '<article class="list-row quran-entry-row"><div><strong>'+esc(r.date||"—")+' · '+activity+'</strong><small>'+esc((S.students.find(st=>st.id===r.student_id)||{}).name||"الطالب")+' · '+esc(amount)+'</small>'+(r.notes?'<small>ملاحظة: '+esc(r.notes)+'</small>':"")+'</div><span class="pill">'+activity+'</span></article>';
+   }).join(""):'<div class="empty">لا توجد تسجيلات لهذا الطالب حتى الآن.</div>';
+  }catch(e){hist.innerHTML='<div class="notice error">'+esc(e.message)+'</div>'}
+ }
+ groupSelect.onchange=()=>{
+  const gid=groupSelect.value;safeStore.setSession("ihsan_quran_group",gid);studentSelect.innerHTML=renderStudentOptions(gid);studentSelect.disabled=!gid;safeStore.removeSession("ihsan_quran_student");refreshHistory("");
+ };
+ studentSelect.onchange=()=>{safeStore.setSession("ihsan_quran_student",studentSelect.value);refreshHistory(studentSelect.value)};
+ if(studentSelect.value)refreshHistory(studentSelect.value);
  const form=$("#qform"),hist=$("#qhistory"),studentSelect=form.elements.student_id;
  const savedStudent=safeStore.getSession("ihsan_quran_student");
  if(savedStudent&&S.students.some(st=>st.id===savedStudent))studentSelect.value=savedStudent;
