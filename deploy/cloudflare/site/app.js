@@ -380,6 +380,22 @@ function showSettings(){
  const dialog=$("#settings-dialog");
  // Organize the long settings panel into quick-jump categories without removing any existing controls.
  const settingsBody=dialog.querySelector(".settings-body");
+ // Prioritize settings by practical importance: account/security, visual preferences, comfort, notifications, help, then release history.
+ if(settingsBody){
+  const rank=section=>{
+   const h=(section.querySelector("h3")?.textContent||"").trim();
+   if(h.includes("الحساب والأمان"))return 0;
+   if(h.includes("ألوان الواجهة"))return 1;
+   if(h.includes("استوديو المظهر"))return 2;
+   if(h.includes("الأصوات والراحة")||h.includes("الحركة والراحة"))return 3;
+   if(h.includes("تنبيهات التطبيق"))return 4;
+   if(h.includes("التواصل والمساعدة"))return 5;
+   if(h.includes("المميزات وسجل التطوير"))return 6;
+   return 5;
+  };
+  [...settingsBody.querySelectorAll(":scope > .settings-section")].sort((a,b)=>rank(a)-rank(b)).forEach(section=>settingsBody.appendChild(section));
+ }
+
  if(settingsBody&&!settingsBody.querySelector(".settings-quick-nav")){
    const sections=[...settingsBody.querySelectorAll(":scope > .settings-section")];
    const labels=sections.map(section=>section.querySelector("h3")?.textContent?.trim()||"خيارات إضافية");
@@ -560,7 +576,7 @@ function items(){
  if(S.user.role==="director")return [["home","الرئيسية"],["groups","الأفواج والمعلمون والفرق"],["students","طلاب المدرسة"],["attendance","الحضور"],["quran","الحفظ والمراجعة"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"]];
  if(S.user.role==="supervisor")return [["home","الرئيسية"],["students","طلاب فريقي"],["teams","فرقي الطلابية"],["attendance","الحضور"],["quran","الحفظ والمراجعة"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"]];
  if(S.user.role==="teacher")return [["home","الرئيسية"],["students","طلبتي"],["teams","فرقي الطلابية"],["attendance","الحضور"],["quran","الحفظ والمراجعة"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"]];
- return [["home","الرئيسية"],["profile","ملفي"],["teams","فرقتي وطلبات النقل"],["quran","تقدمي في القرآن"],["assignments","واجباتي"],["gradebook","تقدمي ودرجاتي"],["attendance","حضوري"],["tests","اختباراتي"],["notifications","التنبيهات"],["messages","الرسائل"],["leaderboard","الترتيب العام"]];
+ return [["home","الرئيسية"],["profile","ملفي"],["teams","فرقتي وطلبات النقل"],["quran","تقدمي في القرآن"],["assignments","واجباتي"],["attendance","حضوري"],["tests","اختباراتي"],["notifications","التنبيهات"],["messages","الرسائل"],["leaderboard","الترتيب العام"]];
 }
 
 
@@ -787,7 +803,7 @@ if(S.user.role!=="student"){
  html+='<div class="student-dashboard">'+(gam?'<section class="card achievement-card"><h3>إنجازك اليوم</h3><p>النقاط: <strong>'+Number(gam.points||0)+'</strong> · أيام الحفظ والمراجعة: <strong>'+Number(gam.stats?.quran_days||0)+'</strong> · الاختبارات: <strong>'+Number(gam.stats?.tests||0)+'</strong></p><p>تحدي اليوم: '+esc(gam.daily_challenge?.title||'ورد اليوم')+' — '+esc(gam.daily_challenge?.description||'اقرأ وردك وراجعه بإتقان.')+'</p><p class="muted small">'+(gam.badges||[]).map(b=>esc(b.name)).join(' · ')+'</p><p class="muted small">القلوب المتبقية اليوم: '+Number(gam.hearts??5)+'</p>'+(gam.challenge_claimed?'<p class="notice">استلمت مكافأة اليوم بالفعل.</p>':'<button class="btn" data-claim-challenge="'+esc(gam.daily_challenge?.id||"daily-quran")+'">استلام مكافأة التحدي</button>')+'</section>': '')+'<div class="card student-welcome"><div class="eyebrow">خطوتك اليوم</div><h3>﴿ وَقُلْ رَبِّ زِدْنِي عِلْمًا ﴾</h3><p>اختر مهمة صغيرة، أنجزها بإتقان، ثم سجّل تقدمك. الاستمرار أهم من كثرة البداية.</p><div class="student-actions"><button class="btn" data-go="quran">الحفظ والمراجعة</button><button class="btn secondary" data-go="tests">ابدأ اختبارًا</button></div></div><div class="stats"><div class="stat"><small>متابعات القرآن</small><strong>'+quranRows.length+'</strong></div><div class="stat"><small>سجلات الحضور</small><strong>'+attendanceRows.length+'</strong></div><div class="stat"><small>اختبارات متاحة</small><strong>'+tests.length+'</strong></div><div class="stat"><small>واجبات غير منجزة</small><strong>'+assignments.filter(a=>!a.my_submission||a.my_submission.status!=="reviewed").length+'</strong></div><div class="stat"><small>ترتيب فوجك</small><strong>'+(me?"#"+me.rank:"—")+'</strong></div></div><section class="card path-cards-section"><div class="section-head"><div><h3>مساراتك وبطاقات تقدمك</h3><p>اختر الخطوة التالية، وتابع تقدمك دون مقارنة جائرة بغيرك.</p></div></div><div class="path-cards"><button class="path-card" data-go="quran"><span class="path-icon">۞</span><strong>مسار القرآن</strong><small>'+(gam?.plan?esc(({starter:"المسار التمهيدي","15":"ختمة 15 يومًا","30":"ختمة 30 يومًا","45":"ختمة 45 يومًا",khatma:"الختمة الكاملة"}[gam.plan.path_id]||"خطة القرآن")):"اختر مسار ختمتك")+'</small><span class="path-meter"><i style="width:'+Math.min(100,quranRows.length*5)+'%"></i></span><small>'+quranRows.length+' متابعة مسجلة</small></button><button class="path-card" data-go="tests"><span class="path-icon">✧</span><strong>الاختبارات</strong><small>تعلّم، اختبر، ثم راجع أخطاءك</small><span class="path-meter"><i style="width:'+Math.min(100,tests.length?tests.filter(t=>t.my_attempt).length/tests.length*100:0)+'%"></i></span><small>'+tests.filter(t=>t.my_attempt).length+' من '+tests.length+' مكتمل</small></button><button class="path-card" data-go="assignments"><span class="path-icon">✓</span><strong>واجباتي</strong><small>اطلع على التكليفات وسلّم إجابتك وتابع ملاحظات المعلم</small><span class="path-meter"><i style="width:'+Math.min(100,assignments.length?assignments.filter(a=>a.my_submission&&a.my_submission.status==="reviewed").length/assignments.length*100:0)+'%"></i></span><small>'+assignments.filter(a=>a.my_submission&&a.my_submission.status==="reviewed").length+' من '+assignments.length+' تمت مراجعتها</small></button><button class="path-card" data-open-ihsan><span class="path-icon">'+navIcon("allah")+'</span><strong>تخصصات العلم</strong><small>الله تعالى، الرسول ﷺ، القرآن، السنة، الأدب والعمل</small><span class="path-link">استكشف المسارات ←</span></button></div></section><div class="card"><h3>اقتراح اليوم</h3><p>'+(qToday?'سُجّلت متابعة قرآن اليوم. أحسنت، راجع ما حفظته وثبّته.':"راجع وردك من القرآن، واطلب من معلمك تسجيل الحفظ والمراجعة عند التسميع.")+'</p><p>'+(todayAttendance?'حضور اليوم مسجّل: '+esc(({"present":"حاضر","absent":"غائب","late":"متأخر","excused":"بعذر"}[todayAttendance.status]||todayAttendance.status))+'.':"تحقق من سجل حضورك بعد انتهاء الحلقة.")+'</p><p>'+(unanswered?'لديك '+unanswered+' اختبار/اختبارات لم ترسلها بعد.':'راجع نتائج اختباراتك السابقة إن وُجدت.')+'</p><button class="btn secondary" data-go="profile">عرض ملفي وتقدّمي</button></div></div>';
 }
 if(["admin","director","teacher","supervisor"].includes(S.user.role)){
- html+='<section class="card" id="sheikh-combined-ranking"><div class="section-head"><div><h3>ترتيب الطلاب: الحضور والحفظ والمراجعة</h3><p class="muted small">ترتيب موحّد يجمع إنجاز الطالب في المهام الثلاث، بحسب السجلات المحفوظة.</p></div></div><div class="form-grid"><label class="field">الفوج<select id="combined-rank-group"><option value="">كل الأفواج المتاحة</option>'+groupOpts()+'</select></label><label class="field">الفترة<select id="combined-rank-period"><option value="week">أسبوعي · آخر 7 أيام</option><option value="month">شهري · الشهر الحالي</option></select></label></div><div id="combined-rank-results"><p class="muted small">اختر الفترة والفوج لعرض الترتيب.</p></div></section>';
+ html+='<section class="card" id="sheikh-combined-ranking"><div class="section-head"><div><h3>مهام الشيخ اليومية · ترتيب الطلاب</h3><p class="muted small">رتّب الطلاب مجتمعين بحسب الحضور والحفظ والمراجعة، مع عرض الترتيب الأسبوعي والشهري من السجلات المسجلة.</p></div></div><div class="form-grid"><label class="field">الفوج<select id="combined-rank-group"><option value="">كل الأفواج المتاحة</option>'+groupOpts()+'</select></label><label class="field">الفترة<select id="combined-rank-period"><option value="week">أسبوعي · آخر 7 أيام</option><option value="month">شهري · الشهر الحالي</option></select></label></div><div id="combined-rank-results"><p class="muted small">اختر الفترة والفوج لعرض الترتيب.</p></div></section>';
 }
 document.addEventListener("change",e=>{if(e.target?.matches("#combined-rank-group,#combined-rank-period"))loadCombinedStudentRanking()});
 async function loadCombinedStudentRanking(){
@@ -809,7 +825,8 @@ async function loadCombinedStudentRanking(){
   }).sort((a,b)=>b.score-a.score||b.present-a.present||b.hifz-a.hifz||b.revision-a.revision||a.name.localeCompare(b.name,"ar"));
   host.innerHTML=scores.length?'<p class="muted small">'+(period==="week"?"من "+esc(start)+" إلى ":"من بداية الشهر "+esc(start)+" إلى ")+esc(today)+' · النقاط: الحضور 1، التأخر 0.5، وكل ثمن حفظ أو مراجعة 1.</p><div class="table-wrap"><table><thead><tr><th>الترتيب</th><th>الطالب</th><th>الحضور</th><th>الحفظ (أثمان)</th><th>المراجعة (أثمان)</th><th>المجموع</th></tr></thead><tbody>'+scores.map((x,i)=>'<tr><td>'+(i+1)+'</td><td>'+esc(x.name)+'</td><td>'+x.present+(x.late?' · تأخر '+x.late:'')+'</td><td>'+x.hifz+'</td><td>'+x.revision+'</td><td><strong>'+x.score+'</strong></td></tr>').join("")+'</tbody></table></div>':'<div class="empty">لا توجد أسماء طلاب ضمن الاختيار الحالي.</div>';
  }catch(err){host.innerHTML='<div class="notice error">'+esc(err.message||"تعذّر تحميل الترتيب")+'</div>'}
-}\nconst daySeed=Math.floor(Math.random()*1000000);
+}
+const daySeed=Math.floor(Math.random()*1000000);
 const dailySupplications=[
 {title:"دعاء من القرآن",text:"وَقُلْ رَبِّ زِدْنِي عِلْمًا",source:"سورة طه: 114"},
 {title:"دعاء من القرآن",text:"رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ",source:"سورة البقرة: 201"},
