@@ -291,8 +291,8 @@ assert.match(app, /id="admin-focus-toggle"/, "the director account must be able 
 assert.match(app, /makeGroup\("مهام الشيخ اليومية"/, "admin daily focus must keep teaching tasks separate from administrative tools");
 assert.match(app, /function honorificDisplayName\(name,role\)/, "staff names must use the shared Sheikh honorific formatter");
 assert.match(app, /const displayUserName=honorificDisplayName\(S\.user\.name,S\.user\.role\)/, "the signed-in director, teacher and administrator names must use the shared honorific formatter");
-assert.match(app, /name="thumn" type="number"/, "Quran records must require a thumn number");
-assert.match(app, /name="thumn" type="number" inputmode="numeric" min="1" max="480" step="1" required/, "Quran thumn numbering must support all 480 eighths of the hizb");
+assert.match(app, /name="thumn_from" type="number" inputmode="numeric" min="1" max="480" step="1" required/, "Quran records must require a starting thumn number");
+assert.match(app, /name="thumn_to" type="number" inputmode="numeric" min="1" max="480" step="1"/, "Quran thumn ranges must support all 480 eighths of the hizb");
 assert.match(app, /id="settings-open-notifications"/, "settings must provide a direct path to notifications");
 assert.doesNotMatch(app, /id="settings-done"/, "appearance preferences apply immediately without a Done button");
 
@@ -336,7 +336,7 @@ assert.match(style, /\.release-history-item/, "the in-app release history must b
 assert.match(index, /app\.js\?v=20261024-015/, "frontend cache busting must use the latest asset version");
 assert.match(index, /style\.css\?v=20261024-015/, "stylesheet cache busting must use the latest asset version");
 assert.match(index, /startup\.js\?v=20261024-015/, "startup cache busting must use the latest asset version");
-assert.match(serviceWorker, /ihsan-academy-pwa-v122-20261024-005/, "service worker cache namespace must match this release");
+assert.match(serviceWorker, /ihsan-academy-pwa-v123-20261024-006/, "service worker cache namespace must match this release");
 assert.match(app, /secondary:""/, "welcome dua must have one Continue button rather than Later");
 assert.match(app, /primary:"متابعة"/, "the rotating welcome dua must use the requested Continue label");
 assert.match(app, /function rememberOfflineUser\(\)/, "offline startup may only rely on the minimal stored profile, never the password");
