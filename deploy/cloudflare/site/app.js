@@ -1076,70 +1076,75 @@ async function quran(v){
  const studentsByGroup=new Map();
  for(const st of S.students){const key=String(st.group_id||"");if(!studentsByGroup.has(key))studentsByGroup.set(key,[]);studentsByGroup.get(key).push(st)}
  for(const list of studentsByGroup.values())list.sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"ar"));
- const savedStudent=safeStore.getSession("ihsan_quran_student");
- const savedGroup=safeStore.getSession("ihsan_quran_group");
+ const savedStudent=safeStore.getSession("ihsan_quran_student"),savedGroup=safeStore.getSession("ihsan_quran_group");
  const chosenStudent=S.students.find(st=>st.id===savedStudent);
- const initialGroup=chosenStudent?String(chosenStudent.group_id||""):savedGroup;
+ const initialGroup=chosenStudent?String(chosenStudent.group_id||""):String(savedGroup||"");
  const groupOptions=quranGroups.map(g=>'<option value="'+esc(g.id)+'"'+(String(g.id)===initialGroup?' selected':'')+'>'+esc(g.name)+'</option>').join("");
  const renderStudentOptions=(groupId,selectedId="")=>{
   const members=studentsByGroup.get(String(groupId||""))||[];
-  return '<option value="">اختر الطالب</option>'+members.map(st=>'<option value="'+esc(st.id)+'"'+(st.id===selectedId?' selected':'')+'>'+esc(st.name)+'</option>').join("")+(studentsByGroup.has("")?'<optgroup label="بلا فوج">'+studentsByGroup.get("").map(st=>'<option value="'+esc(st.id)+'"'+(st.id===selectedId?' selected':'')+'>'+esc(st.name)+'</option>').join("")+'</optgroup>':"");
+  return '<option value="">اختر الطالب</option>'+members.map(st=>'<option value="'+esc(st.id)+'"'+(st.id===selectedId?' selected':'')+'>'+esc(st.name)+'</option>').join("");
  };
- v.innerHTML=head("متابعة القرآن","اختر الفوج أولًا، ثم الطالب من قائمة مرتبة بأسماء ذلك الفوج.")+
- '<section class="card quran-quick-entry"><form id="qform" class="form-grid"><label class="field">الفوج<select name="group_id" required><option value="">اختر الفوج أولًا</option>'+groupOptions+'</select></label><label class="field">الطالب<select name="student_id" required disabled><option value="">اختر الفوج أولًا</option></select></label><label class="field">نوع التسجيل<select name="activity" required><option value="memorization">حفظ ثمن</option><option value="revision">مراجعة ثمن</option></select></label><label class="field">رقم الثمن<input name="thumn" type="number" inputmode="numeric" min="1" max="480" step="1" required placeholder="1–480"></label><label class="field">التاريخ<input name="date" type="date" required value="'+esc(S.date)+'"></label><label class="field wide">ملاحظة مختصرة (اختياري)<input name="notes" maxlength="300" placeholder="موضع يحتاج إلى تثبيت أو تنبيه"></label><div class="wide student-actions"><button class="btn" type="submit">حفظ التسجيل</button></div></form><p class="muted small">رقم الثمن مطلوب من 1 إلى 480. السجلات السابقة محفوظة كما هي.</p></section><section class="card"><div class="section-head"><div><h3>سجل الحفظ والمراجعة</h3><p class="muted small">مرتب من الأحدث إلى الأقدم.</p></div></div><div id="qhistory" class="list"><div class="empty">اختر الفوج والطالب لعرض السجل.</div></div></section>';
+ v.innerHTML=head("متابعة القرآن","اختر الفوج أولًا؛ ستظهر أسماء طلابه فقط. سجّل الحفظ أو المراجعة، وعاين إنجاز الفوج أسبوعيًا أو شهريًا.")+
+ '<section class="card quran-quick-entry"><form id="qform" class="form-grid"><label class="field">الفوج<select name="group_id" required><option value="">اختر الفوج أولًا</option>'+groupOptions+'</select></label><label class="field">الطالب<select name="student_id" required disabled><option value="">اختر الفوج أولًا</option></select></label><label class="field">نوع التسجيل<select name="activity" required><option value="memorization">حفظ</option><option value="revision">مراجعة</option></select></label><label class="field">الثمن من رقم<input name="thumn_from" type="number" inputmode="numeric" min="1" max="480" step="1" required placeholder="رقم الثمن"></label><label class="field">إلى رقم (اختياري)<input name="thumn_to" type="number" inputmode="numeric" min="1" max="480" step="1" placeholder="إن كان أكثر من ثمن"></label><label class="field">التاريخ<input name="date" type="date" required value="'+esc(S.date)+'"></label><label class="field wide">ملاحظة مختصرة (اختياري)<input name="notes" maxlength="300" placeholder="موضع يحتاج إلى تثبيت أو تنبيه"></label><div class="wide student-actions"><button class="btn quran-save-button" type="submit">حفظ التسجيل</button></div></form><p class="muted small">رقم «من» مطلوب، ورقم «إلى» اختياري. تحفظ التسجيلات الجديدة دون حذف السجلات السابقة.</p></section>'+
+ '<section class="card"><div class="section-head"><div><h3>إنجاز الطلاب وترتيب الاجتهاد</h3><p class="muted small">اختر الفوج والفترة؛ الترتيب بحسب عدد الأثمان المسجلة للحفظ أولًا ثم المراجعة.</p></div></div><div class="form-grid"><label class="field">فوج التقرير<select id="qreport-group"><option value="">اختر الفوج</option>'+groupOptions+'</select></label><label class="field">الفترة<select id="qreport-period"><option value="week">آخر 7 أيام</option><option value="month">الشهر الحالي</option></select></label><div class="wide"><button class="btn quran-save-button" id="qreport-load" type="button">معاينة التقرير</button></div></div><div id="qreport-result" class="muted small">اختر الفوج ثم اضغط «معاينة التقرير».</div></section>'+
+ '<section class="card"><div class="section-head"><div><h3>سجل الحفظ والمراجعة</h3><p class="muted small">مرتب من الأحدث إلى الأقدم.</p></div></div><div id="qhistory" class="list"><div class="empty">اختر الفوج والطالب لعرض السجل.</div></div></section>';
  const form=$("#qform"),hist=$("#qhistory"),groupSelect=form.elements.group_id,studentSelect=form.elements.student_id;
- if(initialGroup){studentSelect.innerHTML=renderStudentOptions(initialGroup,savedStudent);studentSelect.disabled=false;if(!studentSelect.value)studentSelect.value=""}
+ if(initialGroup&&quranGroups.some(g=>String(g.id)===initialGroup)){studentSelect.innerHTML=renderStudentOptions(initialGroup,savedStudent);studentSelect.disabled=false}
  async function refreshHistory(id){
   if(!id){hist.innerHTML='<div class="empty">اختر الفوج والطالب لعرض السجل.</div>';return}
   try{
    const rows=await api("/quran/progress?student_id="+encodeURIComponent(id));
    rows.sort((a,b)=>String(b.date||"").localeCompare(String(a.date||""))||String(b.created_at||"").localeCompare(String(a.created_at||"")));
    hist.innerHTML=rows.length?rows.map(r=>{
-    const activity=r.activity==="revision"?"مراجعة ثمن":"حفظ ثمن";
-    const amount=r.activity==="revision"?(r.reviewed||"—"):(r.memorized||"—");
+    const activity=r.activity==="revision"?"مراجعة":"حفظ",amount=r.activity==="revision"?(r.reviewed||"—"):(r.memorized||"—");
     return '<article class="list-row quran-entry-row"><div><strong>'+esc(r.date||"—")+' · '+activity+'</strong><small>'+esc((S.students.find(st=>st.id===r.student_id)||{}).name||"الطالب")+' · '+esc(amount)+'</small>'+(r.notes?'<small>ملاحظة: '+esc(r.notes)+'</small>':"")+'</div><span class="pill">'+activity+'</span></article>';
    }).join(""):'<div class="empty">لا توجد تسجيلات لهذا الطالب حتى الآن.</div>';
   }catch(e){hist.innerHTML='<div class="notice error">'+esc(e.message)+'</div>'}
  }
  groupSelect.onchange=()=>{
-  const gid=groupSelect.value;safeStore.setSession("ihsan_quran_group",gid);studentSelect.innerHTML=renderStudentOptions(gid);studentSelect.disabled=!gid;safeStore.removeSession("ihsan_quran_student");refreshHistory("");
+  const gid=groupSelect.value;safeStore.setSession("ihsan_quran_group",gid);studentSelect.innerHTML=renderStudentOptions(gid);studentSelect.disabled=!gid;studentSelect.value="";safeStore.removeSession("ihsan_quran_student");refreshHistory("");
+  if($("#qreport-group"))$("#qreport-group").value=gid;
  };
  studentSelect.onchange=()=>{safeStore.setSession("ihsan_quran_student",studentSelect.value);refreshHistory(studentSelect.value)};
  if(studentSelect.value)refreshHistory(studentSelect.value);
- const form=$("#qform"),hist=$("#qhistory"),studentSelect=form.elements.student_id;
- const savedStudent=safeStore.getSession("ihsan_quran_student");
- if(savedStudent&&S.students.some(st=>st.id===savedStudent))studentSelect.value=savedStudent;
- async function refreshHistory(id){
-  if(!id){hist.innerHTML='<div class="empty">اختر طالبًا لعرض السجل.</div>';return}
-  try{
-   const rows=await api("/quran/progress?student_id="+encodeURIComponent(id));
-   rows.sort((a,b)=>String(b.date||"").localeCompare(String(a.date||""))||String(b.created_at||"").localeCompare(String(a.created_at||"")));
-   hist.innerHTML=rows.length?rows.map(r=>{
-    const activity=r.activity==="revision"?"مراجعة ثمن":"حفظ ثمن";
-    const amount=r.activity==="revision"?(r.reviewed||"—"):(r.memorized||"—");
-    return '<article class="list-row quran-entry-row"><div><strong>'+esc(r.date||"—")+' · '+activity+'</strong><small>'+esc((S.students.find(st=>st.id===r.student_id)||{}).name||"الطالب")+' · '+esc(amount)+'</small>'+(r.notes?'<small>ملاحظة: '+esc(r.notes)+'</small>':"")+'</div><span class="pill">'+activity+'</span></article>';
-   }).join(""):'<div class="empty">لا توجد تسجيلات لهذا الطالب حتى الآن.</div>';
-  }catch(e){hist.innerHTML='<div class="notice error">'+esc(e.message)+'</div>'}
- }
- studentSelect.onchange=()=>{safeStore.setSession("ihsan_quran_student",studentSelect.value);refreshHistory(studentSelect.value)};
  form.onsubmit=async e=>{
   e.preventDefault();
-  const f=new FormData(form),studentId=String(f.get("student_id")||""),number=Number(f.get("thumn")),activity=String(f.get("activity")||"memorization");
-  if(!studentId){toast("اختر الطالب أولًا",true);return}
-  if(!Number.isInteger(number)||number<1||number>480){toast("رقم الثمن يجب أن يكون بين 1 و480",true);return}
+  const f=new FormData(form),studentId=String(f.get("student_id")||""),from=Number(f.get("thumn_from")),toRaw=String(f.get("thumn_to")||"").trim(),to=toRaw?Number(toRaw):from,activity=String(f.get("activity")||"memorization");
+  if(!studentId||!groupSelect.value){toast("اختر الفوج والطالب أولًا",true);return}
+  const student=S.students.find(st=>st.id===studentId);
+  if(!student||String(student.group_id||"")!==String(groupSelect.value)){toast("الطالب المحدد لا ينتمي إلى هذا الفوج",true);return}
+  if(!Number.isInteger(from)||from<1||from>480||!Number.isInteger(to)||to<from||to>480){toast("تحقق من رقمي الثمن: من 1 إلى 480، وإلى لا يقل عن من",true);return}
   const date=String(f.get("date")||"");if(!/^\d{4}-\d{2}-\d{2}$/.test(date)||date>S.date){toast("اختر تاريخًا صحيحًا لا يتجاوز اليوم",true);return}
-  const amount="الثمن رقم "+number;
-  const body={student_id:studentId,date:f.get("date"),activity,memorized:activity==="memorization"?amount:"",reviewed:activity==="revision"?amount:"",recitation:"",errors:0,grade:null,corrected:false,feedback:"",next_assignment:"",notes:String(f.get("notes")||"").trim()};
+  const amount=from===to?"الثمن رقم "+from:"الأثمان من "+from+" إلى "+to;
+  const body={student_id:studentId,date,activity,memorized:activity==="memorization"?amount:"",reviewed:activity==="revision"?amount:"",recitation:"",errors:0,grade:null,corrected:false,feedback:"",next_assignment:"",notes:String(f.get("notes")||"").trim()};
   const submit=form.querySelector('button[type="submit"]');submit.disabled=true;
   try{
-   const saved=await api("/quran/progress",{method:"POST",body:JSON.stringify({...body,group_id:(S.students.find(st=>st.id===studentId)||{}).group_id||""})});
-   safeStore.setSession("ihsan_quran_student",studentId);studentSelect.value=studentId;form.elements.thumn.value="";form.elements.notes.value="";form.elements.date.value=S.date;
-   toast(saved?.queued_offline?"حُفظ تسجيل القرآن على هذا الجهاز، وسيتزامن عند عودة الاتصال.":"تم حفظ التسجيل");await refreshHistory(studentId);
-  }catch(error){toast(error.message,true)}
-  finally{submit.disabled=false}
+   const saved=await api("/quran/progress",{method:"POST",body:JSON.stringify({...body,group_id:student.group_id||""})});
+   safeStore.setSession("ihsan_quran_student",studentId);safeStore.setSession("ihsan_quran_group",String(student.group_id||""));form.elements.thumn_from.value="";form.elements.thumn_to.value="";form.elements.notes.value="";form.elements.date.value=S.date;
+   toast(saved?.queued_offline?"حُفظ التسجيل على هذا الجهاز، وسيتزامن عند عودة الاتصال.":"تم حفظ التسجيل");await refreshHistory(studentId);
+  }catch(error){toast(error.message,true)}finally{submit.disabled=false}
+ };
+ const reportButton=$("#qreport-load"),reportGroup=$("#qreport-group"),reportPeriod=$("#qreport-period"),reportHost=$("#qreport-result");
+ if(reportGroup&&!reportGroup.value&&initialGroup)reportGroup.value=initialGroup;
+ reportButton.onclick=async()=>{
+  const gid=reportGroup.value;if(!gid)return toast("اختر فوج التقرير أولًا",true);
+  const members=(studentsByGroup.get(gid)||[]).slice();if(!members.length){reportHost.innerHTML='<div class="empty">لا يوجد طلاب في هذا الفوج.</div>';return}
+  reportHost.innerHTML='<div class="loading">جار إعداد المعاينة…</div>';
+  try{
+   const today=localDateISO(),period=reportPeriod.value,fromDate=period==="month"?today.slice(0,7)+"-01":shiftLocalDateISO(today,-6),label=period==="month"?"الشهر الحالي":"آخر 7 أيام";
+   const all=await Promise.all(members.map(async st=>({student:st,rows:await api("/quran/progress?student_id="+encodeURIComponent(st.id))})));
+   const stats=all.map(({student,rows})=>{
+    const recent=rows.filter(r=>String(r.date||"")>=fromDate&&String(r.date||"")<=today);
+    const amountCount=r=>{const textValue=String(r.activity==="revision"?(r.reviewed||""):(r.memorized||""));const range=textValue.match(/(?:من|رقم)\s*(\d+)(?:\s*إلى\s*(\d+))?/);return range?Math.max(1,Number(range[2]||range[1])-Number(range[1])+1):((r.activity==="memorization"||r.activity==="revision")?1:0)};
+    const mem=recent.filter(r=>r.activity==="memorization").reduce((n,r)=>n+amountCount(r),0),rev=recent.filter(r=>r.activity==="revision").reduce((n,r)=>n+amountCount(r),0);
+    return {student,mem,rev,total:mem+rev,entries:recent.length,days:new Set(recent.map(r=>r.date).filter(Boolean)).size};
+   }).sort((a,b)=>b.mem-a.mem||b.rev-a.rev||b.days-a.days||String(a.student.name).localeCompare(String(b.student.name),"ar"));
+   const groupName=(S.groups.find(g=>String(g.id)===gid)||{}).name||"الفوج";
+   reportHost.innerHTML='<div class="report-period-grid"><article class="card"><h4>'+esc(groupName)+' · '+label+'</h4><p class="muted small">الفترة: '+esc(fromDate)+' إلى '+esc(today)+'</p><div class="stats"><div class="stat"><small>الطلاب</small><strong>'+stats.length+'</strong></div><div class="stat"><small>أثمان الحفظ</small><strong>'+stats.reduce((n,x)=>n+x.mem,0)+'</strong></div><div class="stat"><small>أثمان المراجعة</small><strong>'+stats.reduce((n,x)=>n+x.rev,0)+'</strong></div></div></article></div><div class="table-wrap"><table><thead><tr><th>الترتيب</th><th>الطالب</th><th>أثمان الحفظ</th><th>أثمان المراجعة</th><th>أيام الاجتهاد</th><th>التسجيلات</th></tr></thead><tbody>'+stats.map((x,i)=>'<tr><td>'+(i+1)+'</td><td>'+esc(x.student.name)+'</td><td>'+x.mem+'</td><td>'+x.rev+'</td><td>'+x.days+'</td><td>'+x.entries+'</td></tr>').join("")+'</tbody></table></div><p class="muted small">هذا ترتيب للاجتهاد بحسب السجلات المسجلة خلال الفترة المختارة، وليس حكمًا على قيمة الطالب أو إتقانه.</p>';
+  }catch(error){reportHost.innerHTML='<div class="notice error">'+esc(error.message)+'</div>'}
  };
  if(studentSelect.value)await refreshHistory(studentSelect.value);
- else if(S.students.length){studentSelect.value=S.students.slice().sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"ar"))[0].id;safeStore.setSession("ihsan_quran_student",studentSelect.value);await refreshHistory(studentSelect.value)}
+
 }
 
 async function studentProfile(v,id){
