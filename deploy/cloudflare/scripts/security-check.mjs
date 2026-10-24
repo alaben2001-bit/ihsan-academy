@@ -86,7 +86,7 @@ assert.match(backend, /if\(path==="\/api\/gradebook"&&method==="GET"\)/, "gradeb
 assert.match(backend, /اختر الفوج لعرض سجله التعليمي/, "staff gradebook requests must select a group");
 assert.match(backend, /canManageGroup\(env,user,groupId\)/, "gradebook must validate access to the selected group");
 assert.match(app, /async function gradebookPage\(v\)/, "the gradebook UI must be available");
-assert.match(app, /"gradebook","السجل التعليمي(?: والترتيب)?"/, "staff navigation must expose gradebook");
+assert.doesNotMatch(app, /"gradebook","السجل التعليمي(?: والترتيب)?"/, "the legacy staff gradebook must not appear in sidebar navigation");
 assert.match(app, /"gradebook","تقدمي ودرجاتي"/, "student navigation must expose personal progress");
 
 assert.match(backend, /if\(path==="\/api\/assignments"&&method==="POST"\)/, "assignment creation API must exist");
@@ -333,10 +333,10 @@ assert.match(backend, /يتعارض معرّف التسجيل مع سجل آخر
 assert.match(style, /data-appearance-palette="dark"/, "dark mode must have dedicated contrast rules");
 assert.match(style, /\.academy-update-notice/, "the update banner must have responsive styling");
 assert.match(style, /\.release-history-item/, "the in-app release history must be styled");
-assert.match(index, /app\.js\?v=20261023-002/, "frontend cache busting must use the latest asset version");
-assert.match(index, /style\.css\?v=20261023-002/, "stylesheet cache busting must use the latest asset version");
-assert.match(index, /startup\.js\?v=20261023-002/, "startup cache busting must use the latest asset version");
-assert.match(serviceWorker, /ihsan-academy-pwa-v120-20261023-003/, "service worker cache namespace must match this release");
+assert.match(index, /app\.js\?v=20261024-014/, "frontend cache busting must use the latest asset version");
+assert.match(index, /style\.css\?v=20261024-014/, "stylesheet cache busting must use the latest asset version");
+assert.match(index, /startup\.js\?v=20261024-014/, "startup cache busting must use the latest asset version");
+assert.match(serviceWorker, /ihsan-academy-pwa-v121-20261024-004/, "service worker cache namespace must match this release");
 assert.match(app, /secondary:""/, "welcome dua must have one Continue button rather than Later");
 assert.match(app, /primary:"متابعة"/, "the rotating welcome dua must use the requested Continue label");
 assert.match(app, /function rememberOfflineUser\(\)/, "offline startup may only rely on the minimal stored profile, never the password");
