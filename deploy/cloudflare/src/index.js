@@ -376,7 +376,7 @@ export default {
       await log(env,user.id,"password_change",{});
       return json({ok:true,message:"تم تغيير كلمة المرور وإبطال الجلسات الأخرى"});
     }
-    if(path==="/api/me"&&method==="GET")return json(safeUser(user));
+    if(path==="/api/me"&&method==="GET"){const linked=await env.DB.prepare("SELECT 1 AS linked FROM google_identities WHERE user_id=? LIMIT 1").bind(user.id).first();return json({...safeUser(user),google_linked:Boolean(linked)});}
     if(path==="/api/dashboard"&&method==="GET"){
       const isAdmin=user.role==="admin";
       const staffRoles=["admin","teacher","director","supervisor"];
