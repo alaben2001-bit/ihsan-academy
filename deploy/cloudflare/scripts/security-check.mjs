@@ -302,10 +302,8 @@ assert.match(app, /const wisdomPool=\["admin","teacher","director","supervisor"\
 assert.match(app, /if\(S\.tab==="home"\)return await home\(v\);if\(S\.tab==="teams"\)return await teamsPage\(v\);if\(S\.tab==="groups"\)return groups\(v\);/, "only current, supported panels must be reachable from the active page router");
 
 
-assert.match(app, /const authSupplications=\[/, "the login welcome panel must show a rotating set of sourced supplications");
-assert.match(app, /const authBenefits=\[/, "the login welcome panel must show a separate educational benefit");
-assert.match(app, /class="auth-entry-nourishment"/, "the rotating dua and educational benefit must appear on the login welcome screen");
-assert.match(style, /\.auth-entry-card/, "login dua and educational benefit cards must be styled legibly");
+assert.doesNotMatch(app, /class="auth-entry-nourishment"/, "the login screen must stay clean without rotating dua cards");
+assert.doesNotMatch(app, /class="auth-entry-card"/, "the login screen must not include educational benefit cards");
 
 assert.match(app, /console\.warn\("تنبيه أمني من أكاديمية الإحسان:/, "the academy must show an Arabic anti-self-XSS warning in the browser console");
 assert.match(app, /لا تُدخل أو تلصق أي شيفرة لا تفهمها/, "the Arabic console warning must advise users not to paste unknown code");
