@@ -159,3 +159,27 @@ html[data-appearance="dark"] .login:not(.hidden) #loginForm input:not([type=chec
 @media(prefers-reduced-motion:reduce){
   *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
 }
+/* Automatic appearance: mirror the repaired dark palette only when the device requests dark. */
+@media(prefers-color-scheme:dark){
+ html[data-appearance="auto"]{color-scheme:dark}
+ html[data-appearance="auto"] body{background:#0b1712!important;color:#edf7f1!important}
+ html[data-appearance="auto"] .main,html[data-appearance="auto"] #appView,html[data-appearance="auto"] #view{background:#0b1712!important;color:#edf7f1!important}
+ html[data-appearance="auto"] .top,html[data-appearance="auto"] .card,html[data-appearance="auto"] .panel,
+ html[data-appearance="auto"] .modal,html[data-appearance="auto"] .modalbox,html[data-appearance="auto"] .settings-section,
+ html[data-appearance="auto"] .portal-card,html[data-appearance="auto"] .sheikh-post,html[data-appearance="auto"] .reel-card,
+ html[data-appearance="auto"] .appearance-studio{background:#14251c!important;color:#edf7f1!important;border-color:#365242!important;box-shadow:none}
+ html[data-appearance="auto"] .top h1,html[data-appearance="auto"] .top h2,html[data-appearance="auto"] .top h3,
+ html[data-appearance="auto"] .card h1,html[data-appearance="auto"] .card h2,html[data-appearance="auto"] .card h3,
+ html[data-appearance="auto"] .card b,html[data-appearance="auto"] #view strong{color:#f2faf5!important}
+ html[data-appearance="auto"] .muted,html[data-appearance="auto"] small,html[data-appearance="auto"] .sub,
+ html[data-appearance="auto"] .stat .lbl{color:#c0d3c8!important}
+ html[data-appearance="auto"] input,html[data-appearance="auto"] select,html[data-appearance="auto"] textarea{background:#0b1a24!important;color:#f1faf6!important;border-color:#456253!important}
+ html[data-appearance="auto"] .nav button.active{background:#f3ead4!important;color:#173f30!important}
+ html[data-appearance="auto"] .btn{background:#23785a;color:#fff}
+ html[data-appearance="auto"] .btn.sec2{background:#172d23;color:#eaf6ef;border-color:#527260}
+ html[data-appearance="auto"] .journey-heart.filled{color:#efd58a;background:#3b321d;border-color:#8c7740}
+ html[data-appearance="auto"] .login:not(.hidden) .login-form{background:#0f2017}
+ html[data-appearance="auto"] .login:not(.hidden) .login-form-inner{background:#14251c;border-color:#365242}
+ html[data-appearance="auto"] .login:not(.hidden) .login-form h2{color:#f2faf5}
+ html[data-appearance="auto"] .login:not(.hidden) #loginForm input:not([type=checkbox]){background:#0b1a24;color:#f1faf6;border-color:#456253}
+}
