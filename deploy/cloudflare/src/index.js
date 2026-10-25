@@ -155,9 +155,10 @@ async function log(env, userId, action, meta = {}) {
 }
 async function groupRow(env, id) { return env.DB.prepare("SELECT id,name,school_id,teacher_id,active FROM groups WHERE id=?").bind(id).first(); }
 async function canManageGroup(env, user, groupId) {
-  if (user.role === "admin") return true;
+  if (!groupId) return false;
   const g = await groupRow(env, groupId);
   if (!g || g.active !== 1) return false;
+  if (user.role === "admin") return true;
   if (user.role === "teacher") return g.teacher_id === user.id;
   if (user.role === "director") return Array.isArray(user.school_ids) && user.school_ids.includes(g.school_id);
   if (user.role === "supervisor") return Array.isArray(user.group_ids) && user.group_ids.includes(g.id);
