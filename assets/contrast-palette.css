@@ -1,126 +1,161 @@
-/* Ihsan Academy — unified readable palette, 2026-10
-   Keep the four selectable themes; improve contrast and remove accidental pink/washed-out accents. */
+/* IHsan Academy — unified platform-wide accessible palette.
+   Emerald + warm ivory + restrained champagne gold. Keep all theme choices harmonious. */
 :root{
-  --ink:#18352c;
-  --muted:#53685e;
-  --line:#d9e3dc;
-  --white:#ffffff;
-  --ok:#176b49; --ok-bg:#e4f3e9;
-  --late:#76520c; --late-bg:#fff2cf;
-  --bad:#8b2e2b; --bad-bg:#fde9e7;
-  --info:#285878; --info-bg:#e7f2fa;
-  --readable-shadow:0 8px 26px rgba(17,58,43,.07);
+  --ink:#18352c;--muted:#53685e;--line:#d9e3dc;--white:#fff;
+  --ok:#176b49;--ok-bg:#e4f3e9;--late:#76520c;--late-bg:#fff2cf;
+  --bad:#8b2e2b;--bad-bg:#fde9e7;--info:#285878;--info-bg:#e7f2fa;
+  --b50:#f7f8f5;--b100:#eff3ed;--b200:#dce5da;--b400:#b89a5a;
+  --g900:#064e3b;--g800:#086047;--g700:#117657;--g500:#398b6c;
+  --g200:#c8e0d1;--g100:#e2f0e6;--g50:#f1f7f2;
+  --academy-gold:#b18a36;--academy-gold-soft:#f7f0df;
+  --readable-shadow:0 8px 26px rgba(17,58,43,.065);
 }
-body{color:var(--ink);background-color:var(--b50,#f7f8f5)}
-/* Main surfaces */
-.top,.card,.panel,.modalbox,.modal,.settings-section,.appearance-studio{
-  color:var(--ink);
-}
-.top{
-  background:rgba(255,255,255,.98);
-  border-bottom:1px solid var(--line);
-}
-.card,.panel,.modalbox{
-  border-color:var(--line);
+html{background:var(--b50);color-scheme:light}
+body{color:var(--ink);background-color:var(--b50)}
+/* Ensure theme choices change the atmosphere, not readability or brand identity */
+:root[data-theme="emerald"]{--g900:#064e3b;--g800:#086047;--g700:#117657;--g500:#398b6c;--g200:#c8e0d1;--g100:#e2f0e6;--g50:#f1f7f2;--b50:#f7f8f5;--b100:#eff3ed;--b200:#dce5da;--b400:#b89a5a}
+:root[data-theme="sand"]{--g900:#17483a;--g800:#23634d;--g700:#397b5e;--g500:#6d997c;--g200:#d1e1d2;--g100:#e8f0e6;--g50:#f4f7ef;--b50:#faf8f1;--b100:#f3eee1;--b200:#e4dcc9;--b400:#b89a5a}
+:root[data-theme="indigo"]{--g900:#193f3b;--g800:#285b52;--g700:#3e7769;--g500:#6b9b8c;--g200:#d0e2dc;--g100:#e7f1ed;--g50:#f2f7f5;--b50:#f7f8f5;--b100:#eff0e8;--b200:#dce2d7;--b400:#b89a5a}
+:root[data-theme="olive"]{--g900:#234533;--g800:#355e43;--g700:#4d7658;--g500:#7b9a7d;--g200:#d5e1d2;--g100:#e9f0e5;--g50:#f3f7f0;--b50:#faf9f2;--b100:#f1f0e4;--b200:#e2dfcc;--b400:#b89a5a}
+/* Consistent surfaces */
+.top{background:rgba(255,255,255,.98);color:var(--ink);border-bottom:1px solid var(--line)}
+.card,.panel,.modal,.modalbox,.settings-section,.appearance-studio,.portal-card,.sheikh-post,.reel-card{
+  color:var(--ink);border-color:var(--line);
 }
 #view .card{box-shadow:var(--readable-shadow)}
 #view .card:hover{border-color:var(--g500)}
 .card.flat{background:var(--b100);border-color:var(--b200)}
-/* Text must remain readable even when nested in old components */
 .top h1,.top h2,.top h3,.top b,.top strong,.top label,
 .card h1,.card h2,.card h3,.card h4,.card b,.card strong,
 #view h1,#view h2,#view h3,#view h4,#view strong,
-.settings-page h1,.settings-page h2,.settings-page h3{
-  color:var(--ink);
-}
-.muted,.small,small,.sub,.top .muted,.top .sub,
-.item p,.appearance-heading p,.stat .lbl{
+.settings-page h1,.settings-page h2,.settings-page h3{color:var(--ink)}
+.muted,.small,small,.sub,.top .muted,.top .sub,.item p,.appearance-heading p,.stat .lbl{
   color:var(--muted);
 }
-a:not(.btn),.top a,.top button:not(.btn){color:var(--g800)}
-a:not(.btn):hover,.top a:hover{color:var(--g700)}
-/* Sidebar and active navigation: calm, consistent emerald + warm ivory */
-.side{
-  background:linear-gradient(160deg,var(--g900) 0%,var(--g800) 100%);
-  color:#f5faf7;
-}
+a:not(.btn){color:var(--g800)}
+a:not(.btn):hover{color:var(--g700)}
+/* Emerald navigation, ivory active state */
+.side{background:linear-gradient(160deg,var(--g900),#064332 100%);color:#f5faf7}
 .side .brand b,.side .account b{color:#fff}
-.side .brand small,.side .account small,.nav-label{color:#d0e3d9}
+.side .brand small,.side .account small,.nav-label{color:#d5e6dc}
 .nav button{color:#e6f1eb}
 .nav button:hover{background:rgba(255,255,255,.11);color:#fff}
 .nav button.active{
-  background:#fff8e9;
-  color:var(--g900);
-  border-color:#d7c69b;
-  box-shadow:inset -3px 0 #b99a53,0 5px 16px rgba(0,0,0,.12);
+  background:#fff8e9;color:var(--g900);border-color:#d7c69b;
+  box-shadow:inset -3px 0 #b99a53,0 5px 16px rgba(0,0,0,.1);
 }
-/* Buttons: remove unrelated pale-pink treatment and keep clear hierarchy */
+.nav-label::before{background:#c5a76a}
+.account{border-color:rgba(255,255,255,.16)}
+/* Buttons */
 .btn,.button-primary,[type=submit]{
-  background:var(--g800);
-  color:#fff;
+  background:var(--g800);color:#fff;border-color:var(--g800);
 }
-.btn:hover,.button-primary:hover,[type=submit]:hover{
-  background:var(--g700);
-  color:#fff;
-}
+.btn:hover,.button-primary:hover,[type=submit]:hover{background:var(--g700);color:#fff}
 .btn.sec2{background:#fff;color:var(--g800);border-color:var(--g200)}
 .btn.sec2:hover{background:var(--g50)}
-#view button:not(.btn):not(.nav button):not(.appearance-choice):not(.theme-option),
-.settings-page button:not(.btn):not(.appearance-choice):not(.theme-option){
-  accent-color:var(--g700);
+/* Make input text and placeholders readable on every page */
+input,select,textarea{color:var(--ink);background:#fff;border-color:#b9cbbf}
+input::placeholder,textarea::placeholder{color:#687b70;opacity:1}
+input:focus,select:focus,textarea:focus{
+  border-color:var(--g500);box-shadow:0 0 0 3px color-mix(in srgb,var(--g500) 22%,transparent)
 }
-#view .btn,.settings-page .btn{color:#fff}
-#view .btn.sec2,.settings-page .btn.sec2{color:var(--g800)}
-/* Cards, status labels, fields, links and keyboard focus */
-.badge,.chip{border:1px solid transparent}
+:focus-visible{outline:3px solid var(--g500);outline-offset:3px}
+.tbl th{color:#29483a;background:#edf3ec}
+.tbl td{color:var(--ink)}
 .badge.ok{color:var(--ok);background:var(--ok-bg)}
 .badge.late{color:var(--late);background:var(--late-bg)}
 .badge.bad{color:var(--bad);background:var(--bad-bg)}
 .badge.info{color:var(--info);background:var(--info-bg)}
-input,select,textarea{
-  color:var(--ink);background:#fff;border-color:#b9cbbf;
+.chip,.badge{border-color:transparent}
+.progress{background:#e6eee7}
+.progress i{background:linear-gradient(90deg,#287b59,#75b18b)}
+.stat .ic,.avatar{background:#e5f1e8;color:#155a40}
+.question-prompt{background:linear-gradient(135deg,#f1f7f2,#fff);border-color:#dcebe0}
+.choice:hover,.tbl tbody tr.click:hover{background:#f1f7f2}
+.hero,.hero-main,.lesson-cover,.media-cover{
+  background-image:var(--pattern),linear-gradient(125deg,#07533f,#064633 68%,#073b30);
+  color:#fff;
 }
-input::placeholder,textarea::placeholder{color:#687b70;opacity:1}
-input:focus,select:focus,textarea:focus{
-  border-color:var(--g500);
-  box-shadow:0 0 0 3px color-mix(in srgb,var(--g500) 22%,transparent);
+.hero h2,.hero h3,.hero p,.hero-main h2,.hero-main h3,.hero-main p{color:#fff}
+.hero p{color:#e0eee6}
+.hero .chips .chip{background:rgba(255,255,255,.14);color:#fff}
+/* Login screen: high contrast, same identity as the signed-in platform */
+.login:not(.hidden){background:#f7f8f3;color:#18352c}
+.login:not(.hidden) .login-art{
+  background-color:#064e3b;
+  background-image:linear-gradient(145deg,rgba(5,48,36,.96),rgba(6,78,59,.82) 58%,rgba(7,54,43,.96)),url('/assets/login-scene.svg');
+  color:#fff8e8;
 }
-:focus-visible{outline:3px solid var(--g500);outline-offset:3px}
-::selection{background:#cce6d6;color:#123f35}
-/* Role accents remain muted and harmonious instead of changing whole components to pink */
+.login:not(.hidden) .login-art:before{
+  background:radial-gradient(ellipse at 50% 18%,rgba(216,180,106,.16),transparent 52%),linear-gradient(135deg,transparent 55%,rgba(216,180,106,.07));
+}
+.login:not(.hidden) .login-brand{color:#fff8e8;text-shadow:0 2px 18px #001e18aa}
+.login:not(.hidden) .login-brand b,.login:not(.hidden) .login-welcome h2{color:#fff8e8}
+.login:not(.hidden) .login-brand small,.login:not(.hidden) .login-welcome .bismillah,
+.login:not(.hidden) .login-welcome .verse-ref{color:#f0d99e}
+.login:not(.hidden) .login-welcome .verse{color:#fff8e8}
+.login:not(.hidden) .login-welcome .welcome-description{color:#f2eee2}
+.login:not(.hidden) .login-welcome .welcome-poem{color:#f5f0e4}
+.login:not(.hidden) .login-feature-card{border-color:rgba(239,217,160,.4)}
+.login:not(.hidden) .login-feature-card b{color:#fff8e8}
+.login:not(.hidden) .login-feature-card small{color:#e4eee7}
+.login:not(.hidden) .login-form{background:#f7f8f3}
+.login:not(.hidden) .login-form:before{border-color:#c8ad6a}
+.login:not(.hidden) .login-form-inner{background:#fff;border-color:#dce5dc}
+.login:not(.hidden) .login-form h2{color:#064e3b}
+.login:not(.hidden) #loginForm .field span{color:#205b46}
+.login:not(.hidden) #loginForm input:not([type=checkbox]){background:#fff;color:#18352c;border-color:#b9cbbf}
+.login:not(.hidden) #loginForm input::placeholder{color:#687b70}
+.login:not(.hidden) #loginBtn{background:linear-gradient(110deg,#086047,#064e3b);color:#fff;border-color:#28775b}
+.login:not(.hidden) .showpw{color:#47675a}
+.login:not(.hidden) .portal-box h3{color:#205b46}
+.login:not(.hidden) .portal-box .muted{color:#53685e}
+/* Replace stray pink accents with a coherent gold/emerald signal */
+.journey-heart.filled{color:#9b792b;border-color:#c8ad6a;background:#f8f1df}
 html[data-role="admin"] .main::before,html[data-role="admin"] .top::after{background:#b18a36}
 html[data-role="teacher"] .main::before,html[data-role="teacher"] .top::after{background:#47728a}
 html[data-role="student"] .main::before,html[data-role="student"] .top::after{background:var(--g500)}
 html[data-role="parent"] .main::before,html[data-role="parent"] .top::after{background:#9a7831}
-/* Explicit high contrast option should strengthen text without washing out backgrounds */
-.high-contrast{filter:none}
-.high-contrast body,.high-contrast .main{color:#14271f}
-.high-contrast .muted,.high-contrast small,.high-contrast .sub{color:#344d40}
-/* Preserve user-selected dark mode while improving contrast in all surfaces */
-html[data-appearance="dark"] .top,
-html[data-appearance="dark"] .card,
-html[data-appearance="dark"] .panel,
-html[data-appearance="dark"] .modalbox,
-html[data-appearance="dark"] .appearance-studio{
-  color:#edf7f1!important;border-color:#3c594a!important;
+html[data-role="admin"] .hero-main{border-top-color:#b18a36}
+html[data-role="teacher"] .hero-main{border-top-color:#47728a}
+html[data-role="student"] .hero-main{border-top-color:var(--g500)}
+html[data-role="parent"] .hero-main{border-top-color:#9a7831}
+::selection{background:#cce6d6;color:#123f35}
+/* Keep the dark mode truly dark, with readable text and inputs */
+html[data-appearance="dark"],html[data-appearance="dark"] body{color-scheme:dark}
+html[data-appearance="dark"] body{background:#0b1712!important;color:#edf7f1!important}
+html[data-appearance="dark"] .main,html[data-appearance="dark"] #appView,html[data-appearance="dark"] #view{
+  background:#0b1712!important;color:#edf7f1!important;
 }
-html[data-appearance="dark"] .top h1,
-html[data-appearance="dark"] .top h2,
-html[data-appearance="dark"] .top h3,
-html[data-appearance="dark"] .card h1,
-html[data-appearance="dark"] .card h2,
-html[data-appearance="dark"] .card h3,
-html[data-appearance="dark"] .card b,
-html[data-appearance="dark"] #view strong{color:#f2faf5!important}
-html[data-appearance="dark"] .muted,
-html[data-appearance="dark"] small,
-html[data-appearance="dark"] .sub{color:#c0d3c8!important}
+html[data-appearance="dark"] .top,html[data-appearance="dark"] .card,html[data-appearance="dark"] .panel,
+html[data-appearance="dark"] .modal,html[data-appearance="dark"] .modalbox,
+html[data-appearance="dark"] .settings-section,html[data-appearance="dark"] .portal-card,
+html[data-appearance="dark"] .sheikh-post,html[data-appearance="dark"] .reel-card,
+html[data-appearance="dark"] .appearance-studio{
+  background:#14251c!important;color:#edf7f1!important;border-color:#365242!important;box-shadow:none;
+}
+html[data-appearance="dark"] .top h1,html[data-appearance="dark"] .top h2,html[data-appearance="dark"] .top h3,
+html[data-appearance="dark"] .card h1,html[data-appearance="dark"] .card h2,html[data-appearance="dark"] .card h3,
+html[data-appearance="dark"] .card b,html[data-appearance="dark"] #view strong{color:#f2faf5!important}
+html[data-appearance="dark"] .muted,html[data-appearance="dark"] small,html[data-appearance="dark"] .sub,
+html[data-appearance="dark"] .stat .lbl{color:#c0d3c8!important}
+html[data-appearance="dark"] input,html[data-appearance="dark"] select,html[data-appearance="dark"] textarea{
+  background:#0b1a24!important;color:#f1faf6!important;border-color:#456253!important;
+}
+html[data-appearance="dark"] .nav button{color:#eaf4ed}
+html[data-appearance="dark"] .nav button.active{background:#f3ead4!important;color:#173f30!important}
 html[data-appearance="dark"] .btn{background:#23785a;color:#fff}
 html[data-appearance="dark"] .btn.sec2{background:#172d23;color:#eaf6ef;border-color:#527260}
+html[data-appearance="dark"] .journey-heart.filled{color:#efd58a;background:#3b321d;border-color:#8c7740}
+html[data-appearance="dark"] .login:not(.hidden) .login-form{background:#0f2017}
+html[data-appearance="dark"] .login:not(.hidden) .login-form-inner{background:#14251c;border-color:#365242}
+html[data-appearance="dark"] .login:not(.hidden) .login-form h2{color:#f2faf5}
+html[data-appearance="dark"] .login:not(.hidden) #loginForm input:not([type=checkbox]){background:#0b1a24;color:#f1faf6;border-color:#456253}
 @media(max-width:720px){
   .top{background:#fff}
   #view .card{box-shadow:0 5px 18px rgba(17,58,43,.06)}
+  .login:not(.hidden) .login-art{min-height:200px}
 }
 @media(prefers-reduced-motion:reduce){
-  *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.001ms!important;transition-duration:.001ms!important}
+  *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important}
 }
