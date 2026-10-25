@@ -114,7 +114,9 @@ const themes=[
 {name:"وردي هادئ",green:"#9b4b70",mint:"#f9e6ef",gold:"#d6b16b",paper:"#fff7fa",ink:"#452537",muted:"#805d70",line:"#efcede",surface:"#ffffff",surface2:"#fff0f5"}];
 function applyTheme(){
  const validIndex=value=>{const i=Number(value);return Number.isInteger(i)&&i>=0&&i<themes.length?i:-1};
- const mode=safeStore.get("ihsan_theme_mode")||"random";
+ const savedMode=safeStore.get("ihsan_theme_mode");
+ const mode=!savedMode||savedMode==="random"?"fixed":savedMode;
+ if(savedMode!==mode)safeStore.set("ihsan_theme_mode",mode);
  let i=-1;
  if(mode==="fixed"){
   i=validIndex(safeStore.get("ihsan_theme_index"));
