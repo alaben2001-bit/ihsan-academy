@@ -1,0 +1,126 @@
+/* Ihsan Academy — unified readable palette, 2026-10
+   Keep the four selectable themes; improve contrast and remove accidental pink/washed-out accents. */
+:root{
+  --ink:#18352c;
+  --muted:#53685e;
+  --line:#d9e3dc;
+  --white:#ffffff;
+  --ok:#176b49; --ok-bg:#e4f3e9;
+  --late:#76520c; --late-bg:#fff2cf;
+  --bad:#8b2e2b; --bad-bg:#fde9e7;
+  --info:#285878; --info-bg:#e7f2fa;
+  --readable-shadow:0 8px 26px rgba(17,58,43,.07);
+}
+body{color:var(--ink);background-color:var(--b50,#f7f8f5)}
+/* Main surfaces */
+.top,.card,.panel,.modalbox,.modal,.settings-section,.appearance-studio{
+  color:var(--ink);
+}
+.top{
+  background:rgba(255,255,255,.98);
+  border-bottom:1px solid var(--line);
+}
+.card,.panel,.modalbox{
+  border-color:var(--line);
+}
+#view .card{box-shadow:var(--readable-shadow)}
+#view .card:hover{border-color:var(--g500)}
+.card.flat{background:var(--b100);border-color:var(--b200)}
+/* Text must remain readable even when nested in old components */
+.top h1,.top h2,.top h3,.top b,.top strong,.top label,
+.card h1,.card h2,.card h3,.card h4,.card b,.card strong,
+#view h1,#view h2,#view h3,#view h4,#view strong,
+.settings-page h1,.settings-page h2,.settings-page h3{
+  color:var(--ink);
+}
+.muted,.small,small,.sub,.top .muted,.top .sub,
+.item p,.appearance-heading p,.stat .lbl{
+  color:var(--muted);
+}
+a:not(.btn),.top a,.top button:not(.btn){color:var(--g800)}
+a:not(.btn):hover,.top a:hover{color:var(--g700)}
+/* Sidebar and active navigation: calm, consistent emerald + warm ivory */
+.side{
+  background:linear-gradient(160deg,var(--g900) 0%,var(--g800) 100%);
+  color:#f5faf7;
+}
+.side .brand b,.side .account b{color:#fff}
+.side .brand small,.side .account small,.nav-label{color:#d0e3d9}
+.nav button{color:#e6f1eb}
+.nav button:hover{background:rgba(255,255,255,.11);color:#fff}
+.nav button.active{
+  background:#fff8e9;
+  color:var(--g900);
+  border-color:#d7c69b;
+  box-shadow:inset -3px 0 #b99a53,0 5px 16px rgba(0,0,0,.12);
+}
+/* Buttons: remove unrelated pale-pink treatment and keep clear hierarchy */
+.btn,.button-primary,[type=submit]{
+  background:var(--g800);
+  color:#fff;
+}
+.btn:hover,.button-primary:hover,[type=submit]:hover{
+  background:var(--g700);
+  color:#fff;
+}
+.btn.sec2{background:#fff;color:var(--g800);border-color:var(--g200)}
+.btn.sec2:hover{background:var(--g50)}
+#view button:not(.btn):not(.nav button):not(.appearance-choice):not(.theme-option),
+.settings-page button:not(.btn):not(.appearance-choice):not(.theme-option){
+  accent-color:var(--g700);
+}
+#view .btn,.settings-page .btn{color:#fff}
+#view .btn.sec2,.settings-page .btn.sec2{color:var(--g800)}
+/* Cards, status labels, fields, links and keyboard focus */
+.badge,.chip{border:1px solid transparent}
+.badge.ok{color:var(--ok);background:var(--ok-bg)}
+.badge.late{color:var(--late);background:var(--late-bg)}
+.badge.bad{color:var(--bad);background:var(--bad-bg)}
+.badge.info{color:var(--info);background:var(--info-bg)}
+input,select,textarea{
+  color:var(--ink);background:#fff;border-color:#b9cbbf;
+}
+input::placeholder,textarea::placeholder{color:#687b70;opacity:1}
+input:focus,select:focus,textarea:focus{
+  border-color:var(--g500);
+  box-shadow:0 0 0 3px color-mix(in srgb,var(--g500) 22%,transparent);
+}
+:focus-visible{outline:3px solid var(--g500);outline-offset:3px}
+::selection{background:#cce6d6;color:#123f35}
+/* Role accents remain muted and harmonious instead of changing whole components to pink */
+html[data-role="admin"] .main::before,html[data-role="admin"] .top::after{background:#b18a36}
+html[data-role="teacher"] .main::before,html[data-role="teacher"] .top::after{background:#47728a}
+html[data-role="student"] .main::before,html[data-role="student"] .top::after{background:var(--g500)}
+html[data-role="parent"] .main::before,html[data-role="parent"] .top::after{background:#9a7831}
+/* Explicit high contrast option should strengthen text without washing out backgrounds */
+.high-contrast{filter:none}
+.high-contrast body,.high-contrast .main{color:#14271f}
+.high-contrast .muted,.high-contrast small,.high-contrast .sub{color:#344d40}
+/* Preserve user-selected dark mode while improving contrast in all surfaces */
+html[data-appearance="dark"] .top,
+html[data-appearance="dark"] .card,
+html[data-appearance="dark"] .panel,
+html[data-appearance="dark"] .modalbox,
+html[data-appearance="dark"] .appearance-studio{
+  color:#edf7f1!important;border-color:#3c594a!important;
+}
+html[data-appearance="dark"] .top h1,
+html[data-appearance="dark"] .top h2,
+html[data-appearance="dark"] .top h3,
+html[data-appearance="dark"] .card h1,
+html[data-appearance="dark"] .card h2,
+html[data-appearance="dark"] .card h3,
+html[data-appearance="dark"] .card b,
+html[data-appearance="dark"] #view strong{color:#f2faf5!important}
+html[data-appearance="dark"] .muted,
+html[data-appearance="dark"] small,
+html[data-appearance="dark"] .sub{color:#c0d3c8!important}
+html[data-appearance="dark"] .btn{background:#23785a;color:#fff}
+html[data-appearance="dark"] .btn.sec2{background:#172d23;color:#eaf6ef;border-color:#527260}
+@media(max-width:720px){
+  .top{background:#fff}
+  #view .card{box-shadow:0 5px 18px rgba(17,58,43,.06)}
+}
+@media(prefers-reduced-motion:reduce){
+  *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.001ms!important;transition-duration:.001ms!important}
+}
