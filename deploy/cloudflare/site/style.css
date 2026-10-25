@@ -2127,3 +2127,15 @@ html[data-appearance-palette="dark"] .sidebar-brand strong{color:#e7f0eb!importa
 
 /* Login usability: password visibility and browser autofill */
 .password-input-wrap{display:flex;align-items:stretch;gap:8px;width:100%}.password-input-wrap input{flex:1;min-width:0}.password-visibility{flex:0 0 auto;align-self:stretch;padding:0 13px;border:1px solid var(--border,#d7e1da);border-radius:10px;background:var(--surface,#fff);color:var(--text,#174b3b);font:inherit;font-size:13px;cursor:pointer}.password-visibility:focus-visible{outline:2px solid var(--accent,#b89b62);outline-offset:2px}
+
+
+/* انتقال سينمائي خفيف بين المدرسة وبساتين منهج الإحسان */
+.ihsan-transition-screen{position:fixed;inset:0;z-index:99999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;background:radial-gradient(ellipse at 50% 40%,color-mix(in srgb,var(--green,#087f5b) 82%,#102b24),#071d18 75%);color:#fff;opacity:0;visibility:hidden;transform:scale(1.025);transition:opacity .28s ease,transform .45s ease,visibility .28s}
+.ihsan-transition-screen.is-visible{opacity:1;visibility:visible;transform:scale(1)}
+.ihsan-transition-mark{font-family:serif;font-size:clamp(2rem,6vw,3.5rem);font-weight:800;letter-spacing:.04em;text-shadow:0 0 28px #d8bc7844;animation:ihsan-mark-breathe 1.2s ease-in-out infinite alternate}
+.ihsan-transition-track{width:min(220px,55vw);height:3px;overflow:hidden;border-radius:99px;background:#ffffff2b}
+.ihsan-transition-track span{display:block;width:40%;height:100%;border-radius:inherit;background:linear-gradient(90deg,#bda46c,#fff0c1,#bda46c);animation:ihsan-track-flow .9s ease-in-out infinite alternate}
+.ihsan-transition-screen p{font-size:.9rem;color:#d9e7df;letter-spacing:.02em}
+@keyframes ihsan-mark-breathe{from{opacity:.72;transform:translateY(2px)}to{opacity:1;transform:translateY(-3px)}}
+@keyframes ihsan-track-flow{from{transform:translateX(0)}to{transform:translateX(150%)}}
+@media(prefers-reduced-motion:reduce){.ihsan-transition-screen,.ihsan-transition-mark,.ihsan-transition-track span{animation:none!important;transition-duration:.01ms!important}}
