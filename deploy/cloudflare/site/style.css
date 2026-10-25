@@ -2124,3 +2124,6 @@ html[data-appearance-palette="dark"] .sidebar-brand strong{color:#e7f0eb!importa
 .quran-mode-symbol{display:grid;place-items:center;width:36px;height:36px;border-radius:12px;background:var(--mint,#edf7f0);color:var(--green);font-size:22px}
 .quran-subheading{margin:12px 0 6px}
 @media(max-width:560px){.quran-mode-grid{gap:9px}.quran-mode-card{min-height:124px;padding:14px;border-radius:15px}.quran-mode-card strong{font-size:16px}.quran-mode-card small{font-size:12px}}
+
+/* Login usability: password visibility and browser autofill */
+.password-input-wrap{display:flex;align-items:stretch;gap:8px;width:100%}.password-input-wrap input{flex:1;min-width:0}.password-visibility{flex:0 0 auto;align-self:stretch;padding:0 13px;border:1px solid var(--border,#d7e1da);border-radius:10px;background:var(--surface,#fff);color:var(--text,#174b3b);font:inherit;font-size:13px;cursor:pointer}.password-visibility:focus-visible{outline:2px solid var(--accent,#b89b62);outline-offset:2px}
