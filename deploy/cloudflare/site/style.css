@@ -2182,3 +2182,31 @@ body{color:var(--ink,#18352c);background-color:var(--paper,#f7f8f5)}
 @media(prefers-reduced-motion:reduce){
  *,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}
 }
+
+
+/* Ihsan Academy — living interface, depth and accessible motion */
+:root{--ihsan-ease:cubic-bezier(.22,.75,.25,1);--ihsan-lift:0 18px 44px rgba(10,65,47,.10)}
+html{scroll-behavior:smooth}
+body{background:radial-gradient(ellipse at 8% 0%,rgba(212,173,99,.075),transparent 34%),var(--paper,#fbfdf9);transition:background-color .35s var(--ihsan-ease),color .35s var(--ihsan-ease)}
+button,a,[role="button"],input,select,textarea{transition:color .2s ease,background-color .25s ease,border-color .25s ease,box-shadow .25s ease,transform .25s var(--ihsan-ease)}
+button:hover,a:hover,[role="button"]:hover{filter:saturate(1.06)}
+button:active,[role="button"]:active{transform:translateY(1px) scale(.99)}
+.topbar{box-shadow:0 5px 22px rgba(14,57,42,.045);backdrop-filter:blur(14px)}
+.card,.stat-card,.panel,.dashboard-card,.task-card,.student-card,.group-card,.metric-card,.welcome-card{box-shadow:0 5px 18px rgba(16,60,43,.045);transition:transform .28s var(--ihsan-ease),box-shadow .28s var(--ihsan-ease),border-color .28s ease}
+.card:hover,.stat-card:hover,.dashboard-card:hover,.task-card:hover,.student-card:hover,.group-card:hover,.metric-card:hover{transform:translateY(-3px);box-shadow:var(--ihsan-lift)}
+.sidebar,.side-nav,.sidebar-nav{box-shadow:-12px 0 32px rgba(4,49,35,.08)}
+.sidebar a,.side-nav a,.sidebar-nav a{position:relative;transition:background-color .25s ease,color .25s ease,transform .25s var(--ihsan-ease)}
+.sidebar a:hover,.side-nav a:hover,.sidebar-nav a:hover{transform:translateX(-2px)}
+.sidebar a.active,.side-nav a.active,.sidebar-nav a.active{box-shadow:inset -3px 0 var(--gold,#d4ad63),0 5px 16px rgba(4,49,35,.08)}
+main{animation:ihsanPageEnter .55s var(--ihsan-ease) both}
+main>*{animation:ihsanRise .55s var(--ihsan-ease) both}
+main>*:nth-child(2){animation-delay:.05s}main>*:nth-child(3){animation-delay:.1s}main>*:nth-child(4){animation-delay:.15s}main>*:nth-child(5){animation-delay:.2s}
+body.ihsan-leaving main{opacity:0;transform:translateY(7px);transition:opacity .18s ease,transform .18s ease}
+body.ihsan-entering main{animation:ihsanPageEnter .48s var(--ihsan-ease) both}
+@keyframes ihsanPageEnter{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes ihsanRise{from{opacity:0;transform:translateY(11px)}to{opacity:1;transform:translateY(0)}}
+@keyframes ihsanGlow{0%,100%{box-shadow:0 0 0 rgba(212,173,99,0)}50%{box-shadow:0 0 0 4px rgba(212,173,99,.12)}}
+.brand-mark{transition:transform .45s var(--ihsan-ease),box-shadow .35s ease}
+.brand:hover .brand-mark{transform:rotate(-4deg) scale(1.04);box-shadow:0 0 0 5px rgba(212,173,99,.12)}
+:focus-visible{outline:3px solid #d4ad63!important;outline-offset:3px}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}main,main>*,body.ihsan-leaving main,body.ihsan-entering main{animation:none!important;transition:none!important;transform:none!important;opacity:1!important}}
