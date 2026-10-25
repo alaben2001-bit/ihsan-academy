@@ -17,10 +17,9 @@ function applyAppearanceChoices(){const root=document.documentElement;const mode
 applyAppearanceChoices();
 const THEME_NAMES = ['emerald','sand','indigo','olive'];
 function setupAcademyAtmosphere(){
-  const epoch = Math.floor(new Date('2026-01-01T00:00:00Z').getTime()/86400000);
-  const todayEpoch = Math.floor(Date.now()/86400000);
   const storedTheme = localStorage.getItem('academy_theme');
-  const theme = THEME_NAMES.includes(storedTheme) ? storedTheme : THEME_NAMES[Math.floor((todayEpoch-epoch)/14)%THEME_NAMES.length];
+  // Stable brand default: never rotate the palette unexpectedly for returning users.
+  const theme = THEME_NAMES.includes(storedTheme) ? storedTheme : 'emerald';
   document.documentElement.dataset.theme = theme;
   const reduce = localStorage.getItem('academy_reduced_motion') === '1' || window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
   if(reduce) document.documentElement.classList.add('reduced-motion');
