@@ -1149,8 +1149,7 @@ async function quran(v){
  };
  v.innerHTML=head("الحفظ والمراجعة","اختر أحد القسمين، ولكل منهما تسجيل مستقل ومعاينة أسبوعية وشهرية.")+'<section class="quran-mode-grid"><button type="button" class="quran-mode-card '+(quranMode==="memorization"?"active":"")+'" data-quran-mode="memorization"><span class="quran-mode-symbol" aria-hidden="true">✓</span><strong>متابعة الحفظ</strong><small>تسجيل الأثمان المحفوظة وترتيب الاجتهاد</small></button><button type="button" class="quran-mode-card '+(quranMode==="revision"?"active":"")+'" data-quran-mode="revision"><span class="quran-mode-symbol">↻</span><strong>متابعة المراجعة</strong><small>تسجيل الأثمان المراجعة ومتابعتها بالتاريخ والتقارير</small></button></section><h3 class="quran-subheading">'+quranModeTitle+'</h3>'+
  '<section class="card quran-quick-entry"><form id="qform" class="form-grid"><label class="field">الفوج<select name="group_id" required><option value="">اختر الفوج أولًا</option>'+groupOptions+'</select></label><label class="field">الطالب<select name="student_id" required disabled><option value="">اختر الفوج أولًا</option></select></label><input type="hidden" name="activity" value="'+quranMode+'"><label class="field">الثمن من رقم<input name="thumn_from" type="number" inputmode="numeric" min="1" max="480" step="1" required placeholder="رقم الثمن"></label><label class="field">إلى رقم (اختياري)<input name="thumn_to" type="number" inputmode="numeric" min="1" max="480" step="1" placeholder="إن كان أكثر من ثمن"></label><label class="field">التاريخ<input name="date" type="date" required value="'+esc(S.date)+'"></label><label class="field wide">ملاحظة مختصرة (اختياري)<input name="notes" maxlength="300" placeholder="موضع يحتاج إلى تثبيت أو تنبيه"></label><div class="wide student-actions"><button class="btn quran-save-button" type="submit">حفظ التسجيل</button></div></form><p class="muted small">رقم «من» مطلوب، ورقم «إلى» اختياري. تحفظ التسجيلات الجديدة دون حذف السجلات السابقة.</p></section>'+
- '<section class="card"><div class="section-head"><div><h3>إنجاز الطلاب وترتيب الاجتهاد</h3><p class="muted small">اختر الفوج والفترة؛ الترتيب بحسب عدد الأثمان المسجلة للحفظ أولًا ثم المراجعة.</p></div></div><div class="form-grid"><label class="field">فوج التقرير<select id="qreport-group"><option value="">اختر الفوج</option>'+groupOptions+'</select></label><label class="field">الفترة<select id="qreport-period"><option value="week">آخر 7 أيام</option><option value="month">الشهر الحالي</option></select></label><div class="wide"><button class="btn quran-save-button" id="qreport-load" type="button">معاينة التقرير</button></div></div><div id="qreport-result" class="muted small">اختر الفوج ثم اضغط «معاينة التقرير».</div></section>'+
- '<section class="card"><div class="section-head"><div><h3>سجل الحفظ والمراجعة</h3><p class="muted small">مرتب من الأحدث إلى الأقدم.</p></div></div><div id="qhistory" class="list"><div class="empty">اختر الفوج والطالب لعرض السجل.</div></div></section>';
+  '<section class="card"><div class="section-head"><div><h3>سجل الحفظ والمراجعة</h3><p class="muted small">مرتب من الأحدث إلى الأقدم.</p></div></div><div id="qhistory" class="list"><div class="empty">اختر الفوج والطالب لعرض السجل.</div></div></section>';
  const form=$("#qform"),hist=$("#qhistory"),groupSelect=form.elements.group_id,studentSelect=form.elements.student_id;
  v.querySelectorAll("[data-quran-mode]").forEach(button=>button.onclick=()=>{safeStore.setSession("ihsan_quran_subtab",button.dataset.quranMode);quran(v)});
  if(initialGroup&&quranGroups.some(g=>String(g.id)===initialGroup)){studentSelect.innerHTML=renderStudentOptions(initialGroup,savedStudent);studentSelect.disabled=false}
@@ -1188,26 +1187,7 @@ async function quran(v){
    toast(saved?.queued_offline?"حُفظ التسجيل على هذا الجهاز، وسيتزامن عند عودة الاتصال.":"تم حفظ التسجيل");await refreshHistory(studentId);
   }catch(error){toast(error.message,true)}finally{submit.disabled=false}
  };
- const reportButton=$("#qreport-load"),reportGroup=$("#qreport-group"),reportPeriod=$("#qreport-period"),reportHost=$("#qreport-result");
- if(reportGroup&&!reportGroup.value&&initialGroup)reportGroup.value=initialGroup;
- reportButton.onclick=async()=>{
-  const gid=reportGroup.value;if(!gid)return toast("اختر فوج التقرير أولًا",true);
-  const members=(studentsByGroup.get(gid)||[]).slice();if(!members.length){reportHost.innerHTML='<div class="empty">لا يوجد طلاب في هذا الفوج.</div>';return}
-  reportHost.innerHTML='<div class="loading">جار إعداد المعاينة…</div>';
-  try{
-   const today=localDateISO(),period=reportPeriod.value,fromDate=period==="month"?today.slice(0,7)+"-01":shiftLocalDateISO(today,-6),label=period==="month"?"الشهر الحالي":"آخر 7 أيام";
-   const all=await Promise.all(members.map(async st=>({student:st,rows:await api("/quran/progress?student_id="+encodeURIComponent(st.id))})));
-   const stats=all.map(({student,rows})=>{
-    const recent=rows.filter(r=>r.activity===quranMode&&String(r.date||"")>=fromDate&&String(r.date||"")<=today);
-    const amountCount=r=>{const from=Number(r.thumn_from),to=Number(r.thumn_to);if(Number.isInteger(from)&&from>0&&Number.isInteger(to)&&to>=from)return to-from+1;const textValue=String(r.activity==="revision"?(r.reviewed||""):(r.memorized||""));const range=textValue.match(/(?:من\s+رقم\s*|الأثمان\s+من\s+رقم\s*|الثمن\s+من\s+رقم\s*|رقم\s*)(\d+)(?:\s*(?:إلى\s+رقم\s*|إلى\s*)(\d+))?/);return range?Math.max(1,Number(range[2]||range[1])-Number(range[1])+1):0};
-    const mem=recent.filter(r=>r.activity==="memorization").reduce((n,r)=>n+amountCount(r),0),rev=recent.filter(r=>r.activity==="revision").reduce((n,r)=>n+amountCount(r),0);
-    return {student,mem,rev,total:mem+rev,entries:recent.length,days:new Set(recent.map(r=>r.date).filter(Boolean)).size};
-   }).sort((a,b)=>b.mem-a.mem||b.rev-a.rev||b.days-a.days||String(a.student.name).localeCompare(String(b.student.name),"ar"));
-   const groupName=(S.groups.find(g=>String(g.id)===gid)||{}).name||"الفوج";
-   reportHost.innerHTML='<div class="report-period-grid"><article class="card"><h4>'+esc(groupName)+' · '+label+'</h4><p class="muted small">الفترة: '+esc(fromDate)+' إلى '+esc(today)+'</p><div class="stats"><div class="stat"><small>الطلاب</small><strong>'+stats.length+'</strong></div><div class="stat"><small>أثمان الحفظ</small><strong>'+stats.reduce((n,x)=>n+x.mem,0)+'</strong></div><div class="stat"><small>أثمان المراجعة</small><strong>'+stats.reduce((n,x)=>n+x.rev,0)+'</strong></div></div></article></div><div class="table-wrap"><table><thead><tr><th>الترتيب</th><th>الطالب</th><th>أثمان الحفظ</th><th>أثمان المراجعة</th><th>أيام المتابعة</th><th>عدد المتابعات</th></tr></thead><tbody>'+stats.map((x,i)=>'<tr><td>'+(i+1)+'</td><td>'+esc(x.student.name)+'</td><td>'+x.mem+'</td><td>'+x.rev+'</td><td>'+x.days+'</td><td>'+x.entries+'</td></tr>').join("")+'</tbody></table></div><p class="muted small">هذا ترتيب للاجتهاد بحسب السجلات المسجلة خلال الفترة المختارة، وليس حكمًا على قيمة الطالب أو إتقانه.</p>';
-  }catch(error){reportHost.innerHTML='<div class="notice error">'+esc(error.message)+'</div>'}
- };
- if(studentSelect.value)await refreshHistory(studentSelect.value);
+
 
 }
 
