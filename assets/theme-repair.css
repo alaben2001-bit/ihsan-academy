@@ -126,3 +126,58 @@ html[data-appearance="dark"] table td { background-color:#14251c !important; col
 html[data-appearance="dark"] .login:not(.hidden) .login-form { background:#0f2017 !important; color:#edf7f1 !important; }
 html[data-appearance="dark"] .login:not(.hidden) .login-form-inner { background:#14251c !important; border-color:#365242 !important; }
 html[data-appearance="dark"] .login:not(.hidden) .login-form h2 { color:#edf7f1 !important; }
+
+
+/* v3 — Cover remaining legacy surfaces that use literal white backgrounds. */
+html[data-appearance="dark"] .sheet,
+html[data-appearance="dark"] .modalbox,
+html[data-appearance="dark"] .more-sheet > div,
+html[data-appearance="dark"] .source-card,
+html[data-appearance="dark"] .source-card.ayah,
+html[data-appearance="dark"] .source-card.hadith,
+html[data-appearance="dark"] .goal-chip,
+html[data-appearance="dark"] .home-pulse-list button,
+html[data-appearance="dark"] .media-filter button,
+html[data-appearance="dark"] .install-prompt,
+html[data-appearance="dark"] .calendar-day,
+html[data-appearance="dark"] .today-step,
+html[data-appearance="dark"] .home-quick-link,
+html[data-appearance="dark"] .more-grid button,
+html[data-appearance="dark"] .more-logout,
+html[data-appearance="dark"] .permission-flow span,
+html[data-appearance="dark"] .learning-steps span,
+html[data-appearance="dark"] .theme-swatch,
+html[data-appearance="dark"] .audio-player {
+  background-color:#14251c !important;
+  background-image:none;
+  color:#edf7f1 !important;
+  border-color:#365242 !important;
+}
+html[data-appearance="dark"] .calendar-day.has-entry {
+  background:#244b35 !important;
+  color:#e9fff0 !important;
+  border-color:#5a9870 !important;
+}
+html[data-appearance="dark"] .source-card.ayah,
+html[data-appearance="dark"] .source-card.hadith {
+  background:#172d23 !important;
+}
+html[data-appearance="dark"] .media-description,
+html[data-appearance="dark"] .media-meta,
+html[data-appearance="dark"] .source-label,
+html[data-appearance="dark"] .source-ref,
+html[data-appearance="dark"] .lesson-sources-note,
+html[data-appearance="dark"] .lesson-sources-note summary {
+  color:#bdcec5 !important;
+}
+html[data-appearance="dark"] .install-prompt span { color:#bdcec5 !important; }
+html[data-appearance="dark"] .audio-player audio { color-scheme:dark; }
+html[data-appearance="dark"] .page,
+html[data-appearance="dark"] .page-content,
+html[data-appearance="dark"] .main,
+html[data-appearance="dark"] .content,
+html[data-appearance="dark"] #appView,
+html[data-appearance="dark"] #view {
+  background-color:#0b1712 !important;
+  color:#edf7f1 !important;
+}
