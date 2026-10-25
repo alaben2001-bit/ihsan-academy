@@ -419,6 +419,42 @@ export default {
       const todayRows=attendanceRows.filter(row=>row.date===today);
       return json({students_count:studentsCount,groups_count:groupsCount,attendance_rate:(todayRows.filter(row=>["present","absent","late"].includes(row.status)).length)?Math.round(100*todayRows.filter(row=>row.status==="present"||row.status==="late").length/todayRows.filter(row=>["present","absent","late"].includes(row.status)).length):0,attendance_marked:isAdmin?todayRows.length:null,progress_avg:null,upcoming_tests:tests.filter(test=>!test.due_date||test.due_date>=today).length});
     }
+    const teacherGroupMatch=path.match(/^\/api\/teacher\/groups\/([^/]+)$/);
+    if(path==="/api/teacher/groups"&&method==="POST"){
+      if(user.role!=="teacher")return fail(403,"إضافة الأفواج متاحة للشيخ فقط");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      const name=clean(b.name,120),description=clean(b.description,600),level=clean(b.level,80)||"عام";
+      if(!name)return fail(400,"اسم الفوج مطلوب");
+      const own=await env.DB.prepare("SELECT school_id FROM groups WHERE teacher_id=? AND active=1 ORDER BY name LIMIT 1").bind(user.id).first();
+      const schoolId=own?.school_id||"qs-rahman";
+      const school=await env.DB.prepare("SELECT id FROM quran_schools WHERE id=? AND active=1").bind(schoolId).first();
+      if(!school)return fail(400,"لا توجد مدرسة نشطة مسندة إليك؛ اطلب من الإدارة إسنادك إلى مدرسة أولًا");
+      const id=uuid();
+      await env.DB.prepare("INSERT INTO groups(id,name,school_id,teacher_id,active) VALUES(?,?,?,?,1)").bind(id,name,schoolId,user.id).run();
+      await saveRecord(env,"group_metadata",{id:"group:"+id,group_id:id,owner_user_id:user.id,description,level,created_by:user.id,created_at:nowIso()});
+      await log(env,user.id,"teacher_group_create",{id,name,school_id:schoolId});
+      return json({id,name,school_id:schoolId,teacher_id:user.id,active:1,description,level},201);
+    }
+    if(teacherGroupMatch&&(method==="PATCH"||method==="DELETE")){
+      if(user.role!=="teacher")return fail(403,"هذه العملية متاحة للشيخ فقط");
+      const id=teacherGroupMatch[1],g=await groupRow(env,id);
+      if(!g||g.active!==1)return fail(404,"الفوج غير موجود أو غير نشط");
+      if(g.teacher_id!==user.id)return fail(403,"لا يمكنك تعديل فوج خارج نطاقك");
+      if(method==="DELETE"){
+        const count=await env.DB.prepare("SELECT COUNT(*) AS n FROM students WHERE group_id=? AND active=1").bind(id).first();
+        if((count?.n||0)>0)return fail(409,"لا يمكن حذف فوج يضم طلابًا؛ انقل الطلاب أولًا أو عطّل الفوج من الإدارة");
+        await env.DB.prepare("UPDATE groups SET active=0 WHERE id=? AND teacher_id=?").bind(id,user.id).run();
+        await log(env,user.id,"teacher_group_deactivate",{id});
+        return json({ok:true});
+      }
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      const name=clean(b.name??g.name,120),description=clean(b.description??"",600),level=clean(b.level??"عام",80)||"عام";
+      if(!name)return fail(400,"اسم الفوج مطلوب");
+      await env.DB.prepare("UPDATE groups SET name=? WHERE id=? AND teacher_id=?").bind(name,id,user.id).run();
+      await saveRecord(env,"group_metadata",{id:"group:"+id,group_id:id,owner_user_id:user.id,description,level,updated_at:nowIso()});
+      await log(env,user.id,"teacher_group_update",{id,name});
+      return json({ok:true,id,name,description,level});
+    }
     if(path==="/api/groups"&&method==="GET"){
       let rows;
       if(user.role==="admin")rows=await env.DB.prepare("SELECT id,name,school_id,teacher_id,active FROM groups WHERE active=1 ORDER BY name").all();
@@ -429,7 +465,14 @@ export default {
         else rows={results:[]};
       }else if(user.role==="student"&&user.group_id){const g=await groupRow(env,user.group_id);rows={results:g&&g.active===1?[g]:[]};}
       else rows={results:[]};
-      return json(rows.results||[]);
+      const resultRows=rows.results||[];
+      const enriched=[];
+      for(const g of resultRows){
+        const meta=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='group_metadata' AND id=?").bind("group:"+g.id).first();
+        let extra={};try{extra=meta?JSON.parse(meta.payload_json):{}}catch{}
+        enriched.push({...g,description:extra.description||"",level:extra.level||"عام"});
+      }
+      return json(enriched);
     }
     if(path==="/api/groups"&&method==="POST"){
       if(user.role!=="admin"&&user.role!=="director")return fail(403,"إنشاء الأفواج للمدير العام أو مدير المدرسة"); const parsed=await parseBody(request);if(parsed.error)return parsed.error;
