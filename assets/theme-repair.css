@@ -181,3 +181,86 @@ html[data-appearance="dark"] #view {
   background-color:#0b1712 !important;
   color:#edf7f1 !important;
 }
+
+
+/* v4: final high-specificity night palette for legacy white surfaces and inline styles. */
+html[data-appearance="dark"] body,
+html[data-appearance="dark"] #appView,
+html[data-appearance="dark"] #appView .main,
+html[data-appearance="dark"] #appView #view,
+html[data-appearance="dark"] #appView .top,
+html[data-appearance="dark"] #appView .side,
+html[data-appearance="dark"] #appView .bottom {
+  background-color:#0b1712 !important;
+  color:#edf7f1 !important;
+}
+html[data-appearance="dark"] #view .card,
+html[data-appearance="dark"] #view .panel,
+html[data-appearance="dark"] #view .metric,
+html[data-appearance="dark"] #view .stat,
+html[data-appearance="dark"] #view .stat-card,
+html[data-appearance="dark"] #view .sheet,
+html[data-appearance="dark"] #view .modalbox,
+html[data-appearance="dark"] #view .settings-section,
+html[data-appearance="dark"] #view .settings-panel,
+html[data-appearance="dark"] #view .portal-card,
+html[data-appearance="dark"] #view .source-card,
+html[data-appearance="dark"] #view .lesson-reading,
+html[data-appearance="dark"] #view .lesson-detail,
+html[data-appearance="dark"] #view .table-wrap,
+html[data-appearance="dark"] #view .empty-state,
+html[data-appearance="dark"] #view .empty,
+html[data-appearance="dark"] #view .notice,
+html[data-appearance="dark"] #view .muted-box,
+html[data-appearance="dark"] #view .appearance-control,
+html[data-appearance="dark"] #view .appearance-heading {
+  background-color:#14251c !important;
+  color:#edf7f1 !important;
+  border-color:#365242 !important;
+}
+html[data-appearance="dark"] #view .card *,
+html[data-appearance="dark"] #view .panel *,
+html[data-appearance="dark"] #view .sheet *,
+html[data-appearance="dark"] #view .modalbox *,
+html[data-appearance="dark"] #view .source-card *,
+html[data-appearance="dark"] #view .lesson-reading *,
+html[data-appearance="dark"] #view .lesson-detail * {
+  border-color:#365242;
+}
+html[data-appearance="dark"] #view button:not(.btn):not([data-theme-option]),
+html[data-appearance="dark"] #view .goal-chip,
+html[data-appearance="dark"] #view .today-step,
+html[data-appearance="dark"] #view .home-quick-link,
+html[data-appearance="dark"] #view .home-pulse-list button,
+html[data-appearance="dark"] #view .calendar-day,
+html[data-appearance="dark"] #view .media-filter button {
+  background-color:#1a3024 !important;
+  color:#edf7f1 !important;
+  border-color:#365242 !important;
+}
+html[data-appearance="dark"] #view input:not([type="checkbox"]):not([type="radio"]),
+html[data-appearance="dark"] #view select,
+html[data-appearance="dark"] #view textarea {
+  background-color:#0b1a14 !important;
+  color:#f2faf5 !important;
+  border-color:#456253 !important;
+}
+html[data-appearance="dark"] #view h1,
+html[data-appearance="dark"] #view h2,
+html[data-appearance="dark"] #view h3,
+html[data-appearance="dark"] #view h4,
+html[data-appearance="dark"] #view p,
+html[data-appearance="dark"] #view label,
+html[data-appearance="dark"] #view strong,
+html[data-appearance="dark"] #view span,
+html[data-appearance="dark"] #view li,
+html[data-appearance="dark"] #view td,
+html[data-appearance="dark"] #view th {
+  color:inherit;
+}
+html[data-appearance="dark"] #view .hero,
+html[data-appearance="dark"] #view .hero-main,
+html[data-appearance="dark"] #view .lesson-cover,
+html[data-appearance="dark"] #view .media-cover {
+  color:#fff !important;
+}
