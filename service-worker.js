@@ -1,4 +1,4 @@
-const CACHE='ihsan-academy-v95-dark-theme-cache-bust-2026-10-25';
+const CACHE='ihsan-academy-v96-night-theme-surfaces-2026-10-25';
 const SHELL=['/','/index.html','/assets/app.css','/assets/app.js','/assets/theme-repair.css','/assets/icon.svg','/manifest.json','/offline.html'];
 self.addEventListener('install',e=>e.waitUntil(caches.open(CACHE).then(c=>c.addAll(SHELL)).then(()=>self.skipWaiting())));
 self.addEventListener('activate',e=>e.waitUntil(caches.keys().then(keys=>Promise.all(keys.filter(k=>k!==CACHE).map(k=>caches.delete(k)))).then(()=>self.clients.claim())));
