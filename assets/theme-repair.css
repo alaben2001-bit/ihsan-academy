@@ -1,0 +1,128 @@
+/* Ihsan Academy — final theme guard.
+   Loaded last so the light-mode palette cannot wash out the explicit night mode. */
+html[data-appearance="dark"] {
+  color-scheme: dark !important;
+  --ink:#edf7f1; --muted:#bdcec5; --line:#344b40; --white:#14251c;
+  --b50:#0b1712; --b100:#14251c; --b200:#263d32; --b400:#b89a5a;
+}
+html[data-appearance="dark"] body,
+html[data-appearance="dark"] .app,
+html[data-appearance="dark"] .main,
+html[data-appearance="dark"] #appView,
+html[data-appearance="dark"] #view,
+html[data-appearance="dark"] .content,
+html[data-appearance="dark"] .page,
+html[data-appearance="dark"] .page-content {
+  background-color:#0b1712 !important;
+  background-image:radial-gradient(ellipse at 10% 0%,rgba(16,185,129,.12),transparent 38%),linear-gradient(160deg,#0b1712,#101f19 60%,#0b1712) !important;
+  color:#edf7f1 !important;
+}
+html[data-appearance="dark"] .top,
+html[data-appearance="dark"] .card,
+html[data-appearance="dark"] .panel,
+html[data-appearance="dark"] .stat,
+html[data-appearance="dark"] .stat-card,
+html[data-appearance="dark"] .table-wrap,
+html[data-appearance="dark"] .sheet,
+html[data-appearance="dark"] .modal,
+html[data-appearance="dark"] .modalbox,
+html[data-appearance="dark"] .settings-section,
+html[data-appearance="dark"] .settings-panel,
+html[data-appearance="dark"] .portal-card,
+html[data-appearance="dark"] .sheikh-post,
+html[data-appearance="dark"] .reel-card,
+html[data-appearance="dark"] .appearance-studio,
+html[data-appearance="dark"] .toolbar,
+html[data-appearance="dark"] .dropdown,
+html[data-appearance="dark"] .popover,
+html[data-appearance="dark"] .table-wrap table,
+html[data-appearance="dark"] .table-wrap th,
+html[data-appearance="dark"] .table-wrap td {
+  background-color:#14251c !important;
+  color:#edf7f1 !important;
+  border-color:#365242 !important;
+  box-shadow:none !important;
+}
+html[data-appearance="dark"] h1,
+html[data-appearance="dark"] h2,
+html[data-appearance="dark"] h3,
+html[data-appearance="dark"] h4,
+html[data-appearance="dark"] p,
+html[data-appearance="dark"] label,
+html[data-appearance="dark"] li,
+html[data-appearance="dark"] th,
+html[data-appearance="dark"] td,
+html[data-appearance="dark"] strong,
+html[data-appearance="dark"] .top b,
+html[data-appearance="dark"] .card b { color:#edf7f1 !important; }
+html[data-appearance="dark"] .muted,
+html[data-appearance="dark"] small,
+html[data-appearance="dark"] .sub,
+html[data-appearance="dark"] .hint,
+html[data-appearance="dark"] .page-subtitle { color:#bdcec5 !important; }
+html[data-appearance="dark"] input:not([type="checkbox"]):not([type="radio"]),
+html[data-appearance="dark"] select,
+html[data-appearance="dark"] textarea {
+  color:#f2faf5 !important;
+  background:#0b1a24 !important;
+  border-color:#456253 !important;
+  color-scheme:dark;
+}
+html[data-appearance="dark"] .side,
+html[data-appearance="dark"] .side .brand,
+html[data-appearance="dark"] .account {
+  background:#102b22 !important;
+  color:#edf7f1 !important;
+  border-color:#365242 !important;
+}
+html[data-appearance="dark"] .side .brand b,
+html[data-appearance="dark"] .account b { color:#fff !important; }
+html[data-appearance="dark"] .side .brand small,
+html[data-appearance="dark"] .account small,
+html[data-appearance="dark"] .nav-label { color:#bdcec5 !important; }
+html[data-appearance="dark"] .nav button,
+html[data-appearance="dark"] #bottomNav button,
+html[data-appearance="dark"] .bottom button,
+html[data-appearance="dark"] .appearance-choice,
+html[data-appearance="dark"] .tab {
+  color:#edf7f1 !important;
+  background:#172d23 !important;
+  border-color:#365242 !important;
+}
+html[data-appearance="dark"] .nav button.active,
+html[data-appearance="dark"] #bottomNav button.active,
+html[data-appearance="dark"] .bottom button.active,
+html[data-appearance="dark"] .appearance-choice.active,
+html[data-appearance="dark"] .tab.active {
+  color:#fff !important;
+  background:#315e4b !important;
+  border-color:#7da991 !important;
+}
+html[data-appearance="dark"] .hero,
+html[data-appearance="dark"] .hero-main,
+html[data-appearance="dark"] .lesson-cover,
+html[data-appearance="dark"] .media-cover {
+  color:#fff !important;
+}
+html[data-appearance="dark"] .btn,
+html[data-appearance="dark"] .button-primary,
+html[data-appearance="dark"] button.primary,
+html[data-appearance="dark"] [type="submit"] {
+  color:#fff !important;
+  background:#23785a !important;
+  border-color:#4b9274 !important;
+}
+html[data-appearance="dark"] .btn.sec2,
+html[data-appearance="dark"] .btn.secondary,
+html[data-appearance="dark"] button.secondary {
+  color:#edf7f1 !important;
+  background:#172d23 !important;
+  border-color:#527260 !important;
+}
+html[data-appearance="dark"] table,
+html[data-appearance="dark"] table tr,
+html[data-appearance="dark"] table th,
+html[data-appearance="dark"] table td { background-color:#14251c !important; color:#edf7f1 !important; border-color:#365242 !important; }
+html[data-appearance="dark"] .login:not(.hidden) .login-form { background:#0f2017 !important; color:#edf7f1 !important; }
+html[data-appearance="dark"] .login:not(.hidden) .login-form-inner { background:#14251c !important; border-color:#365242 !important; }
+html[data-appearance="dark"] .login:not(.hidden) .login-form h2 { color:#edf7f1 !important; }
