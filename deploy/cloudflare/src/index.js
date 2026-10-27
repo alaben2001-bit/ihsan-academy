@@ -980,7 +980,7 @@ export default {
       if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"متابعة الاجتهاد للشيخ أو المشرف");
       const groupId=clean(url.searchParams.get("group_id"),80),date=clean(url.searchParams.get("date"),10)||academyDate();
       if(!validDateOnly(date)||!groupId||!await canManageGroup(env,user,groupId))return fail(400,"اختر فوجًا وتاريخًا صحيحين ضمن صلاحيتك");
-      return json(await records(env,"effort_logs"," AND group_id=? AND date=?",[groupId,date]));
+      return json((await records(env,"effort_logs"," AND group_id=?",[groupId])).filter(row=>row.date===date));
     }
     if(path==="/api/effort"&&method==="POST"){
       if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"تسجيل الاجتهاد للشيخ أو المشرف");
