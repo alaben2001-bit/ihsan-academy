@@ -578,7 +578,7 @@ function items(){
  const staff=["admin","director","teacher","supervisor"].includes(S.user.role);
  if(S.user.role==="admin"){
   const full=safeStore.get("ihsan_admin_focus")==="full";
-  const daily=[["home","الرئيسية"],["students","الطلاب"],["roster-bulk","إضافة أسماء الطلبة"],["attendance","الحضور"],["quran","متابعة الحفظ والمراجعة"],["effort","الاجتهاد فيه"],["effort-ranking","الترتيب الأسبوعي / الشهري"],["notifications","التنبيهات"],["messages","الرسائل"]];
+  const daily=[["home","الرئيسية"],["students","الطلاب"],["roster-bulk","إضافة أسماء الطلبة"],["attendance","الحضور"],["quran","متابعة الحفظ والمراجعة"],["effort","تسجيل الاجتهاد اليومي"],["effort-ranking","الترتيب الأسبوعي / الشهري"],["notifications","التنبيهات"],["messages","الرسائل"]];
   if(!full)return daily;
   return [["home","الرئيسية"],["groups","الأفواج"],["students","الطلاب"],["roster-bulk","إضافة أسماء الطلبة"],["teams","الفرق"],["attendance","الحضور"],["quran","متابعة الحفظ والمراجعة"],["effort","الاجتهاد فيه"],["effort-ranking","الترتيب الأسبوعي / الشهري"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"],["system-check","فحص النظام"]];
  }
@@ -621,16 +621,19 @@ function navIcon(id){return '<svg viewBox="0 0 24 24" class="nav-icon" aria-hidd
 function navigationGroups(){
  const list=items();if(S.mode==="ihsan")return [{title:"منهج الإحسان",items:list}];
  const makeGroup=(title,ids)=>({title,items:list.filter(x=>ids.includes(x[0]))});
+ const effortGroup=()=>makeGroup("الاجتهاد فيه · المتابعة اليومية والترتيب",["effort","effort-ranking"]);
  if(S.user.role==="admin"){
   const full=safeStore.get("ihsan_admin_focus")==="full";
   if(!full)return [
    makeGroup("مهام الشيخ اليومية",["home","students","attendance","quran"]),
+   effortGroup(),
    makeGroup("الفرق",["teams"]),
    makeGroup("المتابعة والتواصل",["gradebook","reports","notifications","messages"])
   ].filter(g=>g.items.length);
   return [
    makeGroup("إدارة الأكاديمية",["home","groups","students"]),
    makeGroup("المهام الأساسية اليومية",["attendance","quran"]),
+   effortGroup(),
    makeGroup("المتابعة والتقويم",["gradebook","reports","notifications","messages"]),
    makeGroup("أدوات إضافية وتحسينية",["assignments","tests","system-check"])
   ].filter(g=>g.items.length);
@@ -638,13 +641,12 @@ function navigationGroups(){
  if(["teacher","director","supervisor"].includes(S.user.role))return [
   makeGroup(S.user.role==="director"?"إدارة المدرسة":S.user.role==="supervisor"?"متابعة الفريق":"التدريس والمتابعة",["home","groups","students","teams"]),
   makeGroup("المهام الأساسية اليومية",["attendance","quran"]),
+  effortGroup(),
   makeGroup("المتابعة والتقويم",["gradebook","reports","notifications","messages"]),
   makeGroup("أدوات إضافية",["assignments","tests"])
  ].filter(g=>g.items.length);
  return [makeGroup("رحلتي التعليمية",["home","profile","teams","quran","assignments","gradebook","attendance","tests","notifications","messages","leaderboard"])].filter(g=>g.items.length);
 }
-
-
 
 function navMarkup(){const seen=new Set();return navigationGroups().map(group=>{const unique=group.items.filter(x=>{if(seen.has(x[0]))return false;seen.add(x[0]);return true});return unique.length?'<div class="nav-section"><div class="nav-section-title">'+esc(group.title)+'</div>'+unique.map(x=>'<button class="nav-btn '+(S.tab===x[0]?"active":"")+'" data-tab="'+esc(x[0])+'"><span class="nav-icon-wrap">'+navIcon(x[0])+'</span><span class="nav-label">'+esc(x[1])+'</span><span class="nav-chevron" aria-hidden="true">‹</span></button>').join("")+'</div>':""}).join("")}
 
