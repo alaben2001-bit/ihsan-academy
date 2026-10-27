@@ -578,7 +578,7 @@ function items(){
  const staff=["admin","director","teacher","supervisor"].includes(S.user.role);
  if(S.user.role==="admin"){
   const full=safeStore.get("ihsan_admin_focus")==="full";
-  const daily=[["home","الرئيسية"],["students","الطلاب"],["roster-bulk","إضافة أسماء الطلبة"],["attendance","الحضور"],["quran","متابعة الحفظ والمراجعة"],["effort","تسجيل الاجتهاد اليومي"],["effort-ranking","الترتيب الأسبوعي / الشهري"],["notifications","التنبيهات"],["messages","الرسائل"]];
+  const daily=[["home","الرئيسية"],["students","الطلاب"],["roster-bulk","إضافة أسماء الطلبة"],["attendance","الحضور"],["quran","متابعة الحفظ والمراجعة"],["effort-ranking","تقرير اجتهاد الطلبة"],["effort","تسجيل المتابعة اليومية"],["notifications","التنبيهات"],["messages","الرسائل"]];
   if(!full)return daily;
   return [["home","الرئيسية"],["groups","الأفواج"],["students","الطلاب"],["roster-bulk","إضافة أسماء الطلبة"],["teams","الفرق"],["attendance","الحضور"],["quran","متابعة الحفظ والمراجعة"],["effort","الاجتهاد فيه"],["effort-ranking","الترتيب الأسبوعي / الشهري"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"],["system-check","فحص النظام"]];
  }
@@ -621,7 +621,7 @@ function navIcon(id){return '<svg viewBox="0 0 24 24" class="nav-icon" aria-hidd
 function navigationGroups(){
  const list=items();if(S.mode==="ihsan")return [{title:"منهج الإحسان",items:list}];
  const makeGroup=(title,ids)=>({title,items:list.filter(x=>ids.includes(x[0]))});
- const effortGroup=()=>makeGroup("الاجتهاد فيه · المتابعة اليومية والترتيب",["effort","effort-ranking"]);
+ const effortGroup=()=>makeGroup("الاجتهاد فيه",["effort-ranking","effort"]);
  if(S.user.role==="admin"){
   const full=safeStore.get("ihsan_admin_focus")==="full";
   if(!full)return [
@@ -1240,8 +1240,8 @@ async function effortPage(v){
 }
 async function effortRankingPage(v){
  const groups=assignedGroups().slice().sort((a,b)=>compareStudentNames(a.name,b.name));
- v.innerHTML=head("الترتيب الأسبوعي / الشهري","ترتيب واحد يجمع الحضور والاجتهاد اليومي والحفظ والمراجعة. تُحتسب السجلات الفعلية فقط، ولا تُعدّ المهمة غير المسجّلة إنجازًا.")+
- '<section class="card"><div class="form-grid"><label class="field">الفوج<select id="ranking-group"><option value="">اختر الفوج</option>'+groups.map(g=>'<option value="'+esc(g.id)+'">'+esc(g.name)+'</option>').join("")+'</select></label><label class="field">الفترة<select id="ranking-period"><option value="weekly">أسبوعي</option><option value="monthly">شهري</option></select></label><div class="wide"><button type="button" class="btn" id="ranking-load">عرض الترتيب</button></div></div><div id="ranking-result" class="muted small">اختر الفوج والفترة.</div></section>';
+ v.innerHTML=head("تقرير اجتهاد الطلبة","تقرير تلقائي من السجلات المحفوظة للحضور والحفظ والمراجعة، ويضم متابعة الاجتهاد اليومية حيث سُجّلت. البيانات غير المسجّلة تظهر بشرطة ولا تُحتسب إنجازًا.")+
+ '<section class="card"><div class="form-grid"><label class="field">الفوج<select id="ranking-group"><option value="">اختر الفوج</option>'+groups.map(g=>'<option value="'+esc(g.id)+'">'+esc(g.name)+'</option>').join("")+'</select></label><label class="field">الفترة<select id="ranking-period"><option value="weekly">التقرير الأسبوعي</option><option value="monthly">التقرير الشهري</option></select></label><div class="wide"><button type="button" class="btn" id="ranking-load">إنشاء التقرير</button></div></div><div id="ranking-result" class="muted small">اختر الفوج والفترة.</div></section>';
  const groupSel=$("#ranking-group"),periodSel=$("#ranking-period"),host=$("#ranking-result");
  const saved=safeStore.getSession("ihsan_effort_group");if(saved&&groups.some(g=>String(g.id)===saved))groupSel.value=saved;
  $("#ranking-load").onclick=async()=>{
@@ -1250,7 +1250,7 @@ async function effortRankingPage(v){
   try{
    const data=await api("/effort/ranking?group_id="+encodeURIComponent(groupSel.value)+"&period="+encodeURIComponent(periodSel.value));
    const labels={attendance:"الحضور",mandatory_classes:"الحصص الإجبارية",asr:"صلاة العصر",adhkar:"الأذكار",wird:"الورد",bring:"الإحضار",quran_classes:"حصص القرآن",memorization:"الحفظ",revision:"المراجعة"};
-   host.innerHTML='<p class="muted small">'+esc((groups.find(g=>String(g.id)===groupSel.value)||{}).name||"الفوج")+' · '+esc(data.from_date)+' إلى '+esc(data.to_date)+'</p><div class="table-wrap"><table><thead><tr><th>الترتيب</th><th>الطالب</th><th>النقاط</th><th>الحضور</th><th>الحصص الإجبارية</th><th>العصر</th><th>الأذكار</th><th>الورد</th><th>الإحضار</th><th>حصص القرآن</th><th>الحفظ</th><th>المراجعة</th></tr></thead><tbody>'+data.rows.map(row=>'<tr><td>'+row.rank+'</td><td>'+esc(row.name)+'</td><td><strong>'+row.score+'%</strong></td>'+["attendance","mandatory_classes","asr","adhkar","wird","bring","quran_classes","memorization","revision"].map(key=>'<td>'+(row.metrics[key]===null?"—":row.metrics[key]+"%")+'</td>').join("")+'</tr>').join("")+'</tbody></table></div><p class="muted small">النقاط متوسط نسب الإنجاز في المعايير التي لها سجلات خلال الفترة. «—» تعني عدم وجود سجل كافٍ لذلك المعيار، ولا تعني صفرًا.</p>';
+   host.innerHTML='<p class="muted small">'+esc((groups.find(g=>String(g.id)===groupSel.value)||{}).name||"الفوج")+' · '+esc(data.from_date)+' إلى '+esc(data.to_date)+'</p><div class="table-wrap"><table><thead><tr><th>الترتيب</th><th>الطالب</th><th>النقاط</th><th>الحضور</th><th>الحصص الإجبارية</th><th>العصر</th><th>الأذكار</th><th>الورد</th><th>الإحضار</th><th>حصص القرآن</th><th>الحفظ</th><th>المراجعة</th></tr></thead><tbody>'+data.rows.map(row=>'<tr><td>'+row.rank+'</td><td>'+esc(row.name)+'</td><td><strong>'+row.score+'%</strong></td>'+["attendance","mandatory_classes","asr","adhkar","wird","bring","quran_classes","memorization","revision"].map(key=>'<td>'+(row.metrics[key]===null?"—":row.metrics[key]+"%")+'</td>').join("")+'</tr>').join("")+'</tbody></table></div><p class="muted small">التقرير يجمع السجلات الموجودة تلقائيًا. «—» تعني أن هذا المعيار لا توجد له بيانات مسجّلة خلال الفترة، ولا تعني صفرًا.</p>';
   }catch(e){host.innerHTML='<div class="notice error">'+esc(e.message)+'</div>'}
  };
 }
