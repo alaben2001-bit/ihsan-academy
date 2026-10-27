@@ -583,7 +583,7 @@ function items(){
   return [["home","الرئيسية"],["groups","الأفواج"],["students","الطلاب"],["roster-bulk","إضافة أسماء الطلبة"],["teams","الفرق"],["attendance","الحضور"],["quran","متابعة الحفظ والمراجعة"],["effort-ranking","تقرير اجتهاد الطلبة"],["effort","تسجيل المتابعة اليومية"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"],["system-check","فحص النظام"]];
  }
  if(S.user.role==="director")return [["home","الرئيسية"],["groups","الأفواج والمعلمون والفرق"],["students","طلاب المدرسة"],["roster-bulk","إضافة أسماء الطلبة"],["attendance","الحضور"],["quran","متابعة الحفظ والمراجعة"],["effort-ranking","تقرير اجتهاد الطلبة"],["effort","تسجيل المتابعة اليومية"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"]];
- if(S.user.role==="supervisor")return [["home","الرئيسية"],["students","طلاب فريقي"],["teams","فرقي الطلابية"],["attendance","الحضور"],["quran","متابعة الحفظ والمراجعة"],["effort","الاجتهاد فيه"],["effort-ranking","الترتيب الأسبوعي / الشهري"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"]];
+ if(S.user.role==="supervisor")return [["home","الرئيسية"],["students","طلاب فريقي"],["teams","فرقي الطلابية"],["attendance","الحضور"],["quran","متابعة الحفظ والمراجعة"],["effort-ranking","تقرير اجتهاد الطلبة"],["effort","تسجيل المتابعة اليومية"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"]];
  if(S.user.role==="teacher")return [["home","الرئيسية"],["students","طلبتي"],["roster-bulk","إضافة أسماء الطلبة"],["groups","أفواجي"],["teams","فرقي الطلابية"],["attendance","الحضور"],["quran","متابعة الحفظ والمراجعة"],["effort","الاجتهاد فيه"],["effort-ranking","الترتيب الأسبوعي / الشهري"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"]];
  return [["home","الرئيسية"],["profile","ملفي"],["teams","فرقتي وطلبات النقل"],["quran","تقدمي في القرآن"],["assignments","واجباتي"],["gradebook","تقدمي ودرجاتي"],["attendance","حضوري"],["tests","اختباراتي"],["notifications","التنبيهات"],["messages","الرسائل"],["leaderboard","الترتيب العام"]];
 }
@@ -621,7 +621,7 @@ function navIcon(id){return '<svg viewBox="0 0 24 24" class="nav-icon" aria-hidd
 function navigationGroups(){
  const list=items();if(S.mode==="ihsan")return [{title:"منهج الإحسان",items:list}];
  const makeGroup=(title,ids)=>({title,items:list.filter(x=>ids.includes(x[0]))});
- const effortGroup=()=>makeGroup("الاجتهاد فيه",["effort-ranking","effort"]);
+ const effortGroup=()=>makeGroup("الاجتهاد",["effort-ranking","effort"]);
  if(S.user.role==="admin"){
   const full=safeStore.get("ihsan_admin_focus")==="full";
   if(!full)return [
