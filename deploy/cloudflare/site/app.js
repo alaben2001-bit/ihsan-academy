@@ -1135,6 +1135,7 @@ async function quran(v){
   v.innerHTML=head("تقدمي في القرآن","مسارك وهدفك الأسبوعي، مع سجل الحفظ والمراجعة والتسميع وتصحيح المعلم.")+quranPlanMarkup(levels,plan,S.user.student_id,true)+quranProgressSummary(rows)+quranPeriodReportMarkup(rows)+'<section class="card"><h3>سجل الحفظ والمراجعة والتسميع</h3><div class="list">'+(rows.length?rows.map(r=>'<article class="list-row"><div><strong>'+esc(r.date)+' · '+esc(quranActivityName(r.activity))+'</strong><small>الحفظ: '+esc(r.memorized||"—")+' · المراجعة: '+esc(r.reviewed||"—")+' · التسميع: '+esc(r.recitation||"—")+'</small><small>الأخطاء: '+Number(r.errors||0)+' · التقدير: '+(r.grade===null||r.grade===undefined?"—":esc(r.grade+"/10"))+' · التصحيح: '+(r.corrected?"تم":"قيد المتابعة")+'</small><small>ملاحظة المعلم: '+esc(r.feedback||r.notes||"—")+'</small><small>المهمة القادمة: '+esc(r.next_assignment||"—")+'</small></div><span class="pill">متابعة</span></article>').join(""):'<div class="empty">لم تُسجّل متابعة بعد. سيظهر تقدمك هنا عند تسميع القرآن للمعلم.</div>')+'</div></section>';
   wireQuranPlan(v,levels);return;
  }
+ return quranRosterPage(v);
  const quranMode=safeStore.getSession("ihsan_quran_subtab")==="revision"?"revision":"memorization";
  const quranModeTitle=quranMode==="revision"?"متابعة المراجعة":"متابعة الحفظ";
  const quranGroups=assignedGroups().slice().sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"ar"));
@@ -1255,6 +1256,43 @@ async function bulkRosterPage(v){
   if(!gid||!names.length)return toast("اختر الفوج وأدخل الأسماء",true);
   const btn=form.querySelector('button[type="submit"]');btn.disabled=true;result.textContent="جار إضافة الأسماء…";
   try{const data=await api("/students/roster-bulk",{method:"POST",body:JSON.stringify({group_id:gid,names})});await load();result.innerHTML='<div class="notice">أُضيف '+data.added_count+' طالبًا. تم تجاوز '+data.skipped_count+' اسمًا مكررًا أو موجودًا بالفعل.</div>'+(data.skipped.length?'<p class="muted small">الأسماء المتجاوزة: '+esc(data.skipped.join("، "))+'</p>':"");toast("تمت إضافة "+data.added_count+" طالبًا بلا حسابات دخول")}catch(err){result.innerHTML='<div class="notice error">'+esc(err.message)+'</div>'}finally{btn.disabled=false}
+ };
+}
+
+async function quranRosterPage(v){
+ const activity=safeStore.getSession("ihsan_quran_subtab")==="revision"?"revision":"memorization";
+ const activityLabel=activity==="revision"?"المراجعة":"الحفظ";
+ const groups=assignedGroups().slice().sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"ar"));
+ const today=localDateISO(),savedGroup=safeStore.getSession("ihsan_quran_group")||"";
+ v.innerHTML=head("متابعة "+activityLabel,"قائمة الفوج كاملة؛ سجّل مقدار الحفظ أو المراجعة لكل طالب ثم احفظ دفعة واحدة، مثل طريقة الحضور.")+
+ '<section class="quran-mode-grid"><button type="button" class="quran-mode-card '+(activity==="memorization"?"active":"")+'" data-quran-roster-mode="memorization"><span class="quran-mode-symbol">✓</span><strong>متابعة الحفظ</strong></button><button type="button" class="quran-mode-card '+(activity==="revision"?"active":"")+'" data-quran-roster-mode="revision"><span class="quran-mode-symbol">↻</span><strong>متابعة المراجعة</strong></button></section>'+
+ '<section class="card"><div class="form-grid"><label class="field">الفوج<select id="quran-roster-group"><option value="">اختر الفوج</option>'+groups.map(g=>'<option value="'+esc(g.id)+'" '+(String(g.id)===savedGroup?"selected":"")+'>'+esc(g.name)+'</option>').join("")+'</select></label><label class="field">التاريخ<input id="quran-roster-date" type="date" value="'+esc(S.date||today)+'" max="'+today+'"></label><div class="wide"><button type="button" class="btn" id="quran-roster-load">عرض الطلبة</button></div></div><div id="quran-roster-list" class="muted small">اختر الفوج والتاريخ.</div></section>';
+ v.querySelectorAll("[data-quran-roster-mode]").forEach(button=>button.onclick=()=>{safeStore.setSession("ihsan_quran_subtab",button.dataset.quranRosterMode);quran(v)});
+ const group=$("#quran-roster-group"),date=$("#quran-roster-date"),host=$("#quran-roster-list");
+ $("#quran-roster-load").onclick=async()=>{
+  const gid=group.value,day=date.value;if(!gid||!day)return toast("اختر الفوج والتاريخ",true);
+  if(day>today)return toast("لا يمكن تسجيل متابعة بتاريخ مستقبلي",true);
+  safeStore.setSession("ihsan_quran_group",gid);safeStore.setSession("ihsan_quran_date",day);S.date=day;
+  host.innerHTML='<div class="loading">جار تحميل قائمة الطلبة وسجلاتهم…</div>';
+  try{
+   const students=await api("/students?group_id="+encodeURIComponent(gid));
+   if(!students.length){host.innerHTML='<div class="empty">لا يوجد طلاب في هذا الفوج.</div>';return}
+   const records=await Promise.all(students.map(async student=>({student,rows:await api("/quran/progress?student_id="+encodeURIComponent(student.id))})));
+   const existing={};records.forEach(({student,rows})=>{const row=rows.filter(x=>x.date===day&&x.activity===activity).sort((a,b)=>String(b.updated_at||"").localeCompare(String(a.updated_at||"")))[0];if(row)existing[student.id]=row});
+   host.innerHTML='<p class="muted small">'+esc((groups.find(g=>String(g.id)===gid)||{}).name||"الفوج")+' · '+esc(day)+' · '+students.length+' طالبًا</p><div class="quran-roster-list">'+students.map(student=>{const old=existing[student.id],value=activity==="revision"?(old?.reviewed||""):(old?.memorized||"");return '<article class="card quran-roster-student" data-quran-roster-student="'+esc(student.id)+'" data-existing-id="'+esc(old?.id||"")+'"><h3>'+esc(student.name)+'</h3><label class="field">'+(activity==="revision"?"مقدار المراجعة":"مقدار الحفظ")+'<input data-quran-amount maxlength="300" value="'+esc(value)+'" placeholder="'+(activity==="revision"?"مثال: مراجعة الأثمان 10–15":"مثال: حفظ الثمن 15")+'"></label><label class="field">ملاحظة مختصرة<input data-quran-note maxlength="500" value="'+esc(old?.notes||"")+'" placeholder="اختياري"></label>'+(old?'<small class="muted">يوجد سجل محفوظ لهذا اليوم؛ سيُحدّث بدل إنشاء سجل مكرر.</small>':'')+'</article>'}).join("")+'</div><button type="button" class="btn" id="quran-roster-save">حفظ '+activityLabel+' للفوج</button>';
+   $("#quran-roster-save").onclick=async()=>{
+    const cards=[...host.querySelectorAll("[data-quran-roster-student]")].map(card=>({card,student_id:card.dataset.quranRosterStudent,id:card.dataset.existingId,amount:card.querySelector("[data-quran-amount]").value.trim(),notes:card.querySelector("[data-quran-note]").value.trim()})).filter(x=>x.amount||x.notes);
+    if(!cards.length)return toast("أدخل مقدار الحفظ أو المراجعة لطالب واحد على الأقل",true);
+    const btn=$("#quran-roster-save");btn.disabled=true;let saved=0,failed=[];
+    for(const entry of cards){
+     const body={date:day,activity,memorized:activity==="memorization"?entry.amount:"",reviewed:activity==="revision"?entry.amount:"",notes:entry.notes,errors:0,corrected:false};
+     try{if(entry.id)await api("/quran/progress/"+encodeURIComponent(entry.id),{method:"PATCH",body:JSON.stringify(body)});else await api("/quran/progress",{method:"POST",body:JSON.stringify({...body,student_id:entry.student_id})});saved++}catch(error){failed.push({name:entry.card.querySelector("h3")?.textContent||"طالب",message:error.message})}
+    }
+    toast("حُفظت متابعة "+saved+" طالبًا"+(failed.length?"؛ تعذّر حفظ "+failed.length:""));
+    if(failed.length)host.insertAdjacentHTML("afterbegin",'<div class="notice error">تعذّر حفظ: '+esc(failed.map(x=>x.name+" ("+x.message+")").join("، "))+'</div>');
+    await $("#quran-roster-load").click();btn.disabled=false;
+   };
+  }catch(error){host.innerHTML='<div class="notice error">'+esc(error.message)+'</div>'}
  };
 }
 async function quranAchievementPage(v){
