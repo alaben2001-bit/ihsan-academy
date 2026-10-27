@@ -954,6 +954,81 @@ export default {
       if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"غير مسموح");const s=await env.DB.prepare("SELECT id,user_id,group_id FROM students WHERE id=? AND active=1").bind(studentMatch[1]).first();if(!s)return fail(404,"الطالب غير موجود");if(!await canManageGroup(env,user,s.group_id))return fail(403,"لا تملك صلاحية هذا الطالب");
       await env.DB.prepare("UPDATE students SET active=0 WHERE id=?").bind(s.id).run();if(s.user_id)await env.DB.prepare("UPDATE users SET active=0 WHERE id=?").bind(s.user_id).run();await log(env,user.id,"student_deactivate",{student_id:s.id});return json({ok:true});
     }
+    const effortCategories=["mandatory_classes","asr","adhkar","wird","bring","quran_classes"];
+    if(path==="/api/students/roster-bulk"&&method==="POST"){
+      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"غير مسموح");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      const groupId=clean(b.group_id,80),names=Array.isArray(b.names)?b.names.map(n=>clean(n,120)).filter(Boolean):[];
+      if(!groupId||!names.length||names.length>100)return fail(400,"اختر الفوج وأدخل من اسم واحد إلى 100 اسم");
+      if(!await canManageGroup(env,user,groupId))return fail(403,"لا تملك صلاحية هذا الفوج");
+      const existing=await env.DB.prepare("SELECT display_name FROM students WHERE group_id=? AND active=1").bind(groupId).all();
+      const normalizeName=n=>String(n||"").normalize("NFKC").replace(/[\u064B-\u065F\u0670]/g,"").replace(/\s+/g," ").trim().toLocaleLowerCase("ar");
+      const seen=new Set((existing.results||[]).map(x=>normalizeName(x.display_name)));
+      const added=[],skipped=[];const statements=[];
+      for(const name of names){
+        const key=normalizeName(name);
+        if(!key||seen.has(key)){skipped.push(name);continue}
+        seen.add(key);const id=uuid();
+        statements.push(env.DB.prepare("INSERT INTO students(id,user_id,display_name,group_id,active) VALUES(?,NULL,?,?,1)").bind(id,name,groupId));
+        added.push({id,name,group_id:groupId});
+      }
+      if(statements.length)await env.DB.batch(statements);
+      await log(env,user.id,"student_roster_bulk_add",{group_id:groupId,added:added.length,skipped:skipped.length});
+      return json({ok:true,added,added_count:added.length,skipped,skipped_count:skipped.length},201);
+    }
+    if(path==="/api/effort"&&method==="GET"){
+      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"متابعة الاجتهاد للشيخ أو المشرف");
+      const groupId=clean(url.searchParams.get("group_id"),80),date=clean(url.searchParams.get("date"),10)||academyDate();
+      if(!validDateOnly(date)||!groupId||!await canManageGroup(env,user,groupId))return fail(400,"اختر فوجًا وتاريخًا صحيحين ضمن صلاحيتك");
+      return json(await records(env,"effort_logs"," AND group_id=? AND date=?",[groupId,date]));
+    }
+    if(path==="/api/effort"&&method==="POST"){
+      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"تسجيل الاجتهاد للشيخ أو المشرف");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      const groupId=clean(b.group_id,80),date=clean(b.date,10),items=Array.isArray(b.items)?b.items:[];
+      if(!validDateOnly(date)||date>academyDate()||!groupId||!items.length||items.length>200||!await canManageGroup(env,user,groupId))return fail(400,"بيانات المتابعة غير صحيحة");
+      const active=await env.DB.prepare("SELECT id FROM students WHERE group_id=? AND active=1").bind(groupId).all(),allowed=new Set((active.results||[]).map(x=>x.id)),statements=[],seen=new Set();let saved=0;
+      for(const item of items){
+        const studentId=String(item?.student_id||"");
+        if(!allowed.has(studentId)||seen.has(studentId)||!item.checks||typeof item.checks!=="object"||Array.isArray(item.checks))return fail(400,"يوجد طالب مكرر أو خارج الفوج");
+        seen.add(studentId);
+        for(const category of effortCategories){
+          const status=item.checks[category];
+          if(status===undefined||status==="")continue;
+          if(!["done","missed","excused"].includes(status))return fail(400,"حالة متابعة غير صحيحة");
+          const id=date+":"+studentId+":"+category,row={id,student_id:studentId,group_id:groupId,date,category,status,marked_by:user.id,updated_at:nowIso()};
+          statements.push(env.DB.prepare("INSERT INTO academy_records(collection,id,owner_user_id,group_id,student_id,payload_json,updated_at) VALUES('effort_logs',?,?,?,?,?,?) ON CONFLICT(collection,id) DO UPDATE SET owner_user_id=excluded.owner_user_id,group_id=excluded.group_id,student_id=excluded.student_id,payload_json=excluded.payload_json,updated_at=excluded.updated_at").bind(id,user.id,groupId,studentId,JSON.stringify(row),row.updated_at));saved++;
+        }
+      }
+      if(!saved)return fail(400,"لم تختر أي حالات للحفظ");
+      await env.DB.batch(statements);await log(env,user.id,"effort_save",{group_id:groupId,date,count:saved});
+      return json({ok:true,saved});
+    }
+    if(path==="/api/effort/ranking"&&method==="GET"){
+      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"الترتيب متاح للشيخ أو المشرف");
+      const groupId=clean(url.searchParams.get("group_id"),80),period=url.searchParams.get("period")==="monthly"?"monthly":"weekly",today=academyDate();
+      if(!groupId||!await canManageGroup(env,user,groupId))return fail(400,"اختر فوجًا ضمن صلاحيتك");
+      const fromDate=period==="monthly"?today.slice(0,7)+"-01":(()=>{const [y,m,d]=today.split("-").map(Number),x=new Date(Date.UTC(y,m-1,d-6));return x.getUTCFullYear()+"-"+String(x.getUTCMonth()+1).padStart(2,"0")+"-"+String(x.getUTCDate()).padStart(2,"0")})();
+      const [studentsRows,effortRows,attendanceRows,quranRows]=await Promise.all([
+        env.DB.prepare("SELECT id,display_name AS name FROM students WHERE group_id=? AND active=1 ORDER BY display_name").bind(groupId).all(),
+        records(env,"effort_logs"," AND group_id=?",[groupId]),
+        records(env,"attendance"," AND group_id=?",[groupId]),
+        records(env,"quran_progress"," AND group_id=?",[groupId])
+      ]);
+      const inPeriod=r=>String(r.date||"")>=fromDate&&String(r.date||"")<=today;
+      const metrics=["attendance","mandatory_classes","asr","adhkar","wird","bring","quran_classes","memorization","revision"];
+      const stats=(studentsRows.results||[]).map(student=>{
+        const values={};
+        const att=attendanceRows.filter(r=>r.student_id===student.id&&inPeriod(r)&&r.status!=="excused");
+        if(att.length)values.attendance=att.reduce((n,r)=>n+(r.status==="present"?1:r.status==="late"?.5:0),0)/att.length;
+        for(const cat of effortCategories){const rows=effortRows.filter(r=>r.student_id===student.id&&r.category===cat&&inPeriod(r)&&r.status!=="excused");if(rows.length)values[cat]=rows.filter(r=>r.status==="done").length/rows.length}
+        for(const cat of ["memorization","revision"]){const rows=quranRows.filter(r=>r.student_id===student.id&&r.activity===cat&&inPeriod(r));const dates=new Set(rows.filter(r=>cat==="memorization"?String(r.memorized||"").trim():String(r.reviewed||"").trim()).map(r=>r.date));const opportunities=new Set(rows.map(r=>r.date).filter(Boolean));if(opportunities.size)values[cat]=dates.size/opportunities.size}
+        const scored=metrics.filter(k=>values[k]!==undefined);
+        const score=scored.length?Math.round(100*scored.reduce((n,k)=>n+values[k],0)/scored.length):0;
+        return {student_id:student.id,name:student.name,score,recorded_metrics:scored.length,metrics:Object.fromEntries(metrics.map(k=>[k,values[k]===undefined?null:Math.round(values[k]*100)]))};
+      }).sort((a,b)=>b.score-a.score||b.recorded_metrics-a.recorded_metrics||a.name.localeCompare(b.name,"ar"));
+      return json({period,from_date:fromDate,to_date:today,metrics,rows:stats.map((r,i)=>({...r,rank:i+1}))});
+    }
     if(path==="/api/attendance"&&method==="GET"){
       const date=clean(url.searchParams.get("date"),10)||academyDate(),groupId=clean(url.searchParams.get("group_id"),80),history=url.searchParams.get("history")==="1",studentId=clean(url.searchParams.get("student_id"),80);
       if(user.role==="student"){
