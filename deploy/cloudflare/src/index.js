@@ -1024,10 +1024,10 @@ export default {
         for(const cat of effortCategories){const rows=effortRows.filter(r=>r.student_id===student.id&&r.category===cat&&inPeriod(r)&&r.status!=="excused");if(rows.length)values[cat]=rows.filter(r=>r.status==="done").length/rows.length}
         for(const cat of ["memorization","revision"]){const rows=quranRows.filter(r=>r.student_id===student.id&&r.activity===cat&&inPeriod(r));const dates=new Set(rows.filter(r=>cat==="memorization"?String(r.memorized||"").trim():String(r.reviewed||"").trim()).map(r=>r.date));const opportunities=new Set(rows.map(r=>r.date).filter(Boolean));if(opportunities.size)values[cat]=dates.size/opportunities.size}
         const scored=metrics.filter(k=>values[k]!==undefined);
-        const score=scored.length?Math.round(100*scored.reduce((n,k)=>n+values[k],0)/scored.length):0;
+        const score=scored.length?Math.round(100*scored.reduce((n,k)=>n+values[k],0)/scored.length):null;
         return {student_id:student.id,name:student.name,score,recorded_metrics:scored.length,metrics:Object.fromEntries(metrics.map(k=>[k,values[k]===undefined?null:Math.round(values[k]*100)]))};
-      }).sort((a,b)=>b.score-a.score||b.recorded_metrics-a.recorded_metrics||a.name.localeCompare(b.name,"ar"));
-      return json({period,from_date:fromDate,to_date:today,metrics,rows:stats.map((r,i)=>({...r,rank:i+1}))});
+      }).sort((a,b)=>(b.recorded_metrics>0?1:0)-(a.recorded_metrics>0?1:0)||(b.score??-1)-(a.score??-1)||b.recorded_metrics-a.recorded_metrics||a.name.localeCompare(b.name,"ar"));
+      let rank=0;return json({period,from_date:fromDate,to_date:today,metrics,rows:stats.map(r=>({...r,rank:r.recorded_metrics?++rank:null}))});
     }
     if(path==="/api/attendance"&&method==="GET"){
       const date=clean(url.searchParams.get("date"),10)||academyDate(),groupId=clean(url.searchParams.get("group_id"),80),history=url.searchParams.get("history")==="1",studentId=clean(url.searchParams.get("student_id"),80);
