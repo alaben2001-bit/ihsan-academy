@@ -580,9 +580,9 @@ function items(){
   const full=safeStore.get("ihsan_admin_focus")==="full";
   const daily=[["home","الرئيسية"],["students","الطلاب"],["roster-bulk","إضافة أسماء الطلبة"],["attendance","الحضور"],["quran","متابعة الحفظ والمراجعة"],["effort-ranking","تقرير اجتهاد الطلبة"],["effort","تسجيل المتابعة اليومية"],["notifications","التنبيهات"],["messages","الرسائل"]];
   if(!full)return daily;
-  return [["home","الرئيسية"],["groups","الأفواج"],["students","الطلاب"],["roster-bulk","إضافة أسماء الطلبة"],["teams","الفرق"],["attendance","الحضور"],["quran","متابعة الحفظ والمراجعة"],["effort","الاجتهاد فيه"],["effort-ranking","الترتيب الأسبوعي / الشهري"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"],["system-check","فحص النظام"]];
+  return [["home","الرئيسية"],["groups","الأفواج"],["students","الطلاب"],["roster-bulk","إضافة أسماء الطلبة"],["teams","الفرق"],["attendance","الحضور"],["quran","متابعة الحفظ والمراجعة"],["effort-ranking","تقرير اجتهاد الطلبة"],["effort","تسجيل المتابعة اليومية"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"],["system-check","فحص النظام"]];
  }
- if(S.user.role==="director")return [["home","الرئيسية"],["groups","الأفواج والمعلمون والفرق"],["students","طلاب المدرسة"],["roster-bulk","إضافة أسماء الطلبة"],["attendance","الحضور"],["quran","متابعة الحفظ والمراجعة"],["effort","الاجتهاد فيه"],["effort-ranking","الترتيب الأسبوعي / الشهري"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"]];
+ if(S.user.role==="director")return [["home","الرئيسية"],["groups","الأفواج والمعلمون والفرق"],["students","طلاب المدرسة"],["roster-bulk","إضافة أسماء الطلبة"],["attendance","الحضور"],["quran","متابعة الحفظ والمراجعة"],["effort-ranking","تقرير اجتهاد الطلبة"],["effort","تسجيل المتابعة اليومية"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"]];
  if(S.user.role==="supervisor")return [["home","الرئيسية"],["students","طلاب فريقي"],["teams","فرقي الطلابية"],["attendance","الحضور"],["quran","متابعة الحفظ والمراجعة"],["effort","الاجتهاد فيه"],["effort-ranking","الترتيب الأسبوعي / الشهري"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"]];
  if(S.user.role==="teacher")return [["home","الرئيسية"],["students","طلبتي"],["roster-bulk","إضافة أسماء الطلبة"],["groups","أفواجي"],["teams","فرقي الطلابية"],["attendance","الحضور"],["quran","متابعة الحفظ والمراجعة"],["effort","الاجتهاد فيه"],["effort-ranking","الترتيب الأسبوعي / الشهري"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"]];
  return [["home","الرئيسية"],["profile","ملفي"],["teams","فرقتي وطلبات النقل"],["quran","تقدمي في القرآن"],["assignments","واجباتي"],["gradebook","تقدمي ودرجاتي"],["attendance","حضوري"],["tests","اختباراتي"],["notifications","التنبيهات"],["messages","الرسائل"],["leaderboard","الترتيب العام"]];
@@ -1243,16 +1243,20 @@ async function effortRankingPage(v){
  v.innerHTML=head("تقرير اجتهاد الطلبة","تقرير تلقائي من السجلات المحفوظة للحضور والحفظ والمراجعة، ويضم متابعة الاجتهاد اليومية حيث سُجّلت. البيانات غير المسجّلة تظهر بشرطة ولا تُحتسب إنجازًا.")+
  '<section class="card"><div class="form-grid"><label class="field">الفوج<select id="ranking-group"><option value="">اختر الفوج</option>'+groups.map(g=>'<option value="'+esc(g.id)+'">'+esc(g.name)+'</option>').join("")+'</select></label><label class="field">الفترة<select id="ranking-period"><option value="weekly">التقرير الأسبوعي</option><option value="monthly">التقرير الشهري</option></select></label><div class="wide"><button type="button" class="btn" id="ranking-load">إنشاء التقرير</button></div></div><div id="ranking-result" class="muted small">اختر الفوج والفترة.</div></section>';
  const groupSel=$("#ranking-group"),periodSel=$("#ranking-period"),host=$("#ranking-result");
- const saved=safeStore.getSession("ihsan_effort_group");if(saved&&groups.some(g=>String(g.id)===saved))groupSel.value=saved;
+ const saved=safeStore.getSession("ihsan_effort_group");if(saved&&groups.some(g=>String(g.id)===saved))groupSel.value=saved;else if(groups.length)groupSel.value=String(groups[0].id);
  $("#ranking-load").onclick=async()=>{
-  if(!groupSel.value)return toast("اختر الفوج أولًا",true);
+  if(!groupSel.value)return toast("لا يوجد فوج متاح لعرض التقرير",true);
+  safeStore.setSession("ihsan_effort_group",String(groupSel.value));
   host.innerHTML='<div class="loading">جار حساب الترتيب من السجلات المحفوظة…</div>';
   try{
    const data=await api("/effort/ranking?group_id="+encodeURIComponent(groupSel.value)+"&period="+encodeURIComponent(periodSel.value));
-   const labels={attendance:"الحضور",mandatory_classes:"الحصص الإجبارية",asr:"صلاة العصر",adhkar:"الأذكار",wird:"الورد",bring:"الإحضار",quran_classes:"حصص القرآن",memorization:"الحفظ",revision:"المراجعة"};
-   host.innerHTML='<p class="muted small">'+esc((groups.find(g=>String(g.id)===groupSel.value)||{}).name||"الفوج")+' · '+esc(data.from_date)+' إلى '+esc(data.to_date)+'</p><div class="table-wrap"><table><thead><tr><th>الترتيب</th><th>الطالب</th><th>النقاط</th><th>الحضور</th><th>الحصص الإجبارية</th><th>العصر</th><th>الأذكار</th><th>الورد</th><th>الإحضار</th><th>حصص القرآن</th><th>الحفظ</th><th>المراجعة</th></tr></thead><tbody>'+data.rows.map(row=>'<tr><td>'+row.rank+'</td><td>'+esc(row.name)+'</td><td><strong>'+row.score+'%</strong></td>'+["attendance","mandatory_classes","asr","adhkar","wird","bring","quran_classes","memorization","revision"].map(key=>'<td>'+(row.metrics[key]===null?"—":row.metrics[key]+"%")+'</td>').join("")+'</tr>').join("")+'</tbody></table></div><p class="muted small">التقرير يجمع السجلات الموجودة تلقائيًا. «—» تعني أن هذا المعيار لا توجد له بيانات مسجّلة خلال الفترة، ولا تعني صفرًا.</p>';
+   
+   host.innerHTML='<p class="muted small">'+esc((groups.find(g=>String(g.id)===groupSel.value)||{}).name||"الفوج")+' · '+esc(data.from_date)+' إلى '+esc(data.to_date)+'</p><div class="table-wrap"><table><thead><tr><th>الترتيب</th><th>الطالب</th><th>المعدل العام</th><th>الحضور</th><th>الحصص الإجبارية</th><th>العصر</th><th>الأذكار</th><th>الورد</th><th>الإحضار</th><th>حصص القرآن</th><th>الحفظ</th><th>المراجعة</th></tr></thead><tbody>'+data.rows.map(row=>'<tr><td>'+row.rank+'</td><td>'+esc(row.name)+'</td><td><strong>'+row.score+'%</strong></td>'+["attendance","mandatory_classes","asr","adhkar","wird","bring","quran_classes","memorization","revision"].map(key=>'<td>'+(row.metrics[key]===null?"—":row.metrics[key]+"%")+'</td>').join("")+'</tr>').join("")+'</tbody></table></div><p class="muted small">التقرير يجمع السجلات الموجودة تلقائيًا. «—» تعني أن هذا المعيار لا توجد له بيانات مسجّلة خلال الفترة، ولا تعني صفرًا.</p>';
   }catch(e){host.innerHTML='<div class="notice error">'+esc(e.message)+'</div>'}
  };
+ groupSel.addEventListener("change",()=>{safeStore.setSession("ihsan_effort_group",String(groupSel.value||""));if(groupSel.value)$("#ranking-load").click()});
+ periodSel.addEventListener("change",()=>{if(groupSel.value)$("#ranking-load").click()});
+ if(groupSel.value)$("#ranking-load").click();
 }
 async function bulkRosterPage(v){
  const groups=assignedGroups().slice().sort((a,b)=>compareStudentNames(a.name,b.name));
