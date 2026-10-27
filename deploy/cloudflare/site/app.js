@@ -570,14 +570,16 @@ ihsanPrayerDialog({title:prayer.title,text:prayer.text,source:prayer.source||(pr
 async function load(){const r=await Promise.allSettled([api("/groups"),api("/students")]);S.groups=r[0].status==="fulfilled"?r[0].value:[];S.students=r[1].status==="fulfilled"?r[1].value:[];if(["admin","director"].includes(S.user.role))try{S.teachers=await api("/teachers")}catch{S.teachers=[]}if(S.user.role==="admin"){const extra=await Promise.allSettled([api("/admin/staff"),api("/public/quran-schools")]);S.staff=extra[0].status==="fulfilled"?extra[0].value:[];S.schools=extra[1].status==="fulfilled"?extra[1].value:[]}}
 function items(){
  if(S.mode==="ihsan"){const curriculum=[["all","نظرة عامة"],["allah","معرفة الله"],["prophet","الرسول ﷺ"],["quranpath","القرآن الكريم"],["hifzprogram","الحال المرتحل"],["sunnah","السنة والمتون"],["adab","الأدب والعمل"]];if(S.user.role==="teacher")curriculum.push(["groups","أفواجي"]);return curriculum;}
+ const staff=["admin","director","teacher","supervisor"].includes(S.user.role);
  if(S.user.role==="admin"){
   const full=safeStore.get("ihsan_admin_focus")==="full";
-  if(!full)return [["home","الرئيسية"],["students","الطلاب"],["attendance","الحضور"],["quran","الحفظ والمراجعة"],["quran-achievement","إنجاز الطلاب وترتيب الاجتهاد"],["notifications","التنبيهات"],["messages","الرسائل"]];
-  return [["home","الرئيسية"],["groups","الأفواج"],["students","الطلاب"],["teams","الفرق"],["attendance","الحضور"],["quran","الحفظ والمراجعة"],["quran-achievement","إنجاز الطلاب وترتيب الاجتهاد"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"],["system-check","فحص النظام"]];
+  const daily=[["home","الرئيسية"],["students","الطلاب"],["roster-bulk","إضافة أسماء الطلبة"],["attendance","الحضور"],["quran","متابعة الحفظ والمراجعة"],["effort","الاجتهاد فيه"],["effort-ranking","الترتيب الأسبوعي / الشهري"],["notifications","التنبيهات"],["messages","الرسائل"]];
+  if(!full)return daily;
+  return [["home","الرئيسية"],["groups","الأفواج"],["students","الطلاب"],["roster-bulk","إضافة أسماء الطلبة"],["teams","الفرق"],["attendance","الحضور"],["quran","متابعة الحفظ والمراجعة"],["effort","الاجتهاد فيه"],["effort-ranking","الترتيب الأسبوعي / الشهري"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"],["system-check","فحص النظام"]];
  }
- if(S.user.role==="director")return [["home","الرئيسية"],["groups","الأفواج والمعلمون والفرق"],["students","طلاب المدرسة"],["attendance","الحضور"],["quran","الحفظ والمراجعة"],["quran-achievement","إنجاز الطلاب وترتيب الاجتهاد"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"]];
- if(S.user.role==="supervisor")return [["home","الرئيسية"],["students","طلاب فريقي"],["teams","فرقي الطلابية"],["attendance","الحضور"],["quran","الحفظ والمراجعة"],["quran-achievement","إنجاز الطلاب وترتيب الاجتهاد"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"]];
- if(S.user.role==="teacher")return [["home","الرئيسية"],["students","طلبتي"],["groups","أفواجي"],["teams","فرقي الطلابية"],["attendance","الحضور"],["quran","الحفظ والمراجعة"],["quran-achievement","إنجاز الطلاب وترتيب الاجتهاد"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"]];
+ if(S.user.role==="director")return [["home","الرئيسية"],["groups","الأفواج والمعلمون والفرق"],["students","طلاب المدرسة"],["roster-bulk","إضافة أسماء الطلبة"],["attendance","الحضور"],["quran","متابعة الحفظ والمراجعة"],["effort","الاجتهاد فيه"],["effort-ranking","الترتيب الأسبوعي / الشهري"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"]];
+ if(S.user.role==="supervisor")return [["home","الرئيسية"],["students","طلاب فريقي"],["teams","فرقي الطلابية"],["attendance","الحضور"],["quran","متابعة الحفظ والمراجعة"],["effort","الاجتهاد فيه"],["effort-ranking","الترتيب الأسبوعي / الشهري"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"]];
+ if(S.user.role==="teacher")return [["home","الرئيسية"],["students","طلبتي"],["roster-bulk","إضافة أسماء الطلبة"],["groups","أفواجي"],["teams","فرقي الطلابية"],["attendance","الحضور"],["quran","متابعة الحفظ والمراجعة"],["effort","الاجتهاد فيه"],["effort-ranking","الترتيب الأسبوعي / الشهري"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"]];
  return [["home","الرئيسية"],["profile","ملفي"],["teams","فرقتي وطلبات النقل"],["quran","تقدمي في القرآن"],["assignments","واجباتي"],["gradebook","تقدمي ودرجاتي"],["attendance","حضوري"],["tests","اختباراتي"],["notifications","التنبيهات"],["messages","الرسائل"],["leaderboard","الترتيب العام"]];
 }
 
@@ -786,7 +788,7 @@ const groupOpts=()=>S.groups.map(g=>'<option value="'+esc(g.id)+'">'+esc(g.name)
 const assignedGroups=()=>{const role=S.user?.role;if(role==="admin")return S.groups.slice();if(role==="director"){const ids=(S.user.school_ids||[]).map(String);return S.groups.filter(g=>ids.includes(String(g.school_id||"")));}if(role==="teacher")return S.groups.filter(g=>String(g.teacher_id||"")===String(S.user.id));if(role==="supervisor")return S.groups.filter(g=>(S.user.group_ids||[]).map(String).includes(String(g.id)));return S.groups.slice()};
 function go(id){if(S.user?.role==="admin"&&id==="groups")safeStore.set("ihsan_admin_focus","full");safeStore.setSession("ihsan_last_mode",S.mode);safeStore.setSession("ihsan_last_tab",id);try{history.pushState({ihsanMode:S.mode,ihsanTab:id},"",location.pathname+"#"+encodeURIComponent(id))}catch{}S.tab=id;shell();page()}
 window.addEventListener("popstate",async e=>{if(!S.user)return;const st=e.state||{};if(st.ihsanMode==="hub"){S.mode="hub";moduleChooser(false);return;}if(st.ihsanMode==="school"||st.ihsanMode==="ihsan"){S.mode=st.ihsanMode;S.tab=st.ihsanTab||(S.mode==="ihsan"?"all":"home");if(S.mode==="school")await load();shell();await page();if(st.ihsanSubView==="student-profile")await studentProfile($("#view"),st.studentId);return;}S.mode="hub";moduleChooser(false);});
-async function page(){const v=$("#view");if(S.mode==="ihsan"){if(S.tab==="groups"&&S.user.role==="teacher"){await load();return groups(v)}return curriculumPage(v)}v.innerHTML='<div class="loading">جار تحميل البيانات…</div>';try{if(S.tab==="system-check"&&S.user.role==="admin")return systemCheckPage(v);if(S.tab==="home")return await home(v);if(S.tab==="teams")return await teamsPage(v);if(S.tab==="groups")return groups(v);if(S.tab==="teachers")return teachers(v);if(S.tab==="students")return students(v);if(S.tab==="attendance")return attendance(v);if(S.tab==="assignments")return await assignmentsPage(v);if(S.tab==="gradebook")return await gradebookPage(v);if(S.tab==="messages")return await messagesPage(v);if(S.tab==="reports")return reportsPage(v);if(S.tab==="leaderboard")return leaderboardPage(v);if(S.tab==="profile")return studentProfile(v,S.user.student_id);if(S.tab==="quran")return quran(v);if(S.tab==="quran-achievement")return quranAchievementPage(v);if(S.tab==="tests")return testsPage(v);if(S.tab==="notifications")return notificationsPage(v);v.innerHTML=head("القسم غير متاح","هذا القسم لم يعد متاحًا. اختر قسمًا من القائمة.")+'<button class="btn" id="back-home">العودة إلى الرئيسية</button>';$("#back-home").onclick=()=>go("home");return}catch(e){v.innerHTML='<div class="panel"><h2>تعذّر تحميل البيانات</h2><p class="notice error">'+esc(e.message)+'</p><button class="btn" id="retry">إعادة المحاولة</button></div>';$("#retry").onclick=page}}
+async function page(){const v=$("#view");if(S.mode==="ihsan"){if(S.tab==="groups"&&S.user.role==="teacher"){await load();return groups(v)}return curriculumPage(v)}v.innerHTML='<div class="loading">جار تحميل البيانات…</div>';try{if(S.tab==="system-check"&&S.user.role==="admin")return systemCheckPage(v);if(S.tab==="home")return await home(v);if(S.tab==="teams")return await teamsPage(v);if(S.tab==="groups")return groups(v);if(S.tab==="teachers")return teachers(v);if(S.tab==="students")return students(v);if(S.tab==="attendance")return attendance(v);if(S.tab==="assignments")return await assignmentsPage(v);if(S.tab==="gradebook")return await gradebookPage(v);if(S.tab==="messages")return await messagesPage(v);if(S.tab==="reports")return reportsPage(v);if(S.tab==="leaderboard")return leaderboardPage(v);if(S.tab==="profile")return studentProfile(v,S.user.student_id);if(S.tab==="quran")return quran(v);if(S.tab==="effort")return effortPage(v);if(S.tab==="effort-ranking")return effortRankingPage(v);if(S.tab==="roster-bulk")return bulkRosterPage(v);if(S.tab==="quran-achievement")return quranAchievementPage(v);if(S.tab==="tests")return testsPage(v);if(S.tab==="notifications")return notificationsPage(v);v.innerHTML=head("القسم غير متاح","هذا القسم لم يعد متاحًا. اختر قسمًا من القائمة.")+'<button class="btn" id="back-home">العودة إلى الرئيسية</button>';$("#back-home").onclick=()=>go("home");return}catch(e){v.innerHTML='<div class="panel"><h2>تعذّر تحميل البيانات</h2><p class="notice error">'+esc(e.message)+'</p><button class="btn" id="retry">إعادة المحاولة</button></div>';$("#retry").onclick=page}}
 async function home(v){const d=await api("/dashboard");let html="";
 if(S.user.role!=="student"){
   const studentLabel=S.user.role==="director"?"طلاب المدرسة":"الطلاب";
@@ -1191,6 +1193,70 @@ async function quran(v){
 
 }
 
+
+const EFFORT_TASKS=[
+ ["mandatory_classes","حضور الحصص الإجبارية"],
+ ["asr","صلاة العصر"],
+ ["adhkar","الأذكار"],
+ ["wird","الورد القرآني"],
+ ["bring","إحضار المطلوب"],
+ ["quran_classes","حضور حصص القرآن"]
+];
+const EFFORT_STATUS={done:"أُنجز",missed:"لم يُنجز",excused:"بعذر"};
+async function effortPage(v){
+ const groups=assignedGroups().slice().sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"ar"));
+ const today=localDateISO();
+ v.innerHTML=head("الاجتهاد فيه","سجّل بنود اليوم لكل طالب بالطريقة المباشرة نفسها المستخدمة في الحضور.")+
+ '<section class="card"><div class="form-grid"><label class="field">الفوج<select id="effort-group"><option value="">اختر الفوج</option>'+groups.map(g=>'<option value="'+esc(g.id)+'">'+esc(g.name)+'</option>').join("")+'</select></label><label class="field">التاريخ<input id="effort-date" type="date" value="'+today+'" max="'+today+'"></label><div class="wide"><button type="button" class="btn" id="effort-load">عرض الطلبة</button></div></div><div id="effort-roster" class="muted small">اختر الفوج والتاريخ.</div></section>';
+ const groupSel=$("#effort-group"),dateInput=$("#effort-date"),host=$("#effort-roster");
+ const saved=safeStore.getSession("ihsan_effort_group");if(saved&&groups.some(g=>String(g.id)===saved))groupSel.value=saved;
+ $("#effort-load").onclick=async()=>{
+  const gid=groupSel.value,date=dateInput.value;if(!gid||!date)return toast("اختر الفوج والتاريخ",true);
+  safeStore.setSession("ihsan_effort_group",gid);host.innerHTML='<div class="loading">جار تحميل السجل…</div>';
+  try{
+   const [students,logs]=await Promise.all([api("/students?group_id="+encodeURIComponent(gid)),api("/effort?group_id="+encodeURIComponent(gid)+"&date="+encodeURIComponent(date))]);
+   if(!students.length){host.innerHTML='<div class="empty">لا يوجد طلبة في هذا الفوج.</div>';return}
+   const byStudent={};logs.forEach(r=>{(byStudent[r.student_id]||(byStudent[r.student_id]={}))[r.category]=r.status});
+   host.innerHTML='<p class="muted small">'+esc((groups.find(g=>String(g.id)===gid)||{}).name||"الفوج")+' · '+esc(date)+' · '+students.length+' طالبًا</p><div class="effort-roster">'+students.map(st=>'<article class="card effort-student" data-effort-student="'+esc(st.id)+'"><h3>'+esc(st.name)+'</h3><div class="form-grid">'+EFFORT_TASKS.map(([key,label])=>'<label class="field">'+esc(label)+'<select data-effort-task="'+key+'"><option value="">لم يُسجّل</option><option value="done" '+(byStudent[st.id]?.[key]==="done"?"selected":"")+'>أُنجز</option><option value="missed" '+(byStudent[st.id]?.[key]==="missed"?"selected":"")+'>لم يُنجز</option><option value="excused" '+(byStudent[st.id]?.[key]==="excused"?"selected":"")+'>بعذر</option></select></label>').join("")+'</div></article>').join("")+'</div><button type="button" class="btn" id="effort-save">حفظ المتابعة</button>';
+   $("#effort-save").onclick=async()=>{
+    const items=[...host.querySelectorAll("[data-effort-student]")].map(card=>({student_id:card.dataset.effortStudent,checks:Object.fromEntries([...card.querySelectorAll("[data-effort-task]")].map(sel=>[sel.dataset.effortTask,sel.value]).filter(pair=>pair[1]))})).filter(item=>Object.keys(item.checks).length);
+    if(!items.length)return toast("سجّل حالة واحدة على الأقل قبل الحفظ",true);
+    const btn=$("#effort-save");btn.disabled=true;
+    try{const result=await api("/effort",{method:"POST",body:JSON.stringify({group_id:gid,date,items})});toast("تم حفظ "+result.saved+" حالة متابعة");await $("#effort-load").click()}catch(e){toast(e.message,true)}finally{if(btn.isConnected)btn.disabled=false}
+   };
+  }catch(e){host.innerHTML='<div class="notice error">'+esc(e.message)+'</div>'}
+ };
+}
+async function effortRankingPage(v){
+ const groups=assignedGroups().slice().sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"ar"));
+ v.innerHTML=head("الترتيب الأسبوعي / الشهري","ترتيب واحد يجمع الحضور والاجتهاد اليومي والحفظ والمراجعة. تُحتسب السجلات الفعلية فقط، ولا تُعدّ المهمة غير المسجّلة إنجازًا.")+
+ '<section class="card"><div class="form-grid"><label class="field">الفوج<select id="ranking-group"><option value="">اختر الفوج</option>'+groups.map(g=>'<option value="'+esc(g.id)+'">'+esc(g.name)+'</option>').join("")+'</select></label><label class="field">الفترة<select id="ranking-period"><option value="weekly">أسبوعي</option><option value="monthly">شهري</option></select></label><div class="wide"><button type="button" class="btn" id="ranking-load">عرض الترتيب</button></div></div><div id="ranking-result" class="muted small">اختر الفوج والفترة.</div></section>';
+ const groupSel=$("#ranking-group"),periodSel=$("#ranking-period"),host=$("#ranking-result");
+ const saved=safeStore.getSession("ihsan_effort_group");if(saved&&groups.some(g=>String(g.id)===saved))groupSel.value=saved;
+ $("#ranking-load").onclick=async()=>{
+  if(!groupSel.value)return toast("اختر الفوج أولًا",true);
+  host.innerHTML='<div class="loading">جار حساب الترتيب من السجلات المحفوظة…</div>';
+  try{
+   const data=await api("/effort/ranking?group_id="+encodeURIComponent(groupSel.value)+"&period="+encodeURIComponent(periodSel.value));
+   const labels={attendance:"الحضور",mandatory_classes:"الحصص الإجبارية",asr:"صلاة العصر",adhkar:"الأذكار",wird:"الورد",bring:"الإحضار",quran_classes:"حصص القرآن",memorization:"الحفظ",revision:"المراجعة"};
+   host.innerHTML='<p class="muted small">'+esc((groups.find(g=>String(g.id)===groupSel.value)||{}).name||"الفوج")+' · '+esc(data.from_date)+' إلى '+esc(data.to_date)+'</p><div class="table-wrap"><table><thead><tr><th>الترتيب</th><th>الطالب</th><th>النقاط</th><th>الحضور</th><th>الحصص الإجبارية</th><th>العصر</th><th>الأذكار</th><th>الورد</th><th>الإحضار</th><th>حصص القرآن</th><th>الحفظ</th><th>المراجعة</th></tr></thead><tbody>'+data.rows.map(row=>'<tr><td>'+row.rank+'</td><td>'+esc(row.name)+'</td><td><strong>'+row.score+'%</strong></td>'+["attendance","mandatory_classes","asr","adhkar","wird","bring","quran_classes","memorization","revision"].map(key=>'<td>'+(row.metrics[key]===null?"—":row.metrics[key]+"%")+'</td>').join("")+'</tr>').join("")+'</tbody></table></div><p class="muted small">النقاط متوسط نسب الإنجاز في المعايير التي لها سجلات خلال الفترة. «—» تعني عدم وجود سجل كافٍ لذلك المعيار، ولا تعني صفرًا.</p>';
+  }catch(e){host.innerHTML='<div class="notice error">'+esc(e.message)+'</div>'}
+ };
+}
+async function bulkRosterPage(v){
+ const groups=assignedGroups().slice().sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"ar"));
+ const names=["بوعون إسحاق","يونس رجاتي","عكوش أنس","بلمولود محمد","أمير منالله","كتفي يونس","براء سراجي","بوهيبة علي","حفاظ كرم","حداد أيمن","بكار وسيم","آدم"];
+ v.innerHTML=head("إضافة أسماء الطلبة","إضافة سجلات طلاب بلا حسابات دخول، مع منع التكرار داخل الفوج والحفاظ على السجلات الحالية.")+
+ '<section class="card"><form id="bulk-roster-form" class="stack"><label class="field">الفوج<select id="bulk-roster-group" required><option value="">اختر الفوج</option>'+groups.map(g=>'<option value="'+esc(g.id)+'" '+(/الإرشاد|الإصلاح/.test(g.name||"")?"":"")+'>'+esc(g.name)+'</option>').join("")+'</select></label><label class="field">أسماء الطلبة · اسم في كل سطر<textarea id="bulk-roster-names" rows="12" required>'+names.join("\n")+'</textarea></label><p class="muted small">لن تُنشأ حسابات دخول أو كلمات مرور. الأسماء المطابقة الموجودة في الفوج ستُتجاوز تلقائيًا.</p><button type="submit" class="btn">إضافة الأسماء إلى الفوج</button><div id="bulk-roster-result" aria-live="polite"></div></form></section>';
+ const group=$("#bulk-roster-group"),form=$("#bulk-roster-form"),result=$("#bulk-roster-result");
+ const suggested=groups.find(g=>/الإرشاد|الإصلاح/.test(g.name||""));if(suggested)group.value=suggested.id;
+ form.onsubmit=async e=>{
+  e.preventDefault();const gid=group.value,names=$("#bulk-roster-names").value.split(/\r?\n/).map(x=>x.trim()).filter(Boolean);
+  if(!gid||!names.length)return toast("اختر الفوج وأدخل الأسماء",true);
+  const btn=form.querySelector('button[type="submit"]');btn.disabled=true;result.textContent="جار إضافة الأسماء…";
+  try{const data=await api("/students/roster-bulk",{method:"POST",body:JSON.stringify({group_id:gid,names})});await load();result.innerHTML='<div class="notice">أُضيف '+data.added_count+' طالبًا. تم تجاوز '+data.skipped_count+' اسمًا مكررًا أو موجودًا بالفعل.</div>'+(data.skipped.length?'<p class="muted small">الأسماء المتجاوزة: '+esc(data.skipped.join("، "))+'</p>':"");toast("تمت إضافة "+data.added_count+" طالبًا بلا حسابات دخول")}catch(err){result.innerHTML='<div class="notice error">'+esc(err.message)+'</div>'}finally{btn.disabled=false}
+ };
+}
 async function quranAchievementPage(v){
  const groups=assignedGroups().slice().sort((a,b)=>String(a.name||"").localeCompare(String(b.name||""),"ar"));
  v.innerHTML=head("إنجاز الطلاب وترتيب الاجتهاد","سجلات الحفظ والمراجعة المحفوظة فعلًا، مرتبة بحسب الإنجاز خلال الفترة المحددة.")+'<section class="card"><div class="form-grid"><label class="field">الفوج<select id="achievement-group"><option value="">اختر الفوج</option>'+groups.map(g=>'<option value="'+esc(g.id)+'">'+esc(g.name)+'</option>').join("")+'</select></label><label class="field">الفترة<select id="achievement-period"><option value="week">آخر 7 أيام</option><option value="month">الشهر الحالي</option></select></label><div class="wide"><button id="achievement-load" class="btn" type="button">عرض الإنجاز والترتيب</button></div></div><div id="achievement-result" class="muted small">اختر الفوج والفترة لعرض النتائج.</div></section>';
