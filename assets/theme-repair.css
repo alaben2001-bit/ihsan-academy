@@ -378,3 +378,117 @@ html[data-appearance="dark"] #appView .bottom {
   background: #10231a !important;
   border-color: #355044 !important;
 }
+
+
+/* v6 — the user's night display can also be AUTO + a dark operating-system theme.
+   Match the explicit dark palette in that case; do not leave white legacy cards behind. */
+@media (prefers-color-scheme: dark) {
+  html[data-appearance="auto"] {
+    color-scheme: dark !important;
+    --ink:#edf5ef; --muted:#bdcec3; --line:#355044; --white:#14251d;
+    --b50:#0b1712; --b100:#14251d; --b200:#263d32;
+  }
+  html[data-appearance="auto"] body,
+  html[data-appearance="auto"] .app,
+  html[data-appearance="auto"] .main,
+  html[data-appearance="auto"] #appView,
+  html[data-appearance="auto"] #view {
+    background:#0b1712 !important;
+    color:#edf5ef !important;
+  }
+  html[data-appearance="auto"] .top,
+  html[data-appearance="auto"] .card,
+  html[data-appearance="auto"] .panel,
+  html[data-appearance="auto"] .stat,
+  html[data-appearance="auto"] .stat-card,
+  html[data-appearance="auto"] .metric,
+  html[data-appearance="auto"] .table-wrap,
+  html[data-appearance="auto"] .sheet,
+  html[data-appearance="auto"] .modalbox,
+  html[data-appearance="auto"] .settings-section,
+  html[data-appearance="auto"] .settings-panel,
+  html[data-appearance="auto"] .portal-card,
+  html[data-appearance="auto"] .appearance-studio,
+  html[data-appearance="auto"] .appearance-control,
+  html[data-appearance="auto"] .appearance-heading,
+  html[data-appearance="auto"] .item,
+  html[data-appearance="auto"] .list-row {
+    background:#14251d !important;
+    background-image:none !important;
+    color:#edf5ef !important;
+    border-color:#355044 !important;
+    box-shadow:none !important;
+  }
+  html[data-appearance="auto"] .hero,
+  html[data-appearance="auto"] .hero-main,
+  html[data-appearance="auto"] .lesson-cover,
+  html[data-appearance="auto"] .media-cover {
+    background:#173b2d !important;
+    color:#f4fbf6 !important;
+  }
+  html[data-appearance="auto"] .hero p { color:#d5e7dc !important; }
+  html[data-appearance="auto"] h1,
+  html[data-appearance="auto"] h2,
+  html[data-appearance="auto"] h3,
+  html[data-appearance="auto"] h4,
+  html[data-appearance="auto"] p,
+  html[data-appearance="auto"] label,
+  html[data-appearance="auto"] strong,
+  html[data-appearance="auto"] b,
+  html[data-appearance="auto"] li,
+  html[data-appearance="auto"] th,
+  html[data-appearance="auto"] td,
+  html[data-appearance="auto"] .sec {
+    color:#edf5ef !important;
+  }
+  html[data-appearance="auto"] .muted,
+  html[data-appearance="auto"] small,
+  html[data-appearance="auto"] .small,
+  html[data-appearance="auto"] .hint,
+  html[data-appearance="auto"] .sub,
+  html[data-appearance="auto"] .nav-label {
+    color:#bdcec3 !important;
+  }
+  html[data-appearance="auto"] .side,
+  html[data-appearance="auto"] .side .brand,
+  html[data-appearance="auto"] .account {
+    background:#102b21 !important;
+    color:#edf5ef !important;
+    border-color:#355044 !important;
+  }
+  html[data-appearance="auto"] .nav button,
+  html[data-appearance="auto"] .bottom button,
+  html[data-appearance="auto"] .appearance-choice {
+    background:#172d23 !important;
+    color:#edf5ef !important;
+    border-color:#355044 !important;
+  }
+  html[data-appearance="auto"] .nav button.active,
+  html[data-appearance="auto"] .bottom button.active,
+  html[data-appearance="auto"] .appearance-choice.active {
+    background:#28533f !important;
+    color:#fff !important;
+    border-color:#8bb49a !important;
+  }
+  html[data-appearance="auto"] input:not([type="checkbox"]):not([type="radio"]),
+  html[data-appearance="auto"] select,
+  html[data-appearance="auto"] textarea {
+    background:#0b1a14 !important;
+    color:#f2faf5 !important;
+    border-color:#456253 !important;
+    color-scheme:dark;
+  }
+  html[data-appearance="auto"] .btn,
+  html[data-appearance="auto"] button.primary,
+  html[data-appearance="auto"] [type="submit"] {
+    background:#23785a !important;
+    color:#fff !important;
+    border-color:#4b9274 !important;
+  }
+  html[data-appearance="auto"] .btn.sec2,
+  html[data-appearance="auto"] .btn.secondary {
+    background:#1a3024 !important;
+    color:#edf5ef !important;
+    border-color:#527260 !important;
+  }
+}
