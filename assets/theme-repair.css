@@ -264,3 +264,117 @@ html[data-appearance="dark"] #view .lesson-cover,
 html[data-appearance="dark"] #view .media-cover {
   color:#fff !important;
 }
+
+
+/* v5 — enforce night mode on the actual signed-in shell and legacy dashboard cards.
+   Keep this block last in the cascade; the light palette must never repaint night surfaces. */
+html[data-appearance="dark"] {
+  color-scheme: dark !important;
+  background: #08130f !important;
+  --ink: #edf5ef;
+  --muted: #bdcec3;
+  --line: #355044;
+  --white: #14251d;
+  --b50: #0b1712;
+  --b100: #14251d;
+  --b200: #263d32;
+}
+html[data-appearance="dark"] body,
+html[data-appearance="dark"] #appView,
+html[data-appearance="dark"] #appView .main,
+html[data-appearance="dark"] #appView #view {
+  background: #0b1712 !important;
+  color: #edf5ef !important;
+}
+html[data-appearance="dark"] #appView .top {
+  background: #10231a !important;
+  color: #edf5ef !important;
+  border-bottom: 1px solid #355044 !important;
+}
+html[data-appearance="dark"] #appView .side,
+html[data-appearance="dark"] #appView .side .brand,
+html[data-appearance="dark"] #appView .account {
+  background: #102b21 !important;
+  color: #edf5ef !important;
+  border-color: #355044 !important;
+}
+html[data-appearance="dark"] #appView #view .card,
+html[data-appearance="dark"] #appView #view .panel,
+html[data-appearance="dark"] #appView #view .stat,
+html[data-appearance="dark"] #appView #view .stat-card,
+html[data-appearance="dark"] #appView #view .metric,
+html[data-appearance="dark"] #appView #view .table-wrap,
+html[data-appearance="dark"] #appView #view .empty-state,
+html[data-appearance="dark"] #appView #view .notice,
+html[data-appearance="dark"] #appView #view .settings-section,
+html[data-appearance="dark"] #appView #view .settings-panel,
+html[data-appearance="dark"] #appView #view .appearance-studio,
+html[data-appearance="dark"] #appView #view .appearance-control,
+html[data-appearance="dark"] #appView #view .appearance-heading,
+html[data-appearance="dark"] #appView #view .item,
+html[data-appearance="dark"] #appView #view .list-row,
+html[data-appearance="dark"] #appView #view .stat-card > div {
+  background-color: #14251d !important;
+  background-image: none !important;
+  color: #edf5ef !important;
+  border-color: #355044 !important;
+  box-shadow: none !important;
+}
+html[data-appearance="dark"] #appView #view h1,
+html[data-appearance="dark"] #appView #view h2,
+html[data-appearance="dark"] #appView #view h3,
+html[data-appearance="dark"] #appView #view h4,
+html[data-appearance="dark"] #appView #view p,
+html[data-appearance="dark"] #appView #view label,
+html[data-appearance="dark"] #appView #view strong,
+html[data-appearance="dark"] #appView #view b,
+html[data-appearance="dark"] #appView #view li,
+html[data-appearance="dark"] #appView #view th,
+html[data-appearance="dark"] #appView #view td,
+html[data-appearance="dark"] #appView .top h1,
+html[data-appearance="dark"] #appView .top .sub {
+  color: #edf5ef !important;
+}
+html[data-appearance="dark"] #appView #view .muted,
+html[data-appearance="dark"] #appView #view small,
+html[data-appearance="dark"] #appView #view .small,
+html[data-appearance="dark"] #appView #view .hint,
+html[data-appearance="dark"] #appView #view .sub {
+  color: #bdcec3 !important;
+}
+html[data-appearance="dark"] #appView .nav button,
+html[data-appearance="dark"] #appView #bottomNav button {
+  background: #172d23 !important;
+  color: #e6f1e9 !important;
+  border-color: #355044 !important;
+}
+html[data-appearance="dark"] #appView .nav button.active,
+html[data-appearance="dark"] #appView #bottomNav button.active {
+  background: #28533f !important;
+  color: #ffffff !important;
+  border-color: #8bb49a !important;
+}
+html[data-appearance="dark"] #appView #view input:not([type="checkbox"]):not([type="radio"]),
+html[data-appearance="dark"] #appView #view select,
+html[data-appearance="dark"] #appView #view textarea {
+  background: #0b1a14 !important;
+  color: #f2faf5 !important;
+  border-color: #456253 !important;
+}
+html[data-appearance="dark"] #appView #view .btn,
+html[data-appearance="dark"] #appView #view button.primary,
+html[data-appearance="dark"] #appView #view [type="submit"] {
+  background: #23785a !important;
+  color: #ffffff !important;
+  border-color: #4b9274 !important;
+}
+html[data-appearance="dark"] #appView #view .btn.sec2,
+html[data-appearance="dark"] #appView #view .btn.secondary {
+  background: #1a3024 !important;
+  color: #edf5ef !important;
+  border-color: #527260 !important;
+}
+html[data-appearance="dark"] #appView .bottom {
+  background: #10231a !important;
+  border-color: #355044 !important;
+}
