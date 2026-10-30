@@ -492,3 +492,38 @@ html[data-appearance="dark"] #appView .bottom {
     border-color:#527260 !important;
   }
 }
+
+
+/* v7 — hard override for dashboard cards, including button.cards with legacy inline styles. */
+html[data-appearance="dark"] #appView #view .card,
+html[data-appearance="dark"] #appView #view button.card,
+html[data-appearance="dark"] #appView #view article.card,
+html[data-appearance="dark"] #appView #view section.card,
+html[data-appearance="dark"] #appView #view .stat-link,
+html[data-appearance="dark"] #appView #view .daily-note,
+html[data-appearance="dark"] #appView #view .today-plan,
+html[data-appearance="dark"] #appView #view .today-step,
+html[data-appearance="dark"] #appView #view .q-home-metrics > div,
+html[data-appearance="dark"] #appView #view .qmetrics > div {
+  background: #14251d !important;
+  background-image: none !important;
+  color: #edf5ef !important;
+  border-color: #456253 !important;
+  box-shadow: 0 8px 24px rgba(0,0,0,.18) !important;
+}
+html[data-appearance="dark"] #appView #view .card *,
+html[data-appearance="dark"] #appView #view .stat-link *,
+html[data-appearance="dark"] #appView #view .daily-note *,
+html[data-appearance="dark"] #appView #view .today-plan *,
+html[data-appearance="dark"] #appView #view .today-step * {
+  color: inherit;
+}
+html[data-appearance="dark"] #appView #view .card .muted,
+html[data-appearance="dark"] #appView #view .card small,
+html[data-appearance="dark"] #appView #view .stat-link small {
+  color: #bdcec3 !important;
+}
+html[data-appearance="dark"] #appView #view .card .btn,
+html[data-appearance="dark"] #appView #view .card button:not(.stat-link) {
+  color: #f4fbf6 !important;
+}
