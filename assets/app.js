@@ -212,7 +212,7 @@ async function startSession() {
   const [groups, students, notifs, posts, subjects] = await Promise.all([api('/api/groups'), api('/api/students'), api('/api/notifications'), api('/api/posts'), api('/api/subjects')]);
   Object.assign(S, { groups, students, notifications: notifs, posts, subjects });
   $('#loginView').classList.add('hidden'); $('#appView').classList.remove('hidden');
-  $('#accName').textContent = (S.user.name||'').includes('عبد الصمد') ? 'فضيلة الشيخ عبد الصمد بن حركات' : (S.user.role === 'admin' ? '' : S.user.name); $('#accRole').textContent = S.user.role_label || ROLE[S.user.role]; document.documentElement.dataset.role = S.user.role; document.documentElement.dataset.theme = S.user.theme || 'emerald'; document.documentElement.style.fontSize=(Number(S.user.font_scale)||1)+'em'; document.documentElement.classList.toggle('high-contrast',!!S.user.high_contrast); document.documentElement.classList.toggle('reduced-motion',!!S.user.reduced_motion);
+  $('#accName').textContent = (S.user.name||'').includes('عبد الصمد') ? 'فضيلة الشيخ عبد الصمد بن حركات' : (S.user.role === 'admin' ? '' : S.user.name); $('#accRole').textContent = S.user.role_label || ROLE[S.user.role]; document.documentElement.dataset.role = S.user.role; document.documentElement.dataset.theme = S.user.theme || 'emerald'; document.documentElement.style.fontSize=(Number(S.user.font_scale)||1)+'em'; document.documentElement.classList.toggle('high-contrast',!!S.user.high_contrast); document.documentElement.classList.toggle('reduced-motion',!!S.user.reduced_motion); applyAppearanceChoices();
   put($('#logoutBtn'), ico('out'));
   buildNav();
   const entry = sessionStorage.getItem('academy_entry') || ''; sessionStorage.removeItem('academy_entry');
