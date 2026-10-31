@@ -142,3 +142,112 @@
     padding-left: max(10px, env(safe-area-inset-left));
   }
 }
+
+
+/* Device-width fallback: some Android browsers keep a desktop-sized layout
+   viewport even when the physical screen is narrow (for example, Desktop site).
+   Use the device width as a second responsive trigger. */
+@media screen and (max-device-width: 760px) {
+  html, body {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    overflow-x: hidden;
+  }
+
+  #loginView.login,
+  #loginView.login:not(.hidden) {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 100vh;
+    min-height: 100svh;
+    overflow-x: clip !important;
+  }
+
+  #loginView .login-art,
+  #loginView .login-form {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box;
+  }
+
+  #loginView .login-art {
+    height: auto !important;
+    min-height: 0 !important;
+    padding: 64px 16px 22px !important;
+    overflow: hidden;
+  }
+
+  #loginView .login-welcome,
+  #loginView .login-brand,
+  #loginView .login-form-inner,
+  #loginView #loginForm {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  #loginView .login-form {
+    height: auto !important;
+    padding: 14px 12px 28px !important;
+    overflow: visible !important;
+  }
+
+  #loginView .login-form-inner {
+    padding: 18px 14px !important;
+  }
+
+  #loginView input,
+  #loginView select,
+  #loginView textarea,
+  #loginView button {
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  #appView.app {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    overflow-x: clip !important;
+  }
+
+  #appView .side { display: none !important; }
+
+  #appView .main {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    padding: 16px 12px 100px !important;
+    box-sizing: border-box;
+  }
+
+  #appView #view,
+  #appView #view > *,
+  #appView .top {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+  }
+
+  #appView #bottomNav {
+    position: fixed;
+    inset-inline: 0;
+    bottom: 0;
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+}
