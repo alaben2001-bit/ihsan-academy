@@ -1,0 +1,144 @@
+/* Ihsan Academy — mobile viewport and full-width layout repair.
+   Scoped to phones/tablets; desktop geometry and theme colors remain untouched. */
+@media (max-width: 760px) {
+  html, body {
+    width: 100%;
+    min-width: 0;
+    min-height: 100%;
+    margin: 0;
+    overflow-x: clip;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    min-height: 100vh;
+    min-height: 100dvh;
+  }
+
+  #appView.app,
+  #appView {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    min-width: 0;
+    min-height: 100vh;
+    min-height: 100dvh;
+    height: auto;
+    margin: 0;
+    padding: 0;
+    overflow: visible;
+  }
+
+  #appView .side { display: none !important; }
+
+  #appView .main {
+    position: relative;
+    display: block;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+    min-height: 100vh;
+    min-height: 100dvh;
+    height: auto;
+    margin: 0;
+    padding:
+      max(16px, env(safe-area-inset-top))
+      max(12px, env(safe-area-inset-right))
+      calc(92px + env(safe-area-inset-bottom))
+      max(12px, env(safe-area-inset-left));
+    overflow: visible;
+  }
+
+  #appView .main::before {
+    right: max(12px, env(safe-area-inset-right));
+    left: max(12px, env(safe-area-inset-left));
+  }
+
+  #appView .top,
+  #appView #view,
+  #appView #view > *,
+  #appView #view .stack,
+  #appView #view .settings-page,
+  #appView #view .card,
+  #appView #view .panel {
+    box-sizing: border-box;
+    min-width: 0;
+    max-width: 100%;
+  }
+
+  #appView .top {
+    width: 100%;
+    flex-wrap: wrap;
+    align-items: flex-start;
+  }
+
+  #appView .top > div:first-child {
+    flex: 1 1 100%;
+    min-width: 0;
+  }
+
+  #appView .top .actions {
+    display: flex;
+    flex: 1 1 100%;
+    width: 100%;
+    max-width: none;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  #appView #view {
+    width: 100%;
+    overflow: visible;
+  }
+
+  #appView #view .settings-page,
+  #appView #view .academy-about,
+  #appView #view .about-page,
+  #appView #view .settings-section,
+  #appView #view .settings-panel {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  #appView #view input,
+  #appView #view select,
+  #appView #view textarea,
+  #appView #view button {
+    max-width: 100%;
+  }
+
+  #appView #bottomNav {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 30;
+    box-sizing: border-box;
+    width: 100%;
+    max-width: 100%;
+    padding-bottom: max(6px, env(safe-area-inset-bottom));
+  }
+
+  #appView .modal,
+  #appView .modalbox {
+    box-sizing: border-box;
+    max-width: 100%;
+  }
+
+  #appView .modalbox {
+    width: min(100%, 620px);
+    max-height: calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+}
+
+@media (max-width: 380px) {
+  #appView .main {
+    padding-right: max(10px, env(safe-area-inset-right));
+    padding-left: max(10px, env(safe-area-inset-left));
+  }
+}
