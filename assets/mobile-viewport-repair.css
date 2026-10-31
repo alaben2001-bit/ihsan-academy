@@ -251,3 +251,85 @@
     box-sizing: border-box;
   }
 }
+
+
+/* v2 — Android narrow-device viewport normalization.
+   Keep the signed-in shell and every settings/about panel inside the real screen.
+   This block intentionally comes last to defeat older desktop-shell dimensions. */
+@media screen and (max-width: 900px), screen and (max-device-width: 900px) {
+  html, body {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 !important;
+    overflow-x: hidden !important;
+  }
+  body { min-height: 100vh !important; min-height: 100svh !important; }
+  #appView.app,
+  #appView {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: stretch !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 100vh !important;
+    min-height: 100svh !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+  }
+  #appView > .side { display: none !important; }
+  #appView > .main {
+    display: block !important;
+    position: relative !important;
+    flex: 1 1 auto !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    height: auto !important;
+    min-height: 100vh !important;
+    min-height: 100svh !important;
+    margin: 0 !important;
+    padding: max(16px, env(safe-area-inset-top)) max(12px, env(safe-area-inset-right)) calc(100px + env(safe-area-inset-bottom)) max(12px, env(safe-area-inset-left)) !important;
+    overflow: visible !important;
+    scrollbar-gutter: auto !important;
+  }
+  #appView .top,
+  #appView #view,
+  #appView #view > *,
+  #appView #view .stack,
+  #appView #view .settings-page,
+  #appView #view .settings-page > *,
+  #appView #view .settings-section,
+  #appView #view .settings-panel,
+  #appView #view .academy-about,
+  #appView #view .about-page {
+    box-sizing: border-box !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    margin-inline: 0 !important;
+  }
+  #appView #view { overflow: visible !important; }
+  #appView #view img,
+  #appView #view video,
+  #appView #view iframe,
+  #appView #view table { max-width: 100% !important; }
+  #appView #view * { min-width: 0; }
+  #appView #bottomNav {
+    position: fixed !important;
+    inset-inline: 0 !important;
+    bottom: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+    z-index: 100 !important;
+  }
+  #appView .modal,
+  #appView .modalbox {
+    box-sizing: border-box !important;
+    max-width: calc(100vw - 16px) !important;
+  }
+}
