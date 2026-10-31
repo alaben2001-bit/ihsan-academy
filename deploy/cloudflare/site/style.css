@@ -2252,3 +2252,143 @@ body{background-image:linear-gradient(135deg,rgba(36,91,73,.025),transparent 42%
 :where(.sidebar,.side-nav,.sidebar-nav,.nav-sidebar) :where(a,button,[role="button"]){flex-shrink:0;min-height:40px}
 :where(.sidebar,.side-nav,.sidebar-nav,.nav-sidebar) :where(.settings,.settings-link,[data-page="settings"],[href*="settings"]){display:flex!important;visibility:visible!important;opacity:1!important;position:relative!important;z-index:2}
 @media(max-height:760px){:where(.sidebar,.side-nav,.sidebar-nav,.nav-sidebar){max-height:100dvh;padding-bottom:84px!important}:where(.sidebar,.side-nav,.sidebar-nav,.nav-sidebar) .sidebar-footer{position:sticky;bottom:0;background:#245b49!important}}
+
+
+/* Mobile repair for the Cloudflare production app.
+   This stylesheet is deploy/cloudflare/site/style.css (the actual Pages build input). */
+@media screen and (max-device-width: 760px) {
+  html, body {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    margin: 0;
+    overflow-x: hidden !important;
+    -webkit-text-size-adjust: 100%;
+  }
+
+  .topbar {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .shell {
+    display: block;
+    width: calc(100% - 22px) !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    margin: 14px auto 28px !important;
+    box-sizing: border-box;
+  }
+
+  .auth-layout {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    margin: 0 auto !important;
+    gap: 14px !important;
+    box-sizing: border-box;
+  }
+
+  .welcome,
+  .auth-layout > .panel,
+  .auth-layout > .card,
+  .panel,
+  .card {
+    width: 100% !important;
+    max-width: 100% !important;
+    min-width: 0 !important;
+    box-sizing: border-box;
+  }
+
+  .welcome {
+    min-height: 0 !important;
+    padding: 22px 18px !important;
+    overflow-wrap: anywhere;
+  }
+
+  .welcome h1 {
+    font-size: clamp(24px, 7vw, 30px) !important;
+    line-height: 1.5;
+  }
+
+  .panel,
+  .card {
+    padding: 17px !important;
+    overflow-wrap: anywhere;
+  }
+
+  .field,
+  .field input,
+  .field select,
+  .field textarea,
+  .stack,
+  .form-grid,
+  .form-grid > *,
+  .btn {
+    min-width: 0;
+    max-width: 100%;
+    box-sizing: border-box;
+  }
+
+  .field input,
+  .field select,
+  .field textarea {
+    width: 100%;
+  }
+
+  .form-grid {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .wide {
+    grid-column: auto !important;
+  }
+
+  .layout {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .content {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .sidebar {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+  .stats,
+  .module-grid,
+  .curriculum-tiles {
+    grid-template-columns: minmax(0, 1fr) !important;
+  }
+
+  .list-row,
+  .section-head,
+  .attendance-controls {
+    flex-wrap: wrap;
+    min-width: 0;
+  }
+
+  img, video, canvas, svg {
+    max-width: 100%;
+  }
+
+  footer {
+    width: 100%;
+    box-sizing: border-box;
+    flex-wrap: wrap;
+    padding-inline: 12px;
+  }
+}
