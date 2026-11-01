@@ -288,7 +288,8 @@ assert.match(app, /data-transfer-decision="approve"/, "the chief supervisor must
 assert.match(app, /crypto\.getRandomValues\(new Uint8Array\(18\)\)/, "blank student password fields must generate a strong random temporary password");
 assert.doesNotMatch(app, /12345678/, "a universal student password must never be shown or submitted");
 assert.match(app, /id="admin-focus-toggle"/, "the director account must be able to switch between daily teaching and administration");
-assert.match(app, /makeGroup\("مهام الشيخ اليومية"/, "admin daily focus must keep teaching tasks separate from administrative tools");
+assert.match(app, /makeGroup\("الرئيسية والطلاب"/, "admin daily focus must present a concise administration entry point");
+assert.match(app, /makeGroup\("الترتيب الأسبوعي\/الشهري"/, "admin navigation must expose one weekly/monthly ranking entry");
 assert.match(app, /function honorificDisplayName\(name,role\)/, "staff names must use the shared Sheikh honorific formatter");
 assert.match(app, /const displayUserName=honorificDisplayName\(S\.user\.name,S\.user\.role\)/, "the signed-in director, teacher and administrator names must use the shared honorific formatter");
 assert.match(app, /name="thumn_from" type="number" inputmode="numeric" min="1" max="480" step="1" required/, "Quran records must require a starting thumn number");
