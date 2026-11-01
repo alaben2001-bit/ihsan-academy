@@ -138,7 +138,7 @@ function applyTheme(){
  for(const [k,v] of Object.entries({green:t.green,mint:t.mint,gold:t.gold,paper:t.paper,ink:t.ink,muted:t.muted,line:t.line,surface:t.surface,"surface-2":t.surface2,glow:t.green+"22"}))document.documentElement.style.setProperty("--"+k,v);
  document.documentElement.dataset.ihsanTheme=t.name;
  document.documentElement.dataset.ihsanThemeMode=mode;
- document.querySelector('meta[name="theme-color"]')?.setAttribute("content",t.green);
+ document.querySelector('meta[name="theme-color"]')?.setAttribute("content","#030705");
 }
 applyTheme();
 function applyAppearanceSettings(){
@@ -147,19 +147,19 @@ function applyAppearanceSettings(){
  const iconStyle=safeStore.get("ihsan_icon_style")||"soft";
  const iconSize=safeStore.get("ihsan_icon_size")||"medium";
  const fontScale=Math.min(1.8,Math.max(.85,Number(safeStore.get("ihsan_font_scale")||1)));
- // The academy now uses one permanent light appearance; retain the user's other accessibility preferences.
- safeStore.set("ihsan_appearance_mode","light");
+ // The academy now uses one permanent dark (Emerald Noir) appearance; retain the user's other accessibility preferences.
+ safeStore.set("ihsan_appearance_mode","dark");
  applyTheme();
- root.dataset.appearance="light";
+ root.dataset.appearance="dark";
  root.dataset.appearanceBackground=background;
  root.dataset.iconStyle=iconStyle;
  root.dataset.iconSize=iconSize;
- root.dataset.appearancePalette="light";
- root.style.colorScheme="light";
+ root.dataset.appearancePalette="dark";
+ root.style.colorScheme="dark";
  root.style.setProperty("--user-font-scale",String(fontScale));
  const selected=themes.find(t=>t.name===root.dataset.ihsanTheme)||themes[0];
  const meta=document.querySelector('meta[name="theme-color"]');
- if(meta)meta.setAttribute("content",selected.green);
+ if(meta)meta.setAttribute("content","#030705");
 }
 applyAppearanceSettings();
 if(safeStore.get("ihsan_reduce_motion")==="1")document.documentElement.classList.add("ihsan-reduced-motion");
