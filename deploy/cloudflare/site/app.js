@@ -578,9 +578,9 @@ function items(){
  const staff=["admin","director","teacher","supervisor"].includes(S.user.role);
  if(S.user.role==="admin"){
   const full=safeStore.get("ihsan_admin_focus")==="full";
-  const daily=[["home","الرئيسية"],["students","الطلاب"],["roster-bulk","إضافة أسماء الطلبة"],["attendance","الحضور"],["quran","متابعة الحفظ والمراجعة"],["effort-ranking","تقرير اجتهاد الطلبة"],["effort","تسجيل المتابعة اليومية"],["notifications","التنبيهات"],["messages","الرسائل"]];
+  const daily=[["home","الرئيسية"],["students","الطلاب"],["teams","الفرق"],["effort-ranking","الترتيب الأسبوعي/الشهري"],["notifications","التنبيهات"],["messages","الرسائل"]];
   if(!full)return daily;
-  return [["home","الرئيسية"],["groups","الأفواج"],["students","الطلاب"],["roster-bulk","إضافة أسماء الطلبة"],["teams","الفرق"],["attendance","الحضور"],["quran","متابعة الحفظ والمراجعة"],["effort-ranking","تقرير اجتهاد الطلبة"],["effort","تسجيل المتابعة اليومية"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"],["system-check","فحص النظام"]];
+  return [["home","الرئيسية"],["groups","الأفواج"],["students","الطلاب"],["teams","الفرق"],["effort-ranking","الترتيب الأسبوعي/الشهري"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"],["system-check","فحص النظام"]];
  }
  if(S.user.role==="director")return [["home","الرئيسية"],["groups","الأفواج والمعلمون والفرق"],["students","طلاب المدرسة"],["roster-bulk","إضافة أسماء الطلبة"],["attendance","الحضور"],["quran","متابعة الحفظ والمراجعة"],["effort-ranking","تقرير اجتهاد الطلبة"],["effort","تسجيل المتابعة اليومية"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"]];
  if(S.user.role==="supervisor")return [["home","الرئيسية"],["students","طلاب فريقي"],["teams","فرقي الطلابية"],["attendance","الحضور"],["quran","متابعة الحفظ والمراجعة"],["effort-ranking","تقرير اجتهاد الطلبة"],["effort","تسجيل المتابعة اليومية"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"]];
@@ -621,20 +621,19 @@ function navIcon(id){return '<svg viewBox="0 0 24 24" class="nav-icon" aria-hidd
 function navigationGroups(){
  const list=items();if(S.mode==="ihsan")return [{title:"منهج الإحسان",items:list}];
  const makeGroup=(title,ids)=>({title,items:list.filter(x=>ids.includes(x[0]))});
- const effortGroup=()=>makeGroup("الاجتهاد",["effort-ranking","effort"]);
+ const effortGroup=()=>makeGroup("الترتيب الأسبوعي/الشهري",["effort-ranking"]);
  if(S.user.role==="admin"){
   const full=safeStore.get("ihsan_admin_focus")==="full";
   if(!full)return [
-   makeGroup("مهام الشيخ اليومية",["home","students","attendance","quran"]),
+   makeGroup("الرئيسية والطلاب",["home","students"]),
+   makeGroup("الأفواج والفرق",["groups","teams"]),
    effortGroup(),
-   makeGroup("الفرق",["teams"]),
-   makeGroup("المتابعة والتواصل",["gradebook","reports","notifications","messages"])
+   makeGroup("التواصل",["notifications","messages"])
   ].filter(g=>g.items.length);
   return [
-   makeGroup("إدارة الأكاديمية",["home","groups","students"]),
-   makeGroup("المهام الأساسية اليومية",["attendance","quran"]),
+   makeGroup("إدارة الأكاديمية",["home","groups","students","teams"]),
    effortGroup(),
-   makeGroup("المتابعة والتقويم",["gradebook","reports","notifications","messages"]),
+   makeGroup("التواصل",["notifications","messages"]),
    makeGroup("أدوات إضافية وتحسينية",["assignments","tests","system-check"])
   ].filter(g=>g.items.length);
  }
