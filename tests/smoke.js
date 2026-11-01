@@ -15,12 +15,12 @@ const cssSource = fs.readFileSync(path.join(__dirname, '..', 'assets', 'app.css'
 const serviceWorkerSource = fs.readFileSync(path.join(__dirname, '..', 'service-worker.js'), 'utf8');
 assert.match(serviceWorkerSource, /const CACHE = 'ihsan-academy-shell-v\d+-\d{4}-\d{2}-\d{2}'/, 'offline shell cache must be versioned');
 for (const shellAsset of [
-  '/assets/app.css?v=73.0',
+  '/assets/app.css?v=78.0',
   '/assets/admin-mobile.css?v=70.0',
-  '/assets/ui-organize.css?v=1.0',
+  '/assets/ui-organize.css?v=2.0',
   '/assets/login-redesign.css?v=2.0',
   '/assets/premium-interface.css?v=76.0',
-  '/assets/app.js?v=70.2',
+  '/assets/app.js?v=81.0',
   '/assets/icon.svg',
   '/assets/ihsan-emblem.svg',
   '/manifest.json',
