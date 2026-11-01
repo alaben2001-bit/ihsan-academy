@@ -193,7 +193,7 @@ assert.ok(robotsSource.includes('User-agent: *'), 'robots.txt must define a gene
 assert.ok(robotsSource.includes('Sitemap: https://ihsan-academy.pages.dev/sitemap.xml'), 'robots.txt must point to the canonical sitemap');
 assert.ok(robotsSource.includes('Disallow: /api/'), 'robots.txt must discourage indexing private API endpoints');
 assert.ok(sitemapSource.includes('xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"'), 'sitemap must use the standard sitemap namespace');
-assert.ok(sitemapSource.includes('<loc>https://ihsan-academy-frankfurt.onrender.com/</loc>'), 'sitemap must list the canonical home page');
+assert.ok(sitemapSource.includes('<loc>https://ihsan-academy.pages.dev/</loc>'), 'sitemap must list the canonical home page');
 assert.ok(serverSource.includes("path.join(ROOT, 'robots.txt')"), 'static serving allowlist must include robots.txt');
 assert.ok(serverSource.includes("path.join(ROOT, 'sitemap.xml')"), 'static serving allowlist must include sitemap.xml');
 
@@ -202,13 +202,7 @@ const dockerfileSource = fs.readFileSync(path.join(__dirname, '..', 'Dockerfile'
 assert.match(dockerfileSource, /chown -R node:node \/app\/data \/app\/backups/, 'runtime user must own writable upload and backup directories');
 
 
-// The legacy Oregon service must stay in redirect-only mode in the Blueprint.
-const renderSource = fs.readFileSync(path.join(__dirname, '..', 'render.yaml'), 'utf8');
-const legacyServiceConfig = renderSource.split('  # Replacement web service')[0];
-const canonicalServiceConfig = renderSource.split('name: ihsan-academy-frankfurt')[1] || '';
-assert.ok(legacyServiceConfig.includes('name: ihsan-academy') && legacyServiceConfig.includes('key: ACADEMY_REDIRECT_TO_FRANKFURT') && legacyServiceConfig.includes('value: "1"'), 'legacy Oregon service must redirect to Frankfurt');
-assert.doesNotMatch(canonicalServiceConfig, /key: ACADEMY_REDIRECT_TO_FRANKFURT/, 'canonical Frankfurt service must not redirect itself');
-
+// Production is Cloudflare Pages; legacy Render configuration is not part of the canonical deployment.
 assert.doesNotMatch(htmlSource, /login-tip|dailyTip|login-footer/, 'removed promotional and daily-tip blocks must stay off the login page');
 
 assert.match(appSource, /data-theme-option/, 'theme swatches must support immediate selection');
@@ -225,8 +219,8 @@ assert.match(appSource, /submitPracticeAnswer/, 'practice must submit selected a
 assert.match(appSource, /اختبر فهمك/, 'lesson modal must offer a clear practice action');
 assert.match(appSource, /practice-feedback/, 'practice must show feedback after answering');
 assert.match(cssSource, /practice-option/, 'practice choices must have dedicated responsive styling');
-assert.match(htmlSource, /app\.css\?v=73\.0/, 'practice styles must bypass browser cache');
-assert.match(htmlSource, /app\.js\?v=70\.2/, 'practice script must bypass browser cache');
+assert.match(htmlSource, /app\.css\?v=78\.0/, 'practice styles must bypass browser cache');
+assert.match(htmlSource, /app\.js\?v=81\.0/, 'practice script must bypass browser cache');
 
 assert.doesNotMatch(htmlSource, /id="exploreTitle"/, 'public login page must not show the academy map section');
 assert.doesNotMatch(htmlSource, /مسارات تبني الإنسان|معرفة الله تعالى|الأربعون النووية|حسابات الطلبة ينشئها المشرف|اعرف خطوتك|تعلّم وجرّب|راجع وتقدّم|أثمر علمك|ومضة اليوم/, 'removed public learning-path and promotional copy must stay off the login page');
