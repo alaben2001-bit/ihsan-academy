@@ -332,10 +332,10 @@ assert.match(backend, /يتعارض معرّف التسجيل مع سجل آخر
 assert.match(style, /data-appearance-palette="dark"/, "dark mode must have dedicated contrast rules");
 assert.match(style, /\.academy-update-notice/, "the update banner must have responsive styling");
 assert.match(style, /\.release-history-item/, "the in-app release history must be styled");
-assert.match(index, /app\.js\?v=20261025-027/, "frontend cache busting must use the latest asset version");
-assert.match(index, /style\.css\?v=20261025-027/, "stylesheet cache busting must use the latest asset version");
-assert.match(index, /startup\.js\?v=20261025-027/, "startup cache busting must use the latest asset version");
-assert.match(serviceWorker, /ihsan-academy-pwa-v131-20261025-027/, "service worker cache namespace must match this release");
+assert.match(index, /app\.js\?v=20261101-028/, "frontend cache busting must use the latest asset version");
+assert.match(index, /style\.css\?v=20261101-028/, "stylesheet cache busting must use the latest asset version");
+assert.match(index, /startup\.js\?v=20261101-028/, "startup cache busting must use the latest asset version");
+assert.match(serviceWorker, /ihsan-academy-pwa-v132-20261101-028/, "service worker cache namespace must match this release");
 assert.match(app, /secondary:""/, "welcome dua must have one Continue button rather than Later");
 assert.match(app, /primary:"متابعة"/, "the rotating welcome dua must use the requested Continue label");
 assert.match(app, /function rememberOfflineUser\(\)/, "offline startup may only rely on the minimal stored profile, never the password");
