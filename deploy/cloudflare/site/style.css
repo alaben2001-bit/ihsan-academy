@@ -2392,3 +2392,16 @@ body{background-image:linear-gradient(135deg,rgba(36,91,73,.025),transparent 42%
     padding-inline: 12px;
   }
 }
+
+/* Navigation hubs: focused entry points for academy groups and students. */
+.hub-cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,205px),1fr));gap:13px;margin:18px 0 22px}
+.hub-card{display:flex;flex-direction:column;align-items:flex-start;gap:7px;min-height:122px;padding:17px;border:1px solid var(--line);border-radius:17px;background:linear-gradient(145deg,#fff,var(--mint));color:var(--ink);text-align:right;cursor:pointer;box-shadow:0 8px 22px #153e2c0c;transition:transform .2s ease,border-color .2s ease,box-shadow .2s ease}
+.hub-card:hover,.hub-card:focus-visible{transform:translateY(-3px);border-color:var(--green);box-shadow:0 14px 28px #153e2c18;outline:none}
+.hub-card:active{transform:scale(.985)}
+.hub-card strong{font-size:15px;line-height:1.7;font-weight:700}
+.hub-card small{font-size:12px;line-height:1.7;color:var(--muted)}
+.hub-card-icon{display:grid;place-items:center;width:34px;height:34px;border-radius:11px;background:#174b3b16;color:var(--green);font-size:21px;font-weight:700}
+.hub-target-focus{scroll-margin-top:24px;animation:hubTargetPulse 1.1s ease}
+@keyframes hubTargetPulse{0%,100%{outline:0 solid transparent}35%{outline:3px solid #174b3b35;outline-offset:4px}}
+@media(max-width:620px){.hub-cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.hub-card{min-height:112px;padding:13px;border-radius:14px}.hub-card strong{font-size:13px}.hub-card small{font-size:11px}}
+@media(prefers-reduced-motion:reduce){.hub-card{transition:none}.hub-card:hover{transform:none}.hub-target-focus{animation:none}}
