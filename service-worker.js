@@ -1,10 +1,10 @@
-const CACHE = 'ihsan-academy-shell-v82-2026-10-22';
+const CACHE = 'ihsan-academy-shell-v83-2026-11-01';
 const SHELL = [
   '/',
   '/index.html',
-  '/assets/app.css?v=74.0',
+  '/assets/app.css?v=78.0',
   '/assets/admin-mobile.css?v=70.0',
-  '/assets/ui-organize.css?v=1.0',
+  '/assets/ui-organize.css?v=2.0',
   '/assets/login-redesign.css?v=2.0',
   '/assets/premium-interface.css?v=76.0',
   '/assets/premium-enterprise.css?v=77.0',
