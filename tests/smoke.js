@@ -32,8 +32,8 @@ assert.match(serviceWorkerSource, /ignoreSearch:\s*true/, 'offline asset lookup 
 assert.match(serviceWorkerSource, /url\.pathname\.startsWith\('\/api\/'\)/, 'private and changing API responses must stay out of the offline cache');
 assert.match(htmlSource, /class="login-art"/, 'login page must retain its visual brand panel');
 assert.match(htmlSource, /\/assets\/ihsan-emblem\.svg/, 'navigation and welcome screen must use the academy emblem');
-assert.match(htmlSource, /app\.css\?v=73\.0/, 'refreshed visual styles must bypass the old browser cache');
-assert.match(htmlSource, /app\.js\?v=70\.2/, 'dashboard script changes must bypass the old browser cache');
+assert.match(htmlSource, /app\.css\?v=78\.0/, 'refreshed visual styles must bypass the old browser cache');
+assert.match(htmlSource, /app\.js\?v=81\.0/, 'dashboard script changes must bypass the old browser cache');
 assert.doesNotMatch(htmlSource, /مرحبًا بك في رحلتك/, 'public login page must not show promotional welcome copy');
 assert.match(appSource, /hero-orbit"><img src="\/assets\/ihsan-emblem\.svg"/, 'signed-in dashboard must use the academy emblem instead of a text placeholder');
 assert.doesNotMatch(appSource.slice(appSource.indexOf('function pgDashboard'), appSource.indexOf('/* ═══════════ فرق المدرسة')), /today-step-open/, 'requested daily-step card must be removed from the dashboard');
