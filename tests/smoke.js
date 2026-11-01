@@ -190,7 +190,7 @@ assert.match(serverSource, /destination\.search = incoming\.search/, 'redirect m
 const robotsSource = fs.readFileSync(path.join(__dirname, '..', 'robots.txt'), 'utf8');
 const sitemapSource = fs.readFileSync(path.join(__dirname, '..', 'sitemap.xml'), 'utf8');
 assert.ok(robotsSource.includes('User-agent: *'), 'robots.txt must define a general crawler policy');
-assert.ok(robotsSource.includes('Sitemap: https://ihsan-academy-frankfurt.onrender.com/sitemap.xml'), 'robots.txt must point to the canonical sitemap');
+assert.ok(robotsSource.includes('Sitemap: https://ihsan-academy.pages.dev/sitemap.xml'), 'robots.txt must point to the canonical sitemap');
 assert.ok(robotsSource.includes('Disallow: /api/'), 'robots.txt must discourage indexing private API endpoints');
 assert.ok(sitemapSource.includes('xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"'), 'sitemap must use the standard sitemap namespace');
 assert.ok(sitemapSource.includes('<loc>https://ihsan-academy-frankfurt.onrender.com/</loc>'), 'sitemap must list the canonical home page');
