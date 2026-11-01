@@ -1,0 +1,78 @@
+/* Ihsan Academy — dark emerald theme
+   Original theme layer for the existing RTL academy interface. */
+:root{
+  color-scheme:dark!important;
+  --ih-bg:#050806!important;--ih-panel:#0b1410!important;--ih-panel-2:#101f18!important;
+  --ih-line:#1c3a2b!important;--ih-green:#12c27a!important;--ih-green-deep:#0a6b44!important;
+  --ih-gold:#d9b25f!important;--ih-text:#e8f3ec!important;--ih-muted:#9ab2a4!important;
+  --ih-head:"Reem Kufi","Tajawal",sans-serif;--ih-body:"IBM Plex Sans Arabic","Segoe UI",Tahoma,sans-serif;
+  --ink:#e8f3ec!important;--muted:#9ab2a4!important;--green:#12c27a!important;
+  --green-strong:#12c27a!important;--mint:#10251b!important;--gold:#d9b25f!important;
+  --line:#1c3a2b!important;--paper:#050806!important;--surface:#0b1410!important;
+  --surface-2:#101f18!important;--academy-white:#e8f3ec!important;--glow:#12c27a22!important;
+}
+html,body{min-height:100%;background:#050806!important;color:#e8f3ec!important;color-scheme:dark!important}
+html body{
+  background-image:radial-gradient(900px 500px at 85% -10%,#0d3a27 0%,transparent 60%),radial-gradient(700px 400px at 0% 100%,#08241a 0%,transparent 60%)!important;
+  background-attachment:fixed!important;font-family:var(--ih-body)!important;
+}
+html body :where(h1,h2,h3,h4,h5,h6){font-family:var(--ih-head)!important;color:#f5fff8!important}
+html body :where(p,span,label,li,td,th,small,div,strong,b){color:inherit}
+html body :where(small,.muted,.hint,.subtitle,.description,[class*="muted"],[class*="subtitle"]){color:var(--ih-muted)!important}
+html body a{color:#49d99b}
+html body :where(header,.topbar,.header,.page-header,.toolbar,nav,[class*="topbar"]){
+  background:linear-gradient(180deg,#07110c,#030604)!important;border-color:var(--ih-line)!important;color:var(--ih-text)!important;
+}
+.topbar{box-shadow:0 8px 28px #0008!important}
+.brand,.brand strong,.brand small{color:var(--ih-text)!important}
+.brand-mark{background:#0a6b44!important}
+html body :where(aside,nav,[class*="sidebar"],[class*="side-"]){background:linear-gradient(180deg,#07110c,#030604)!important;border-color:var(--ih-line)!important;color:var(--ih-text)!important}
+html body :where(aside,[class*="sidebar"],[class*="side-"]) :where(a,button,li):hover{background:#10251b!important;color:#e8f3ec!important}
+html body :where(aside,[class*="sidebar"],[class*="side-"]) :where(.active,.on,.current,[aria-current="page"]){
+  background:linear-gradient(90deg,#0f3a28,#0a2419)!important;color:#fff!important;
+  box-shadow:inset -3px 0 0 #12c27a;border-color:#0a6b44!important;
+}
+html body :where(.panel,.card,[class*="card"],[class*="panel"],[class*="box"],[class*="stat"],[class*="widget"],section.surface,.modal,[class*="modal"]>div,.welcome,.hero,.module-welcome,.module-card,.curriculum-banner,.hub-card,.stat,.list-row,.settings-section,.settings-dialog,.dialog,[role="dialog"]){
+  background:linear-gradient(160deg,#101f18,#0b1410)!important;border:1px solid #1c3a2b!important;
+  border-radius:18px;color:#e8f3ec!important;box-shadow:0 10px 30px #0007!important;
+}
+html body :where(.hero,.module-welcome,.curriculum-banner,.student-welcome){background:linear-gradient(135deg,#102d20,#0b1410)!important}
+html body :where(.stat strong,[class*="stat"] strong,[class*="card"] :where(.num,.value,.count)){font-family:var(--ih-head)!important;color:#12c27a!important}
+html body :where([class*="appreci"],[class*="tribute"],[class*="gold"],[class*="letter"],.notice:not(.error)){
+  border-color:#4a3d1c!important;background:linear-gradient(160deg,#211a0c,#12150f)!important;color:#f0d99e!important;
+}
+html body :where(button,.btn,[class*="btn"],input[type="button"],input[type="submit"],[role="button"]){
+  background:#101f18!important;color:#e8f3ec!important;border:1px solid #1c3a2b!important;border-radius:12px;font-family:inherit;
+}
+html body :where(button,.btn,[class*="btn"],[role="button"]):hover{border-color:#12c27a!important}
+html body :where(.primary,.btn-primary,[class*="primary"],button[type="submit"],.btn:not(.secondary):not(.ghost)){
+  background:linear-gradient(135deg,#12c27a,#0a6b44)!important;color:#02140c!important;border:0!important;font-weight:700;box-shadow:0 6px 20px #12c27a40!important;
+}
+html body :where(.secondary,.ghost,.btn.secondary){background:#14251c!important;color:#dceee3!important;border:1px solid #28513d!important}
+html body :where(.danger,.btn.danger){background:#321b1b!important;color:#ffc9c3!important;border-color:#673131!important}
+html body :where(input,select,textarea,.field input,.field select,.field textarea){
+  background:#09110d!important;color:#e8f3ec!important;border:1px solid #28513d!important;border-radius:12px;font-family:inherit;
+}
+html body :where(input,select,textarea)::placeholder{color:#86a595!important}
+html body :where(input,select,textarea):focus{border-color:#12c27a!important;outline:none;box-shadow:0 0 0 3px #12c27a26!important}
+html body option{background:#0b1410;color:#e8f3ec}
+html body table{background:transparent!important;border-color:#1c3a2b!important;border-collapse:collapse}
+html body th{background:#0d2a1e!important;color:#65e3ad!important;border-color:#1c3a2b!important}
+html body td{border-color:#1c3a2b!important;background:transparent!important}
+html body tbody tr:hover td{background:#101f18!important}
+html body :where(.pill,.notice){background:#102b1e!important;color:#75e0ad!important;border-color:#28513d!important}
+html body :where(.error,.notice.error){background:#321b1b!important;color:#ffc9c3!important;border-color:#673131!important}
+html body :where(footer,footer a){color:#9ab2a4!important}
+html body ::selection{background:#176b48;color:#fff}
+*{scrollbar-color:#0a6b44 #050806}
+*:focus-visible{outline:2px solid #12c27a!important;outline-offset:2px}
+@media(max-width:900px){
+  html body .layout{grid-template-columns:minmax(0,1fr)!important}
+  html body .sidebar{background:#07110c!important}
+}
+@media(max-width:600px){
+  html body .shell{width:calc(100% - 18px)!important}
+  html body .stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}
+  html body .module-grid{grid-template-columns:minmax(0,1fr)!important}
+}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
