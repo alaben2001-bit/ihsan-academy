@@ -329,3 +329,15 @@ body:has(.auth-layout) .knowledge-verse{display:flex!important}
 /* توحيد مقياس الخط على النصوص الثانوية والجداول */
 body :is(.small,small,.muted,.text-muted,.hint,.helper-text,.field-hint,.stat-label){font-size:calc(1em * var(--user-font-scale,1))}
 table th,table td{font-size:calc(1em * var(--user-font-scale,1))}
+
+
+/* مهام الشيخ الأساسية: الحضور والحفظ والمراجعة */
+.teacher-daily-actions{margin:18px 0}
+.teacher-daily-action-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px}
+.teacher-daily-action{display:grid;grid-template-columns:auto 1fr;align-items:center;column-gap:13px;row-gap:5px;width:100%;min-height:94px;padding:17px;border:1px solid var(--line);border-radius:17px;background:var(--surface-2);color:var(--ink);text-align:right;cursor:pointer;font:inherit;transition:transform .2s,border-color .2s,box-shadow .2s}
+.teacher-daily-action:hover{transform:translateY(-2px);border-color:var(--green);box-shadow:0 10px 28px rgba(0,0,0,.12)}
+.teacher-daily-action-icon{grid-row:span 2;display:grid;place-items:center;width:46px;height:46px;border-radius:14px;background:var(--mint);color:var(--green)}
+.teacher-daily-action-icon .nav-icon{width:25px;height:25px}
+.teacher-daily-action strong{font-size:17px}
+.teacher-daily-action small{color:var(--muted);font-size:12px;line-height:1.6}
+@media(max-width:560px){.teacher-daily-action-grid{grid-template-columns:1fr}.teacher-daily-action{min-height:82px;padding:14px}}
