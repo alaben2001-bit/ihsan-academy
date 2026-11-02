@@ -275,3 +275,8 @@ html:root:root .stats>*:nth-child(n+6),html:root:root .module-grid>*:nth-child(n
 @media (prefers-reduced-motion:reduce){
   *,*::before,*::after{animation:none!important;transition:none!important}
 }
+
+/* ملاحظات برنامج الحفظ: ألوان الأساس، ويحوّلها الثيم الداكن عند تفعيله */
+.hifz-program-note{color:#173c30 !important;background:#edf6f0 !important;border:1px solid #d5e8dc;border-radius:12px;padding:12px 14px;line-height:1.9}
+.hifz-program-note--info{border-inline-start:4px solid #438b70}
+.hifz-program-note--important{border-inline-start:4px solid #c69b3c}
