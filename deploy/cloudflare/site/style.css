@@ -289,3 +289,6 @@ html:root:root .stats>*:nth-child(n+6),html:root:root .module-grid>*:nth-child(n
   .academy-about-dialog{width:calc(100vw - 20px);max-height:90dvh;padding:16px;border-radius:18px}
   .academy-about-grid{grid-template-columns:minmax(0,1fr);gap:10px}
 }
+
+/* إبقاء آية الترحيب ظاهرة في شاشة الدخول على الهاتف */
+body:has(.auth-layout) .knowledge-verse{display:flex!important}
