@@ -3,12 +3,20 @@
 ## المصدر المعتمد
 
 - **الاستضافة المعتمدة:** Cloudflare Pages + Pages Functions + D1.
-- **الرابط الرئيسي:** https://ihsan-academy.pages.dev/
-- **نسخة الطلاب:** https://ihsan-academy-students-preview.pages.dev/
+- **الرابط الرئيسي:** https://a-ihsan.pages.dev/
 - **فرع النشر:** `migration/cloudflare-student-platform`.
 - **مسار التطبيق المعتمد:** `deploy/cloudflare/`.
 
 > لا تعتمد ملفات الجذر القديمة الخاصة بالتشغيل المحلي وقواعد البيانات السابقة بوصفها نسخة الإنتاج الحالية. أُبقيت ملفات الترحيل القديمة ومصادرها لأغراض الرجوع واستعادة البيانات التاريخية فقط. لا تنقل البيانات ولا تحذف قاعدة D1 أثناء التنظيف.
+
+## النطاقات والنشر
+
+- **مشروع Cloudflare Pages المعتمد:** `a-ihsan`.
+- **النطاق العام المعتمد:** https://a-ihsan.pages.dev/.
+- **مستودع GitHub:** `alaben2001-bit/ihsan-academy`.
+- **فرع الإنتاج الوحيد:** `migration/cloudflare-student-platform`.
+- **جذر البناء:** `deploy/cloudflare`، ومجلد الإخراج `public`.
+- المشاريع الأخرى ذات أسماء `ihsan*` مشاريع Pages تاريخية/مكررة قيد المراجعة؛ لا تُستخدم للنشر ولا تُحذف قبل التحقق من أي نطاق مخصص أو تكامل مرتبط بها.
 
 ## خريطة الملفات
 
