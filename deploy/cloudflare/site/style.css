@@ -324,3 +324,8 @@ body:has(.auth-layout) .knowledge-verse{display:flex!important}
 .release-history-item strong{color:var(--text,#e8f1ec)}
 .release-history-item small,.release-history-item p{color:var(--muted,#9aaba3);line-height:1.7}
 @media(max-width:600px){.academy-update-notice{align-items:stretch;padding:12px}.academy-update-notice .btn{width:100%}.release-history-item{grid-template-columns:1fr;gap:5px}}
+
+
+/* توحيد مقياس الخط على النصوص الثانوية والجداول */
+body :is(.small,small,.muted,.text-muted,.hint,.helper-text,.field-hint,.stat-label){font-size:calc(1em * var(--user-font-scale,1))}
+body table th,body table td{font-size:calc(1em * var(--user-font-scale,1))}
