@@ -63,8 +63,8 @@ assert.doesNotMatch(backend, /return json\(\{token,user:safeUser/, "raw session 
 assert.doesNotMatch(app, /safeStore\.set\(["']ihsan_token["']/, "the UI must not store reusable bearer tokens");
 assert.match(app, /credentials:"same-origin"/, "API requests must send same-origin cookies");
 assert.match(app, /h\["x-csrf-token"\]=csrf/, "mutating API requests must send the CSRF token");
-assert.ok(index.includes('src="/app.js?v=20261101-030"'), "the current frontend asset version must be explicit");
-assert.match(serviceWorker, /ihsan-academy-pwa-v134-20261101-031/, "the PWA cache must be invalidated with the frontend build");
+assert.ok(index.includes('src="/app.js?v=20261102-01"'), "the current frontend asset version must be explicit");
+assert.match(serviceWorker, /ihsan-academy-pwa-v135-20261102-01/, "the PWA cache must be invalidated with the frontend build");
 assert.ok(index.includes("/ihsan-dark-theme.css?v=20261101-031"), "the dark emerald theme must load after the existing stylesheets");
 assert.ok(serviceWorker.includes("/ihsan-dark-theme.css?v=20261101-031"), "the dark emerald theme must be precached for offline use");
 assert.match(style, /\.daily-nourishment-grid/, "daily supplication and learning cards must retain their styling");
