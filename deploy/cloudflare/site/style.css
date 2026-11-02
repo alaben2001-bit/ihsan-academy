@@ -280,3 +280,12 @@ html:root:root .stats>*:nth-child(n+6),html:root:root .module-grid>*:nth-child(n
 .hifz-program-note{color:#173c30 !important;background:#edf6f0 !important;border:1px solid #d5e8dc;border-radius:12px;padding:12px 14px;line-height:1.9}
 .hifz-program-note--info{border-inline-start:4px solid #438b70}
 .hifz-program-note--important{border-inline-start:4px solid #c69b3c}
+
+/* نافذة التعريف بالأكاديمية: تخطيط متجاوب مستقل */
+.academy-about-dialog{width:min(920px,calc(100vw - 32px));max-height:min(86vh,820px);overflow:auto;padding:clamp(18px,3vw,32px);border-radius:24px}
+.academy-about-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin-top:20px}
+.academy-about-grid>*{min-width:0}
+@media(max-width:640px){
+  .academy-about-dialog{width:calc(100vw - 20px);max-height:90dvh;padding:16px;border-radius:18px}
+  .academy-about-grid{grid-template-columns:minmax(0,1fr);gap:10px}
+}
