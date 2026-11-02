@@ -9,7 +9,7 @@
       let button = nav.querySelector('[data-page="' + id + '"]');
       if (button) {
         const span = button.querySelector('span');
-        if (span) span.textContent = label;
+        if (span && span.textContent !== label) span.textContent = label;
         button.title = label;
         return;
       }
@@ -47,8 +47,8 @@
     const page = document.documentElement.dataset.page;
     const title = document.getElementById('pgTitle');
     if (!title) return;
-    if (page === 'tracking') title.textContent = 'الحفظ والمراجعة';
-    if (page === 'attendance') title.textContent = 'الحضور';
+    if (page === 'tracking' && title.textContent !== 'الحفظ والمراجعة') title.textContent = 'الحفظ والمراجعة';
+    if (page === 'attendance' && title.textContent !== 'الحضور') title.textContent = 'الحضور';
   };
   const start = () => {
     repair();
