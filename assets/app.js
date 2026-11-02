@@ -244,9 +244,9 @@ function navGroups() {
     group('عملي اليومي كمعلم', [
       n('dashboard', 'ملخص يومي', 'home'),
       n('teacher-tools', 'مهامي اليومية', 'tools'),
-      n('attendance', 'تسجيل الحضور', 'check'),
-      n('students', 'طلبتي', 'user'),
-      n('tracking', 'متابعة التقدم', 'trend')
+      n('attendance', 'الحضور', 'check'),
+      n('quran', 'الحفظ والمراجعة', 'quran'),
+      n('students', 'طلبتي', 'user')
     ]),
     group('التعليم والمتابعة', [
       n('teams', 'الفرق الطلابية', 'group'),
@@ -271,11 +271,11 @@ function navItems() { return navGroups().flatMap(g => g.items); }
 const HIDDEN_NAV_IDS = new Set(['quran','journey','learning','tasks','tests','curriculum','assignments','transport','media','community','notifications','reports']);
 function buildNav() {
   const groups = navGroups()
-    .map(g => ({ ...g, items: g.items.filter(([id]) => S.user.role === 'admin' || (S.user.role === 'teacher' && ['teams','assignments','tests'].includes(id)) || !HIDDEN_NAV_IDS.has(id)) }))
+    .map(g => ({ ...g, items: g.items.filter(([id]) => S.user.role === 'admin' || (S.user.role === 'teacher' && ['teams','assignments','tests','attendance','quran'].includes(id)) || !HIDDEN_NAV_IDS.has(id)) }))
     .filter(g => g.items.length);
   const items = groups.flatMap(g => g.items);
   put($('#nav'), html`${groups.map(g => html`<div class="nav-group"><div class="nav-label">${g.label}</div>${g.items.map(([id, l, ic]) => html`<button data-act="nav" data-page="${id}" title="${l}">${ico(ic)}<span>${l}</span></button>`)}</div>`)}`);
-  const mainIds = S.user.role === 'student' ? ['dashboard', 'learning-hub', 'quran', 'media', 'journey'] : S.user.role === 'teacher' ? ['dashboard', 'learning-hub', 'students', 'curriculum', 'attendance'] : S.user.role === 'admin' ? ['dashboard', 'learning-hub', 'students', 'curriculum', 'school-directory'] : S.user.role === 'chief_supervisor' ? ['dashboard', 'learning-hub', 'teams', 'school-directory', 'notifications'] : S.user.role === 'parent' ? ['dashboard', 'learning-hub', 'children', 'media', 'notifications'] : ['dashboard', 'learning-hub', 'students', 'curriculum', 'school-directory'];
+  const mainIds = S.user.role === 'student' ? ['dashboard', 'learning-hub', 'quran', 'media', 'journey'] : S.user.role === 'teacher' ? ['dashboard', 'attendance', 'quran', 'students'] : S.user.role === 'admin' ? ['dashboard', 'learning-hub', 'students', 'curriculum', 'school-directory'] : S.user.role === 'chief_supervisor' ? ['dashboard', 'learning-hub', 'teams', 'school-directory', 'notifications'] : S.user.role === 'parent' ? ['dashboard', 'learning-hub', 'children', 'media', 'notifications'] : ['dashboard', 'learning-hub', 'students', 'curriculum', 'school-directory'];
   const main = mainIds.map(id => items.find(x => x[0] === id)).filter(Boolean);
   put($('#bottomNav'), html`${main.map(([id, l, ic]) => html`<button data-act="nav" data-page="${id}">${ico(ic)}<span>${l}</span></button>`)}<button data-act="more">${ico('more')}<span>المزيد</span></button>`);
 }
@@ -441,7 +441,7 @@ async function pgDashboard() {
   const quickLinks = role === 'student'
     ? [['learning-hub','برنامج التعلّم','brain'],['quran','وردي القرآني','quran'],['tasks','مهامي اليوم','check'],['journey','رحلتي وتقدمي','trend'],['media','مكتبة الشيخ','media'],['notifications','إشعاراتي','bell']]
     : role === 'teacher'
-      ? [['students','طلبتي','user'],['attendance','تسجيل الحضور','check'],['curriculum','المناهج والدروس','book'],['tests','الاختبارات','doc'],['media','مكتبة الشيخ','media'],['messages','المراسلات','bell']]
+      ? [['students','طلبتي','user'],['attendance','الحضور','check'],['quran','الحفظ والمراجعة','quran'],['curriculum','المناهج والدروس','book'],['tests','الاختبارات','doc'],['media','مكتبة الشيخ','media'],['messages','المراسلات','bell']]
       : role === 'admin'
         ? [['students','إدارة الطلبة','user'],['groups','الأفواج','group'],['curriculum','المناهج والدروس','book'],['hierarchy','الصلاحيات والهيكلة','group'],['ops','مركز التشغيل','trend'],['settings','الإعدادات','settings']]
         : role === 'chief_supervisor'
