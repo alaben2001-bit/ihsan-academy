@@ -328,4 +328,4 @@ body:has(.auth-layout) .knowledge-verse{display:flex!important}
 
 /* توحيد مقياس الخط على النصوص الثانوية والجداول */
 body :is(.small,small,.muted,.text-muted,.hint,.helper-text,.field-hint,.stat-label){font-size:calc(1em * var(--user-font-scale,1))}
-body table th,body table td{font-size:calc(1em * var(--user-font-scale,1))}
+table th,table td{font-size:calc(1em * var(--user-font-scale,1))}
