@@ -313,3 +313,14 @@ body:has(.auth-layout) .knowledge-verse{display:flex!important}
 .appearance-live-item .nav-icon{width:24px;height:24px;color:var(--accent,#2dd4a0)}
 .appearance-live-item small{font-size:.76rem;color:var(--muted,#9aaba3)}
 @media(max-width:600px){.appearance-live-preview{align-items:flex-start}.appearance-live-icons{width:100%;justify-content:space-around}}
+
+
+/* تنبيه تحديث الأكاديمية وسجل الإصدارات */
+.academy-update-notice{display:flex;align-items:center;justify-content:space-between;gap:14px;flex-wrap:wrap;margin:14px 0;padding:14px 16px;border:1px solid rgba(45,212,160,.32);border-radius:16px;background:linear-gradient(120deg,rgba(45,212,160,.12),rgba(198,155,60,.07));color:var(--text,#e8f1ec);box-shadow:0 8px 24px rgba(0,0,0,.12)}
+.academy-update-notice p{margin:4px 0 0;color:var(--muted,#9aaba3);line-height:1.65}
+.academy-update-notice .btn{flex:0 0 auto}
+.release-history-item{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:8px 16px;align-items:start;padding:14px 0;border-bottom:1px solid var(--line,rgba(128,160,145,.2))}
+.release-history-item:last-child{border-bottom:0}
+.release-history-item strong{color:var(--text,#e8f1ec)}
+.release-history-item small,.release-history-item p{color:var(--muted,#9aaba3);line-height:1.7}
+@media(max-width:600px){.academy-update-notice{align-items:stretch;padding:12px}.academy-update-notice .btn{width:100%}.release-history-item{grid-template-columns:1fr;gap:5px}}
