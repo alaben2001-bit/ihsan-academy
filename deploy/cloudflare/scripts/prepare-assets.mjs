@@ -9,7 +9,9 @@ const out = path.join(deployDir, "public");
 
 await rm(out, { recursive: true, force: true });
 await mkdir(out, { recursive: true });
-for (const file of ["index.html", "app.js", "startup.js", "style.css", "manifest.json", "service-worker.js", "icon.svg", "icon-192.svg", "icon-512.svg", "robots.txt", "sitemap.xml", "about.html", "privacy.html", "_headers", "google86f17ad8ed1c8ef6.html"]) {
-  await cp(path.join(siteDir, file), path.join(out, file));
-}
-console.log("Prepared the simplified Cloudflare daily-use app. Static site assets and security headers prepared for Cloudflare Pages.");
+
+// Copy the whole static site so new assets (fonts, og-image, _redirects, ...)
+// can never be forgotten by a hand-maintained whitelist again.
+await cp(siteDir, out, { recursive: true });
+
+console.log("Prepared the simplified Cloudflare daily-use app: static site, self-hosted fonts, security headers and redirects copied to public/.");

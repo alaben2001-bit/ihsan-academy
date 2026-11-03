@@ -1,4 +1,5 @@
 User-agent: *
 Allow: /
 Disallow: /api/
+
 Sitemap: https://a-ihsan.pages.dev/sitemap.xml
