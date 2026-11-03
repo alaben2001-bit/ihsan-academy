@@ -63,10 +63,13 @@ assert.doesNotMatch(backend, /return json\(\{token,user:safeUser/, "raw session 
 assert.doesNotMatch(app, /safeStore\.set\(["']ihsan_token["']/, "the UI must not store reusable bearer tokens");
 assert.match(app, /credentials:"same-origin"/, "API requests must send same-origin cookies");
 assert.match(app, /h\["x-csrf-token"\]=csrf/, "mutating API requests must send the CSRF token");
-assert.ok(index.includes('src="/app.js?v=20261102-01"'), "the current frontend asset version must be explicit");
-assert.match(serviceWorker, /ihsan-academy-pwa-v135-20261102-01/, "the PWA cache must be invalidated with the frontend build");
-assert.ok(index.includes("/ihsan-dark-theme.css?v=20261101-031"), "the dark emerald theme must load after the existing stylesheets");
-assert.ok(serviceWorker.includes("/ihsan-dark-theme.css?v=20261101-031"), "the dark emerald theme must be precached for offline use");
+const indexAppVersion = index.match(/(?:src|href)="\/app\.js\?v=([\w-]+)"/)?.[1];
+assert.ok(indexAppVersion, "the current frontend asset version must be explicit");
+assert.ok(/^ihsan-academy-pwa-v\d+-\d{8}-\d+$/.test((serviceWorker.match(/const CACHE = "([^"]+)"/) || [])[1] || ""), "the PWA cache must be invalidated with the frontend build");
+assert.equal((index.match(/\/style\.css\?v=/g) || []).length, 1, "the page must load exactly one consolidated stylesheet");
+assert.doesNotMatch(index, /telegram-interface|ihsan-dark-theme|ihsan-emerald-pro/, "removed theme layers must not be referenced again");
+assert.doesNotMatch(index, /<script(?![^>]*(?:\bsrc=|type="application\/ld\+json"))[^>]*>/, "inline scripts are blocked by the CSP and must stay external");
+assert.match(style, /\.doc-page/, "shared documentation styles for about/privacy must exist");
 assert.match(style, /\.daily-nourishment-grid/, "daily supplication and learning cards must retain their styling");
 
 // These are static regression guardrails, not a replacement for live role-by-role acceptance tests.
@@ -334,10 +337,12 @@ assert.match(backend, /يتعارض معرّف التسجيل مع سجل آخر
 assert.doesNotMatch(app, /data-appearance-mode="dark"|data-appearance-palette="dark"/, "the interface must not expose a dark appearance mode");
 assert.match(style, /\.academy-update-notice/, "the update banner must have responsive styling");
 assert.match(style, /\.release-history-item/, "the in-app release history must be styled");
-assert.match(index, /app\.js\?v=20261102-01/, "frontend cache busting must use the latest asset version");
-assert.match(index, /style\.css\?v=20261102-01/, "stylesheet cache busting must use the latest asset version");
-assert.match(index, /startup\.js\?v=20261101-030/, "startup cache busting must use the latest asset version");
-assert.match(serviceWorker, /ihsan-academy-pwa-v135-20261102-01/, "service worker cache namespace must match this release");
+const releaseVersion = index.match(/app\.js\?v=([\w-]+)/)?.[1];
+assert.ok(releaseVersion, "frontend cache busting must use the latest asset version");
+for (const asset of ["app.js", "style.css", "startup.js", "fonts.css"]) {
+  assert.ok(index.includes(`/${asset}?v=${releaseVersion}`), `${asset} cache busting must match the release version`);
+}
+assert.ok(serviceWorker.includes(releaseVersion), "service worker cache namespace must match this release");
 assert.match(app, /secondary:""/, "welcome dua must have one Continue button rather than Later");
 assert.match(app, /primary:"متابعة"/, "the rotating welcome dua must use the requested Continue label");
 assert.match(app, /function rememberOfflineUser\(\)/, "offline startup may only rely on the minimal stored profile, never the password");
@@ -360,7 +365,9 @@ assert.match(style, /table th,table td/, "font scaling must include report table
 assert.match(app, /ihsan_last_dashboard_dua_index/, "the dashboard dua must rotate on every refresh");
 assert.match(app, /filter\(index=>index!==previousDuaIndex\)/, "the dashboard dua must avoid immediately repeating the prior dua");
 assert.match(app, /سنن أبي داود \(1522\)، والنسائي \(1303\)؛ صححه الألباني/, "the remembrance dua must show its source and grading");
-console.log("Security regression guardrails passed.");
+assert.match(about, /rel="canonical" href="https:\/\/ihsan-academy\.pages\.dev\/about"/, "about page canonical must use the production domain and clean URL");
+assert.match(privacy, /rel="canonical" href="https:\/\/ihsan-academy\.pages\.dev\/privacy"/, "privacy page canonical must use the production domain and clean URL");
+assert.doesNotMatch(about, /fonts\.googleapis\.com|rel="stylesheet" href="\/ihsan-dark-theme\.css/, "about page must use the self-hosted consolidated stylesheet");
+assert.doesNotMatch(privacy, /fonts\.googleapis\.com|<style>/, "privacy page must use the self-hosted consolidated stylesheet");
 
-assert.match(about, /rel="canonical" href="https:\/\/a-ihsan\.pages\.dev\/about\.html"/, "about page canonical must use the production domain");
-assert.match(privacy, /rel="canonical" href="https:\/\/a-ihsan\.pages\.dev\/privacy\.html"/, "privacy page canonical must use the production domain");
+console.log("Security regression guardrails passed.");
