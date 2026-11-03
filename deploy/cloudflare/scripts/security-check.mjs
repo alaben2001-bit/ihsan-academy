@@ -365,8 +365,8 @@ assert.match(style, /table th,table td/, "font scaling must include report table
 assert.match(app, /ihsan_last_dashboard_dua_index/, "the dashboard dua must rotate on every refresh");
 assert.match(app, /filter\(index=>index!==previousDuaIndex\)/, "the dashboard dua must avoid immediately repeating the prior dua");
 assert.match(app, /سنن أبي داود \(1522\)، والنسائي \(1303\)؛ صححه الألباني/, "the remembrance dua must show its source and grading");
-assert.match(about, /rel="canonical" href="https:\/\/ihsan-academy\.pages\.dev\/about"/, "about page canonical must use the production domain and clean URL");
-assert.match(privacy, /rel="canonical" href="https:\/\/ihsan-academy\.pages\.dev\/privacy"/, "privacy page canonical must use the production domain and clean URL");
+assert.match(about, /rel="canonical" href="https:\/\/a-ihsan\.pages\.dev\/about"/, "about page canonical must use the production domain and clean URL");
+assert.match(privacy, /rel="canonical" href="https:\/\/a-ihsan\.pages\.dev\/privacy"/, "privacy page canonical must use the production domain and clean URL");
 assert.doesNotMatch(about, /fonts\.googleapis\.com|rel="stylesheet" href="\/ihsan-dark-theme\.css/, "about page must use the self-hosted consolidated stylesheet");
 assert.doesNotMatch(privacy, /fonts\.googleapis\.com|<style>/, "privacy page must use the self-hosted consolidated stylesheet");
 
