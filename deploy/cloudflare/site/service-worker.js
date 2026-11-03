@@ -1,13 +1,93 @@
-const CACHE = "ihsan-academy-pwa-v134-20261101-031";
-const SHELL = ["/", "/index.html", "/style.css?v=20261101-030", "/telegram-interface.css?v=20261101-030", "/ihsan-dark-theme.css?v=20261101-031", "/app.js?v=20261101-030", "/startup.js?v=20261101-030", "/manifest.json", "/icon.svg", "/icon-192.svg", "/icon-512.svg", "/about.html", "/privacy.html", "/robots.txt", "/sitemap.xml"];
-self.addEventListener("install", event => event.waitUntil(caches.open(CACHE).then(cache => cache.addAll(SHELL)).then(() => self.skipWaiting())));
-self.addEventListener("activate", event => event.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key)))).then(() => self.clients.claim())));
+const CACHE = "ihsan-academy-pwa-v135-20261102-1";
+const ASSET_VERSION = "20261102-1";
+
+const SHELL = [
+  "/",
+  "/index.html",
+  "/fonts.css?v=" + ASSET_VERSION,
+  "/style.css?v=" + ASSET_VERSION,
+  "/app.js?v=" + ASSET_VERSION,
+  "/startup.js?v=" + ASSET_VERSION,
+  "/manifest.json",
+  "/icon.svg",
+  "/icon-192.svg",
+  "/icon-512.svg",
+  "/about",
+  "/privacy"
+];
+
+self.addEventListener("install", event => {
+  event.waitUntil(
+    caches.open(CACHE)
+      // Tolerate individual misses so a single 404 never blocks the whole install.
+      .then(cache => Promise.allSettled(SHELL.map(url => cache.add(url))))
+      .then(() => self.skipWaiting())
+  );
+});
+
+self.addEventListener("activate", event => {
+  event.waitUntil(
+    caches.keys()
+      .then(keys => Promise.all(keys.filter(key => key !== CACHE).map(key => caches.delete(key))))
+      .then(() => self.clients.claim())
+  );
+});
+
+self.addEventListener("message", event => {
+  if (event.data === "skip-waiting") self.skipWaiting();
+});
+
 self.addEventListener("fetch", event => {
-  const url = new URL(event.request.url);
-  if (url.origin !== self.location.origin || event.request.method !== "GET" || url.pathname.startsWith("/api/")) return;
-  if (event.request.mode === "navigate") {
-    event.respondWith(fetch(event.request).then(response => { if (response.ok) { const copy = response.clone(); event.waitUntil(caches.open(CACHE).then(cache => cache.put(event.request, copy)).catch(() => {})); } return response; }).catch(() => caches.match(event.request, {ignoreSearch:true}).then(cached => cached || caches.match("/index.html"))));
+  const request = event.request;
+  if (request.method !== "GET") return;
+
+  const url = new URL(request.url);
+  if (url.origin !== self.location.origin) return;
+  if (url.pathname.startsWith("/api/")) return;
+
+  // Pages: network first, fall back to the cached page, then to the app shell.
+  if (request.mode === "navigate") {
+    event.respondWith(
+      fetch(request)
+        .then(response => {
+          if (response.ok) {
+            const copy = response.clone();
+            event.waitUntil(caches.open(CACHE).then(cache => cache.put(request, copy)).catch(() => {}));
+          }
+          return response;
+        })
+        .catch(() =>
+          caches.match(request, { ignoreSearch: true })
+            .then(cached => cached || caches.match("/") || caches.match("/index.html"))
+        )
+    );
     return;
   }
-  event.respondWith(fetch(event.request).then(response => { if (response.ok) { const copy = response.clone(); event.waitUntil(caches.open(CACHE).then(cache => cache.put(event.request, copy)).catch(() => {})); } return response; }).catch(() => caches.match(event.request, {ignoreSearch:true})));
+
+  // Immutable self-hosted fonts: cache first.
+  if (url.pathname.startsWith("/fonts/")) {
+    event.respondWith(
+      caches.match(request).then(cached => cached || fetch(request).then(response => {
+        if (response.ok) {
+          const copy = response.clone();
+          event.waitUntil(caches.open(CACHE).then(cache => cache.put(request, copy)).catch(() => {}));
+        }
+        return response;
+      }))
+    );
+    return;
+  }
+
+  // Other static assets: fresh when online, cached when offline.
+  event.respondWith(
+    fetch(request)
+      .then(response => {
+        if (response.ok) {
+          const copy = response.clone();
+          event.waitUntil(caches.open(CACHE).then(cache => cache.put(request, copy)).catch(() => {}));
+        }
+        return response;
+      })
+      .catch(() => caches.match(request, { ignoreSearch: true }))
+  );
 });

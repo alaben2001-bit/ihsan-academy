@@ -1,0 +1,4 @@
+# Keep one canonical URL per page.
+/index.html      /               301
+/about.html      /about          301
+/privacy.html    /privacy        301

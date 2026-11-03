@@ -4,7 +4,6 @@
 
 - **الاستضافة المعتمدة:** Cloudflare Pages + Pages Functions + D1.
 - **الرابط الرئيسي:** https://ihsan-academy.pages.dev/
-- **نسخة الطلاب:** https://ihsan-academy-students-preview.pages.dev/
 - **فرع النشر:** `migration/cloudflare-student-platform`.
 - **مسار التطبيق المعتمد:** `deploy/cloudflare/`.
 
