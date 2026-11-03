@@ -36,7 +36,8 @@ At the latest database check on 2026-10-20, D1 contained 64 active student profi
 
 ## Deploy and validate
 
-Cloudflare Pages project: `ihsan-academy-students-preview`  
+Cloudflare Pages project: `a-ihsan`  
+Public URL: `https://a-ihsan.pages.dev`  
 Connected production branch: `migration/cloudflare-student-platform`  
 Build command: `npm install && npm run prepare:assets`  
 Build output directory: `public`
