@@ -362,5 +362,5 @@ assert.match(app, /filter\(index=>index!==previousDuaIndex\)/, "the dashboard du
 assert.match(app, /سنن أبي داود \(1522\)، والنسائي \(1303\)؛ صححه الألباني/, "the remembrance dua must show its source and grading");
 console.log("Security regression guardrails passed.");
 
-assert.match(about, /rel="canonical" href="https:\/\/ihsan-academy\.pages\.dev\/about\.html"/, "about page canonical must use the production domain");
-assert.match(privacy, /rel="canonical" href="https:\/\/ihsan-academy\.pages\.dev\/privacy\.html"/, "privacy page canonical must use the production domain");
+assert.match(about, /rel="canonical" href="https:\/\/a-ihsan\.pages\.dev\/about\.html"/, "about page canonical must use the production domain");
+assert.match(privacy, /rel="canonical" href="https:\/\/a-ihsan\.pages\.dev\/privacy\.html"/, "privacy page canonical must use the production domain");
