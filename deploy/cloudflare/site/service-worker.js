@@ -1,4 +1,4 @@
-const CACHE = "ihsan-academy-pwa-v135-20261102-1";
+const CACHE = "ihsan-academy-pwa-v136-20261104-1";
 const ASSET_VERSION = "20261102-1";
 
 const SHELL = [
@@ -10,8 +10,10 @@ const SHELL = [
   "/startup.js?v=" + ASSET_VERSION,
   "/manifest.json",
   "/icon.svg",
-  "/icon-192.svg",
-  "/icon-512.svg",
+  "/icon-192.png",
+  "/icon-512.png",
+  "/icon-maskable-512.png",
+  "/apple-touch-icon.png",
   "/about",
   "/privacy"
 ];
