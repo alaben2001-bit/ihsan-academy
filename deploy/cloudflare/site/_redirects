@@ -2,3 +2,7 @@
 /index.html      /               301
 /about.html      /about          301
 /privacy.html    /privacy        301
+
+# Old SVG icon URLs still cached by installed PWAs.
+/icon-192.svg    /icon-192.png   301
+/icon-512.svg    /icon-512.png   301
