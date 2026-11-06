@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { validDateOnly, academyDate, addCalendarDays } from "../src/index.js";
 
-const [backend, app, index, serviceWorker, migration, initialMigration, style, about, privacy] = await Promise.all([
+const [backend, app, index, serviceWorker, migration, initialMigration, style, about, privacy, robots, sitemap, redirects] = await Promise.all([
   readFile("src/index.js", "utf8"),
   readFile("site/app.js", "utf8"),
   readFile("site/index.html", "utf8"),
@@ -12,6 +12,9 @@ const [backend, app, index, serviceWorker, migration, initialMigration, style, a
   readFile("site/style.css", "utf8"),
   readFile("site/about.html", "utf8"),
   readFile("site/privacy.html", "utf8"),
+  readFile("site/robots.txt", "utf8"),
+  readFile("site/sitemap.xml", "utf8"),
+  readFile("site/_redirects", "utf8"),
 ]);
 
 assert.equal(validDateOnly("2024-02-29"), true, "valid leap-day due dates must be accepted");
@@ -31,7 +34,7 @@ assert.ok(!backend.includes("nowIso().slice(0,10)"), "date-only school workflows
 assert.match(backend, /if\(!validDateOnly\(date\)\|\|!items\.length\|\|items\.length>200/, "attendance must validate real calendar dates");
 assert.match(backend, /if\(!validDateOnly\(date\)\)return fail\(400,"صيغة التاريخ غير صحيحة"\)/, "Quran progress creation must validate real calendar dates");
 assert.match(backend, /if\(date>academyDate\(\)\)return fail\(400,"لا يمكن تسجيل متابعة القرآن بتاريخ مستقبلي"\)/, "Quran progress creation must reject future dates at the API");
-assert.match(app, /date>S\.date\)\{toast\("اختر تاريخًا صحيحًا لا يتجاوز اليوم",true\);return\}/, "Quran progress form must reject future dates before submission");
+assert.match(app, /if\(day>today\)return toast\("لا يمكن تسجيل متابعة بتاريخ مستقبلي",true\)/, "the active Quran roster page must reject future dates before loading or saving");
 assert.match(backend, /String\(row\.date\)>academyDate\(\)/, "Quran progress edits must reject future dates too");
 assert.match(backend, /if\(!validDateOnly\(String\(row\.date\|\|""\)\)/, "Quran progress edits must validate real calendar dates");
 assert.match(backend, /if\(!value\|\|typeof value!=="object"\|\|Array\.isArray\(value\)\)throw new Error\("invalid_json"\)/, "API bodies must be JSON objects, not nulls, arrays, or primitives");
@@ -174,6 +177,11 @@ assert.match(backend, /if\(path==="\/api\/admin\/roster-add"&&method==="POST"\)/
 assert.match(backend, /if\(count>=target\)\{skipped\+\+;continue\}/, "retries must preserve intended duplicate counts without duplicating the whole list");
 
 assert.ok(app.includes('id="student-profile-form"'), "staff must be able to edit student academic and guardian profile fields");
+assert.match(app, /<details class="move-control"><summary class="btn secondary">نقل الفوج<\/summary><div class="move-control-options"><label class="field">الفوج الجديد<select data-move-student=/, "student group choices must stay hidden until the move control is opened");
+assert.match(app, /<option value="" selected disabled>اختر الفوج الجديد<\/option>/, "student transfer must require an explicit destination instead of defaulting to the first group");
+assert.match(app, /data-save-move=/, "student transfer must retain a separate confirmation action");
+assert.match(style, /\.move-control-options\{display:grid/, "the expandable group picker must have a dedicated layout");
+assert.match(style, /move-control>summary\{display:inline-flex/, "the transfer disclosure must keep a usable button-sized target");
 assert.doesNotMatch(app, /id="roster-add-form"/, "no line-by-line roster import control should be exposed");
 assert.match(app, /const dailySupplications=\[/, "student and staff dashboard must include source-labelled rotating supplications");
 assert.match(app, /const dailyWisdom=\[/, "dashboard must include educational benefits that are clearly not presented as scripture");
@@ -295,10 +303,23 @@ assert.doesNotMatch(app, /12345678/, "a universal student password must never be
 assert.match(app, /id="admin-focus-toggle"/, "the director account must be able to switch between daily teaching and administration");
 assert.match(app, /makeGroup\("الرئيسية والطلاب"/, "admin daily focus must present a concise administration entry point");
 assert.match(app, /makeGroup\("الترتيب الأسبوعي\/الشهري"/, "admin navigation must expose one weekly/monthly ranking entry");
+assert.doesNotMatch(app, /sheikh-combined-ranking|combined-rank-group|combined-rank-period|combined-rank-results|loadCombinedStudentRanking/, "the broken duplicate home ranking and its delegated event handler must stay removed");
+assert.match(app, /الترتيب الأسبوعي\/الشهري/, "staff must retain a visible path to the official effort ranking");
+assert.match(app, /S\.tab==="effort-ranking"\)return effortRankingPage\(v\)/, "the official effort ranking must remain routed");
+assert.match(app, /if\(S\.user\.role==="teacher"\)return \[\["home","الرئيسية"\].*?\["reports","التقارير"\]/, "teacher navigation items must expose the existing reports page");
+assert.match(app, /makeGroup\("المتابعة والتقويم",\["gradebook","reports","notifications","messages"\]\)/, "the teacher navigation group must include reports");
+assert.match(app, /if\(S\.tab==="reports"\)return reportsPage\(v\)/, "the reports navigation entry must continue to open the existing reports page");
+assert.match(app, /if\(S\.tab==="home"\)return await home\(v\);if\(S\.tab==="teams"\)return await teamsPage\(v\);if\(S\.tab==="groups"\)return groups\(v\)/, "primary home, teams, and groups navigation must remain available");
+assert.match(app, /أيام التقدم في القرآن: <strong>'\+Number\(gam\.stats\?\.quran_days\|\|0\)/, "Quran activity days must not be mislabeled as dawn attendance");
+assert.doesNotMatch(app, /القلوب المتبقية اليوم|gam\.hearts/, "the student dashboard must not imply an unenforced daily hearts limit");
+const quranFunction = app.slice(app.indexOf("async function quran(v){"), app.indexOf("\nconst EFFORT_TASKS=", app.indexOf("async function quran(v){")));
+assert.match(quranFunction, /return quranRosterPage\(v\);\s*}/, "staff Quran tracking must delegate to the active roster page");
+assert.doesNotMatch(quranFunction, /quranMode|qform|qhistory|thumn_from/, "unreachable legacy Quran recording code must stay removed");
 assert.match(app, /function honorificDisplayName\(name,role\)/, "staff names must use the shared Sheikh honorific formatter");
 assert.match(app, /const displayUserName=honorificDisplayName\(S\.user\.name,S\.user\.role\)/, "the signed-in director, teacher and administrator names must use the shared honorific formatter");
-assert.match(app, /name="thumn_from" type="number" inputmode="numeric" min="1" max="480" step="1" required/, "Quran records must require a starting thumn number");
-assert.match(app, /name="thumn_to" type="number" inputmode="numeric" min="1" max="480" step="1"/, "Quran thumn ranges must support all 480 eighths of the hizb");
+assert.match(app, /id="quran-roster-load"/, "staff Quran tracking must load the active group roster");
+assert.match(app, /id="quran-roster-save"/, "staff Quran tracking must save entries from the active roster page");
+assert.match(app, /data-quran-amount/, "the active Quran roster must retain per-student memorization or revision entry");
 assert.match(app, /id="settings-open-notifications"/, "settings must provide a direct path to notifications");
 assert.doesNotMatch(app, /id="settings-done"/, "appearance preferences apply immediately without a Done button");
 
@@ -367,7 +388,26 @@ assert.match(app, /filter\(index=>index!==previousDuaIndex\)/, "the dashboard du
 assert.match(app, /سنن أبي داود \(1522\)، والنسائي \(1303\)؛ صححه الألباني/, "the remembrance dua must show its source and grading");
 assert.match(about, /rel="canonical" href="https:\/\/a-ihsan\.pages\.dev\/about"/, "about page canonical must use the production domain and clean URL");
 assert.match(privacy, /rel="canonical" href="https:\/\/a-ihsan\.pages\.dev\/privacy"/, "privacy page canonical must use the production domain and clean URL");
+assert.match(index, /منصة تعليمية عربية لأكاديمية الإحسان/, "the home page description must accurately summarize the public platform");
+for (const [name, page] of [["about", about], ["privacy", privacy]]) {
+  for (const asset of ["fonts.css", "style.css"]) {
+    assert.ok(page.includes(`/${asset}?v=${releaseVersion}`), `${name} page ${asset} version must match the release`);
+  }
+}
 assert.doesNotMatch(about, /fonts\.googleapis\.com|rel="stylesheet" href="\/ihsan-dark-theme\.css/, "about page must use the self-hosted consolidated stylesheet");
 assert.doesNotMatch(privacy, /fonts\.googleapis\.com|<style>/, "privacy page must use the self-hosted consolidated stylesheet");
+assert.match(index, /<h1 id="public-heading">منصة أكاديمية الإحسان<\/h1>/, "the initial HTML must contain useful public content before the app loads");
+assert.match(index, /<li>متابعة الحفظ والمراجعة القرآنية\.<\/li>/, "the initial HTML must describe a real platform feature");
+assert.match(index, /لا يتوفر إنشاء حساب ذاتي من هذه الصفحة/, "visitors must know that the login page does not offer self-registration");
+assert.match(index, /<a class="skip-link" href="#app">/, "the home page must provide a keyboard skip link");
+assert.match(about, /<a class="skip-link" href="#main-content">/, "the about page must provide a keyboard skip link");
+assert.match(about, /حسابًا مفعّلًا؛ ولا توفر صفحة الدخول تسجيلًا ذاتيًا/, "the about page must explain the account requirement without implying open registration");
+assert.match(privacy, /PBKDF2-SHA-256/, "the privacy page must describe the implemented password-hashing method");
+assert.match(privacy, /حتى 12 ساعة عادةً، أو حتى 30 يومًا/, "the privacy page must describe the implemented session durations");
+assert.match(privacy, /لا تحدد هذه النسخة مدة احتفاظ زمنية منشورة/, "the privacy page must disclose the missing published retention period");
+assert.doesNotMatch(privacy, /يُحفظ رمز جلسة في تخزين المتصفح|لا تُباع البيانات الشخصية للإعلانات/, "the privacy page must not claim unsupported browser token storage or advertising promises");
+assert.match(robots, /Sitemap: https:\/\/a-ihsan\.pages\.dev\/sitemap\.xml/, "robots.txt must point to the canonical sitemap");
+assert.match(sitemap, /https:\/\/a-ihsan\.pages\.dev\//, "the sitemap must use the primary production domain");
+assert.match(redirects, /\/about\.html\s+\/about\s+301/, "existing static path redirects must remain intact");
 
 console.log("Security regression guardrails passed.");
