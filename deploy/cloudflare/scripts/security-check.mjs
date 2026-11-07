@@ -334,6 +334,14 @@ assert.doesNotMatch(app, /id="settings-done"/, "appearance preferences apply imm
 assert.match(app, /const dailyWisdomForSheikh=\[/, "teaching advice must be separated from student etiquette advice");
 assert.match(app, /const wisdomPool=\["admin","teacher","director","supervisor"\]\.includes\(S\.user\.role\)\?dailyWisdomForSheikh:dailyWisdom/, "daily educational guidance must match the user's role");
 assert.match(app, /if\(S\.tab==="home"\)return await home\(v\);if\(S\.tab==="teams"\)return await teamsPage\(v\);if\(S\.tab==="groups"\)return groups\(v\);/, "only current, supported panels must be reachable from the active page router");
+assert.match(app, /async function pointsPage\(v\)/, "the learning-economy screen must be reachable from the app");
+assert.match(backend, /path==="\/api\/points\/summary"/, "the backend must expose the points summary endpoint");
+assert.match(app, /async function tasksPage\(v\)/, "the unified student tasks screen must be reachable from the app");
+assert.match(backend, /path==="\/api\/tasks"/, "the backend must expose the unified tasks endpoint");
+assert.match(app, /async function contentPage\(v\)/, "the hadith and mutoon screen must be reachable from the app");
+assert.match(backend, /path==="\/api\/content"/, "the backend must expose the sourced content endpoint");
+assert.match(app, /async function competitionsPage\(v\)/, "the competitions screen must be reachable from the app");
+assert.match(backend, /path==="\/api\/competitions"/, "the backend must expose the competitions endpoint");
 
 
 assert.doesNotMatch(app, /class="auth-entry-nourishment"/, "the login screen must stay clean without rotating dua cards");

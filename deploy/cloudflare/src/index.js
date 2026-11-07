@@ -245,6 +245,180 @@ async function parseBody(request, maxBytes = 32000) {
   try { return { value: await bodyJson(request, maxBytes), error: null }; }
   catch (e) { return { value: null, error: fail(e.message === "payload_too_large" ? 413 : 400, e.message) }; }
 }
+
+// ---------------------------------------------------------------------------
+// الاقتصاد التعليمي: دفتر نقاط غير قابل للحذف + متجر.
+// نقاط الإنجاز مؤشر تراكمي، ورصيد المتجر هو ما يُصرف فقط.
+// ---------------------------------------------------------------------------
+const POINT_KINDS = ["achievement", "store"];
+const POINT_KIND_LABELS = { achievement: "نقاط الإنجاز", store: "رصيد المتجر" };
+const MAX_RULE_POINTS = 100000;
+const MAX_MANUAL_POINTS = 1000;
+
+async function pointsTotals(env, studentId) {
+  const row = await env.DB.prepare(
+    "SELECT COALESCE(SUM(CASE WHEN kind='achievement' THEN points END),0) AS achievement, COALESCE(SUM(CASE WHEN kind='store' THEN points END),0) AS store FROM point_events WHERE student_id=? AND reversed_at IS NULL"
+  ).bind(studentId).first();
+  return { achievement: Number(row?.achievement || 0), store: Number(row?.store || 0) };
+}
+
+async function insertPointEvent(env, event) {
+  const id = event.id || uuid();
+  const result = await env.DB.prepare(
+    "INSERT OR IGNORE INTO point_events (id,student_id,group_id,rule_id,event_type,kind,points,reason,event_key,awarded_date,source_collection,source_id,awarded_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)"
+  ).bind(id, event.student_id, event.group_id || null, event.rule_id || null, event.event_type, event.kind, event.points, event.reason || "", event.event_key, event.awarded_date, event.source_collection || null, event.source_id || null, event.awarded_by || null).run();
+  return { id, inserted: Number(result?.meta?.changes || 0) > 0 };
+}
+
+async function awardPointsForEvent(env, options) {
+  const { studentId, groupId, eventType, eventKey, date, reason, sourceCollection, sourceId, awardedBy } = options;
+  const student = await env.DB.prepare("SELECT id,group_id FROM students WHERE id=? AND active=1").bind(studentId).first();
+  if (!student) return [];
+  const rule = await env.DB.prepare("SELECT * FROM point_rules WHERE event_type=? AND active=1 AND auto_award=1").bind(eventType).first();
+  if (!rule) return [];
+  const results = [];
+  for (const kind of POINT_KINDS) {
+    const amount = Number(kind === "achievement" ? rule.achievement_points : rule.store_points);
+    if (!Number.isFinite(amount) || amount <= 0) continue;
+    if (rule.max_per_day !== null && rule.max_per_day !== undefined) {
+      const used = await env.DB.prepare("SELECT COUNT(*) AS n FROM point_events WHERE student_id=? AND event_type=? AND kind=? AND awarded_date=? AND reversed_at IS NULL").bind(studentId, eventType, kind, date).first();
+      if (Number(used?.n || 0) >= Number(rule.max_per_day)) { results.push({ kind, status: "capped", points: amount }); continue; }
+    }
+    const inserted = await insertPointEvent(env, { student_id: studentId, group_id: student.group_id || groupId || null, rule_id: rule.id, event_type: eventType, kind, points: amount, reason: reason || rule.name, event_key: eventKey, awarded_date: date, source_collection: sourceCollection, source_id: sourceId, awarded_by: awardedBy });
+    results.push({ kind, status: inserted.inserted ? "awarded" : "duplicate", points: amount, id: inserted.id });
+  }
+  return results;
+}
+
+async function awardAttendancePoints(env, { groupId, date, studentIds, awardedBy }) {
+  if (!Array.isArray(studentIds) || !studentIds.length) return 0;
+  const rule = await env.DB.prepare("SELECT * FROM point_rules WHERE event_type='attendance_present' AND active=1 AND auto_award=1").first();
+  if (!rule) return 0;
+  const statements = [];
+  for (const studentId of new Set(studentIds.map(String))) {
+    const eventKey = "attendance:" + date + ":" + studentId;
+    for (const kind of POINT_KINDS) {
+      const amount = Number(kind === "achievement" ? rule.achievement_points : rule.store_points);
+      if (!Number.isFinite(amount) || amount <= 0) continue;
+      statements.push(env.DB.prepare("INSERT OR IGNORE INTO point_events (id,student_id,group_id,rule_id,event_type,kind,points,reason,event_key,awarded_date,source_collection,source_id,awarded_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)").bind(uuid(), studentId, groupId, rule.id, "attendance_present", kind, amount, rule.name, eventKey, date, "attendance", date + ":" + studentId, awardedBy || null));
+    }
+  }
+  if (statements.length) await env.DB.batch(statements);
+  return statements.length;
+}
+
+async function resolvePointStudent(env, user, studentId) {
+  if (user.role === "student") {
+    if (!user.student_id) return { error: fail(403, "حساب الطالب غير مرتبط بملف طالب") };
+    if (studentId && studentId !== user.student_id) return { error: fail(403, "لا يمكنك عرض نقاط طالب آخر") };
+    const row = await env.DB.prepare("SELECT s.id,s.display_name,s.group_id,g.name AS group_name FROM students s LEFT JOIN groups g ON g.id=s.group_id WHERE s.id=? AND s.active=1").bind(user.student_id).first();
+    if (!row) return { error: fail(404, "ملف الطالب غير موجود") };
+    return { row };
+  }
+  if (!["admin", "teacher", "director", "supervisor"].includes(user.role)) return { error: fail(403, "غير مسموح") };
+  if (!studentId) return { error: fail(400, "حدّد الطالب") };
+  const row = await env.DB.prepare("SELECT s.id,s.display_name,s.group_id,g.name AS group_name FROM students s LEFT JOIN groups g ON g.id=s.group_id WHERE s.id=? AND s.active=1").bind(studentId).first();
+  if (!row) return { error: fail(404, "ملف الطالب غير موجود") };
+  if (!await canManageGroup(env, user, row.group_id)) return { error: fail(403, "هذا الطالب خارج صلاحيتك") };
+  return { row };
+}
+
+const TASK_TYPE_LABELS = { assignment: "واجب", memorization: "حفظ", revision: "مراجعة", attendance: "حضور", behavior: "سلوك" };const TASK_STATUS_LABELS = { pending: "مطلوب", submitted: "بانتظار التصحيح", done: "منجز", late: "متأخر" };
+const CONTENT_KINDS = { hadith: "hadith_items", mutoon: "mutoon_items" };
+
+function buildStudentTasks(student, assignments, submissions, plan, progress, attendance) {
+  const today = academyDate();
+  const tasks = [];
+  const submissionByAssignment = new Map((submissions || []).map(row => [row.assignment_id, row]));
+  for (const assignment of assignments || []) {
+    const submission = submissionByAssignment.get(assignment.id);
+    const type = TASK_TYPE_LABELS[assignment.task_type] ? assignment.task_type : "assignment";
+    let status = "pending";
+    if (submission?.status === "reviewed") status = "done";
+    else if (submission?.status === "submitted") status = "submitted";
+    else if (assignment.due_date && String(assignment.due_date) < today) status = "late";
+    tasks.push({
+      id: "assignment:" + assignment.id,
+      type,
+      type_label: TASK_TYPE_LABELS[type],
+      title: assignment.title,
+      description: assignment.description || "",
+      due_date: assignment.due_date || null,
+      status,
+      status_label: TASK_STATUS_LABELS[status],
+      points_total: Number(assignment.points_total || 0),
+      grade: submission?.grade ?? null,
+      feedback: submission?.feedback || "",
+      source_collection: "assignments",
+      source_id: assignment.id,
+    });
+  }
+  const progressRows = (progress || []).filter(row => typeof row.date === "string");
+  const weekStart = academyDate(-6);
+  const recentProgress = progressRows.filter(row => row.date >= weekStart && row.date <= today);
+  const memorizedThisWeek = recentProgress.some(row => String(row.memorized || "").trim() || row.activity === "memorization");
+  const reviewedThisWeek = recentProgress.some(row => String(row.reviewed || "").trim() || row.activity === "revision");
+  if (plan && plan.weekly_goal) {
+    tasks.push({
+      id: "quran-memorization:" + student.id,
+      type: "memorization",
+      type_label: TASK_TYPE_LABELS.memorization,
+      title: "ورد الحفظ الأسبوعي",
+      description: plan.weekly_goal,
+      due_date: null,
+      status: memorizedThisWeek ? "done" : "pending",
+      status_label: TASK_STATUS_LABELS[memorizedThisWeek ? "done" : "pending"],
+      points_total: 0,
+      grade: null,
+      feedback: "",
+      source_collection: "quran_plan",
+      source_id: plan.id || student.id,
+    });
+    const revisionTarget = Array.isArray(plan.weekly_targets) ? String(plan.weekly_targets[0]?.revision || "").trim() : "";
+    if (revisionTarget) {
+      tasks.push({
+        id: "quran-revision:" + student.id,
+        type: "revision",
+        type_label: TASK_TYPE_LABELS.revision,
+        title: "ورد المراجعة الأسبوعي",
+        description: revisionTarget,
+        due_date: null,
+        status: reviewedThisWeek ? "done" : "pending",
+        status_label: TASK_STATUS_LABELS[reviewedThisWeek ? "done" : "pending"],
+        points_total: 0,
+        grade: null,
+        feedback: "",
+        source_collection: "quran_plan",
+        source_id: plan.id || student.id,
+      });
+    }
+  }
+  const todayAttendance = (attendance || []).find(row => row.date === today);
+  if (todayAttendance) {
+    const attendanceLabels = { present: "حاضر", absent: "غائب", late: "متأخر", excused: "بعذر" };
+    tasks.push({
+      id: "attendance:" + student.id + ":" + today,
+      type: "attendance",
+      type_label: TASK_TYPE_LABELS.attendance,
+      title: "حضور اليوم",
+      description: "تسجيل الحضور اليومي للطالب",
+      due_date: today,
+      status: "done",
+      status_label: attendanceLabels[todayAttendance.status] || TASK_STATUS_LABELS.done,
+      points_total: 0,
+      grade: null,
+      feedback: "",
+      source_collection: "attendance",
+      source_id: todayAttendance.id,
+    });
+  }
+  return tasks;
+}
+
+async function recentPointEvents(env, studentId, limit = 50) {
+  const result = await env.DB.prepare("SELECT id,event_type,kind,points,reason,event_key,awarded_date,source_collection,source_id,awarded_by,created_at,reversed_at,reversal_reason FROM point_events WHERE student_id=? ORDER BY created_at DESC, id DESC LIMIT ?").bind(studentId, limit).all();
+  return (result.results || []).map(row => ({ ...row, kind_label: POINT_KIND_LABELS[row.kind] || row.kind, reversed: Boolean(row.reversed_at) }));
+}
 export default {
   async fetch(request, env) {
     const url = new URL(request.url), path = url.pathname, method = request.method.toUpperCase();
@@ -1052,7 +1226,10 @@ export default {
       if(!validDateOnly(date)||!items.length||items.length>200||!await canManageGroup(env,user,groupId))return fail(400,"بيانات الحضور غير صحيحة");
       const active=await env.DB.prepare("SELECT id FROM students WHERE group_id=? AND active=1").bind(groupId).all(),allowed=new Set((active.results||[]).map(x=>x.id)),stmts=[];
       const seenStudentIds=new Set();for(const item of items){const studentId=String(item?.student_id??"");if(!item||typeof item!=="object"||Array.isArray(item)||seenStudentIds.has(studentId)||!allowed.has(studentId)||!["present","absent","late","excused"].includes(item.status))return fail(400,"يوجد طالب مكرر أو طالب أو حالة غير صحيحة");seenStudentIds.add(studentId);const row={id:date+":"+studentId,student_id:studentId,group_id:groupId,date,status:item.status,note:clean(item.note,300),marked_by:user.id,updated_at:nowIso()};stmts.push(env.DB.prepare("INSERT INTO academy_records(collection,id,owner_user_id,group_id,student_id,payload_json,updated_at) VALUES('attendance',?,?,?,?,?,?) ON CONFLICT(collection,id) DO UPDATE SET owner_user_id=excluded.owner_user_id,group_id=excluded.group_id,student_id=excluded.student_id,payload_json=excluded.payload_json,updated_at=excluded.updated_at").bind(row.id,user.id,groupId,studentId,JSON.stringify(row),row.updated_at));}
-      if(stmts.length)await env.DB.batch(stmts);await log(env,user.id,"attendance_save",{group_id:groupId,date,count:items.length});return json({ok:true,saved:items.length});
+      if(stmts.length)await env.DB.batch(stmts);
+      const presentStudentIds=items.filter(item=>item.status==="present").map(item=>String(item.student_id));
+      await awardAttendancePoints(env,{groupId,date,studentIds:presentStudentIds,awardedBy:user.id});
+      await log(env,user.id,"attendance_save",{group_id:groupId,date,count:items.length});return json({ok:true,saved:items.length});
     }
     if(path==="/api/quran/progress"&&method==="GET"){
       if(user.role==="student"){const rows=await records(env,"quran_progress"," AND student_id=?",[user.student_id||""]);return json(rows);}
@@ -1080,6 +1257,7 @@ export default {
       const requestedRecordId=clean(b.id,80),row={id:requestedRecordId&&/^offline-[a-f0-9-]{20,60}$/i.test(requestedRecordId)?requestedRecordId:uuid(),student_id:studentId,group_id:st.group_id,date,activity,memorized,reviewed,recitation,errors,grade,corrected,feedback,next_assignment:nextAssignment,notes,teacher_id:user.id,created_at:nowIso(),updated_at:nowIso()};
       if(requestedRecordId&&row.id===requestedRecordId){const existing=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='quran_progress' AND id=?").bind(row.id).first();if(existing){let prior;try{prior=JSON.parse(existing.payload_json)}catch{return fail(500,"تعذّرت قراءة سجل محفوظ")};if(prior.student_id!==studentId||prior.teacher_id!==user.id||prior.date!==date)return fail(409,"يتعارض معرّف التسجيل مع سجل آخر؛ لم تُغيّر البيانات");return json(prior,200)}}
       await saveRecord(env,"quran_progress",row);
+      await awardPointsForEvent(env,{studentId,groupId:st.group_id,eventType:"quran_entry",eventKey:"quran:"+row.id,date,reason:"متابعة قرآنية ("+activity+")",sourceCollection:"quran_progress",sourceId:row.id,awardedBy:user.id});
       await log(env,user.id,"quran_progress_add",{student_id:studentId,activity,errors,grade});
       return json(row,201);
     }
@@ -1180,7 +1358,9 @@ export default {
       let score=0;
       for(const q of (test.questions||[])){if(answerMap.get(String(q.id))===q.correct_index)score++;}
       const attempt={id:uuid(),test_id:test.id,title:test.title,student_id:user.student_id,group_id:user.group_id,score,total:(test.questions||[]).length,day:academyDate(),submitted_at:nowIso()};
-      await saveRecord(env,"test_attempts",attempt);await log(env,user.id,"test_submit",{test_id:test.id,score,total:attempt.total});
+      await saveRecord(env,"test_attempts",attempt);
+      await awardPointsForEvent(env,{studentId:user.student_id,groupId:user.group_id,eventType:"test_completed",eventKey:"test:"+attempt.id,date:attempt.day,reason:"إكمال اختبار: "+test.title,sourceCollection:"test_attempts",sourceId:attempt.id,awardedBy:user.id});
+      await log(env,user.id,"test_submit",{test_id:test.id,score,total:attempt.total});
       return json({ok:true,score,total:attempt.total,percent:attempt.total?Math.round(score*100/attempt.total):0,submitted_at:attempt.submitted_at});
     }
     if(path==="/api/test-history"&&method==="GET"){
@@ -1314,7 +1494,7 @@ export default {
       if(groupId&&!await canManageGroup(env,user,groupId))return fail(403,"لا تملك صلاحية هذا الفوج");
       if(dueDate&&!validDateOnly(dueDate))return fail(400,"صيغة موعد التسليم غير صحيحة");
       if(!Number.isFinite(pointsTotal)||pointsTotal<1||pointsTotal>1000)return fail(400,"الدرجة الكلية يجب أن تكون من 1 إلى 1000");
-      const assignment={id:uuid(),title,description,group_id:groupId,due_date:dueDate||null,points_total:pointsTotal,status:"published",created_by:user.id,created_at:nowIso()};
+      const assignment={id:uuid(),title,description,group_id:groupId,due_date:dueDate||null,points_total:pointsTotal,task_type:(TASK_TYPE_LABELS[clean(b.task_type,40)]?clean(b.task_type,40):"assignment"),status:"published",created_by:user.id,created_at:nowIso()};
       await saveRecord(env,"assignments",assignment);await log(env,user.id,"assignment_create",{assignment_id:assignment.id,group_id:groupId});
       return json(assignment,201);
     }
@@ -1332,6 +1512,7 @@ export default {
       const description=b.description===undefined?old.description:clean(b.description,5000);
       const dueDate=b.due_date===undefined?(old.due_date||""):clean(b.due_date,10);
       const pointsTotal=b.points_total===undefined?Number(old.points_total||100):Number(b.points_total);
+      const taskType=b.task_type===undefined?(TASK_TYPE_LABELS[old.task_type]?old.task_type:"assignment"):(TASK_TYPE_LABELS[clean(b.task_type,40)]?clean(b.task_type,40):"assignment");
       if(!title||!description)return fail(400,"العنوان والتعليمات مطلوبان");
       if(dueDate&&!validDateOnly(dueDate))return fail(400,"موعد التسليم غير صحيح");
       if(!Number.isFinite(pointsTotal)||pointsTotal<1||pointsTotal>1000)return fail(400,"الدرجة الكلية يجب أن تكون من 1 إلى 1000");
@@ -1339,7 +1520,7 @@ export default {
         const count=await env.DB.prepare("SELECT COUNT(*) AS n FROM academy_records WHERE collection='assignment_submissions' AND json_extract(payload_json,'$.assignment_id')=?").bind(assignmentId).first();
         if((count?.n||0)>0)return fail(409,"لا يمكن تغيير الدرجة الكلية بعد وجود تسليمات؛ حتى لا تتغير دلالة الدرجات السابقة");
       }
-      const updated={...old,title,description,due_date:dueDate||null,points_total:pointsTotal,updated_by:user.id,updated_at:nowIso()};
+      const updated={...old,title,description,due_date:dueDate||null,points_total:pointsTotal,task_type:taskType,updated_by:user.id,updated_at:nowIso()};
       await saveRecord(env,"assignments",updated);await log(env,user.id,"assignment_update",{assignment_id:assignmentId});
       return json({ok:true,assignment:updated});
     }
@@ -1420,8 +1601,212 @@ export default {
       const grade=b.grade===""||b.grade===null||b.grade===undefined?null:Number(b.grade);
       if(grade!==null&&(!Number.isFinite(grade)||grade<0||grade>Number(assignment.points_total||100)))return fail(400,"الدرجة خارج النطاق المسموح");
       submission.grade=grade;submission.feedback=clean(b.feedback,2000);submission.status="reviewed";submission.reviewed_by=user.id;submission.reviewed_at=nowIso();submission.updated_at=nowIso();
-      await saveRecord(env,"assignment_submissions",submission);await log(env,user.id,"assignment_review",{assignment_id:assignmentId,student_id:studentId,grade});
+      await saveRecord(env,"assignment_submissions",submission);
+      const assignmentTotal=Number(assignment.points_total||100);
+      const excellent=grade!==null&&assignmentTotal>0&&grade/assignmentTotal>=0.8;
+      await awardPointsForEvent(env,{studentId,groupId:assignment.group_id||submission.group_id||null,eventType:excellent?"assignment_excellent":"assignment_reviewed",eventKey:"assignment:"+submissionId+":"+(excellent?"excellent":"reviewed"),date:academyDate(),reason:(excellent?"إتقان واجب: ":"مراجعة واجب: ")+assignment.title,sourceCollection:"assignment_submissions",sourceId:submissionId,awardedBy:user.id});
+      await log(env,user.id,"assignment_review",{assignment_id:assignmentId,student_id:studentId,grade});
       return json({ok:true,submission});
+    }
+    if(path==="/api/tasks"&&method==="GET"){
+      let studentId=clean(url.searchParams.get("student_id"),80);
+      if(user.role==="student"){
+        if(!user.student_id)return fail(404,"حساب الطالب غير مرتبط بملف طالب");
+        if(studentId&&studentId!==user.student_id)return fail(403,"لا يمكنك عرض مهام طالب آخر");
+        studentId=user.student_id;
+      }else{
+        if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"غير مسموح");
+        if(!studentId)return fail(400,"حدّد الطالب");
+      }
+      const student=await env.DB.prepare("SELECT id,group_id,display_name FROM students WHERE id=? AND active=1").bind(studentId).first();
+      if(!student)return fail(404,"ملف الطالب غير موجود");
+      if(user.role!=="student"&&!await canManageGroup(env,user,student.group_id))return fail(403,"هذا الطالب خارج صلاحيتك");
+      const assignmentRows=(await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='assignments' ORDER BY updated_at DESC LIMIT 500").all()).results||[];
+      const assignments=assignmentRows.map(row=>{try{return JSON.parse(row.payload_json)}catch{return null}}).filter(row=>row&&row.status==="published"&&(!row.group_id||row.group_id===student.group_id));
+      const submissions=await records(env,"assignment_submissions"," AND student_id=?",[studentId]);
+      const planRow=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='quran_plan' AND student_id=? LIMIT 1").bind(studentId).first();
+      let plan=null;if(planRow){try{plan=JSON.parse(planRow.payload_json)}catch{plan=null}}
+      const progress=await records(env,"quran_progress"," AND student_id=?",[studentId]);
+      const attendance=await records(env,"attendance"," AND student_id=?",[studentId]);
+      const tasks=buildStudentTasks(student,assignments,submissions,plan,progress,attendance);
+      const counts={pending:0,submitted:0,done:0,late:0};
+      for(const task of tasks)counts[task.status]=(counts[task.status]||0)+1;
+      return json({student:{id:student.id,name:student.display_name,group_id:student.group_id},tasks,counts,type_labels:TASK_TYPE_LABELS,status_labels:TASK_STATUS_LABELS,generated_at:nowIso()});
+    }
+    if(path==="/api/content"&&method==="GET"){
+      const kind=clean(url.searchParams.get("kind"),20)||"hadith";
+      const collection=CONTENT_KINDS[kind];
+      if(!collection)return fail(400,"نوع المحتوى غير معروف");
+      if(user.role==="student"){
+        const rows=await records(env,collection," AND json_extract(payload_json,'$.status')='published'",[]);
+        const progress=await records(env,"content_progress"," AND student_id=?",[user.student_id||""]);
+        const byContent=new Map(progress.map(item=>[item.content_id,item]));
+        return json(rows.sort((a,b)=>String(a.title).localeCompare(String(b.title),"ar")).map(item=>({...item,my_progress:byContent.get(item.id)||null})));
+      }
+      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"غير مسموح");
+      const rows=await records(env,collection,"",[]);
+      return json(rows.sort((a,b)=>String(b.updated_at||"").localeCompare(String(a.updated_at||""))));
+    }
+    if(path==="/api/content"&&method==="POST"){
+      if(user.role!=="admin")return fail(403,"إضافة المحتوى ونشره للمدير العام فقط");
+      const parsed=await parseBody(request,20000);if(parsed.error)return parsed.error;const b=parsed.value;
+      const kind=clean(b.kind,20)||"hadith",collection=CONTENT_KINDS[kind];
+      if(!collection)return fail(400,"نوع المحتوى غير معروف");
+      const title=clean(b.title,200),text=clean(b.text,8000),source=clean(b.source,200),reference=clean(b.reference,200),grade=clean(b.grade,40),status=clean(b.status,20)||"draft";
+      if(!title||!text)return fail(400,"أدخل عنوان النص ومتنه");
+      if(!["draft","published"].includes(status))return fail(400,"حالة النشر غير صحيحة");
+      if(status==="published"&&(!source||!reference))return fail(400,"لا يمكن نشر نص دون تحديد المصدر والمرجع");
+      const item={id:uuid(),kind,title,text,source,reference,grade,status,created_by:user.id,created_at:nowIso(),updated_at:nowIso()};
+      await saveRecord(env,collection,item);await log(env,user.id,"content_create",{kind,id:item.id,status});
+      return json(item,201);
+    }
+    const contentMatch=path.match(/^\/api\/content\/([^/]+)$/);
+    if(contentMatch&&method==="PATCH"){
+      if(user.role!=="admin")return fail(403,"تعديل المحتوى للمدير العام فقط");
+      const contentId=clean(contentMatch[1],80);
+      let found=null;
+      for(const kind of Object.keys(CONTENT_KINDS)){
+        const row=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection=? AND id=?").bind(CONTENT_KINDS[kind],contentId).first();
+        if(row){try{found={kind,item:JSON.parse(row.payload_json)}}catch{}break}
+      }
+      if(!found)return fail(404,"المحتوى غير موجود");
+      const parsed=await parseBody(request,20000);if(parsed.error)return parsed.error;const b=parsed.value;
+      const title=b.title===undefined?found.item.title:clean(b.title,200);
+      const text=b.text===undefined?found.item.text:clean(b.text,8000);
+      const source=b.source===undefined?found.item.source:clean(b.source,200);
+      const reference=b.reference===undefined?found.item.reference:clean(b.reference,200);
+      const grade=b.grade===undefined?(found.item.grade||""):clean(b.grade,40);
+      const status=b.status===undefined?(found.item.status||"draft"):clean(b.status,20);
+      if(!title||!text)return fail(400,"العنوان والنص مطلوبان");
+      if(!["draft","published"].includes(status))return fail(400,"حالة النشر غير صحيحة");
+      if(status==="published"&&(!source||!reference))return fail(400,"لا يمكن نشر نص دون تحديد المصدر والمرجع");
+      const updated={...found.item,title,text,source,reference,grade,status,updated_by:user.id,updated_at:nowIso()};
+      await saveRecord(env,CONTENT_KINDS[found.kind],updated);await log(env,user.id,"content_update",{kind:found.kind,id:contentId,status});
+      return json({ok:true,item:updated});
+    }
+    const contentProgressMatch=path.match(/^\/api\/content\/([^/]+)\/progress$/);
+    if(contentProgressMatch&&method==="POST"){
+      if(user.role!=="student"||!user.student_id)return fail(403,"تتبع الحفظ متاح لحساب الطالب");
+      const contentId=clean(contentProgressMatch[1],80);
+      let found=null;
+      for(const kind of Object.keys(CONTENT_KINDS)){
+        const row=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection=? AND id=? AND json_extract(payload_json,'$.status')='published'").bind(CONTENT_KINDS[kind],contentId).first();
+        if(row){try{found={kind,item:JSON.parse(row.payload_json)}}catch{}break}
+      }
+      if(!found)return fail(404,"المحتوى غير متاح");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;
+      const status=clean(parsed.value.status,20)||"memorized";
+      if(!["memorized","reviewing"].includes(status))return fail(400,"حالة التتبع غير صحيحة");
+      const id=user.student_id+":"+contentId;
+      const existing=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='content_progress' AND id=?").bind(id).first();
+      let previous={};try{if(existing)previous=JSON.parse(existing.payload_json)}catch{}
+      const progress={id,content_id:contentId,kind:found.kind,student_id:user.student_id,group_id:user.group_id||null,status,created_at:previous.created_at||nowIso(),updated_at:nowIso()};
+      await saveRecord(env,"content_progress",progress);await log(env,user.id,"content_progress",{content_id:contentId,status});
+      return json({ok:true,progress});
+    }
+    if(path==="/api/competitions"&&method==="GET"){
+      const all=await records(env,"competitions","",[]);
+      const sorted=all.sort((a,b)=>String(b.created_at||"").localeCompare(String(a.created_at||"")));
+      if(user.role==="student"){
+        const entries=await records(env,"competition_entries"," AND student_id=?",[user.student_id||""]);
+        const mine=new Map(entries.map(entry=>[entry.competition_id,entry]));
+        return json(sorted.filter(item=>item.status==="published").map(item=>({...item,my_entry:mine.get(item.id)||null})));
+      }
+      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"غير مسموح");
+      const counts=await env.DB.prepare("SELECT json_extract(payload_json,'$.competition_id') AS competition_id, COUNT(*) AS n FROM academy_records WHERE collection='competition_entries' GROUP BY competition_id").all();
+      const countMap=new Map((counts.results||[]).map(row=>[row.competition_id,Number(row.n||0)]));
+      return json(sorted.map(item=>({...item,entries_count:countMap.get(item.id)||0})));
+    }
+    if(path==="/api/competitions"&&method==="POST"){
+      if(user.role!=="admin")return fail(403,"إنشاء المسابقات للمدير العام فقط");
+      const parsed=await parseBody(request,12000);if(parsed.error)return parsed.error;const b=parsed.value;
+      const title=clean(b.title,180),description=clean(b.description,4000),startsAt=clean(b.starts_at,10),endsAt=clean(b.ends_at,10),status=clean(b.status,20)||"draft";
+      if(!title||!description)return fail(400,"أدخل عنوان المسابقة ووصفها");
+      if(!["draft","published","closed"].includes(status))return fail(400,"حالة المسابقة غير صحيحة");
+      if(startsAt&&!validDateOnly(startsAt))return fail(400,"تاريخ البداية غير صحيح");
+      if(endsAt&&!validDateOnly(endsAt))return fail(400,"تاريخ النهاية غير صحيح");
+      if(startsAt&&endsAt&&endsAt<startsAt)return fail(400,"تاريخ النهاية يجب أن يكون بعد البداية");
+      const competition={id:uuid(),title,description,starts_at:startsAt||null,ends_at:endsAt||null,status,created_by:user.id,created_at:nowIso(),updated_at:nowIso()};
+      await saveRecord(env,"competitions",competition);await log(env,user.id,"competition_create",{id:competition.id,status});
+      return json(competition,201);
+    }
+    const competitionMatch=path.match(/^\/api\/competitions\/([^/]+)$/);
+    if(competitionMatch&&method==="PATCH"){
+      if(user.role!=="admin")return fail(403,"تعديل المسابقات للمدير العام فقط");
+      const competitionId=clean(competitionMatch[1],80);
+      const raw=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='competitions' AND id=?").bind(competitionId).first();
+      if(!raw)return fail(404,"المسابقة غير موجودة");
+      let old;try{old=JSON.parse(raw.payload_json)}catch{return fail(500,"تعذّرت قراءة المسابقة")};
+      const parsed=await parseBody(request,12000);if(parsed.error)return parsed.error;const b=parsed.value;
+      const title=b.title===undefined?old.title:clean(b.title,180);
+      const description=b.description===undefined?old.description:clean(b.description,4000);
+      const startsAt=b.starts_at===undefined?(old.starts_at||""):clean(b.starts_at,10);
+      const endsAt=b.ends_at===undefined?(old.ends_at||""):clean(b.ends_at,10);
+      const status=b.status===undefined?(old.status||"draft"):clean(b.status,20);
+      if(!title||!description)return fail(400,"العنوان والوصف مطلوبان");
+      if(!["draft","published","closed"].includes(status))return fail(400,"حالة المسابقة غير صحيحة");
+      if(startsAt&&!validDateOnly(startsAt))return fail(400,"تاريخ البداية غير صحيح");
+      if(endsAt&&!validDateOnly(endsAt))return fail(400,"تاريخ النهاية غير صحيح");
+      if(startsAt&&endsAt&&endsAt<startsAt)return fail(400,"تاريخ النهاية يجب أن يكون بعد البداية");
+      const updated={...old,title,description,starts_at:startsAt||null,ends_at:endsAt||null,status,updated_by:user.id,updated_at:nowIso()};
+      await saveRecord(env,"competitions",updated);await log(env,user.id,"competition_update",{id:competitionId,status});
+      return json({ok:true,competition:updated});
+    }
+    const competitionEnterMatch=path.match(/^\/api\/competitions\/([^/]+)\/enter$/);
+    if(competitionEnterMatch&&method==="POST"){
+      if(user.role!=="student"||!user.student_id||!user.group_id)return fail(403,"المشاركة متاحة لحساب الطالب المرتبط بفوج");
+      const competitionId=clean(competitionEnterMatch[1],80);
+      const raw=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='competitions' AND id=?").bind(competitionId).first();
+      if(!raw)return fail(404,"المسابقة غير موجودة");
+      let competition;try{competition=JSON.parse(raw.payload_json)}catch{return fail(500,"تعذّرت قراءة المسابقة")};
+      if(competition.status!=="published")return fail(409,"المسابقة غير مفتوحة للمشاركة");
+      const today=academyDate();
+      if(competition.starts_at&&today<competition.starts_at)return fail(409,"لم تبدأ المسابقة بعد");
+      if(competition.ends_at&&today>competition.ends_at)return fail(409,"انتهى وقت المسابقة");
+      const parsed=await parseBody(request,12000);if(parsed.error)return parsed.error;
+      const answer=clean(parsed.value.answer,6000);
+      if(!answer)return fail(400,"اكتب إجابتك أو مشاركتك");
+      const entryId=competitionId+":"+user.student_id;
+      const existing=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='competition_entries' AND id=?").bind(entryId).first();
+      let previous={};try{if(existing)previous=JSON.parse(existing.payload_json)}catch{}
+      if(previous?.score!==undefined&&previous?.score!==null)return fail(409,"تم تقييم مشاركتك، لا يمكن تعديلها بعد التقييم");
+      const entry={id:entryId,competition_id:competitionId,student_id:user.student_id,group_id:user.group_id,answer,score:previous?.score??null,note:previous?.note||"",status:"submitted",created_at:previous.created_at||nowIso(),updated_at:nowIso()};
+      await saveRecord(env,"competition_entries",entry);await log(env,user.id,"competition_enter",{competition_id:competitionId});
+      return json({ok:true,entry},201);
+    }
+    const competitionEntriesMatch=path.match(/^\/api\/competitions\/([^/]+)\/entries$/);
+    if(competitionEntriesMatch&&method==="GET"){
+      const competitionId=clean(competitionEntriesMatch[1],80);
+      const all=await records(env,"competition_entries","",[]);
+      const rows=all.filter(entry=>entry.competition_id===competitionId);
+      if(user.role==="student"){
+        if(!user.student_id)return fail(403,"غير مسموح");
+        const ranked=rows.filter(entry=>entry.score!==null&&entry.score!==undefined).sort((a,b)=>Number(b.score)-Number(a.score)).slice(0,20).map((entry,index)=>({rank:index+1,student_id:entry.student_id,score:entry.score,is_self:entry.student_id===user.student_id}));
+        return json({mine:rows.find(entry=>entry.student_id===user.student_id)||null,ranking:ranked});
+      }
+      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"غير مسموح");
+      const visible=[];
+      for(const entry of rows){if(await canManageGroup(env,user,entry.group_id))visible.push(entry)}
+      const ids=[...new Set(visible.map(entry=>entry.student_id))];
+      const names=new Map();
+      if(ids.length){const marks=ids.map(()=>"?").join(",");const found=await env.DB.prepare("SELECT id,display_name FROM students WHERE id IN ("+marks+")").bind(...ids).all();for(const row of found.results||[])names.set(row.id,row.display_name);}
+      return json(visible.sort((a,b)=>Number(b.score??-1)-Number(a.score??-1)).map(entry=>({...entry,student_name:names.get(entry.student_id)||"طالب"})));
+    }
+    const competitionScoreMatch=path.match(/^\/api\/competitions\/([^/]+)\/entries\/([^/]+)\/score$/);
+    if(competitionScoreMatch&&method==="POST"){
+      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"تقييم المشاركات للمعلم والإدارة");
+      const competitionId=clean(competitionScoreMatch[1],80),entryId=clean(decodeURIComponent(competitionScoreMatch[2]),120);
+      const raw=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='competition_entries' AND id=?").bind(entryId).first();
+      if(!raw)return fail(404,"المشاركة غير موجودة");
+      let entry;try{entry=JSON.parse(raw.payload_json)}catch{return fail(500,"تعذّرت قراءة المشاركة")};
+      if(entry.competition_id!==competitionId)return fail(400,"المشاركة لا تتبع هذه المسابقة");
+      if(!await canManageGroup(env,user,entry.group_id))return fail(403,"هذه المشاركة خارج صلاحيتك");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;
+      const score=Number(parsed.value.score);
+      if(!Number.isFinite(score)||score<0||score>1000)return fail(400,"الدرجة يجب أن تكون من 0 إلى 1000");
+      const updated={...entry,score,note:clean(parsed.value.note,1000),status:"scored",scored_by:user.id,scored_at:nowIso(),updated_at:nowIso()};
+      await saveRecord(env,"competition_entries",updated);await log(env,user.id,"competition_score",{competition_id:competitionId,entry_id:entryId,score});
+      return json({ok:true,entry:updated});
     }
     if(path==="/api/messages/recipients"&&method==="GET"){
       return json(await messageRecipientRows(env,user));
@@ -1608,7 +1993,9 @@ export default {
       if(old)return fail(409,"لقد استلمت مكافأة اليوم بالفعل");
       const points=expected.points;
       const claim={id,student_id:user.student_id,group_id:user.group_id,day,challenge_id:challengeId,points,claimed_at:nowIso()};
-      await saveRecord(env,"daily_claims",claim);await log(env,user.id,"daily_challenge_claim",{challenge_id:challengeId,points,day});return json({ok:true,claim},201);
+      await saveRecord(env,"daily_claims",claim);
+      await awardPointsForEvent(env,{studentId:user.student_id,groupId:user.group_id,eventType:"daily_challenge",eventKey:"daily:"+user.student_id+":"+day,date:day,reason:"تحدي اليوم: "+challengeId,sourceCollection:"daily_claims",sourceId:id,awardedBy:user.id});
+      await log(env,user.id,"daily_challenge_claim",{challenge_id:challengeId,points,day});return json({ok:true,claim},201);
     }
     if(path==="/api/gamification"&&method==="GET"){
       if(user.role!=="student"||!user.student_id||!user.group_id)return fail(403,"لوحة الإنجاز متاحة لحساب الطالب المرتبط بفوج");
@@ -1658,6 +2045,215 @@ export default {
         return {name:st.display_name,group_id:st.group_id,group_name:st.group_name||"",points,attendance_rate:attendanceRate,quran_rate:quranRate,quiz_rate:quizRate,challenge_rate:challengeRate,present_days:present,quran_records:quran,quiz_correct:quizCorrect,is_self:user.role==="student"&&st.id===user.student_id};
       }).sort((a,b)=>b.points-a.points||b.attendance_rate-a.attendance_rate||a.name.localeCompare(b.name,"ar"));
       return json(ranked.map((r,i)=>({...r,rank:i+1})));
+    }
+    // -----------------------------------------------------------------------
+    // الاقتصاد التعليمي: النقاط والمتجر
+    // -----------------------------------------------------------------------
+    if(path==="/api/points/summary"&&method==="GET"){
+      const resolved=await resolvePointStudent(env,user,clean(url.searchParams.get("student_id"),80));
+      if(resolved.error)return resolved.error;
+      const s=resolved.row;
+      const [totals,recent,redemptions,pending]=await Promise.all([
+        pointsTotals(env,s.id),
+        recentPointEvents(env,s.id,20),
+        env.DB.prepare("SELECT id,item_id,item_name,cost,status,note,requested_at,decision_note FROM store_redemptions WHERE student_id=? ORDER BY requested_at DESC LIMIT 10").bind(s.id).all(),
+        env.DB.prepare("SELECT COUNT(*) AS n FROM store_redemptions WHERE student_id=? AND status='pending'").bind(s.id).first()
+      ]);
+      return json({student:{id:s.id,name:s.display_name,group_id:s.group_id,group_name:s.group_name||""},totals,recent,redemptions:redemptions.results||[],pending_redemptions:Number(pending?.n||0),kind_labels:POINT_KIND_LABELS});
+    }
+    if(path==="/api/points/history"&&method==="GET"){
+      const resolved=await resolvePointStudent(env,user,clean(url.searchParams.get("student_id"),80));
+      if(resolved.error)return resolved.error;
+      const requested=Number(url.searchParams.get("limit")||50),limit=Number.isInteger(requested)&&requested>0?Math.min(requested,200):50;
+      return json(await recentPointEvents(env,resolved.row.id,limit));
+    }
+    if(path==="/api/points/rules"&&method==="GET"){
+      if(!user)return fail(401,"يلزم تسجيل الدخول");
+      const rows=user.role==="admin"
+        ? await env.DB.prepare("SELECT * FROM point_rules ORDER BY sort_order, created_at").all()
+        : await env.DB.prepare("SELECT id,event_type,name,description,achievement_points,store_points,max_per_day,auto_award,active,sort_order FROM point_rules WHERE active=1 ORDER BY sort_order, created_at").all();
+      return json(rows.results||[]);
+    }
+    if(path==="/api/points/rules"&&method==="POST"){
+      if(user.role!=="admin")return fail(403,"تعديل قواعد النقاط للمدير فقط");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      const eventType=clean(b.event_type,60).toLowerCase();
+      const name=clean(b.name,120),description=clean(b.description,600);
+      const achievement=Number(b.achievement_points??0),store=Number(b.store_points??0);
+      const rawMax=b.max_per_day,maxPerDay=rawMax===""||rawMax===null||rawMax===undefined?null:Number(rawMax);
+      if(!/^[a-z0-9_]{3,60}$/.test(eventType))return fail(400,"نوع الحدث يجب أن يكون بأحرف لاتينية صغيرة وأرقام وشرطة سفلية");
+      if(!name)return fail(400,"أدخل اسم قاعدة النقاط");
+      if(!Number.isInteger(achievement)||achievement<0||achievement>MAX_RULE_POINTS||!Number.isInteger(store)||store<0||store>MAX_RULE_POINTS)return fail(400,"قيم النقاط يجب أن تكون أعدادًا صحيحة بين 0 و100000");
+      if(achievement===0&&store===0)return fail(400,"حدّد نقاط إنجاز أو نقاط متجر أكبر من صفر");
+      if(maxPerDay!==null&&(!Number.isInteger(maxPerDay)||maxPerDay<1||maxPerDay>1000))return fail(400,"السقف اليومي يجب أن يكون بين 1 و1000 أو فارغًا");
+      const autoAward=b.auto_award===false||b.auto_award===0?0:1;
+      const active=b.active===false||b.active===0?0:1;
+      const sortOrder=Number.isInteger(Number(b.sort_order))?Number(b.sort_order):0;
+      const requestedId=clean(b.id,80);
+      let existing=requestedId?await env.DB.prepare("SELECT * FROM point_rules WHERE id=?").bind(requestedId).first():null;
+      if(!existing)existing=await env.DB.prepare("SELECT * FROM point_rules WHERE event_type=?").bind(eventType).first();
+      const now=nowIso();
+      let rule;
+      if(existing){
+        await env.DB.prepare("UPDATE point_rules SET event_type=?,name=?,description=?,achievement_points=?,store_points=?,max_per_day=?,auto_award=?,active=?,sort_order=?,updated_at=? WHERE id=?").bind(eventType,name,description,achievement,store,maxPerDay,autoAward,active,sortOrder,now,existing.id).run();
+        rule={...existing,event_type:eventType,name,description,achievement_points:achievement,store_points:store,max_per_day:maxPerDay,auto_award:autoAward,active,sort_order:sortOrder,updated_at:now};
+      }else{
+        const id=requestedId||uuid();
+        await env.DB.prepare("INSERT INTO point_rules (id,event_type,name,description,achievement_points,store_points,max_per_day,auto_award,active,sort_order,created_by,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)").bind(id,eventType,name,description,achievement,store,maxPerDay,autoAward,active,sortOrder,user.id,now,now).run();
+        rule={id,event_type:eventType,name,description,achievement_points:achievement,store_points:store,max_per_day:maxPerDay,auto_award:autoAward,active,sort_order:sortOrder,created_at:now,updated_at:now};
+      }
+      await log(env,user.id,"point_rule_save",{rule_id:rule.id,event_type:eventType,achievement,store,active});
+      return json({ok:true,rule},existing?200:201);
+    }
+    if(path==="/api/points/award"&&method==="POST"){
+      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"منح النقاط للمعلم أو الإدارة");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      const resolved=await resolvePointStudent(env,user,clean(b.student_id,80));
+      if(resolved.error)return resolved.error;
+      const s=resolved.row,reason=clean(b.reason,500);
+      const ruleId=clean(b.rule_id,80);
+      const rule=ruleId?await env.DB.prepare("SELECT * FROM point_rules WHERE id=?").bind(ruleId).first():null;
+      if(ruleId&&!rule)return fail(404,"قاعدة النقاط غير موجودة");
+      if(!rule&&reason.length<3)return fail(400,"اكتب سبب منح النقاط (3 أحرف على الأقل)");
+      const achievement=rule?Number(rule.achievement_points):Number(b.achievement_points??0);
+      const store=rule?Number(rule.store_points):Number(b.store_points??0);
+      if(!Number.isInteger(achievement)||achievement<0||achievement>MAX_MANUAL_POINTS||!Number.isInteger(store)||store<0||store>MAX_MANUAL_POINTS)return fail(400,"المنح اليدوي بين 0 و1000 لكل نوع");
+      if(achievement===0&&store===0)return fail(400,"حدّد نقاط إنجاز أو رصيد متجر أكبر من صفر");
+      const requestId=clean(b.request_id,80);
+      const eventKey="manual:"+(/^[a-zA-Z0-9_-]{6,80}$/.test(requestId)?requestId:uuid());
+      const date=academyDate(),events=[];
+      for(const kind of POINT_KINDS){
+        const amount=kind==="achievement"?achievement:store;
+        if(amount<=0)continue;
+        const inserted=await insertPointEvent(env,{student_id:s.id,group_id:s.group_id,rule_id:rule?.id||null,event_type:"manual",kind,points:amount,reason:reason||rule.name,event_key:eventKey,awarded_date:date,awarded_by:user.id});
+        events.push({kind,points:amount,status:inserted.inserted?"awarded":"duplicate",id:inserted.id});
+      }
+      await log(env,user.id,"points_manual_award",{student_id:s.id,achievement,store,rule_id:rule?.id||null,event_key:eventKey});
+      return json({ok:true,events,totals:await pointsTotals(env,s.id)},201);
+    }
+    const pointEventReverseMatch=path.match(/^\/api\/points\/events\/([^/]+)\/reverse$/);
+    if(pointEventReverseMatch&&method==="POST"){
+      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"عكس النقاط للمعلم أو الإدارة");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;
+      const reason=clean(parsed.value.reason,500);
+      if(reason.length<3)return fail(400,"اكتب سبب عكس الحركة");
+      const eventId=clean(pointEventReverseMatch[1],80);
+      const row=await env.DB.prepare("SELECT * FROM point_events WHERE id=?").bind(eventId).first();
+      if(!row)return fail(404,"حركة النقاط غير موجودة");
+      if(row.event_type==="store_redemption")return fail(409,"حركة الصرف تُعالج بقرار طلب الصرف لا بعكس النقاط");
+      if(row.reversed_at)return fail(409,"هذه الحركة معكوسة بالفعل");
+      const s=await env.DB.prepare("SELECT id,group_id FROM students WHERE id=?").bind(row.student_id).first();
+      if(!s||!await canManageGroup(env,user,s.group_id))return fail(403,"هذه الحركة خارج صلاحيتك");
+      const result=await env.DB.prepare("UPDATE point_events SET reversed_at=?,reversed_by=?,reversal_reason=? WHERE id=? AND reversed_at IS NULL").bind(nowIso(),user.id,reason,eventId).run();
+      if(!Number(result?.meta?.changes||0))return fail(409,"تعذّر عكس الحركة؛ ربما عُكست للتو");
+      await log(env,user.id,"points_event_reverse",{event_id:eventId,student_id:row.student_id,points:row.points,kind:row.kind,reason});
+      return json({ok:true,totals:await pointsTotals(env,row.student_id)});
+    }
+    if(path==="/api/store/items"&&method==="GET"){
+      const select="SELECT id,name,description,icon,cost,stock,max_per_student,active,sort_order FROM store_items";
+      const rows=user.role==="admin"
+        ? await env.DB.prepare("SELECT id,name,description,icon,cost,stock,max_per_student,active,sort_order,created_at,updated_at FROM store_items ORDER BY sort_order, cost").all()
+        : await env.DB.prepare(select+" WHERE active=1 ORDER BY sort_order, cost").all();
+      const balance=user.role==="student"&&user.student_id?(await pointsTotals(env,user.student_id)).store:null;
+      return json({items:rows.results||[],balance});
+    }
+    if(path==="/api/store/items"&&method==="POST"){
+      if(user.role!=="admin")return fail(403,"إدارة المتجر للمدير فقط");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      const name=clean(b.name,160),description=clean(b.description,2000),icon=clean(b.icon,8)||"🎁";
+      const cost=Number(b.cost);
+      const rawStock=b.stock,stock=rawStock===""||rawStock===null||rawStock===undefined?null:Number(rawStock);
+      const rawMax=b.max_per_student,maxPerStudent=rawMax===""||rawMax===null||rawMax===undefined?null:Number(rawMax);
+      const active=b.active===false||b.active===0?0:1;
+      const sortOrder=Number.isInteger(Number(b.sort_order))?Number(b.sort_order):0;
+      if(!name)return fail(400,"أدخل اسم المادة");
+      if(!Number.isInteger(cost)||cost<1||cost>MAX_RULE_POINTS)return fail(400,"تكلفة المادة يجب أن تكون بين 1 و100000");
+      if(stock!==null&&(!Number.isInteger(stock)||stock<0))return fail(400,"المخزون يجب أن يكون عددًا صحيحًا غير سالب أو فارغًا");
+      if(maxPerStudent!==null&&(!Number.isInteger(maxPerStudent)||maxPerStudent<1))return fail(400,"حد الطالب يجب أن يكون عددًا صحيحًا موجبًا أو فارغًا");
+      const requestedId=clean(b.id,80),now=nowIso();
+      let item;
+      if(requestedId){
+        const existing=await env.DB.prepare("SELECT * FROM store_items WHERE id=?").bind(requestedId).first();
+        if(!existing)return fail(404,"المادة غير موجودة");
+        await env.DB.prepare("UPDATE store_items SET name=?,description=?,icon=?,cost=?,stock=?,max_per_student=?,active=?,sort_order=?,updated_at=? WHERE id=?").bind(name,description,icon,cost,stock,maxPerStudent,active,sortOrder,now,requestedId).run();
+        item={...existing,name,description,icon,cost,stock,max_per_student:maxPerStudent,active,sort_order:sortOrder,updated_at:now};
+      }else{
+        const id=uuid();
+        await env.DB.prepare("INSERT INTO store_items (id,name,description,icon,cost,stock,max_per_student,active,sort_order,created_by,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)").bind(id,name,description,icon,cost,stock,maxPerStudent,active,sortOrder,user.id,now,now).run();
+        item={id,name,description,icon,cost,stock,max_per_student:maxPerStudent,active,sort_order:sortOrder,created_at:now,updated_at:now};
+      }
+      await log(env,user.id,"store_item_save",{item_id:item.id,cost,active});
+      return json({ok:true,item},requestedId?200:201);
+    }
+    if(path==="/api/store/redeem"&&method==="POST"){
+      if(user.role!=="student"||!user.student_id||!user.group_id)return fail(403,"طلب الصرف متاح لحساب الطالب المرتبط بفوج");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      const itemId=clean(b.item_id,80),note=clean(b.note,300);
+      const item=await env.DB.prepare("SELECT * FROM store_items WHERE id=? AND active=1").bind(itemId).first();
+      if(!item)return fail(404,"المادة غير متاحة");
+      const balance=(await pointsTotals(env,user.student_id)).store;
+      if(balance<Number(item.cost))return fail(409,"رصيد المتجر لا يكفي لهذا الطلب");
+      if(item.stock!==null&&Number(item.stock)<=0)return fail(409,"نفدت الكمية المتاحة");
+      if(item.max_per_student!==null&&item.max_per_student!==undefined){
+        const used=await env.DB.prepare("SELECT COUNT(*) AS n FROM store_redemptions WHERE student_id=? AND item_id=? AND status IN ('pending','approved','fulfilled')").bind(user.student_id,itemId).first();
+        if(Number(used?.n||0)>=Number(item.max_per_student))return fail(409,"بلغت الحد الأقصى المسموح لك من هذه المادة");
+      }
+      if(item.stock!==null){
+        const stockUpdate=await env.DB.prepare("UPDATE store_items SET stock=stock-1,updated_at=? WHERE id=? AND stock>0").bind(nowIso(),itemId).run();
+        if(!Number(stockUpdate?.meta?.changes||0))return fail(409,"نفدت الكمية المتاحة");
+      }
+      const redemptionId=uuid(),eventId=uuid();
+      try{
+        await insertPointEvent(env,{id:eventId,student_id:user.student_id,group_id:user.group_id,rule_id:null,event_type:"store_redemption",kind:"store",points:-Number(item.cost),reason:"طلب صرف: "+item.name,event_key:"redeem:"+redemptionId,awarded_date:academyDate(),source_collection:"store_redemptions",source_id:redemptionId,awarded_by:user.id});
+        await env.DB.prepare("INSERT INTO store_redemptions (id,item_id,item_name,student_id,group_id,cost,status,note,debit_event_id) VALUES (?,?,?,?,?,?,'pending',?,?)").bind(redemptionId,itemId,item.name,user.student_id,user.group_id,Number(item.cost),note,eventId).run();
+      }catch(error){
+        if(item.stock!==null)await env.DB.prepare("UPDATE store_items SET stock=stock+1,updated_at=? WHERE id=?").bind(nowIso(),itemId).run();
+        try{await env.DB.prepare("UPDATE point_events SET reversed_at=?,reversed_by=?,reversal_reason=? WHERE id=? AND reversed_at IS NULL").bind(nowIso(),user.id,"فشل إنشاء طلب الصرف",eventId).run()}catch{}
+        throw error;
+      }
+      await log(env,user.id,"store_redeem",{redemption_id:redemptionId,item_id:itemId,cost:item.cost});
+      return json({ok:true,redemption:{id:redemptionId,item_id:itemId,item_name:item.name,cost:Number(item.cost),status:"pending",note},balance:balance-Number(item.cost)},201);
+    }
+    if(path==="/api/store/redemptions"&&method==="GET"){
+      const status=clean(url.searchParams.get("status"),20);
+      const statusFilter=["pending","approved","rejected","fulfilled","cancelled"].includes(status)?" AND r.status='"+status+"'":"";
+      if(user.role==="student"){
+        if(!user.student_id)return fail(403,"حساب الطالب غير مرتبط بملف طالب");
+        const rows=await env.DB.prepare("SELECT r.*,s.display_name FROM store_redemptions r JOIN students s ON s.id=r.student_id WHERE r.student_id=?"+statusFilter+" ORDER BY r.requested_at DESC LIMIT 100").bind(user.student_id).all();
+        return json(rows.results||[]);
+      }
+      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"غير مسموح");
+      const groupIds=await managedGroupIds(env,user);
+      if(groupIds!==null&&!groupIds.length)return json([]);
+      const binds=[];
+      let sql="SELECT r.*,s.display_name,g.name AS group_name FROM store_redemptions r JOIN students s ON s.id=r.student_id LEFT JOIN groups g ON g.id=r.group_id WHERE 1=1"+statusFilter;
+      if(groupIds!==null){sql+=" AND r.group_id IN ("+groupIds.map(()=>"?").join(",")+")";binds.push(...groupIds)}
+      sql+=" ORDER BY r.requested_at DESC LIMIT 200";
+      return json((await env.DB.prepare(sql).bind(...binds).all()).results||[]);
+    }
+    const redemptionDecisionMatch=path.match(/^\/api\/store\/redemptions\/([^/]+)\/decision$/);
+    if(redemptionDecisionMatch&&method==="POST"){
+      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"قرار طلب الصرف للمعلم أو الإدارة");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      const decision=clean(b.decision,20),note=clean(b.note,500);
+      if(!["approved","rejected","fulfilled"].includes(decision))return fail(400,"اختر قرارًا صحيحًا");
+      const row=await env.DB.prepare("SELECT * FROM store_redemptions WHERE id=?").bind(clean(redemptionDecisionMatch[1],80)).first();
+      if(!row)return fail(404,"طلب الصرف غير موجود");
+      if(!await canManageGroup(env,user,row.group_id))return fail(403,"هذا الطلب خارج صلاحيتك");
+      if(row.status==="rejected"||row.status==="cancelled")return fail(409,"لا يمكن تغيير طلب صرف منتهٍ");
+      if(row.status==="fulfilled")return fail(409,"تم تنفيذ الطلب بالفعل");
+      if(decision==="rejected"&&note.length<3)return fail(400,"اكتب سبب رفض الطلب");
+      const now=nowIso();
+      if(decision==="rejected"){
+        await env.DB.prepare("UPDATE store_redemptions SET status='rejected',decided_by=?,decided_at=?,decision_note=? WHERE id=?").bind(user.id,now,note,row.id).run();
+        if(row.debit_event_id)await env.DB.prepare("UPDATE point_events SET reversed_at=?,reversed_by=?,reversal_reason=? WHERE id=? AND reversed_at IS NULL").bind(now,user.id,"رفض طلب صرف: "+(note||row.item_name),row.debit_event_id).run();
+        const item=await env.DB.prepare("SELECT stock FROM store_items WHERE id=?").bind(row.item_id).first();
+        if(item&&item.stock!==null)await env.DB.prepare("UPDATE store_items SET stock=stock+1,updated_at=? WHERE id=?").bind(now,row.item_id).run();
+      }else{
+        await env.DB.prepare("UPDATE store_redemptions SET status=?,decided_by=?,decided_at=?,decision_note=? WHERE id=?").bind(decision,user.id,now,note,row.id).run();
+      }
+      await log(env,user.id,"store_redemption_"+decision,{redemption_id:row.id,student_id:row.student_id,cost:row.cost});
+      return json({ok:true,status:decision,totals:await pointsTotals(env,row.student_id)});
     }
     if(path==="/api/metrics"&&method==="GET"){
       if(user.role!=="admin")return fail(403,"forbidden");const counts=await env.DB.prepare("SELECT (SELECT COUNT(*) FROM users) AS users,(SELECT COUNT(*) FROM students WHERE active=1) AS students,(SELECT COUNT(*) FROM groups WHERE active=1) AS groups,(SELECT COUNT(*) FROM academy_records) AS records").first();return json({...counts,storage:"d1"});

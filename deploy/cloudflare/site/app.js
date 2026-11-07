@@ -574,14 +574,14 @@ function items(){
  const staff=["admin","director","teacher","supervisor"].includes(S.user.role);
  if(S.user.role==="admin"){
   const full=safeStore.get("ihsan_admin_focus")==="full";
-  const daily=[["home","الرئيسية"],["students","الطلاب"],["teams","الفرق"],["effort-ranking","الترتيب الأسبوعي/الشهري"],["notifications","التنبيهات"],["messages","الرسائل"]];
+  const daily=[["home","الرئيسية"],["students","الطلاب"],["teams","الفرق"],["effort-ranking","الترتيب الأسبوعي/الشهري"],["points","النقاط والمتجر"],["notifications","التنبيهات"],["messages","الرسائل"]];
   if(!full)return daily;
-  return [["home","الرئيسية"],["groups","الأفواج"],["students","الطلاب"],["teams","الفرق"],["effort-ranking","الترتيب الأسبوعي/الشهري"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"],["system-check","فحص النظام"]];
+  return [["home","الرئيسية"],["groups","الأفواج"],["students","الطلاب"],["teams","الفرق"],["effort-ranking","الترتيب الأسبوعي/الشهري"],["points","النقاط والمتجر"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"],["hadith","الحديث والمتون"],["competitions","المسابقات"],["system-check","فحص النظام"]];
  }
- if(S.user.role==="director")return [["home","الرئيسية"],["groups","الأفواج والمعلمون والفرق"],["students","طلاب المدرسة"],["roster-bulk","إضافة أسماء الطلبة"],["attendance","الحضور"],["quran","الحفظ والمراجعة"],["effort-ranking","الترتيب الأسبوعي/الشهري"],["effort","تسجيل المتابعة اليومية"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"]];
- if(S.user.role==="supervisor")return [["home","الرئيسية"],["students","طلاب فريقي"],["teams","فرقي الطلابية"],["attendance","الحضور"],["quran","متابعة الحفظ والمراجعة"],["effort-ranking","الترتيب الأسبوعي/الشهري"],["effort","تسجيل المتابعة اليومية"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"]];
- if(S.user.role==="teacher")return [["home","الرئيسية"],["students","طلبتي"],["roster-bulk","إضافة أسماء الطلبة"],["groups","أفواجي"],["teams","فرقي الطلابية"],["attendance","الحضور"],["quran","متابعة الحفظ والمراجعة"],["effort-ranking","الترتيب الأسبوعي/الشهري"],["effort","تسجيل المتابعة اليومية"],["reports","التقارير"],["sheikh-check","فحص واجهة الشيخ"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"]];
- return [["home","الرئيسية"],["profile","ملفي"],["teams","فرقتي وطلبات النقل"],["quran","تقدمي في القرآن"],["assignments","واجباتي"],["gradebook","تقدمي ودرجاتي"],["attendance","حضوري"],["tests","اختباراتي"],["notifications","التنبيهات"],["messages","الرسائل"],["leaderboard","الترتيب العام"]];
+ if(S.user.role==="director")return [["home","الرئيسية"],["groups","الأفواج والمعلمون والفرق"],["students","طلاب المدرسة"],["roster-bulk","إضافة أسماء الطلبة"],["attendance","الحضور"],["quran","الحفظ والمراجعة"],["effort-ranking","الترتيب الأسبوعي/الشهري"],["points","النقاط والمتجر"],["effort","تسجيل المتابعة اليومية"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"],["hadith","الحديث والمتون"],["competitions","المسابقات"]];
+ if(S.user.role==="supervisor")return [["home","الرئيسية"],["students","طلاب فريقي"],["teams","فرقي الطلابية"],["attendance","الحضور"],["quran","متابعة الحفظ والمراجعة"],["effort-ranking","الترتيب الأسبوعي/الشهري"],["points","النقاط والمتجر"],["effort","تسجيل المتابعة اليومية"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"],["hadith","الحديث والمتون"],["competitions","المسابقات"]];
+ if(S.user.role==="teacher")return [["home","الرئيسية"],["students","طلبتي"],["roster-bulk","إضافة أسماء الطلبة"],["groups","أفواجي"],["teams","فرقي الطلابية"],["attendance","الحضور"],["quran","متابعة الحفظ والمراجعة"],["effort-ranking","الترتيب الأسبوعي/الشهري"],["points","النقاط والمتجر"],["effort","تسجيل المتابعة اليومية"],["reports","التقارير"],["sheikh-check","فحص واجهة الشيخ"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"],["hadith","الحديث والمتون"],["competitions","المسابقات"]];
+ return [["home","الرئيسية"],["profile","ملفي"],["tasks","مهامي"],["teams","فرقتي وطلبات النقل"],["quran","تقدمي في القرآن"],["hadith","الحديث والمتون"],["competitions","المسابقات"],["assignments","واجباتي"],["gradebook","تقدمي ودرجاتي"],["attendance","حضوري"],["tests","اختباراتي"],["points","النقاط والمتجر"],["notifications","التنبيهات"],["messages","الرسائل"],["leaderboard","الترتيب العام"]];
 }
 
 
@@ -604,6 +604,7 @@ const NAV_ICON_PATHS={
  tests:'<path d="M8 4H5v17h14V4h-3"/><rect x="8" y="2" width="8" height="4" rx="1"/><path d="m8 12 2 2 4-4M8 17h7"/>',
  profile:'<circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/>',
  leaderboard:'<path d="M8 21h8M12 17v4"/><path d="M7 4h10v5a5 5 0 0 1-10 0z"/><path d="M7 6H4v2a4 4 0 0 0 4 4M17 6h3v2a4 4 0 0 1-4 4"/>',
+ points:'<circle cx="12" cy="12" r="8"/><path d="m12 8 1.2 2.4 2.8.4-2 2 .5 2.7-2.5-1.3-2.5 1.3.5-2.7-2-2 2.8-.4z"/>',
  "system-check":'<path d="M12 3 20 6v5c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6z"/><path d="m8.5 12 2.2 2.2 4.8-5"/>',
  all:'<path d="M4 19V5"/><path d="M4 19h17"/><path d="m7 15 4-4 3 2 5-6"/>',
  allah:'<path d="M12 21v-9"/><path d="M12 15C5 15 3 11 3 6c5 0 9 2 9 9Z"/><path d="M12 12c0-5 3-8 9-8 0 5-3 8-9 8Z"/>',
@@ -611,7 +612,10 @@ const NAV_ICON_PATHS={
  quranpath:'<path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v18H6.5A2.5 2.5 0 0 1 4 17.5z"/><path d="M4 17.5A2.5 2.5 0 0 1 6.5 15H20"/>',
  sunnah:'<path d="M6 3h12v18l-6-4-6 4z"/><path d="m9 9 2 2 4-4"/>',
  adab:'<path d="M12 3 14 9l6 1-4.5 4 1 6-4.5-3-4.5 3 1-6L4 10l6-1z"/>',
- hifzprogram:'<path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v18H6.5A2.5 2.5 0 0 1 4 17.5z"/><path d="M4 17.5A2.5 2.5 0 0 1 6.5 15H20M8 6h7M8 9h6"/>'
+ hifzprogram:'<path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v18H6.5A2.5 2.5 0 0 1 4 17.5z"/><path d="M4 17.5A2.5 2.5 0 0 1 6.5 15H20M8 6h7M8 9h6"/>',
+ tasks:'<path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/>',
+ hadith:'<path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v18H6.5A2.5 2.5 0 0 1 4 17.5z"/><path d="M4 17.5A2.5 2.5 0 0 1 6.5 15H20"/><path d="m11 6 1.5 1.5L15 5"/>',
+ competitions:'<path d="M8 3h8v5a4 4 0 0 1-8 0z"/><path d="M8 5H5v2a3 3 0 0 0 3 3M16 5h3v2a3 3 0 0 1-3 3"/><path d="M12 12v5M9 21h6M10 17h4"/>'
 };
 function navIcon(id){return '<svg viewBox="0 0 24 24" class="nav-icon" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'+(NAV_ICON_PATHS[id]||'<circle cx="12" cy="12" r="8"/>')+'</svg>'}
 function navigationGroups(){
@@ -624,23 +628,26 @@ function navigationGroups(){
    makeGroup("الرئيسية والطلاب",["home","students"]),
    makeGroup("الأفواج والفرق",["groups","teams"]),
    effortGroup(),
+   makeGroup("النقاط والمتجر",["points"]),
    makeGroup("التواصل",["notifications","messages"])
   ].filter(g=>g.items.length);
   return [
    makeGroup("إدارة الأكاديمية",["home","groups","students","teams"]),
    effortGroup(),
+   makeGroup("النقاط والمتجر",["points"]),
    makeGroup("التواصل",["notifications","messages"]),
-   makeGroup("أدوات إضافية وتحسينية",["assignments","tests","system-check"])
+   makeGroup("أدوات إضافية وتحسينية",["assignments","tests","hadith","competitions","system-check"])
   ].filter(g=>g.items.length);
  }
  if(["teacher","director","supervisor"].includes(S.user.role))return [
   makeGroup(S.user.role==="director"?"إدارة المدرسة":S.user.role==="supervisor"?"متابعة الفريق":"التدريس والمتابعة",["home","groups","students","teams"]),
   makeGroup("المهام الأساسية اليومية",["attendance","quran"]),
   effortGroup(),
+  makeGroup("النقاط والمتجر",["points"]),
   makeGroup("المتابعة والتقويم",["gradebook","reports","notifications","messages"]),
-  makeGroup("أدوات إضافية",["assignments","tests"])
+  makeGroup("أدوات إضافية",["assignments","tests","hadith","competitions"])
  ].filter(g=>g.items.length);
- return [makeGroup("رحلتي التعليمية",["home","profile","teams","quran","assignments","gradebook","attendance","tests","notifications","messages","leaderboard"])].filter(g=>g.items.length);
+ return [makeGroup("رحلتي التعليمية",["home","profile","tasks","teams","quran","hadith","competitions","assignments","gradebook","attendance","tests","points","notifications","messages","leaderboard"])].filter(g=>g.items.length);
 }
 
 function navMarkup(){const seen=new Set();return navigationGroups().map(group=>{const unique=group.items.filter(x=>{if(seen.has(x[0]))return false;seen.add(x[0]);return true});return unique.length?'<div class="nav-section"><div class="nav-section-title">'+esc(group.title)+'</div>'+unique.map(x=>'<button class="nav-btn '+(S.tab===x[0]?"active":"")+'" data-tab="'+esc(x[0])+'"><span class="nav-icon-wrap">'+navIcon(x[0])+'</span><span class="nav-label">'+esc(x[1])+'</span><span class="nav-chevron" aria-hidden="true">‹</span></button>').join("")+'</div>':""}).join("")}
@@ -790,7 +797,200 @@ const groupOpts=()=>S.groups.map(g=>'<option value="'+esc(g.id)+'">'+esc(g.name)
 const assignedGroups=()=>{const role=S.user?.role;if(role==="admin")return S.groups.slice();if(role==="director"){const ids=(S.user.school_ids||[]).map(String);return S.groups.filter(g=>ids.includes(String(g.school_id||"")));}if(role==="teacher")return S.groups.filter(g=>String(g.teacher_id||"")===String(S.user.id));if(role==="supervisor")return S.groups.filter(g=>(S.user.group_ids||[]).map(String).includes(String(g.id)));return S.groups.slice()};
 function go(id){if(S.user?.role==="admin"&&id==="groups")safeStore.set("ihsan_admin_focus","full");safeStore.setSession("ihsan_last_mode",S.mode);safeStore.setSession("ihsan_last_tab",id);try{history.pushState({ihsanMode:S.mode,ihsanTab:id},"",location.pathname+"#"+encodeURIComponent(id))}catch{}S.tab=id;shell();page()}
 window.addEventListener("popstate",async e=>{if(!S.user)return;const st=e.state||{};if(st.ihsanMode==="hub"){S.mode="hub";moduleChooser(false);return;}if(st.ihsanMode==="school"||st.ihsanMode==="ihsan"){S.mode=st.ihsanMode;S.tab=st.ihsanTab||(S.mode==="ihsan"?"all":"home");if(S.mode==="school")await load();shell();await page();if(st.ihsanSubView==="student-profile")await studentProfile($("#view"),st.studentId);return;}S.mode="hub";moduleChooser(false);});
-async function page(){const v=$("#view");if(S.mode==="ihsan"){if(S.tab==="groups"&&S.user.role==="teacher"){await load();return groups(v)}return curriculumPage(v)}v.innerHTML='<div class="loading">جار تحميل البيانات…</div>';try{if(S.tab==="system-check"&&S.user.role==="admin")return systemCheckPage(v);if(S.tab==="sheikh-check"&&S.user.role==="teacher")return sheikhCheckPage(v);if(S.tab==="home")return await home(v);if(S.tab==="teams")return await teamsPage(v);if(S.tab==="groups")return groups(v);if(S.tab==="teachers")return teachers(v);if(S.tab==="students")return students(v);if(S.tab==="attendance")return attendance(v);if(S.tab==="assignments")return await assignmentsPage(v);if(S.tab==="gradebook")return await gradebookPage(v);if(S.tab==="messages")return await messagesPage(v);if(S.tab==="reports")return reportsPage(v);if(S.tab==="leaderboard")return leaderboardPage(v);if(S.tab==="profile")return studentProfile(v,S.user.student_id);if(S.tab==="quran")return quran(v);if(S.tab==="effort")return effortPage(v);if(S.tab==="effort-ranking")return effortRankingPage(v);if(S.tab==="roster-bulk")return bulkRosterPage(v);if(S.tab==="quran-achievement")return quranAchievementPage(v);if(S.tab==="tests")return testsPage(v);if(S.tab==="notifications")return notificationsPage(v);v.innerHTML=head("القسم غير متاح","هذا القسم لم يعد متاحًا. اختر قسمًا من القائمة.")+'<button class="btn" id="back-home">العودة إلى الرئيسية</button>';$("#back-home").onclick=()=>go("home");return}catch(e){v.innerHTML='<div class="panel"><h2>تعذّر تحميل البيانات</h2><p class="notice error">'+esc(e.message)+'</p><button class="btn" id="retry">إعادة المحاولة</button></div>';$("#retry").onclick=page}}
+async function page(){const v=$("#view");if(S.mode==="ihsan"){if(S.tab==="groups"&&S.user.role==="teacher"){await load();return groups(v)}return curriculumPage(v)}v.innerHTML='<div class="loading">جار تحميل البيانات…</div>';try{if(S.tab==="system-check"&&S.user.role==="admin")return systemCheckPage(v);if(S.tab==="sheikh-check"&&S.user.role==="teacher")return sheikhCheckPage(v);if(S.tab==="home")return await home(v);if(S.tab==="teams")return await teamsPage(v);if(S.tab==="groups")return groups(v);if(S.tab==="tasks")return await tasksPage(v);if(S.tab==="hadith")return await contentPage(v);if(S.tab==="competitions")return await competitionsPage(v);if(S.tab==="points")return await pointsPage(v);if(S.tab==="teachers")return teachers(v);if(S.tab==="students")return students(v);if(S.tab==="attendance")return attendance(v);if(S.tab==="assignments")return await assignmentsPage(v);if(S.tab==="gradebook")return await gradebookPage(v);if(S.tab==="messages")return await messagesPage(v);if(S.tab==="reports")return reportsPage(v);if(S.tab==="leaderboard")return leaderboardPage(v);if(S.tab==="profile")return studentProfile(v,S.user.student_id);if(S.tab==="quran")return quran(v);if(S.tab==="effort")return effortPage(v);if(S.tab==="effort-ranking")return effortRankingPage(v);if(S.tab==="roster-bulk")return bulkRosterPage(v);if(S.tab==="quran-achievement")return quranAchievementPage(v);if(S.tab==="tests")return testsPage(v);if(S.tab==="notifications")return notificationsPage(v);v.innerHTML=head("القسم غير متاح","هذا القسم لم يعد متاحًا. اختر قسمًا من القائمة.")+'<button class="btn" id="back-home">العودة إلى الرئيسية</button>';$("#back-home").onclick=()=>go("home");return}catch(e){v.innerHTML='<div class="panel"><h2>تعذّر تحميل البيانات</h2><p class="notice error">'+esc(e.message)+'</p><button class="btn" id="retry">إعادة المحاولة</button></div>';$("#retry").onclick=page}}
+function pointsStatusLabel(status){const labels={pending:"قيد المراجعة",approved:"معتمد",rejected:"مرفوض",fulfilled:"منفذ",cancelled:"ملغى"};return labels[status]||status}
+function pointsDate(value){const text=String(value||"");return text?esc(text.replace("T"," ").slice(0,16)):"—"}
+async function pointsPage(v){
+ const isStudent=S.user.role==="student",canManage=["admin","teacher","director","supervisor"].includes(S.user.role);
+ if(!isStudent&&!S.students.length)await load();
+ let students=[];
+ if(!isStudent){
+  const allowedGroups=assignedGroups().map(g=>String(g.id));
+  students=S.students.filter(st=>allowedGroups.includes(String(st.group_id))).sort((a,b)=>String(a.name||a.display_name||"").localeCompare(String(b.name||b.display_name||""),"ar"));
+  if(!students.some(st=>st.id===S.pointsStudentId))S.pointsStudentId=students[0]?.id||"";
+  if(!S.pointsStudentId){v.innerHTML=head("النقاط والمتجر","لا يوجد طالب ضمن نطاق صلاحيتك.");return}
+ }
+ const studentId=isStudent?S.user.student_id:S.pointsStudentId;
+ const summary=await api("/points/summary"+(!isStudent?"?student_id="+encodeURIComponent(studentId):""));
+ const store=await api("/store/items");
+ const redemptions=await api("/store/redemptions");
+ const rules=S.user.role==="admin"?await api("/points/rules"):[];
+ const itemRows=(store.items||[]).map(item=>{
+  const soldOut=Number(item.active)===0||(item.stock!==null&&Number(item.stock)<=0);
+  const canRedeem=isStudent&&!soldOut&&Number(summary.totals.store)>=Number(item.cost);
+  const adminToggle=S.user.role==="admin"?'<button class="btn secondary" type="button" data-store-toggle="'+esc(item.id)+'">'+(Number(item.active)===0?"إظهار":"إخفاء")+'</button>':"";
+  const redeemBtn=isStudent?'<button class="btn" type="button" data-redeem="'+esc(item.id)+'"'+(canRedeem?"":" disabled")+'>طلب الصرف</button>':"";
+  return '<div class="list-row"><div><strong>'+esc(item.icon||"🎁")+' '+esc(item.name)+'</strong><small>'+esc(item.description||"")+' · التكلفة: '+Number(item.cost)+' من رصيد المتجر'+(item.stock!==null?" · المتاح: "+Number(item.stock):"")+(item.max_per_student?" · حد الطالب: "+Number(item.max_per_student):"")+(Number(item.active)===0?" · غير معروضة":"")+'</small></div><div style="display:flex;gap:8px;flex-wrap:wrap">'+adminToggle+redeemBtn+'</div></div>';
+ }).join("");
+ const redemptionRows=(redemptions||[]).map(r=>{
+  const canDecide=canManage&&r.status==="pending";
+  const noteInput=canDecide?'<input data-decision-note="'+esc(r.id)+'" placeholder="ملاحظة القرار (إلزامية للرفض)" maxlength="500" style="margin-top:6px">':"";
+  const buttons=canDecide?'<div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn secondary" type="button" data-decision="approved" data-redemption="'+esc(r.id)+'">اعتماد</button><button class="btn" type="button" data-decision="fulfilled" data-redemption="'+esc(r.id)+'">تنفيذ</button><button class="btn danger" type="button" data-decision="rejected" data-redemption="'+esc(r.id)+'">رفض</button></div>':"";
+  return '<div class="list-row"><div><strong>'+esc(r.item_name)+' — '+Number(r.cost)+'</strong><small>'+esc(r.display_name||"")+' · '+pointsDate(r.requested_at)+' · '+esc(pointsStatusLabel(r.status))+(r.decision_note?' · '+esc(r.decision_note):"")+'</small>'+noteInput+'</div>'+buttons+'</div>';
+ }).join("");
+ const eventRows=(summary.recent||[]).map(e=>'<div class="list-row"><div><strong>'+esc(e.reason||e.event_type)+'</strong><small>'+esc(e.kind_label)+' · '+pointsDate(e.created_at)+(e.reversed?' · معكوسة: '+esc(e.reversal_reason||""):"")+'</small></div><div style="display:flex;gap:8px;align-items:center"><span class="pill">'+(Number(e.points)>0?"+":"")+Number(e.points)+'</span>'+(canManage&&!e.reversed&&e.event_type!=="store_redemption"?'<button class="btn secondary" type="button" data-reverse="'+esc(e.id)+'">عكس</button>':"")+'</div></div>').join("");
+ let html=head("النقاط والمتجر",isStudent?"رصيدك وسجل حركاتك وطلبات الصرف.":"متابعة نقاط الطالب وإدارة المتجر وقواعد المنح.");
+ if(!isStudent)html+='<div class="card"><label class="field">اختر الطالب<select id="points-student-select">'+students.map(st=>'<option value="'+esc(st.id)+'"'+(st.id===studentId?" selected":"")+'>'+esc(st.name||st.display_name||"طالب")+'</option>').join("")+'</select></label><p class="muted small">الفوج: '+esc(summary.student.group_name||"—")+'</p></div>';
+ html+='<div class="stats"><div class="stat"><small>نقاط الإنجاز</small><strong>'+Number(summary.totals.achievement)+'</strong></div><div class="stat"><small>رصيد المتجر</small><strong>'+Number(summary.totals.store)+'</strong></div><div class="stat"><small>طلبات قيد المراجعة</small><strong>'+Number(summary.pending_redemptions)+'</strong></div></div>';
+ html+='<div class="notice">نقاط الإنجاز مؤشر تراكمي لا يُصرف. رصيد المتجر وحده يُستخدم في طلبات الصرف، وكل حركة مسجلة ولا تُحذف؛ التصحيح بعكس موثّق بسبب.</div>';
+ html+='<section class="card"><div class="section-head"><div><h3>المتجر</h3><p>المواد المتاحة مقابل رصيد المتجر.</p></div></div><div class="list">'+(itemRows||'<p class="muted">لم تُضف مواد إلى المتجر بعد.</p>')+'</div></section>';
+ if(S.user.role==="admin")html+='<section class="card"><h3>إضافة مادة إلى المتجر</h3><form id="store-item-form" class="form-grid"><label class="field">اسم المادة<input name="name" required maxlength="160"></label><label class="field">التكلفة<input name="cost" type="number" min="1" max="100000" required></label><label class="field">الكمية (فارغ = بلا حد)<input name="stock" type="number" min="0"></label><label class="field">حد الطالب (فارغ = بلا حد)<input name="max_per_student" type="number" min="1"></label><label class="field">الرمز<input name="icon" maxlength="8" placeholder="🎁"></label><label class="field">الترتيب<input name="sort_order" type="number" value="0"></label><label class="field">الوصف<textarea name="description" maxlength="2000" rows="2"></textarea></label><button class="btn" type="submit">إضافة المادة</button></form></section>';
+ html+='<section class="card"><h3>طلبات الصرف</h3><div class="list">'+(redemptionRows||'<p class="muted">لا توجد طلبات صرف بعد.</p>')+'</div></section>';
+ if(canManage)html+='<section class="card"><h3>منح نقاط يدوي</h3><form id="points-award-form" class="form-grid"><label class="field">نقاط الإنجاز<input name="achievement_points" type="number" min="0" max="1000" value="0"></label><label class="field">رصيد المتجر<input name="store_points" type="number" min="0" max="1000" value="0"></label><label class="field">سبب المنح (إلزامي)<input name="reason" required minlength="3" maxlength="500"></label><button class="btn" type="submit">منح النقاط</button></form></section>';
+ html+='<section class="card"><h3>آخر الحركات</h3>'+(canManage?'<label class="field">سبب العكس قبل الضغط على «عكس»<input id="points-reverse-reason" maxlength="500" placeholder="مثال: تصحيح خطأ في تسجيل الحضور"></label>':"")+'<div class="list">'+(eventRows||'<p class="muted">لا توجد حركات نقاط بعد.</p>')+'</div></section>';
+ if(S.user.role==="admin"){
+  const ruleRows=rules.map(rule=>{
+   const config=encodeURIComponent(JSON.stringify({id:rule.id,event_type:rule.event_type,name:rule.name,description:rule.description||"",sort_order:rule.sort_order||0,auto_award:rule.auto_award}));
+   return '<tr><td><strong>'+esc(rule.name)+'</strong><br><small class="muted">'+esc(rule.event_type)+'</small></td><td><input type="number" min="0" max="100000" value="'+Number(rule.achievement_points)+'" data-rule-achievement style="width:84px"></td><td><input type="number" min="0" max="100000" value="'+Number(rule.store_points)+'" data-rule-store style="width:84px"></td><td><input type="number" min="1" max="1000" value="'+(rule.max_per_day??"")+'" data-rule-max style="width:72px"></td><td><input type="checkbox" '+(Number(rule.active)===1?"checked":"")+' data-rule-active></td><td><button class="btn secondary" type="button" data-rule-config="'+esc(config)+'">حفظ</button></td></tr>';
+  }).join("");
+  html+='<section class="card"><h3>قواعد النقاط</h3><p class="muted small">القيم هنا هي مصدر المنح التلقائي واليدوي؛ لا تُكتب قيم النقاط في الكود.</p><div class="table-wrap"><table><thead><tr><th>القاعدة</th><th>إنجاز</th><th>متجر</th><th>سقف/يوم</th><th>مفعلة</th><th></th></tr></thead><tbody>'+ruleRows+'</tbody></table></div></section>';
+ }
+ v.innerHTML=html;
+ $("#points-student-select")?.addEventListener("change",e=>{S.pointsStudentId=e.target.value;pointsPage(v)});
+ document.querySelectorAll("[data-redeem]").forEach(btn=>btn.onclick=async()=>{btn.disabled=true;try{const result=await api("/store/redeem",{method:"POST",body:JSON.stringify({item_id:btn.dataset.redeem})});toast("تم إرسال طلب الصرف. الرصيد المتبقي: "+result.balance);await pointsPage(v)}catch(error){btn.disabled=false;toast(error.message,true)}});
+ document.querySelectorAll("[data-decision]").forEach(btn=>btn.onclick=async()=>{
+  const redemptionId=btn.dataset.redemption,decision=btn.dataset.decision;
+  const noteInput=document.querySelector('[data-decision-note="'+redemptionId+'"]');
+  const note=noteInput?noteInput.value.trim():"";
+  if(decision==="rejected"&&note.length<3){toast("اكتب سبب رفض الطلب",true);noteInput?.focus();return}
+  try{await api("/store/redemptions/"+encodeURIComponent(redemptionId)+"/decision",{method:"POST",body:JSON.stringify({decision,note})});toast("تم تسجيل قرار طلب الصرف");await pointsPage(v)}catch(error){toast(error.message,true)}
+ });
+ document.querySelectorAll("[data-reverse]").forEach(btn=>btn.onclick=async()=>{
+  const reason=($("#points-reverse-reason")?.value||"").trim();
+  if(reason.length<3){toast("اكتب سبب عكس الحركة (3 أحرف على الأقل)",true);$("#points-reverse-reason")?.focus();return}
+  try{await api("/points/events/"+encodeURIComponent(btn.dataset.reverse)+"/reverse",{method:"POST",body:JSON.stringify({reason})});toast("تم عكس الحركة مع إبقاء سجلها");await pointsPage(v)}catch(error){toast(error.message,true)}
+ });
+ $("#points-award-form")?.addEventListener("submit",async e=>{
+  e.preventDefault();const form=e.currentTarget,data=new FormData(form);
+  try{await api("/points/award",{method:"POST",body:JSON.stringify({student_id:studentId,achievement_points:Number(data.get("achievement_points")||0),store_points:Number(data.get("store_points")||0),reason:data.get("reason")})});toast("تم منح النقاط");await pointsPage(v)}catch(error){toast(error.message,true)}
+ });
+ $("#store-item-form")?.addEventListener("submit",async e=>{
+  e.preventDefault();const data=new FormData(e.currentTarget);
+  try{await api("/store/items",{method:"POST",body:JSON.stringify({name:data.get("name"),description:data.get("description"),icon:data.get("icon"),cost:Number(data.get("cost")),stock:data.get("stock")===""?null:Number(data.get("stock")),max_per_student:data.get("max_per_student")===""?null:Number(data.get("max_per_student")),sort_order:Number(data.get("sort_order")||0),active:true})});toast("تمت إضافة المادة");await pointsPage(v)}catch(error){toast(error.message,true)}
+ });
+ document.querySelectorAll("[data-store-toggle]").forEach(btn=>btn.onclick=async()=>{
+  const item=(store.items||[]).find(x=>x.id===btn.dataset.storeToggle);
+  if(!item)return;
+  try{await api("/store/items",{method:"POST",body:JSON.stringify({...item,active:Number(item.active)===0})});toast("تم تحديث حالة المادة");await pointsPage(v)}catch(error){toast(error.message,true)}
+ });
+ document.querySelectorAll("[data-rule-config]").forEach(btn=>btn.onclick=async()=>{
+  try{
+   const config=JSON.parse(decodeURIComponent(btn.dataset.ruleConfig)),tr=btn.closest("tr");
+   await api("/points/rules",{method:"POST",body:JSON.stringify({...config,achievement_points:Number(tr.querySelector("[data-rule-achievement]").value),store_points:Number(tr.querySelector("[data-rule-store]").value),max_per_day:tr.querySelector("[data-rule-max]").value===""?null:Number(tr.querySelector("[data-rule-max]").value),active:tr.querySelector("[data-rule-active]").checked})});
+   toast("تم حفظ قاعدة النقاط");await pointsPage(v);
+  }catch(error){toast(error.message,true)}
+ });
+}
+async function contentPage(v){
+ const isAdmin=S.user.role==="admin",isStudent=S.user.role==="student";
+ if(!S.contentKind)S.contentKind="hadith";
+ const kind=S.contentKind,kindLabel=kind==="hadith"?"الحديث النبوي":"المتون العلمية";
+ v.innerHTML=head("الحديث والمتون","نصوص منتقاة مع ذكر المصدر والمرجع قبل النشر.")+'<div class="loading">جار تحميل المحتوى…</div>';
+ let rows=[];
+ try{rows=await api("/content?kind="+encodeURIComponent(kind))}catch(e){v.innerHTML=head("الحديث والمتون",kindLabel)+'<div class="notice error">'+esc(e.message)+'</div>';return}
+ const tabs='<div class="student-actions" style="margin-bottom:12px"><button class="btn '+(kind==="hadith"?"":"secondary")+'" type="button" data-content-kind="hadith">الحديث النبوي</button><button class="btn '+(kind==="mutoon"?"":"secondary")+'" type="button" data-content-kind="mutoon">المتون العلمية</button></div>';
+ let html=head("الحديث والمتون",kindLabel+" · نصوص منتقاة مع ذكر المصدر والمرجع.")+tabs;
+ if(isAdmin){
+  html+='<section class="card"><h3>إضافة نص جديد</h3><form id="content-create-form" class="form-grid"><input type="hidden" name="kind" value="'+esc(kind)+'"><label class="field wide">العنوان<input name="title" required maxlength="200"></label><label class="field wide">المتن<textarea name="text" required maxlength="8000" rows="4"></textarea></label><label class="field">المصدر<input name="source" maxlength="200" placeholder="مثال: صحيح البخاري"></label><label class="field">المرجع<input name="reference" maxlength="200" placeholder="رقم الحديث أو الصفحة"></label><label class="field">درجة النص<select name="grade"><option value="">غير محددة</option><option value="صحيح">صحيح</option><option value="حسن">حسن</option><option value="ضعيف">ضعيف</option></select></label><label class="field">حالة النشر<select name="status"><option value="draft">مسودة</option><option value="published">منشور</option></select></label><div class="wide"><button class="btn" type="submit">حفظ النص</button><span class="muted small">لا يُنشر النص دون مصدر ومرجع.</span></div></form></section>';
+ }
+ html+='<section class="card"><h3>'+esc(kindLabel)+' ('+rows.length+')</h3><div class="list">'+(rows.length?rows.map(item=>{
+  const progress=item.my_progress?('<span class="pill">'+(item.my_progress.status==="memorized"?"محفوظ":"قيد المراجعة")+'</span>'):"";
+  const adminActions=isAdmin?'<button class="btn secondary" type="button" data-content-publish="'+esc(item.id)+'" data-content-status="'+(item.status==="published"?"draft":"published")+'">'+(item.status==="published"?"إلغاء النشر":"نشر")+'</button>':"";
+  const studentActions=isStudent?'<button class="btn secondary" type="button" data-content-progress="'+esc(item.id)+'" data-content-progress-status="'+(item.my_progress?.status==="memorized"?"reviewing":"memorized")+'">'+(item.my_progress?.status==="memorized"?"إعادة للمراجعة":"أتممت الحفظ")+'</button>':"";
+  return '<article class="card assignment-card"><div class="section-head"><div><h3>'+esc(item.title)+'</h3><p class="muted small">'+esc(item.source||"دون مصدر")+(item.reference?" · "+esc(item.reference):"")+(item.grade?" · "+esc(item.grade):"")+(item.status!=="published"?" · مسودة":"")+'</p></div><div class="student-actions">'+progress+adminActions+studentActions+'</div></div><p class="content-body">'+esc(item.text)+'</p></article>';
+ }).join(""):'<div class="empty">لا توجد نصوص منشورة في هذا القسم بعد.</div>')+'</div></section>';
+ v.innerHTML=html;
+ document.querySelectorAll("[data-content-kind]").forEach(btn=>btn.onclick=()=>{S.contentKind=btn.dataset.contentKind;page()});
+ $("#content-create-form")?.addEventListener("submit",async e=>{
+  e.preventDefault();const form=e.currentTarget,fd=new FormData(form),button=form.querySelector('button[type="submit"]');
+  button.disabled=true;
+  try{await api("/content",{method:"POST",body:JSON.stringify({kind:fd.get("kind"),title:fd.get("title"),text:fd.get("text"),source:fd.get("source"),reference:fd.get("reference"),grade:fd.get("grade"),status:fd.get("status")})});toast("حُفظ النص");await page()}catch(err){toast(err.message,true);button.disabled=false}
+ });
+ document.querySelectorAll("[data-content-publish]").forEach(btn=>btn.onclick=async()=>{
+  btn.disabled=true;
+  try{await api("/content/"+encodeURIComponent(btn.dataset.contentPublish),{method:"PATCH",body:JSON.stringify({status:btn.dataset.contentStatus})});toast("تم تحديث حالة النشر");await page()}catch(err){toast(err.message,true);btn.disabled=false}
+ });
+ document.querySelectorAll("[data-content-progress]").forEach(btn=>btn.onclick=async()=>{
+  btn.disabled=true;
+  try{await api("/content/"+encodeURIComponent(btn.dataset.contentProgress)+"/progress",{method:"POST",body:JSON.stringify({status:btn.dataset.contentProgressStatus})});toast("تم تحديث تتبع الحفظ");await page()}catch(err){toast(err.message,true);btn.disabled=false}
+ });
+}
+async function competitionsPage(v){
+ const isAdmin=S.user.role==="admin",isStudent=S.user.role==="student";
+ const statusLabels={draft:"مسودة",published:"مفتوحة",closed:"مغلقة"};
+ let rows=[];
+ try{rows=await api("/competitions")}catch(e){v.innerHTML=head("المسابقات","المسابقات التربوية")+'<div class="notice error">'+esc(e.message)+'</div>';return}
+ let html=head("المسابقات","مسابقات تربوية بمواعيد محددة، ومشاركات تُقيّم من المعلم.");
+ if(isAdmin){
+  html+='<section class="card"><h3>إنشاء مسابقة</h3><form id="competition-create-form" class="form-grid"><label class="field wide">عنوان المسابقة<input name="title" required maxlength="180"></label><label class="field wide">وصف المسابقة والمطلوب<textarea name="description" required maxlength="4000" rows="3"></textarea></label><label class="field">تبدأ في<input name="starts_at" type="date"></label><label class="field">تنتهي في<input name="ends_at" type="date"></label><label class="field">حالة النشر<select name="status"><option value="draft">مسودة</option><option value="published">فتح المشاركة</option></select></label><div class="wide"><button class="btn" type="submit">حفظ المسابقة</button></div></form></section>';
+ }
+ html+='<div class="list">'+(rows.length?rows.map(item=>{
+  const mine=item.my_entry;
+  const adminActions=isAdmin?'<div class="student-actions"><button class="btn secondary" type="button" data-competition-status="'+esc(item.id)+'" data-competition-next="'+(item.status==="published"?"closed":"published")+'">'+(item.status==="published"?"إغلاق المسابقة":"فتح المشاركة")+'</button><button class="btn secondary" type="button" data-competition-entries="'+esc(item.id)+'">المشاركات ('+Number(item.entries_count||0)+')</button></div>':"";
+  const studentActions=isStudent&&item.status==="published"?(mine?'<p class="muted small">مشاركتك: '+(mine.score!==null&&mine.score!==undefined?'تم التقييم بدرجة '+esc(mine.score)+(mine.note?' · '+esc(mine.note):""):"بانتظار التقييم")+'</p>':'<form class="stack competition-enter-form" data-competition-enter="'+esc(item.id)+'"><label class="field">مشاركتك<textarea name="answer" required maxlength="6000" rows="4" placeholder="اكتب إجابتك هنا…"></textarea></label><button class="btn" type="submit">إرسال المشاركة</button></form>'):"";
+  const rankingBtn=isStudent&&item.status!=="draft"?'<button class="btn secondary" type="button" data-competition-ranking="'+esc(item.id)+'">الترتيب</button>':"";
+  return '<article class="card assignment-card"><div class="section-head"><div><h3>'+esc(item.title)+'</h3><p class="muted small">'+esc(statusLabels[item.status]||item.status)+(item.starts_at?" · من "+esc(item.starts_at):"")+(item.ends_at?" إلى "+esc(item.ends_at):"")+'</p></div><div class="student-actions">'+rankingBtn+'</div></div><p class="content-body">'+esc(item.description)+'</p>'+studentActions+adminActions+'<div id="competition-panel-'+esc(item.id)+'"></div></article>';
+ }).join(""):'<div class="empty">لا توجد مسابقات منشورة بعد.</div>')+'</div>';
+ v.innerHTML=html;
+ $("#competition-create-form")?.addEventListener("submit",async e=>{
+  e.preventDefault();const form=e.currentTarget,fd=new FormData(form),button=form.querySelector('button[type="submit"]');
+  button.disabled=true;
+  try{await api("/competitions",{method:"POST",body:JSON.stringify({title:fd.get("title"),description:fd.get("description"),starts_at:fd.get("starts_at"),ends_at:fd.get("ends_at"),status:fd.get("status")})});toast("حُفظت المسابقة");await page()}catch(err){toast(err.message,true);button.disabled=false}
+ });
+ document.querySelectorAll("[data-competition-enter]").forEach(form=>form.addEventListener("submit",async e=>{
+  e.preventDefault();const target=e.currentTarget,fd=new FormData(target),button=target.querySelector('button[type="submit"]');
+  button.disabled=true;
+  try{await api("/competitions/"+encodeURIComponent(target.dataset.competitionEnter)+"/enter",{method:"POST",body:JSON.stringify({answer:fd.get("answer")})});toast("تم إرسال مشاركتك");await page()}catch(err){toast(err.message,true);button.disabled=false}
+ }));
+ document.querySelectorAll("[data-competition-status]").forEach(btn=>btn.onclick=async()=>{
+  btn.disabled=true;
+  try{await api("/competitions/"+encodeURIComponent(btn.dataset.competitionStatus),{method:"PATCH",body:JSON.stringify({status:btn.dataset.competitionNext})});toast("تم تحديث حالة المسابقة");await page()}catch(err){toast(err.message,true);btn.disabled=false}
+ });
+ document.querySelectorAll("[data-competition-ranking]").forEach(btn=>btn.onclick=async()=>{
+  const host=$("#competition-panel-"+CSS.escape(btn.dataset.competitionRanking));if(!host)return;
+  if(host.dataset.open==="1"){host.innerHTML="";host.dataset.open="";return}
+  btn.disabled=true;
+  try{
+   const data=await api("/competitions/"+encodeURIComponent(btn.dataset.competitionRanking)+"/entries");
+   host.innerHTML='<div class="divider"></div><h4>الترتيب</h4>'+(data.ranking&&data.ranking.length?'<div class="list">'+data.ranking.map(row=>'<div class="list-row"><div><strong>'+esc(row.rank)+'. '+(row.is_self?"أنت":"طالب")+'</strong></div><span class="pill">'+esc(row.score)+'</span></div>').join("")+'</div>':'<p class="muted small">لم تُقيَّم أي مشاركة بعد.</p>');
+   host.dataset.open="1";
+  }catch(err){toast(err.message,true)}finally{btn.disabled=false}
+ });
+ document.querySelectorAll("[data-competition-entries]").forEach(btn=>btn.onclick=async()=>{
+  const host=$("#competition-panel-"+CSS.escape(btn.dataset.competitionEntries));if(!host)return;
+  if(host.dataset.open==="1"){host.innerHTML="";host.dataset.open="";return}
+  btn.disabled=true;
+  try{
+   const entries=await api("/competitions/"+encodeURIComponent(btn.dataset.competitionEntries)+"/entries");
+   host.innerHTML='<div class="divider"></div><h4>المشاركات ('+entries.length+')</h4>'+(entries.length?'<div class="list">'+entries.map(entry=>'<div class="list-row" style="display:block"><div><strong>'+esc(entry.student_name)+'</strong><small>'+(entry.score!==null&&entry.score!==undefined?"الدرجة: "+esc(entry.score):"بانتظار التقييم")+'</small><p class="content-body">'+esc(entry.answer)+'</p></div><form class="form-grid competition-score-form" data-competition="'+esc(btn.dataset.competitionEntries)+'" data-entry="'+esc(entry.id)+'"><label class="field">الدرجة<input name="score" type="number" min="0" max="1000" required value="'+(entry.score??"")+'"></label><label class="field">ملاحظة<textarea name="note" maxlength="1000" rows="2">'+esc(entry.note||"")+'</textarea></label><button class="btn" type="submit">حفظ التقييم</button></form></div>').join("")+'</div>':'<p class="muted small">لا توجد مشاركات بعد.</p>');
+   host.dataset.open="1";
+   host.querySelectorAll(".competition-score-form").forEach(form=>form.addEventListener("submit",async e=>{
+    e.preventDefault();const fd=new FormData(form),save=form.querySelector('button[type="submit"]');save.disabled=true;
+    try{await api("/competitions/"+encodeURIComponent(form.dataset.competition)+"/entries/"+encodeURIComponent(form.dataset.entry)+"/score",{method:"POST",body:JSON.stringify({score:Number(fd.get("score")),note:fd.get("note")})});toast("حُفظ التقييم");save.textContent="تم الحفظ"}catch(err){toast(err.message,true);save.disabled=false}
+   }));
+  }catch(err){toast(err.message,true)}finally{btn.disabled=false}
+ });
+}
+async function tasksPage(v){
+ const data=await api("/tasks"),tasks=data.tasks||[],counts=data.counts||{};
+ const order=["pending","late","submitted","done"];
+ const labels=data.status_labels||{pending:"مطلوب",submitted:"بانتظار التصحيح",done:"منجز",late:"متأخر"};
+ const sections=order.map(status=>{
+  const rows=tasks.filter(task=>task.status===status);
+  if(!rows.length)return "";
+  return '<section class="card"><h3>'+esc(labels[status]||status)+' ('+rows.length+')</h3><div class="list">'+rows.map(task=>{
+   const target=task.type==="assignment"?"assignments":(task.type==="memorization"||task.type==="revision")?"quran":"attendance";
+   const grade=task.grade!==null&&task.grade!==undefined?' · الدرجة: '+esc(task.grade)+(task.points_total?' / '+Number(task.points_total):""):"";
+   const feedback=task.feedback?'<p class="muted small">ملاحظة المعلم: '+esc(task.feedback)+'</p>':"";
+   return '<div class="list-row"><div><strong>'+esc(task.title)+'</strong><small>'+esc(task.type_label)+(task.due_date?' · آخر موعد: '+esc(task.due_date):"")+grade+'</small>'+(task.description?'<p class="muted small">'+esc(task.description)+'</p>':"")+feedback+'</div><div class="student-actions"><span class="pill">'+esc(task.status_label)+'</span><button class="btn secondary" type="button" data-task-go="'+esc(target)+'">فتح</button></div></div>';
+  }).join("")+'</div></section>';
+ }).join("");
+ let html=head("مهامي","مهام موحّدة تجمع الواجبات وورد الحفظ والمراجعة والحضور في مكان واحد.");
+ html+='<div class="stats"><div class="stat"><small>مطلوب</small><strong>'+Number(counts.pending||0)+'</strong></div><div class="stat"><small>متأخر</small><strong>'+Number(counts.late||0)+'</strong></div><div class="stat"><small>بانتظار التصحيح</small><strong>'+Number(counts.submitted||0)+'</strong></div><div class="stat"><small>منجز</small><strong>'+Number(counts.done||0)+'</strong></div></div>';
+ html+=sections||'<section class="card"><div class="empty">لا توجد مهام مطلوبة الآن. أحسنت في متابعة وردك.</div></section>';
+ v.innerHTML=html;
+ document.querySelectorAll("[data-task-go]").forEach(btn=>btn.onclick=()=>go(btn.dataset.taskGo));
+}
 async function home(v){const d=await api("/dashboard");let html="";
 if(S.user.role!=="student"){
   const studentLabel=S.user.role==="director"?"طلاب المدرسة":"الطلاب";
@@ -1258,9 +1458,13 @@ async function studentProfile(v,id){
   jobs.push(api("/test-history?student_id="+encodeURIComponent(st.id)));
 
   jobs.push(api("/students/"+encodeURIComponent(st.id)+"/profile"));
-  const data=await Promise.all(jobs),progress=data[0]||[],attendanceRows=data[1]||[],testRows=data[2]||[],profile=data[3]||{};
+  jobs.push(api("/points/summary"+(isStudent?"":"?student_id="+encodeURIComponent(st.id))).catch(()=>null));
+  jobs.push(api("/tasks"+(isStudent?"":"?student_id="+encodeURIComponent(st.id))).catch(()=>null));
+  const data=await Promise.all(jobs),progress=data[0]||[],attendanceRows=data[1]||[],testRows=data[2]||[],profile=data[3]||{},pointsSummary=data[4]||null,taskData=data[5]||null;
   const present=attendanceRows.filter(x=>x.status==="present").length,absent=attendanceRows.filter(x=>x.status==="absent").length,late=attendanceRows.filter(x=>x.status==="late").length;
   let html=head("ملخص الطالب",st.name)+'<div class="stats"><div class="stat"><small>سجلات الحضور</small><strong>'+attendanceRows.length+'</strong></div><div class="stat"><small>الحضور</small><strong>'+present+'</strong></div><div class="stat"><small>الغياب</small><strong>'+absent+'</strong></div><div class="stat"><small>التأخر</small><strong>'+late+'</strong></div><div class="stat"><small>متابعات القرآن</small><strong>'+progress.length+'</strong></div><div class="stat"><small>محاولات الاختبارات</small><strong>'+testRows.length+'</strong></div></div><section class="card"><h3>سجل الحضور</h3><div class="list">'+(attendanceRows.length?attendanceRows.slice(0,40).map(r=>'<div class="list-row"><div><strong>'+esc(r.date)+'</strong><small>'+esc(r.note||"")+'</small></div><span class="pill">'+({"present":"حاضر","absent":"غائب","late":"متأخر","excused":"بعذر"}[r.status]||"غير مسجل")+'</span></div>').join(""):'<div class="empty">لا توجد سجلات حضور لهذا الطالب.</div>')+'</div></section><section class="card"><h3>الحفظ والمراجعة</h3><div class="list">'+(progress.length?progress.map(r=>'<div class="list-row"><div><strong>'+esc(r.date)+'</strong><small>الحفظ: '+esc(r.memorized||"—")+' · المراجعة: '+esc(r.reviewed||"—")+' · '+esc(r.notes||"")+'</small></div></div>').join(""):'<div class="empty">لا توجد متابعة قرآنية مسجّلة.</div>')+'</div></section>';
+  const taskCounts=(taskData&&taskData.counts)||{},taskRows=(taskData&&taskData.tasks)||[],openTasks=taskRows.filter(t=>t.status==="pending"||t.status==="late");
+  html+='<section class="card"><h3>النقاط والمهام</h3><div class="stats"><div class="stat"><small>نقاط الإنجاز</small><strong>'+Number(pointsSummary?.totals?.achievement||0)+'</strong></div><div class="stat"><small>رصيد المتجر</small><strong>'+Number(pointsSummary?.totals?.store||0)+'</strong></div><div class="stat"><small>مهام مطلوبة</small><strong>'+Number(taskCounts.pending||0)+'</strong></div><div class="stat"><small>مهام متأخرة</small><strong>'+Number(taskCounts.late||0)+'</strong></div></div>'+(openTasks.length?'<div class="list">'+openTasks.slice(0,6).map(t=>'<div class="list-row"><div><strong>'+esc(t.title)+'</strong><small>'+esc(t.type_label)+(t.due_date?' · '+esc(t.due_date):"")+'</small></div><span class="pill">'+esc(t.status_label)+'</span></div>').join("")+'</div>':'<p class="muted small">لا توجد مهام مفتوحة على هذا الطالب.</p>')+'</section>';
   html+='<section class="card"><h3>نتائج الاختبارات</h3><div class="list">'+(testRows.length?testRows.map(r=>'<div class="list-row"><div><strong>'+esc(r.title||"اختبار")+'</strong><small>'+esc(r.submitted_at||"")+'</small></div><strong>'+r.score+' / '+r.total+'</strong></div>').join(""):'<div class="empty">لا توجد نتائج اختبارات لهذا الطالب.</div>')+'</div></section>';
   if(!isStudent){
    html+='<section class="card"><h3>البيانات الإدارية والدراسية</h3><p class="muted small">تُحفظ هذه البيانات في ملف الطالب ولا تغيّر سجلات الحضور أو الاختبارات.</p><form id="student-profile-form" class="form-grid"><label class="field">رقم هاتف الطالب<input name="phone" maxlength="50" value="'+esc(profile.phone||"")+'"></label><label class="field">طريقة التواصل المفضلة<select name="preferred_contact"><option value="">غير محددة</option>'+["الهاتف","واتساب","ولي الأمر","أخرى"].map(x=>'<option '+(profile.preferred_contact===x?'selected':'')+'>'+x+'</option>').join("")+'</select></label><label class="field">اسم ولي الأمر<input name="guardian_name" maxlength="120" value="'+esc(profile.guardian_name||"")+'"></label><label class="field">هاتف ولي الأمر<input name="guardian_phone" maxlength="50" value="'+esc(profile.guardian_phone||"")+'"></label><label class="field">العمر<input name="age" type="number" min="3" max="100" step="1" value="'+esc(profile.age??"")+'"></label><label class="field">المستوى الدراسي<input name="school_grade" maxlength="120" value="'+esc(profile.school_grade||"")+'"></label><label class="field">المؤسسة التعليمية<input name="school_name" maxlength="160" value="'+esc(profile.school_name||"")+'"></label><label class="field">المعدل من 20<input name="average" type="number" min="0" max="20" step="0.01" value="'+esc(profile.average??"")+'"></label><label class="field wide">ملاحظات إدارية/دراسية<textarea name="notes" rows="3" maxlength="1200">'+esc(profile.notes||"")+'</textarea></label><div class="wide"><button class="btn" type="submit">حفظ بيانات الملف</button><span class="muted small" id="student-profile-status">'+(profile.updated_at?'آخر تحديث: '+esc(profile.updated_at):'لم تُسجّل بيانات إضافية بعد.')+'</span></div></form></section>';
@@ -1547,7 +1751,7 @@ async function assignmentsPage(v){
  let rows=[];
  try{rows=await api("/assignments")}catch(e){v.innerHTML=head("الواجبات","تعذّر تحميل الواجبات.")+'<div class="notice error">'+esc(e.message)+'</div>';return}
  let html=head(isStudent?"واجباتي":"الواجبات والتكليفات",isStudent?"أنجز المطلوب بهدوء، ثم أرسل إجابتك ليطلع عليها معلمك.":"أنشئ واجبًا لفوجك، وتابع التسليمات وراجع إجابات الطلاب.");
- if(staff)html+='<section class="card"><h3>إنشاء واجب جديد</h3><form id="assignment-create-form" class="stack"><label class="field">عنوان الواجب<input name="title" required maxlength="180" placeholder="مثال: مراجعة حفظ الأسبوع"></label><label class="field">التعليمات وما المطلوب من الطالب<textarea name="description" required maxlength="5000" rows="4" placeholder="اكتب المطلوب بوضوح، ومقدار العمل المتوقع."></textarea></label><label class="field">الفوج المستهدف<select name="group_id" '+(S.user.role==="admin"?"":"required")+'>'+(S.user.role==="admin"?'<option value="">واجب عام لكل الطلاب</option>':'<option value="">اختر فوجًا</option>')+groupOpts()+'</select></label><div class="form-grid"><label class="field">آخر موعد للتسليم<input name="due_date" type="date"></label><label class="field">الدرجة الكلية<input name="points_total" type="number" min="1" max="1000" value="100" required></label></div><button class="btn" type="submit">نشر الواجب</button><p class="muted small">لن يرى الطالب إلا الواجبات المنشورة له أو لفوجه، ولن يستطيع المعلم مراجعة واجبات فوج خارج نطاقه.</p></form></section><div class="divider"></div>';
+ if(staff)html+='<section class="card"><h3>إنشاء واجب جديد</h3><form id="assignment-create-form" class="stack"><label class="field">عنوان الواجب<input name="title" required maxlength="180" placeholder="مثال: مراجعة حفظ الأسبوع"></label><label class="field">التعليمات وما المطلوب من الطالب<textarea name="description" required maxlength="5000" rows="4" placeholder="اكتب المطلوب بوضوح، ومقدار العمل المتوقع."></textarea></label><label class="field">الفوج المستهدف<select name="group_id" '+(S.user.role==="admin"?"":"required")+'>'+(S.user.role==="admin"?'<option value="">واجب عام لكل الطلاب</option>':'<option value="">اختر فوجًا</option>')+groupOpts()+'</select></label><div class="form-grid"><label class="field">نوع المهمة<select name="task_type"><option value="assignment">واجب</option><option value="memorization">حفظ</option><option value="revision">مراجعة</option><option value="behavior">سلوك</option></select></label><label class="field">آخر موعد للتسليم<input name="due_date" type="date"></label><label class="field">الدرجة الكلية<input name="points_total" type="number" min="1" max="1000" value="100" required></label></div><button class="btn" type="submit">نشر الواجب</button><p class="muted small">لن يرى الطالب إلا الواجبات المنشورة له أو لفوجه، ولن يستطيع المعلم مراجعة واجبات فوج خارج نطاقه.</p></form></section><div class="divider"></div>';
  if(isStudent){
   html+='<div class="list">'+(rows.length?rows.map(a=>{
    const sub=a.my_submission||null, graded=!!sub&&sub.status==="reviewed";
@@ -1558,7 +1762,7 @@ async function assignmentsPage(v){
   html+='<div class="list">'+(rows.length?rows.map(a=>'<article class="card assignment-card"><div class="section-head"><div><h3>'+esc(a.title)+'</h3><p class="muted small">'+(a.group_id?esc((S.groups.find(g=>g.id===a.group_id)||{}).name||"فوج"):"واجب عام")+' · '+(a.due_date?'آخر موعد: '+esc(a.due_date):"دون موعد")+' · الدرجة الكلية: '+Number(a.points_total||100)+'</p></div><div class="student-actions"><button class="btn secondary" type="button" data-assignment-edit="'+esc(a.id)+'">تعديل</button><button class="btn secondary" type="button" data-assignment-review="'+esc(a.id)+'">التسليمات والمراجعة</button><button class="btn danger" type="button" data-assignment-delete="'+esc(a.id)+'">حذف</button></div></div><p class="content-body">'+esc(a.description)+'</p><div id="assignment-edit-'+esc(a.id)+'"></div><div id="assignment-submissions-'+esc(a.id)+'"></div></article>').join(""):'<div class="empty">لا توجد واجبات بعد. أنشئ أول تكليف واضح ومرتبط بهدف تعليمي.</div>')+'</div>';
  }
  v.innerHTML=html;
- $("#assignment-create-form")?.addEventListener("submit",async e=>{e.preventDefault();const form=e.currentTarget,fd=new FormData(form),button=form.querySelector('button[type="submit"]');button.disabled=true;try{await api("/assignments",{method:"POST",body:JSON.stringify({title:fd.get("title"),description:fd.get("description"),group_id:fd.get("group_id"),due_date:fd.get("due_date"),points_total:Number(fd.get("points_total"))})});toast("نُشر الواجب بنجاح");await page()}catch(err){toast(err.message,true);button.disabled=false}});
+ $("#assignment-create-form")?.addEventListener("submit",async e=>{e.preventDefault();const form=e.currentTarget,fd=new FormData(form),button=form.querySelector('button[type="submit"]');button.disabled=true;try{await api("/assignments",{method:"POST",body:JSON.stringify({title:fd.get("title"),description:fd.get("description"),group_id:fd.get("group_id"),due_date:fd.get("due_date"),points_total:Number(fd.get("points_total")),task_type:fd.get("task_type")})});toast("نُشر الواجب بنجاح");await page()}catch(err){toast(err.message,true);button.disabled=false}});
  v.querySelectorAll("[data-assignment-submit]").forEach(form=>form.addEventListener("submit",async e=>{e.preventDefault();const target=e.currentTarget,button=target.querySelector('button[type="submit"]'),fd=new FormData(target);button.disabled=true;try{await api("/assignment-submit?id="+encodeURIComponent(target.dataset.assignmentSubmit),{method:"POST",body:JSON.stringify({response_text:fd.get("response_text")})});toast("تم تسليم الواجب وحفظ إجابتك");await page()}catch(err){toast(err.message,true);button.disabled=false}}));
  v.querySelectorAll("[data-assignment-edit]").forEach(button=>button.addEventListener("click",()=>{
   const id=button.dataset.assignmentEdit,a=rows.find(item=>item.id===id),host=$("#assignment-edit-"+CSS.escape(id));if(!a||!host)return;
