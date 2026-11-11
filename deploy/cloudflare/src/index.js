@@ -2428,7 +2428,7 @@ export default {
       if(user.role!=="admin")return fail(403,"forbidden");
       try { await log(env,user.id,"admin_backup_full_export",{format:"ihsan-academy-full-backup-v2"}); }
       catch (auditError) { console.error("Ihsan full-backup audit failed",{message:String(auditError?.message||auditError)}); }
-      const [users,groups,students,recordsResult,schools,audit]=await Promise.all([
+      const [users,groups,students,recordsResult,schools,audit,googleIdentities]=await Promise.all([
         env.DB.prepare("SELECT id,display_name,identity_normalized,password_hash,role,active,must_change_password,created_at FROM users ORDER BY created_at").all(),
         env.DB.prepare("SELECT id,name,school_id,active,created_at,teacher_id FROM groups ORDER BY created_at").all(),
         env.DB.prepare("SELECT id,user_id,display_name,group_id,active,created_at FROM students ORDER BY created_at").all(),
