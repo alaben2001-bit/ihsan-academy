@@ -68,7 +68,14 @@ assert.match(app, /credentials:"same-origin"/, "API requests must send same-orig
 assert.match(app, /h\["x-csrf-token"\]=csrf/, "mutating API requests must send the CSRF token");
 const indexAppVersion = index.match(/(?:src|href)="\/app\.js\?v=([\w-]+)"/)?.[1];
 assert.ok(indexAppVersion, "the current frontend asset version must be explicit");
+const cacheVersion = (serviceWorker.match(/const ASSET_VERSION = "([^"]+)"/) || [])[1];
 assert.ok(/^ihsan-academy-pwa-v\d+-\d{8}-\d+$/.test((serviceWorker.match(/const CACHE = "([^"]+)"/) || [])[1] || ""), "the PWA cache must be invalidated with the frontend build");
+assert.equal(indexAppVersion, cacheVersion, "the app script and service worker must use the same cache-busting version");
+assert.equal((serviceWorker.match(/const ASSET_VERSION = "([^"]+)"/) || [])[1], (serviceWorker.match(/const CACHE = "ihsan-academy-pwa-v\d+-(\d{8}-\d+)"/) || [])[1], "the service worker cache name must identify its asset version");
+assert.ok(index.includes("/startup.js?v=" + indexAppVersion), "startup script must use the current frontend asset version");
+for (const page of [about, privacy]) {
+  assert.ok(page.includes("/style.css?v=" + indexAppVersion), "public pages must use the current stylesheet version");
+}
 assert.equal((index.match(/\/style\.css\?v=/g) || []).length, 1, "the page must load exactly one consolidated stylesheet");
 assert.doesNotMatch(index, /telegram-interface|ihsan-dark-theme|ihsan-emerald-pro/, "removed theme layers must not be referenced again");
 assert.doesNotMatch(index, /<script(?![^>]*(?:\bsrc=|type="application\/ld\+json"))[^>]*>/, "inline scripts are blocked by the CSP and must stay external");
