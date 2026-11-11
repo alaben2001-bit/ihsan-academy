@@ -326,6 +326,105 @@ async function resolvePointStudent(env, user, studentId) {
 const TASK_TYPE_LABELS = { assignment: "واجب", memorization: "حفظ", revision: "مراجعة", attendance: "حضور", behavior: "سلوك" };const TASK_STATUS_LABELS = { pending: "مطلوب", submitted: "بانتظار التصحيح", done: "منجز", late: "متأخر" };
 const CONTENT_KINDS = { hadith: "hadith_items", mutoon: "mutoon_items" };
 
+// 0004_learning_economy is applied here as an additive, idempotent safety net.
+// It only creates missing tables/indexes and seeds the default rules; it never
+// alters or deletes existing data. The formal migration remains the source of
+// truth, and running both is safe.
+const LEARNING_SCHEMA_STATEMENTS = [
+  `CREATE TABLE IF NOT EXISTS point_rules (
+    id TEXT PRIMARY KEY,
+    event_type TEXT NOT NULL UNIQUE,
+    name TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    achievement_points INTEGER NOT NULL DEFAULT 0 CHECK (achievement_points >= 0 AND achievement_points <= 100000),
+    store_points INTEGER NOT NULL DEFAULT 0 CHECK (store_points >= 0 AND store_points <= 100000),
+    max_per_day INTEGER CHECK (max_per_day IS NULL OR (max_per_day >= 1 AND max_per_day <= 1000)),
+    auto_award INTEGER NOT NULL DEFAULT 1 CHECK (auto_award IN (0, 1)),
+    active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    created_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_point_rules_active_order ON point_rules(active, sort_order)`,
+  `INSERT OR IGNORE INTO point_rules (id,event_type,name,description,achievement_points,store_points,max_per_day,auto_award,active,sort_order) VALUES
+    ('rule-attendance-present','attendance_present','حضور حاضر','تُمنح عند تسجيل الطالب حاضرًا في الحضور اليومي.',5,2,1,1,1,10),
+    ('rule-quran-entry','quran_entry','متابعة قرآنية','تُمنح عند إضافة متابعة حفظ أو مراجعة أو تسميع جديدة.',10,5,3,1,1,20),
+    ('rule-assignment-reviewed','assignment_reviewed','مراجعة واجب','تُمنح عند اعتماد مراجعة تسليم الواجب.',10,5,5,1,1,30),
+    ('rule-assignment-excellent','assignment_excellent','إتقان واجب','تُمنح عند اعتماد مراجعة تسليم بدرجة إتقان (80% فأكثر).',20,10,5,1,1,31),
+    ('rule-test-completed','test_completed','إكمال اختبار','تُمنح عند إكمال اختبار ونشره في السجل.',10,5,3,1,1,40),
+    ('rule-daily-challenge','daily_challenge','تحدي اليوم','تُمنح عند استلام تحدي اليوم.',5,5,1,1,1,50),
+    ('rule-quran-reading','quran_reading','قراءة وتدبّر','تُمنح عند تسجيل ورد قراءة يومي مرة واحدة.',5,2,1,1,1,55)`,
+  `CREATE TABLE IF NOT EXISTS point_events (
+    id TEXT PRIMARY KEY,
+    student_id TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    group_id TEXT REFERENCES groups(id) ON DELETE SET NULL,
+    rule_id TEXT REFERENCES point_rules(id) ON DELETE SET NULL,
+    event_type TEXT NOT NULL,
+    kind TEXT NOT NULL CHECK (kind IN ('achievement','store')),
+    points INTEGER NOT NULL CHECK (points <> 0 AND points >= -100000 AND points <= 100000),
+    reason TEXT NOT NULL DEFAULT '',
+    event_key TEXT NOT NULL,
+    awarded_date TEXT NOT NULL,
+    source_collection TEXT,
+    source_id TEXT,
+    awarded_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    reversed_at TEXT,
+    reversed_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+    reversal_reason TEXT
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_point_events_unique_event ON point_events(kind, event_key)`,
+  `CREATE INDEX IF NOT EXISTS idx_point_events_student_date ON point_events(student_id, awarded_date)`,
+  `CREATE INDEX IF NOT EXISTS idx_point_events_group_date ON point_events(group_id, awarded_date)`,
+  `CREATE INDEX IF NOT EXISTS idx_point_events_dedupe ON point_events(student_id, event_type, kind, awarded_date)`,
+  `CREATE TABLE IF NOT EXISTS store_items (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    icon TEXT NOT NULL DEFAULT '🎁',
+    cost INTEGER NOT NULL CHECK (cost >= 1 AND cost <= 100000),
+    stock INTEGER CHECK (stock IS NULL OR stock >= 0),
+    max_per_student INTEGER CHECK (max_per_student IS NULL OR max_per_student >= 1),
+    active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)),
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    created_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_store_items_active_order ON store_items(active, sort_order)`,
+  `CREATE TABLE IF NOT EXISTS store_redemptions (
+    id TEXT PRIMARY KEY,
+    item_id TEXT NOT NULL REFERENCES store_items(id) ON DELETE RESTRICT,
+    item_name TEXT NOT NULL,
+    student_id TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    group_id TEXT REFERENCES groups(id) ON DELETE SET NULL,
+    cost INTEGER NOT NULL CHECK (cost >= 1),
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected','fulfilled','cancelled')),
+    note TEXT NOT NULL DEFAULT '',
+    requested_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    decided_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+    decided_at TEXT,
+    decision_note TEXT NOT NULL DEFAULT '',
+    debit_event_id TEXT REFERENCES point_events(id) ON DELETE SET NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_store_redemptions_student ON store_redemptions(student_id, requested_at)`,
+  `CREATE INDEX IF NOT EXISTS idx_store_redemptions_group ON store_redemptions(group_id, requested_at)`,
+  `CREATE INDEX IF NOT EXISTS idx_store_redemptions_status ON store_redemptions(status, requested_at)`
+];
+let learningSchemaReady = null;
+async function ensureLearningSchema(env) {
+  if (learningSchemaReady) return learningSchemaReady;
+  learningSchemaReady = (async () => {
+    // Run the additive statements once per worker isolate. Every statement is
+    // idempotent, and the rule seeds use INSERT OR IGNORE so new default rules
+    // appear even when the economy tables were created by an earlier release.
+    for (const statement of LEARNING_SCHEMA_STATEMENTS) await env.DB.prepare(statement).run();
+    return true;
+  })().catch(error => { learningSchemaReady = null; throw error; });
+  return learningSchemaReady;
+}
+
 function buildStudentTasks(student, assignments, submissions, plan, progress, attendance) {
   const today = academyDate();
   const tasks = [];
@@ -522,6 +621,9 @@ export default {
     const user=await currentUser(request,env); if(!user)return fail(401,"يرجى تسجيل الدخول");
     if (!bearerSessionToken(request) && cookieSessionToken(request) && ["POST","PUT","PATCH","DELETE"].includes(method) && !csrfIsValid(request)) return fail(403,"تعذّر التحقق من حماية الطلب. حدّث الصفحة ثم أعد المحاولة.");
     if(user.must_change_password && !["/api/me","/api/me/password","/api/logout"].includes(path))return fail(403,"يجب تغيير كلمة المرور المؤقتة قبل متابعة استخدام الأكاديمية.");
+    try { await ensureLearningSchema(env); } catch (error) {
+      if (path.startsWith("/api/points") || path.startsWith("/api/store")) return fail(503, "تعذّر تهيئة جداول النقاط والمتجر. أعد المحاولة بعد قليل.");
+    }
     if(path==="/api/auth/google/link"&&method==="POST"){
       if(user.must_change_password)return fail(403,"غيّر كلمة المرور المؤقتة قبل ربط Google.");
       const clientId=clean(env.GOOGLE_CLIENT_ID,300);
@@ -2066,6 +2168,30 @@ export default {
       if(resolved.error)return resolved.error;
       const requested=Number(url.searchParams.get("limit")||50),limit=Number.isInteger(requested)&&requested>0?Math.min(requested,200):50;
       return json(await recentPointEvents(env,resolved.row.id,limit));
+    }
+    if(path==="/api/points/reading"&&method==="GET"){
+      if(user.role!=="student"||!user.student_id)return fail(403,"سجل القراءة متاح لحساب الطالب");
+      const [rows,rule]=await Promise.all([
+        records(env,"reading_log"," AND student_id=?",[user.student_id]),
+        env.DB.prepare("SELECT name,description,achievement_points,store_points,max_per_day,active FROM point_rules WHERE event_type='quran_reading'").first()
+      ]);
+      const day=academyDate(),days=new Set(rows.map(r=>String(r.day||"")).filter(Boolean));
+      let streak=0;for(let i=0;i<400;i++){const d=academyDate(new Date(Date.now()-i*86400000));if(!days.has(d))break;streak++}
+      return json({today:day,logged_today:rows.some(r=>r.day===day),total_days:days.size,streak,rule:rule||null,entries:rows.slice(0,30)});
+    }
+    if(path==="/api/points/reading"&&method==="POST"){
+      if(user.role!=="student"||!user.student_id||!user.group_id)return fail(403,"سجل القراءة متاح لحساب الطالب المرتبط بفوج");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      const day=academyDate(),surah=clean(b.surah,80),portion=clean(b.portion,120),reflection=clean(b.reflection,600);
+      if(!surah)return fail(400,"اذكر السورة أو الجزء الذي قرأته");
+      const id=user.student_id+":"+day;
+      const old=await env.DB.prepare("SELECT id FROM academy_records WHERE collection='reading_log' AND id=?").bind(id).first();
+      if(old)return fail(409,"سجلت قراءتك لهذا اليوم بالفعل. عُد غدًا لمواصلة سلسلتك.");
+      const entry={id,student_id:user.student_id,group_id:user.group_id,day,surah,portion,reflection,created_at:nowIso()};
+      await saveRecord(env,"reading_log",entry);
+      const awards=await awardPointsForEvent(env,{studentId:user.student_id,groupId:user.group_id,eventType:"quran_reading",eventKey:"reading:"+user.student_id+":"+day,date:day,reason:"قراءة وتدبّر: "+surah+(portion?" · "+portion:""),sourceCollection:"reading_log",sourceId:id,awardedBy:user.id});
+      await log(env,user.id,"reading_log",{day,surah,portion});
+      return json({ok:true,entry,awards,totals:await pointsTotals(env,user.student_id)},201);
     }
     if(path==="/api/points/rules"&&method==="GET"){
       if(!user)return fail(401,"يلزم تسجيل الدخول");

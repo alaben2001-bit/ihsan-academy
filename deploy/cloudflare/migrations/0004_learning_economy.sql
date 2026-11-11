@@ -38,7 +38,8 @@ INSERT OR IGNORE INTO point_rules (id,event_type,name,description,achievement_po
   ('rule-assignment-reviewed','assignment_reviewed','مراجعة واجب','تُمنح عند اعتماد مراجعة تسليم الواجب.',10,5,5,1,1,30),
   ('rule-assignment-excellent','assignment_excellent','إتقان واجب','تُمنح عند اعتماد مراجعة تسليم بدرجة إتقان (80% فأكثر).',20,10,5,1,1,31),
   ('rule-test-completed','test_completed','إكمال اختبار','تُمنح عند إكمال اختبار ونشره في السجل.',10,5,3,1,1,40),
-  ('rule-daily-challenge','daily_challenge','تحدي اليوم','تُمنح عند استلام تحدي اليوم.',5,5,1,1,1,50);
+  ('rule-daily-challenge','daily_challenge','تحدي اليوم','تُمنح عند استلام تحدي اليوم.',5,5,1,1,1,50),
+  ('rule-quran-reading','quran_reading','قراءة وتدبّر','تُمنح عند تسجيل ورد قراءة يومي مرة واحدة.',5,2,1,1,1,55);
 
 -- ---------------------------------------------------------------------------
 -- 2) دفتر النقاط: سجل غير قابل للحذف، والعكس يتم بتأشير الحركة لا بحذفها.

@@ -581,7 +581,7 @@ function items(){
  if(S.user.role==="director")return [["home","الرئيسية"],["groups","الأفواج والمعلمون والفرق"],["students","طلاب المدرسة"],["roster-bulk","إضافة أسماء الطلبة"],["attendance","الحضور"],["quran","الحفظ والمراجعة"],["effort-ranking","الترتيب الأسبوعي/الشهري"],["points","النقاط والمتجر"],["effort","تسجيل المتابعة اليومية"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"],["hadith","الحديث والمتون"],["competitions","المسابقات"]];
  if(S.user.role==="supervisor")return [["home","الرئيسية"],["students","طلاب فريقي"],["teams","فرقي الطلابية"],["attendance","الحضور"],["quran","متابعة الحفظ والمراجعة"],["effort-ranking","الترتيب الأسبوعي/الشهري"],["points","النقاط والمتجر"],["effort","تسجيل المتابعة اليومية"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"],["hadith","الحديث والمتون"],["competitions","المسابقات"]];
  if(S.user.role==="teacher")return [["home","الرئيسية"],["students","طلبتي"],["roster-bulk","إضافة أسماء الطلبة"],["groups","أفواجي"],["teams","فرقي الطلابية"],["attendance","الحضور"],["quran","متابعة الحفظ والمراجعة"],["effort-ranking","الترتيب الأسبوعي/الشهري"],["points","النقاط والمتجر"],["effort","تسجيل المتابعة اليومية"],["reports","التقارير"],["sheikh-check","فحص واجهة الشيخ"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"],["hadith","الحديث والمتون"],["competitions","المسابقات"]];
- return [["home","الرئيسية"],["profile","ملفي"],["tasks","مهامي"],["teams","فرقتي وطلبات النقل"],["quran","تقدمي في القرآن"],["hadith","الحديث والمتون"],["competitions","المسابقات"],["assignments","واجباتي"],["gradebook","تقدمي ودرجاتي"],["attendance","حضوري"],["tests","اختباراتي"],["points","النقاط والمتجر"],["notifications","التنبيهات"],["messages","الرسائل"],["leaderboard","الترتيب العام"]];
+ return [["world","عالمي"],["home","الرئيسية"],["profile","ملفي"],["tasks","مهامي"],["quran","تقدمي في القرآن"],["card","بطاقتي"],["points","النقاط والمتجر"],["leaderboard","الترتيب العام"],["guide","دليل الرحلة"],["teams","فرقتي وطلبات النقل"],["hadith","الحديث والمتون"],["competitions","المسابقات"],["assignments","واجباتي"],["gradebook","تقدمي ودرجاتي"],["attendance","حضوري"],["tests","اختباراتي"],["notifications","التنبيهات"],["messages","الرسائل"]];
 }
 
 
@@ -614,6 +614,9 @@ const NAV_ICON_PATHS={
  adab:'<path d="M12 3 14 9l6 1-4.5 4 1 6-4.5-3-4.5 3 1-6L4 10l6-1z"/>',
  hifzprogram:'<path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v18H6.5A2.5 2.5 0 0 1 4 17.5z"/><path d="M4 17.5A2.5 2.5 0 0 1 6.5 15H20M8 6h7M8 9h6"/>',
  tasks:'<path d="M9 11l3 3 8-8"/><path d="M20 12v7a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h9"/>',
+ world:'<path d="M4 20h16"/><path d="M6 20v-7a6 6 0 0 1 12 0v7"/><path d="M12 3v2"/><path d="m9 20-.5-6M15 20l.5-6"/><path d="m12 8 1 2 2 .5-1.5 1.5.3 2-1.8-1-1.8 1 .3-2L9 10.5l2-.5z"/>',
+ card:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/><path d="M7 15h4"/>',
+ guide:'<circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/>',
  hadith:'<path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v18H6.5A2.5 2.5 0 0 1 4 17.5z"/><path d="M4 17.5A2.5 2.5 0 0 1 6.5 15H20"/><path d="m11 6 1.5 1.5L15 5"/>',
  competitions:'<path d="M8 3h8v5a4 4 0 0 1-8 0z"/><path d="M8 5H5v2a3 3 0 0 0 3 3M16 5h3v2a3 3 0 0 1-3 3"/><path d="M12 12v5M9 21h6M10 17h4"/>'
 };
@@ -647,7 +650,7 @@ function navigationGroups(){
   makeGroup("المتابعة والتقويم",["gradebook","reports","notifications","messages"]),
   makeGroup("أدوات إضافية",["assignments","tests","hadith","competitions"])
  ].filter(g=>g.items.length);
- return [makeGroup("رحلتي التعليمية",["home","profile","tasks","teams","quran","hadith","competitions","assignments","gradebook","attendance","tests","points","notifications","messages","leaderboard"])].filter(g=>g.items.length);
+ return [makeGroup("عالمي",["world","card"]),makeGroup("رحلتي اليومية",["home","profile","tasks","quran","attendance","tests"]),makeGroup("إنجازاتي",["points","leaderboard","gradebook","guide"]),makeGroup("محتوى الأكاديمية",["hadith","competitions","assignments"]),makeGroup("التواصل والفرق",["teams","notifications","messages"])].filter(g=>g.items.length);
 }
 
 function navMarkup(){const seen=new Set();return navigationGroups().map(group=>{const unique=group.items.filter(x=>{if(seen.has(x[0]))return false;seen.add(x[0]);return true});return unique.length?'<div class="nav-section"><div class="nav-section-title">'+esc(group.title)+'</div>'+unique.map(x=>'<button class="nav-btn '+(S.tab===x[0]?"active":"")+'" data-tab="'+esc(x[0])+'"><span class="nav-icon-wrap">'+navIcon(x[0])+'</span><span class="nav-label">'+esc(x[1])+'</span><span class="nav-chevron" aria-hidden="true">‹</span></button>').join("")+'</div>':""}).join("")}
@@ -675,7 +678,7 @@ function start(){
  renderTopActions();
  const savedMode=safeStore.getSession("ihsan_last_mode"),savedTab=safeStore.getSession("ihsan_last_tab");
  if(savedMode==="school"||savedMode==="ihsan"){
-  S.mode=savedMode;S.tab=savedTab||(savedMode==="ihsan"?"all":"home");if(["backup","audit","school-managers","posts","teachers"].includes(S.tab))S.tab=S.user?.role==="admin"?"groups":"home";if(S.tab==="system-check"&&S.user?.role!=="admin")S.tab="home";
+  S.mode=savedMode;S.tab=savedTab||(savedMode==="ihsan"?"all":(S.user?.role==="student"?"world":"home"));if(["backup","audit","school-managers","posts","teachers"].includes(S.tab))S.tab=S.user?.role==="admin"?"groups":"home";if(S.tab==="system-check"&&S.user?.role!=="admin")S.tab="home";
   if(S.mode==="school")load().then(()=>{shell();page()});else{shell();page()}
   return;
  }
@@ -711,7 +714,7 @@ function showRotatingEntryPrayer(){
 function animateModuleChange(work){if(document.body.classList.contains("ihsan-module-transition"))return;document.body.classList.add("ihsan-module-transition");const overlay=document.createElement("div");overlay.className="ihsan-transition-screen";overlay.setAttribute("aria-hidden","true");overlay.innerHTML='<div class="ihsan-transition-mark">إحسان</div><div class="ihsan-transition-track"><span></span></div><p>تتهيأ بساتين العلم…</p>';document.body.append(overlay);requestAnimationFrame(()=>overlay.classList.add("is-visible"));window.setTimeout(async()=>{try{await work()}finally{overlay.classList.remove("is-visible");window.setTimeout(()=>{overlay.remove();document.body.classList.remove("ihsan-module-transition")},320)}},240)}
 function moduleChooser(push=true){safeStore.setSession("ihsan_last_mode","hub");safeStore.removeSession("ihsan_last_tab");document.body.classList.remove("app-authenticated");const outerHeader=document.querySelector("header.topbar"),actionBar=$("#top-actions");if(outerHeader&&actionBar&&!outerHeader.contains(actionBar))outerHeader.appendChild(actionBar);S.mode="hub";if(push){try{history.pushState({ihsanMode:"hub"},"",location.pathname+"#home")}catch{}}document.body.classList.remove("app-authenticated");renderTopActions();app.innerHTML='<section class="module-welcome"><span class="eyebrow">أَكَادِيمِيَّةُ الإِحْسَانِ فِي بِنَاءِ الإِنْسَان</span><h1>'+(S.user.role==="student"?"تجوّل في بساتين الإحسان":"مناراتُ العلم وبساتينُ الإحسان")+'</h1><p>'+(S.user.role==="student"?"من هنا تبدأ رحلتان متكاملتان: مدرسةٌ تحفظ القرآن وتتابع الحفظ والمراجعة، وبساتينُ علمٍ تتفيّأ ظلال الوحي؛ تتعرّف فيها إلى ربك تعالى، وتصحب سيرة رسوله ﷺ، وتفتح نوافذ التدبّر في القرآن، وتنهل من السنة، ثم ترى أثر العلم في عبادتك وخُلُقك ومعاملتك.":"من هُنا تُبنى العقول، وتُهذَّب النفوس، وتُصاغ هممُ الرجال؛ بالقرآن نهتدي، وبالسنة نقتدي، وبالعلم نرتقي، وبالأخلاق نسمو، وبالعمل نُثمر؛ لنُخرّج جيلًا راسخَ العلم، كريمَ الخُلُق، عظيمَ الأثر، يحمل نورَ الوحي إلى العالمين، ويترك في الحياة بصمةَ المحسنين خارجا من ظلمة الغافلين.")+'</p></section><div class="module-grid"><button class="module-card school-module" id="open-school"><span class="module-art school-art" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M7 27 32 9l25 18v28H7z"/><path d="M17 55V34h30v21M26 55V41h12v14M17 27h30M23 20h18"/></svg></span><span class="module-label">المدرسة القرآنية</span><span class="module-desc">الحفظ والمراجعة، الأفواج، الطلاب، المعلمون، الحضور والمتابعة.</span><span class="module-link">الدخول إلى المدرسة ←</span></button><button class="module-card ihsan-module" id="open-ihsan"><span class="module-art ihsan-art" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M32 7 38 22 54 27 38 33 32 49 26 33 10 27 26 22z"/><path d="M48 40 51 47 58 50 51 53 48 60 45 53 38 50 45 47zM15 7l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/></svg></span><span class="module-label">منهج الإحسان</span><span class="module-desc">مساحة علمية تجمع معرفة الله تعالى، وسيرة الرسول ﷺ، والقرآن والسنة، والأدب والعمل الصالح.</span><span class="module-link">الدخول إلى المنهج ←</span></button></div><div class="module-about-action"><button type="button" class="btn secondary" id="about-open-hub">رؤية عامة ومميزات الأكاديمية</button></div><p class="module-foot">«وَقُلْ رَبِّ زِدْنِي عِلْمًا»</p>';
 $("#about-open-hub")?.addEventListener("click",showAcademyAbout);
-$("#open-school").onclick=async()=>animateModuleChange(async()=>{safeStore.setSession("ihsan_last_mode","school");safeStore.setSession("ihsan_last_tab","home");try{history.pushState({ihsanMode:"school",ihsanTab:"home"},"",location.pathname+"#school")}catch{}S.mode="school";S.tab="home";await load();shell();await page()});
+$("#open-school").onclick=async()=>animateModuleChange(async()=>{const tab=S.user?.role==="student"?"world":"home";safeStore.setSession("ihsan_last_mode","school");safeStore.setSession("ihsan_last_tab",tab);try{history.pushState({ihsanMode:"school",ihsanTab:tab},"",location.pathname+"#school")}catch{}S.mode="school";S.tab=tab;await load();shell();await page()});
  $("#open-ihsan").onclick=()=>animateModuleChange(async()=>{safeStore.setSession("ihsan_last_mode","ihsan");safeStore.setSession("ihsan_last_tab","all");try{history.pushState({ihsanMode:"ihsan",ihsanTab:"all"},"",location.pathname+"#ihsan")}catch{}S.mode="ihsan";S.tab="all";shell();await page()})}
 
 function shell(){
@@ -724,13 +727,25 @@ function shell(){
  const displayUserName=honorificDisplayName(S.user.name,S.user.role);
  const banner="";
  const options=items().map(x=>'<option value="'+esc(x[1])+'"></option>').join("");
- app.innerHTML='<div class="layout app-shell"><nav class="sidebar" aria-label="القائمة الرئيسية"><div class="sidebar-brand"><img class="sidebar-brand-logo" src="/icon.svg" alt="" width="48" height="48"><span class="sidebar-brand-copy"><strong>أكاديمية الإحسان</strong><small>في بناء الإنسان</small></span></div><div class="sidebar-navigation">'+navMarkup()+'</div><button class="nav-btn mobile-settings" id="mobile-settings" type="button" aria-label="إعدادات الأكاديمية"><span class="nav-icon-wrap" aria-hidden="true">⚙</span><span class="nav-label">الإعدادات</span></button><button class="nav-btn mobile-logout" id="mobile-logout" type="button" aria-label="تسجيل الخروج"><span class="nav-icon-wrap" aria-hidden="true">↪</span><span class="nav-label">خروج</span></button><div class="sidebar-bottom">' +(S.user.role==="admin"?'<button class="admin-focus-toggle" id="admin-focus-toggle" type="button">' +(safeStore.get("ihsan_admin_focus")==="full"?"العودة إلى مهام الشيخ":"واجهة الإدارة") +'</button>':"") +'<button class="module-switch" id="switch-module" type="button"><span aria-hidden="true">↔</span> '+(S.mode==="school"?"الذهاب إلى منهج الإحسان":"الذهاب إلى المدرسة القرآنية")+'</button></div></nav><section class="workspace"><header class="workspace-head"><div class="workspace-heading"><div class="breadcrumbs"><strong id="workspace-title">'+esc(currentTitle)+'</strong></div><p>'+esc(role)+'</p></div><label class="workspace-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg><input id="nav-search" type="search" list="nav-search-options" placeholder="ابحث عن صفحة…" aria-label="ابحث عن صفحة في القائمة"><datalist id="nav-search-options">'+options+'</datalist></label><div class="workspace-user"><span class="workspace-status" aria-hidden="true"></span><span>'+esc(displayUserName)+'</span></div></header><div class="content-area">'+banner+'<section id="view" class="content"><div class="loading">جار التحميل…</div></section></div></section></div>';
+ app.innerHTML='<div class="layout app-shell"><nav class="sidebar" aria-label="القائمة الرئيسية"><div class="sidebar-brand"><img class="sidebar-brand-logo" src="/icon.svg" alt="" width="48" height="48"><span class="sidebar-brand-copy"><strong>أكاديمية الإحسان</strong><small>في بناء الإنسان</small></span></div><div class="sidebar-navigation">'+navMarkup()+'</div><button class="nav-btn mobile-settings" id="mobile-settings" type="button" aria-label="إعدادات الأكاديمية"><span class="nav-icon-wrap" aria-hidden="true">⚙</span><span class="nav-label">الإعدادات</span></button><button class="nav-btn mobile-logout" id="mobile-logout" type="button" aria-label="تسجيل الخروج"><span class="nav-icon-wrap" aria-hidden="true">↪</span><span class="nav-label">خروج</span></button><div class="sidebar-bottom">' +(S.user.role==="admin"?'<button class="admin-focus-toggle" id="admin-focus-toggle" type="button">' +(safeStore.get("ihsan_admin_focus")==="full"?"العودة إلى مهام الشيخ":"واجهة الإدارة") +'</button>':"") +'<button class="module-switch" id="switch-module" type="button"><span aria-hidden="true">↔</span> '+(S.mode==="school"?"الذهاب إلى منهج الإحسان":"الذهاب إلى المدرسة القرآنية")+'</button></div></nav><section class="workspace"><header class="workspace-head"><div class="workspace-heading"><div class="breadcrumbs"><strong id="workspace-title">'+esc(currentTitle)+'</strong></div><p>'+esc(role)+'</p></div><label class="workspace-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg><input id="nav-search" type="search" list="nav-search-options" placeholder="ابحث عن صفحة…" aria-label="ابحث عن صفحة في القائمة"><datalist id="nav-search-options">'+options+'</datalist></label><div class="workspace-wallet" id="workspace-wallet" aria-live="polite"></div><div class="workspace-user"><span class="workspace-status" aria-hidden="true"></span><span>'+esc(displayUserName)+'</span></div></header><div class="content-area">'+banner+'<section id="view" class="content"><div class="loading">جار التحميل…</div></section></div></section></div>';
  const actionBar=$("#top-actions"),innerHeader=document.querySelector(".workspace-head");if(actionBar&&innerHeader)innerHeader.appendChild(actionBar);
  document.querySelectorAll(".nav-btn[data-tab]").forEach(b=>b.onclick=()=>go(b.dataset.tab));$("#mobile-settings")?.addEventListener("click",showSettings);$("#mobile-logout")?.addEventListener("click",logout);
  $("#switch-module")?.addEventListener("click",()=>animateModuleChange(async()=>{const target=S.mode==="school"?"ihsan":"school";S.mode=target;S.tab=target==="ihsan"?"all":"home";safeStore.setSession("ihsan_last_mode",target);safeStore.setSession("ihsan_last_tab",S.tab);try{history.pushState({ihsanMode:target,ihsanTab:S.tab},"",location.pathname+"#"+target)}catch{}if(target==="school")await load();shell();await page()}));
  $("#admin-focus-toggle")?.addEventListener("click",()=>{const next=(safeStore.get("ihsan_admin_focus")==="full"?"daily":"full");safeStore.set("ihsan_admin_focus",next);if(next==="daily"&&["groups","system-check","teachers","backup","audit","school-managers","posts"].includes(S.tab))S.tab="home";shell();page()});
  const search=$("#nav-search");
  search?.addEventListener("keydown",event=>{if(event.key!=="Enter")return;event.preventDefault();const query=search.value.trim().toLocaleLowerCase();const found=items().find(x=>x[1]===search.value.trim())||items().find(x=>x[1].toLocaleLowerCase().includes(query));if(found)go(found[0]);else toast("لم أعثر على صفحة مطابقة",true)});
+ refreshWallet();
+}
+
+async function refreshWallet(){
+ const host=$("#workspace-wallet");if(!host)return;
+ if(S.user?.role!=="student"||S.mode!=="school"){host.innerHTML="";return}
+ try{
+  const [summary,reading]=await Promise.all([api("/points/summary"),api("/points/reading")]);
+  const achievement=Number(summary.totals?.achievement||0),store=Number(summary.totals?.store||0),streak=Number(reading?.streak||0);
+  host.innerHTML='<button type="button" class="wallet-chip" data-wallet-go="points" title="نقاط الإنجاز ورصيد المتجر"><span aria-hidden="true">★</span><strong>'+achievement+'</strong><small>إنجاز</small></button><button type="button" class="wallet-chip" data-wallet-go="points" title="رصيد المتجر"><span aria-hidden="true">◈</span><strong>'+store+'</strong><small>متجر</small></button><button type="button" class="wallet-chip wallet-chip-streak" data-wallet-go="world" title="سلسلة ورد القراءة"><span aria-hidden="true">🔥</span><strong>'+streak+'</strong><small>يوم</small></button>';
+  host.querySelectorAll("[data-wallet-go]").forEach(btn=>btn.onclick=()=>go(btn.dataset.walletGo));
+ }catch{host.innerHTML=""}
 }
 
 async function curriculumPage(v){
@@ -797,7 +812,7 @@ const groupOpts=()=>S.groups.map(g=>'<option value="'+esc(g.id)+'">'+esc(g.name)
 const assignedGroups=()=>{const role=S.user?.role;if(role==="admin")return S.groups.slice();if(role==="director"){const ids=(S.user.school_ids||[]).map(String);return S.groups.filter(g=>ids.includes(String(g.school_id||"")));}if(role==="teacher")return S.groups.filter(g=>String(g.teacher_id||"")===String(S.user.id));if(role==="supervisor")return S.groups.filter(g=>(S.user.group_ids||[]).map(String).includes(String(g.id)));return S.groups.slice()};
 function go(id){if(S.user?.role==="admin"&&id==="groups")safeStore.set("ihsan_admin_focus","full");safeStore.setSession("ihsan_last_mode",S.mode);safeStore.setSession("ihsan_last_tab",id);try{history.pushState({ihsanMode:S.mode,ihsanTab:id},"",location.pathname+"#"+encodeURIComponent(id))}catch{}S.tab=id;shell();page()}
 window.addEventListener("popstate",async e=>{if(!S.user)return;const st=e.state||{};if(st.ihsanMode==="hub"){S.mode="hub";moduleChooser(false);return;}if(st.ihsanMode==="school"||st.ihsanMode==="ihsan"){S.mode=st.ihsanMode;S.tab=st.ihsanTab||(S.mode==="ihsan"?"all":"home");if(S.mode==="school")await load();shell();await page();if(st.ihsanSubView==="student-profile")await studentProfile($("#view"),st.studentId);return;}S.mode="hub";moduleChooser(false);});
-async function page(){const v=$("#view");if(S.mode==="ihsan"){if(S.tab==="groups"&&S.user.role==="teacher"){await load();return groups(v)}return curriculumPage(v)}v.innerHTML='<div class="loading">جار تحميل البيانات…</div>';try{if(S.tab==="system-check"&&S.user.role==="admin")return systemCheckPage(v);if(S.tab==="sheikh-check"&&S.user.role==="teacher")return sheikhCheckPage(v);if(S.tab==="home")return await home(v);if(S.tab==="teams")return await teamsPage(v);if(S.tab==="groups")return groups(v);if(S.tab==="tasks")return await tasksPage(v);if(S.tab==="hadith")return await contentPage(v);if(S.tab==="competitions")return await competitionsPage(v);if(S.tab==="points")return await pointsPage(v);if(S.tab==="teachers")return teachers(v);if(S.tab==="students")return students(v);if(S.tab==="attendance")return attendance(v);if(S.tab==="assignments")return await assignmentsPage(v);if(S.tab==="gradebook")return await gradebookPage(v);if(S.tab==="messages")return await messagesPage(v);if(S.tab==="reports")return reportsPage(v);if(S.tab==="leaderboard")return leaderboardPage(v);if(S.tab==="profile")return studentProfile(v,S.user.student_id);if(S.tab==="quran")return quran(v);if(S.tab==="effort")return effortPage(v);if(S.tab==="effort-ranking")return effortRankingPage(v);if(S.tab==="roster-bulk")return bulkRosterPage(v);if(S.tab==="quran-achievement")return quranAchievementPage(v);if(S.tab==="tests")return testsPage(v);if(S.tab==="notifications")return notificationsPage(v);v.innerHTML=head("القسم غير متاح","هذا القسم لم يعد متاحًا. اختر قسمًا من القائمة.")+'<button class="btn" id="back-home">العودة إلى الرئيسية</button>';$("#back-home").onclick=()=>go("home");return}catch(e){v.innerHTML='<div class="panel"><h2>تعذّر تحميل البيانات</h2><p class="notice error">'+esc(e.message)+'</p><button class="btn" id="retry">إعادة المحاولة</button></div>';$("#retry").onclick=page}}
+async function page(){const v=$("#view");if(S.mode==="ihsan"){if(S.tab==="groups"&&S.user.role==="teacher"){await load();return groups(v)}return curriculumPage(v)}v.innerHTML='<div class="loading">جار تحميل البيانات…</div>';try{if(S.tab==="system-check"&&S.user.role==="admin")return systemCheckPage(v);if(S.tab==="sheikh-check"&&S.user.role==="teacher")return sheikhCheckPage(v);if(S.tab==="world")return await worldPage(v);if(S.tab==="card")return await cardPage(v);if(S.tab==="guide")return await guidePage(v);if(S.tab==="home")return await home(v);if(S.tab==="teams")return await teamsPage(v);if(S.tab==="groups")return groups(v);if(S.tab==="tasks")return await tasksPage(v);if(S.tab==="hadith")return await contentPage(v);if(S.tab==="competitions")return await competitionsPage(v);if(S.tab==="points")return await pointsPage(v);if(S.tab==="teachers")return teachers(v);if(S.tab==="students")return students(v);if(S.tab==="attendance")return attendance(v);if(S.tab==="assignments")return await assignmentsPage(v);if(S.tab==="gradebook")return await gradebookPage(v);if(S.tab==="messages")return await messagesPage(v);if(S.tab==="reports")return reportsPage(v);if(S.tab==="leaderboard")return leaderboardPage(v);if(S.tab==="profile")return studentProfile(v,S.user.student_id);if(S.tab==="quran")return quran(v);if(S.tab==="effort")return effortPage(v);if(S.tab==="effort-ranking")return effortRankingPage(v);if(S.tab==="roster-bulk")return bulkRosterPage(v);if(S.tab==="quran-achievement")return quranAchievementPage(v);if(S.tab==="tests")return testsPage(v);if(S.tab==="notifications")return notificationsPage(v);v.innerHTML=head("القسم غير متاح","هذا القسم لم يعد متاحًا. اختر قسمًا من القائمة.")+'<button class="btn" id="back-home">العودة إلى الرئيسية</button>';$("#back-home").onclick=()=>go("home");return}catch(e){v.innerHTML='<div class="panel"><h2>تعذّر تحميل البيانات</h2><p class="notice error">'+esc(e.message)+'</p><button class="btn" id="retry">إعادة المحاولة</button></div>';$("#retry").onclick=page}}
 function pointsStatusLabel(status){const labels={pending:"قيد المراجعة",approved:"معتمد",rejected:"مرفوض",fulfilled:"منفذ",cancelled:"ملغى"};return labels[status]||status}
 function pointsDate(value){const text=String(value||"");return text?esc(text.replace("T"," ").slice(0,16)):"—"}
 async function pointsPage(v){
@@ -991,6 +1006,131 @@ async function tasksPage(v){
  v.innerHTML=html;
  document.querySelectorAll("[data-task-go]").forEach(btn=>btn.onclick=()=>go(btn.dataset.taskGo));
 }
+const WORLD_STAGES=[
+ {min:0,name:"البذرة",title:"بداية الطريق",icon:"🌱",line:"كل بستان يبدأ ببذرة؛ خطوتك الأولى اليوم هي أصل ما تراه غدًا."},
+ {min:80,name:"النبتة",title:"نبتة صاعدة",icon:"🌿",line:"بدأت خطواتك تؤتي أكلها؛ حافظ على الورد ولا تنتظر دفعة واحدة."},
+ {min:250,name:"الشجرة",title:"شجرة مثمرة",icon:"🌳",line:"علمك صار شجرة تُظلّك وتُثمر؛ ثبّت الجذور بالمراجعة."},
+ {min:600,name:"البستان",title:"بستان الإحسان",icon:"🌺",line:"تفتّحت فيك أبواب الخير؛ اجعل أثر العلم ظاهرًا في خُلقك."},
+ {min:1200,name:"النور",title:"نور المعرفة",icon:"✨",line:"صرت علامة على الجدّ والثبات؛ فكن قدوة في الأدب قبل الدرجة."},
+ {min:2400,name:"المحراب",title:"محبّ العلم",icon:"🕌",line:"بلغت مرتبة يحبها أهل العلم؛ فازدد تواضعًا وإتقانًا ورفقًا."}
+];
+function worldStage(points){
+ const value=Number(points||0);let index=0;
+ for(let i=0;i<WORLD_STAGES.length;i++)if(value>=WORLD_STAGES[i].min)index=i;
+ const stage=WORLD_STAGES[index],next=WORLD_STAGES[index+1]||null;
+ const progress=next?Math.max(0,Math.min(100,Math.round((value-stage.min)/Math.max(1,next.min-stage.min)*100))):100;
+ return {index:index+1,count:WORLD_STAGES.length,min:stage.min,name:stage.name,title:stage.title,icon:stage.icon,line:stage.line,next,progress,remaining:next?Math.max(0,next.min-value):0,points:value};
+}
+function passSerial(value){
+ let hash=2166136261;for(const ch of String(value||"ihsan")){hash^=ch.charCodeAt(0);hash=Math.imul(hash,16777619)}
+ const code=(hash>>>0).toString(36).toUpperCase().padStart(7,"0");
+ return "IHSN-"+code.slice(0,3)+"-"+code.slice(3,7);
+}
+function worldDate(value){const text=String(value||"");return text?esc(text.replace("T"," ").slice(0,16)):"—"}
+
+async function worldPage(v){
+ if(S.user.role!=="student"){v.innerHTML=head("عالمي","هذه الصفحة مخصّصة لحساب الطالب.")+'<div class="notice">عد إلى الرئيسية لمتابعة مهامك.</div>';return}
+ v.innerHTML='<div class="loading">جار تجهيز عالمك…</div>';
+ const result=await Promise.allSettled([api("/points/summary"),api("/gamification"),api("/tasks"),api("/leaderboard"),api("/points/reading")]);
+ if(result[0].status!=="fulfilled"){
+  v.innerHTML=head("عالمي","تعذّر تحميل بياناتك الآن.")+'<div class="notice error">'+esc(result[0].reason?.message||"تعذّر التحميل")+'</div><button class="btn" id="world-retry">إعادة المحاولة</button>';
+  $("#world-retry")?.addEventListener("click",()=>worldPage(v));return;
+ }
+ const summary=result[0].value;
+ const gam=result[1].status==="fulfilled"?result[1].value:null;
+ const tasks=result[2].status==="fulfilled"?result[2].value:{tasks:[],counts:{}};
+ const board=result[3].status==="fulfilled"?result[3].value:[];
+ const reading=result[4].status==="fulfilled"?result[4].value:null;
+ const achievement=Number(summary.totals?.achievement||0),store=Number(summary.totals?.store||0);
+ const stage=worldStage(achievement);
+ const me=board.find(x=>x.is_self);
+ const counts=tasks.counts||{};
+ const streak=Number(reading?.streak||0);
+ const firstName=String(summary.student?.name||S.user.name||"الطالب").trim().split(/\s+/)[0];
+ const quest=(title,value,icon,target)=>"<button type=\"button\" class=\"world-quest\" data-world-go=\""+esc(target)+"\"><span class=\"world-quest-icon\" aria-hidden=\"true\">"+icon+"</span><span><strong>"+esc(title)+"</strong><small>"+esc(String(value))+"</small></span><span class=\"world-quest-arrow\" aria-hidden=\"true\">‹</span></button>";
+ const garden=WORLD_STAGES.map((item,i)=>{
+  const unlocked=achievement>=item.min,current=stage.index===i+1;
+  return '<article class="world-plot '+(unlocked?"is-grown":"")+(current?" is-current":"")+'"><span class="world-plot-icon" aria-hidden="true">'+(unlocked?item.icon:"🔒")+'</span><strong>'+esc(item.name)+'</strong><small>'+Number(item.min)+' نقطة</small></article>';
+ }).join("");
+ const recentEntries=(reading?.entries||[]).slice(0,3).map(entry=>'<div class="list-row"><div><strong>'+esc(entry.surah||"ورد")+(entry.portion?' · '+esc(entry.portion):"")+'</strong><small>'+esc(entry.day||"")+(entry.reflection?' · '+esc(entry.reflection):"")+'</small></div><span class="pill">+ورد</span></div>').join("");
+ const readingBlock=reading?.logged_today
+  ? '<div class="notice world-reading-done"><strong>سجّلت ورد اليوم.</strong> سلسلتك الآن '+Number(streak)+' يومًا. عُد غدًا لتبني عليها.</div>'
+  : '<form id="world-reading-form" class="world-reading-form"><label class="field">السورة أو الجزء<input name="surah" required maxlength="80" placeholder="مثال: سورة الملك"></label><label class="field">المقدار<input name="portion" maxlength="120" placeholder="مثال: صفحتان بتدبّر"></label><label class="field">خاطرة أو تدبّر<textarea name="reflection" maxlength="600" rows="2" placeholder="فائدة واحدة فهمتها اليوم…"></textarea></label><div class="student-actions"><button class="btn" type="submit">تسجيل ورد القراءة</button><span class="muted small">تُمنح مرة واحدة كل يوم.</span></div></form>';
+ const challengeBlock=gam&&!gam.challenge_claimed
+  ? '<div class="world-challenge-box"><div><span class="eyebrow">تحدي اليوم</span><strong>'+esc(gam.daily_challenge?.title||"ورد اليوم")+'</strong><p>'+esc(gam.daily_challenge?.description||"اقرأ وردك وراجعه بإتقان.")+'</p></div><button class="btn" type="button" id="world-claim">استلام المكافأة</button></div>'
+  : '<div class="notice">'+(gam?.challenge_claimed?"استلمت مكافأة تحدي اليوم. أحسنت!":"تحدي اليوم يظهر عندما يجهز حسابك في فوج.")+'</div>';
+ v.innerHTML='<div class="world-page">'+
+  '<section class="world-hero"><div class="world-avatar" style="--world-progress:'+stage.progress+'%"><span class="world-avatar-halo" aria-hidden="true"></span><span class="world-avatar-icon" aria-hidden="true">'+stage.icon+'</span><span class="world-avatar-level">المستوى '+stage.index+'</span></div><div class="world-hero-copy"><span class="eyebrow">عالمك في الإحسان · '+esc(stage.title)+'</span><h2>بستان '+esc(firstName)+'</h2><p>'+esc(stage.line)+'</p><div class="world-progress"><div class="world-progress-head"><span>'+esc(stage.name)+'</span><span>'+(stage.next?Number(stage.remaining)+' نقطة إلى '+esc(stage.next.name):"أعلى مرتبة في العالم")+'</span></div><div class="world-meter"><i style="width:'+stage.progress+'%"></i></div></div><div class="world-chips"><span class="world-chip"><b>★</b> '+Number(achievement)+' إنجاز</span><span class="world-chip"><b>◈</b> '+Number(store)+' رصيد متجر</span><span class="world-chip"><b>🔥</b> '+streak+' يوم قراءة</span><span class="world-chip"><b>#</b> '+(me?Number(me.rank):"—")+' في الفوج</span></div></div></section>'+
+  '<div class="world-grid"><section class="card world-garden"><div class="section-head"><div><span class="eyebrow">بستانك</span><h3>مراتب تنمو بأعمالك</h3><p>كل مرتبة تفتح بخطوات حقيقية: حضور، حفظ، مراجعة، واجبات، اختبارات، وقراءة.</p></div><span class="pill">'+stage.index+' / '+stage.count+'</span></div><div class="world-plots">'+garden+'</div></section>'+
+  '<section class="card world-quests"><div class="section-head"><div><span class="eyebrow">مهام اليوم</span><h3>خطوات صغيرة تبني عالمك</h3><p>ابدأ بأقرب خطوة؛ لا تنتظر يومًا كاملًا لتتحرك.</p></div></div><div class="world-quest-grid">'+quest("ورد القرآن",Number(gam?.stats?.quran_days||0)+" يوم","۞","quran")+quest("الحضور",Number(gam?.stats?.attendance||0)+" مرات","✓","attendance")+quest("المهام المنجزة",Number(counts.done||0)+" مهام","▤","tasks")+quest("الترتيب في الفوج",me?"#"+Number(me.rank):"—","#","leaderboard")+'</div>'+challengeBlock+'</section></div>'+
+  '<section class="card world-reading"><div class="section-head"><div><span class="eyebrow">ورد القراءة</span><h3>سجّل قراءتك اليوم</h3><p>القراءة اليومية تبني سلسلة وتمنحك نقاط إنجاز ورصيد متجر مرة واحدة كل يوم.</p></div><span class="world-streak">🔥 '+streak+'</span></div>'+readingBlock+(recentEntries?'<div class="list world-reading-list">'+recentEntries+'</div>':"")+'</section>'+
+  '<section class="card world-journey"><div class="section-head"><div><span class="eyebrow">الطريق</span><h3>من البذرة إلى المحراب</h3><p>هذه ليست لعبة منفصلة عن الأكاديمية؛ كل مرتبة هنا مبنية على عمل سجّلته فعليًا.</p></div><button class="btn secondary" type="button" data-world-go="guide">دليل الرحلة</button></div><div class="world-journey-track">'+WORLD_STAGES.map((item,i)=>'<div class="world-journey-stop '+(achievement>=item.min?"is-done":"")+(stage.index===i+1?" is-current":"")+'"><span>'+item.icon+'</span><strong>'+esc(item.name)+'</strong><small>'+Number(item.min)+'</small></div>').join("")+'</div></section>'+
+  '</div>';
+ v.querySelectorAll("[data-world-go]").forEach(btn=>btn.onclick=()=>go(btn.dataset.worldGo));
+ $("#world-claim")?.addEventListener("click",async event=>{
+  const button=event.currentTarget;button.disabled=true;
+  try{await api("/gamification/claim",{method:"POST",body:JSON.stringify({challenge_id:gam?.daily_challenge?.id||"daily-quran"})});toast("تم تسجيل إنجازك ومكافأتك اليومية");await worldPage(v);refreshWallet()}
+  catch(error){button.disabled=false;toast(error.message,true)}
+ });
+ $("#world-reading-form")?.addEventListener("submit",async event=>{
+  event.preventDefault();const form=event.currentTarget,button=form.querySelector('button[type="submit"]'),data=new FormData(form);
+  button.disabled=true;
+  try{await api("/points/reading",{method:"POST",body:JSON.stringify({surah:data.get("surah"),portion:data.get("portion"),reflection:data.get("reflection")})});toast("حُفظ وردك ومنحتك الأكاديمية نقاطه");await worldPage(v);refreshWallet()}
+  catch(error){button.disabled=false;toast(error.message,true)}
+ });
+}
+
+async function cardPage(v){
+ if(S.user.role!=="student"){v.innerHTML=head("بطاقتي","هذه الصفحة مخصّصة لحساب الطالب.");return}
+ v.innerHTML='<div class="loading">جار تجهيز بطاقتك…</div>';
+ const result=await Promise.allSettled([api("/points/summary"),api("/gamification"),api("/leaderboard"),api("/points/reading")]);
+ if(result[0].status!=="fulfilled"){
+  v.innerHTML=head("بطاقتي","تعذّر تحميل بطاقتك الآن.")+'<div class="notice error">'+esc(result[0].reason?.message||"تعذّر التحميل")+'</div><button class="btn" id="card-retry">إعادة المحاولة</button>';
+  $("#card-retry")?.addEventListener("click",()=>cardPage(v));return;
+ }
+ const summary=result[0].value,gam=result[1].status==="fulfilled"?result[1].value:null,board=result[2].status==="fulfilled"?result[2].value:[],reading=result[3].status==="fulfilled"?result[3].value:null;
+ const student=summary.student||{},achievement=Number(summary.totals?.achievement||0),store=Number(summary.totals?.store||0),stage=worldStage(achievement),me=board.find(x=>x.is_self);
+ const serial=passSerial(student.id||S.user.student_id||S.user.id),year=new Date().getFullYear();
+ const recent=(summary.recent||[]).slice(0,6).map(event=>'<div class="list-row"><div><strong>'+esc(event.reason||event.event_type)+'</strong><small>'+esc(event.kind_label||"")+' · '+worldDate(event.created_at)+'</small></div><span class="pill">'+(Number(event.points)>0?"+":"")+Number(event.points)+'</span></div>').join("");
+ const badges=(gam?.badges||[]).map(badge=>'<span class="pass-badge"><span aria-hidden="true">'+esc(badge.icon||"★")+'</span>'+esc(badge.name)+'</span>').join("");
+ v.innerHTML='<div class="card-page">'+
+  '<div class="card-page-head"><div><span class="eyebrow">هويتك في الأكاديمية</span><h2>بطاقة الطالب</h2><p>بطاقة شخصية تجمع مستواك ورصيدك وترتيبك في مكان واحد؛ اعرضها أو اطبعها.</p></div><button class="btn secondary" type="button" id="pass-print">طباعة البطاقة</button></div>'+
+  '<section class="student-pass-wrap"><article class="student-pass" aria-label="بطاقة الطالب"><span class="pass-shine" aria-hidden="true"></span><div class="pass-pattern" aria-hidden="true"></div><div class="pass-head"><span class="pass-brand"><span class="pass-brand-mark" aria-hidden="true">إ</span>أكاديمية الإحسان</span><span class="pass-type">بطاقة طالب</span></div><div class="pass-middle"><span class="pass-chip" aria-hidden="true"><i></i><i></i><i></i></span><span class="pass-level">'+esc(stage.name)+' · المستوى '+stage.index+'</span></div><div class="pass-name">'+esc(student.name||S.user.name||"الطالب")+'</div><div class="pass-serial" dir="ltr">'+esc(serial)+'</div><div class="pass-grid"><div><small>نقاط الإنجاز</small><strong>'+Number(achievement)+'</strong></div><div><small>رصيد المتجر</small><strong>'+Number(store)+'</strong></div><div><small>ترتيب الفوج</small><strong>'+(me?"#"+Number(me.rank):"—")+'</strong></div><div><small>سلسلة القراءة</small><strong>'+Number(reading?.streak||0)+'</strong></div></div><div class="pass-foot"><span>الفوج: '+esc(student.group_name||"—")+'</span><span>صالحة حتى '+year+'-09</span></div></article></section>'+
+  '<div class="pass-stats"><div class="stat"><small>أيام القرآن</small><strong>'+Number(gam?.stats?.quran_days||0)+'</strong></div><div class="stat"><small>مرات الحضور</small><strong>'+Number(gam?.stats?.attendance||0)+'</strong></div><div class="stat"><small>الاختبارات</small><strong>'+Number(gam?.stats?.tests||0)+'</strong></div><div class="stat"><small>أيام القراءة</small><strong>'+Number(reading?.total_days||0)+'</strong></div></div>'+
+  '<div class="card-page-grid"><section class="card"><div class="section-head"><div><h3>أوسمتك</h3><p>تُفتح تلقائيًا عند تحقق شرطها.</p></div></div><div class="pass-badges">'+(badges||'<p class="muted">لم تُفتح وسام بعد؛ ابدأ بورد اليوم.</p>')+'</div></section><section class="card"><div class="section-head"><div><h3>آخر حركات الرصيد</h3><p>كل حركة مسجّلة ولا تُحذف.</p></div><button class="btn secondary" type="button" data-card-go="points">كل الحركات</button></div><div class="list">'+(recent||'<p class="muted">لا توجد حركات نقاط بعد.</p>')+'</div></section></div>'+
+  '</div>';
+ $("#pass-print")?.addEventListener("click",()=>window.print());
+ v.querySelectorAll("[data-card-go]").forEach(btn=>btn.onclick=()=>go(btn.dataset.cardGo));
+}
+
+async function guidePage(v){
+ let rules=[];
+ try{rules=await api("/points/rules")}catch(error){rules=[]}
+ const ruleRows=rules.map(rule=>'<tr><td><strong>'+esc(rule.name)+'</strong><br><small class="muted">'+esc(rule.description||rule.event_type)+'</small></td><td>'+Number(rule.achievement_points||0)+'</td><td>'+Number(rule.store_points||0)+'</td><td>'+(rule.max_per_day?"مرة كل يوم":"—")+'</td></tr>').join("");
+ const readingRule=rules.find(rule=>rule.event_type==="quran_reading");
+ const readingPoints=Number(readingRule?.achievement_points||5),readingStore=Number(readingRule?.store_points||2);
+ const stageRows=WORLD_STAGES.map((item,index)=>'<tr><td><strong>'+esc(item.name)+'</strong><br><small class="muted">'+esc(item.title)+'</small></td><td>'+Number(item.min)+'</td><td>'+esc(item.line)+'</td></tr>').join("");
+ const steps=[
+  ["01","احضر حلقتك","سجّل حضورك مع الشيخ؛ المواظبة أول رصيد يبنيه عالمك.","attendance"],
+  ["02","احفظ وراجع","سجّل الحفظ والمراجعة اليومية؛ ٣٥٪ من ترتيبك من القرآن.","quran"],
+  ["03","أتمّ واجبك","سلّم الواجب في وقته؛ الإتقان يمنحك نقاطًا أعلى.","assignments"],
+  ["04","اختبر نفسك","الاختبارات تقيس الفهم، و٣٠٪ من ترتيبك من إتقانها.","tests"],
+  ["05","سجّل قراءتك","ورد يومي يمنحك "+readingPoints+" نقاط إنجاز و"+readingStore+" رصيد متجر، مرة واحدة يوميًا.","world"],
+  ["06","استلم تحديك","تحدي اليوم يمنحك دفعة إضافية ويحفظ سلسلتك.","world"]
+ ];
+ const stepCards=steps.map(step=>'<button type="button" class="guide-step" data-guide-go="'+esc(step[3])+'"><span class="guide-step-number">'+step[0]+'</span><strong>'+esc(step[1])+'</strong><p>'+esc(step[2])+'</p><span class="guide-step-link">افتح ›</span></button>').join("");
+ v.innerHTML='<div class="guide-page">'+
+  '<section class="guide-hero"><span class="eyebrow">دليل الرحلة · بأرقام واضحة</span><h2>كيف تنمو في عالم الإحسان؟</h2><p>في كل يوم، اقرأ هذه الجملة كاملة: <strong>احضر حلقتك، واحفظ وراجع وردك، وأتمّ واجبك، واختبر نفسك، وسجّل قراءتك، واستلم تحديك؛ فكل خطوة تُضاف إلى نقاط إنجازك وترتيبك ورصيد متجرك.</strong></p><div class="guide-hero-stats"><span><strong>6</strong> خطوات يومية</span><span><strong>25/35/30/10</strong> وزن الترتيب</span><span><strong>6</strong> مراتب للعالم</span></div></section>'+
+  '<section class="card guide-steps-section"><div class="section-head"><div><span class="eyebrow">دورة النمو</span><h3>ست خطوات، ثم تتحرك مرتبتك</h3><p>اضغط أي خطوة لتنتقل إلى مكان تنفيذها مباشرة.</p></div></div><div class="guide-steps">'+stepCards+'</div></section>'+
+  '<section class="card"><div class="section-head"><div><span class="eyebrow">من أين تأتي النقاط؟</span><h3>قواعد النقاط المعتمدة</h3><p>القيم تُدار من الأكاديمية وليست ثابتة في الكود؛ تُحدّث من لوحة المدير.</p></div></div><div class="table-wrap"><table><thead><tr><th>القاعدة</th><th>نقاط الإنجاز</th><th>رصيد المتجر</th><th>السقف</th></tr></thead><tbody>'+(ruleRows||'<tr><td colspan="4">ستظهر القواعد بعد تهيئة الاقتصاد التعليمي في حسابك.</td></tr>')+'</tbody></table></div><div class="notice"><strong>الفارق المهم:</strong> نقاط الإنجاز مؤشر تراكمي يبني مستواك ولا تُصرف. رصيد المتجر وحده يُستخدم في طلبات الصرف، وكل حركة مسجّلة ولا تُحذف؛ التصحيح بعكس موثّق بسبب.</div></section>'+
+  '<div class="guide-grid"><section class="card"><div class="section-head"><div><span class="eyebrow">الترتيب</span><h3>كيف يُحسب ترتيب الفوج؟</h3></div></div><div class="guide-formula"><div><strong>25٪</strong><span>المواظبة والحضور</span></div><div><strong>35٪</strong><span>الحفظ والمراجعة</span></div><div><strong>30٪</strong><span>إتقان الاختبارات</span></div><div><strong>10٪</strong><span>التحديات اليومية</span></div></div><p class="muted small">الترتيب تحفيزي لا يقيس قيمة الطالب، ولا يستبدل تقييم الشيخ لجودة الحفظ والتجويد والفهم.</p></section>'+
+  '<section class="card"><div class="section-head"><div><span class="eyebrow">النزاهة</span><h3>قواعد تحفظ العدل</h3></div></div><ul class="guide-rules"><li>كل حدث يُمنح مرة واحدة فقط؛ لا تتكرر النقاط لنفس العمل.</li><li>لكل قاعدة سقف يومي، فلا تتضخم النقاط بالتكرار.</li><li>سجل القراءة مرة واحدة كل يوم، ويُربط بفوجك.</li><li>لا تُحذف الحركات؛ التصحيح يكون بعكس موثّق بسبب.</li></ul></section></div>'+
+  '<section class="card"><div class="section-head"><div><span class="eyebrow">مراتب العالم</span><h3>من البذرة إلى المحراب</h3><p>المرتبة تُفتح بنقاط الإنجاز المتراكمة، لا بالوقت وحده.</p></div></div><div class="table-wrap"><table><thead><tr><th>المرتبة</th><th>تبدأ من</th><th>معناها</th></tr></thead><tbody>'+stageRows+'</tbody></table></div></section>'+
+  '<div class="guide-actions"><button class="btn" type="button" data-guide-go="world">العودة إلى عالمي</button><button class="btn secondary" type="button" data-guide-go="card">بطاقتي</button><button class="btn secondary" type="button" data-guide-go="tasks">مهامي</button></div>'+
+  '</div>';
+ v.querySelectorAll("[data-guide-go]").forEach(btn=>btn.onclick=()=>go(btn.dataset.guideGo));
+}
+
 async function home(v){const d=await api("/dashboard");let html="";
 if(S.user.role!=="student"){
   const studentLabel=S.user.role==="director"?"طلاب المدرسة":"الطلاب";
