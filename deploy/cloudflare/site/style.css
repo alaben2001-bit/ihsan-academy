@@ -3214,3 +3214,62 @@ html:root:root .academy-about-footnote{background:#241006!important;border-color
  .student-pass-wrap{display:block!important;padding:0!important}
  .student-pass{width:100%!important;min-height:0!important;box-shadow:none!important;border:1px solid #444!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
+
+/* ==========================================================
+   QURAN PATH — مسار القرآن: الحفظ والتثبيت والورد والرفيق
+   ========================================================== */
+.quran-subtabs{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 18px}
+.quran-subtab{border:1px solid var(--line);background:var(--surface-2);color:var(--muted);border-radius:999px;padding:9px 16px;font:inherit;font-size:.9rem;cursor:pointer;transition:background .2s,color .2s,border-color .2s}
+.quran-subtab:hover{color:var(--ink);border-color:var(--gold)}
+.quran-subtab.is-active{background:linear-gradient(135deg,rgba(239,82,108,.28),rgba(232,196,119,.16));color:var(--ink);border-color:var(--gold);font-weight:700}
+.quran-enroll-grid,.quran-log-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}
+.quran-enroll-form,.quran-log-form,.quran-session-form{display:flex;flex-direction:column;gap:12px}
+.quran-daily-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin:16px 0}
+.quran-log-card{display:flex;flex-direction:column;gap:10px}
+.quran-log-card.is-done{border-color:rgba(232,196,119,.55)}
+.quran-log-done{display:flex;flex-direction:column;gap:4px;padding:14px;border-radius:12px;background:rgba(232,196,119,.10);border:1px dashed rgba(232,196,119,.45)}
+.quran-log-done strong{color:var(--gold)}
+.quran-log-done small{color:var(--muted)}
+.quran-path-hero{border:1px solid var(--line);background:linear-gradient(160deg,rgba(239,82,108,.16),rgba(21,10,16,.2))}
+.quran-path-chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.quran-streak{font-weight:800;color:var(--gold);font-size:1.05rem}
+.quran-journey{margin-top:6px}
+.quran-gates{display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:10px;margin:14px 0}
+.quran-gate{display:flex;flex-direction:column;align-items:center;gap:2px;padding:14px 8px;border-radius:14px;border:1px solid var(--line);background:var(--surface-2);text-align:center}
+.quran-gate span{font-size:1.35rem;font-weight:800;color:var(--muted)}
+.quran-gate strong{font-size:.9rem}
+.quran-gate small{color:var(--muted);font-size:.75rem}
+.quran-gate.is-approved{border-color:var(--gold);background:linear-gradient(160deg,rgba(232,196,119,.20),rgba(239,82,108,.12))}
+.quran-gate.is-approved span{color:var(--gold)}
+.quran-journey-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin-top:12px}
+.quran-journey-stats>div{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:10px 12px;display:flex;flex-direction:column;gap:2px}
+.quran-journey-stats small{color:var(--muted);font-size:.76rem}
+.quran-journey-stats strong{font-size:1.05rem;color:var(--ink)}
+.quran-pledge{border:1px dashed rgba(232,196,119,.5);background:rgba(232,196,119,.07);border-radius:12px;padding:12px 14px;color:var(--ink);font-size:.92rem;line-height:1.9}
+.quran-rubric{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin:14px 0}
+.quran-rubric>div{background:var(--surface-2);border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center;display:flex;flex-direction:column;gap:2px}
+.quran-rubric strong{color:var(--gold);font-size:1.15rem}
+.quran-rubric span{color:var(--muted);font-size:.78rem}
+.quran-score-preview{padding:12px 14px;border-radius:12px;background:rgba(239,82,108,.10);border:1px solid rgba(239,82,108,.35);font-size:.95rem}
+.quran-score-preview strong{font-size:1.25rem;color:var(--gold)}
+.quran-stations-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px}
+.quran-staff-switch{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0}
+.quran-staff-switch .btn.is-active{background:linear-gradient(135deg,rgba(239,82,108,.3),rgba(232,196,119,.18));border-color:var(--gold);color:var(--ink)}
+.quran-sup-summary{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0 16px}
+.quran-sup-actions{display:flex;gap:6px;flex-wrap:wrap}
+.quran-sup-actions .btn{padding:6px 10px;font-size:.8rem}
+.check-line{display:flex;align-items:center;gap:8px;color:var(--muted);font-size:.88rem}
+.check-line input{width:auto;accent-color:var(--gold)}
+.quran-plan-edit{margin:16px 0}
+.quran-plan-edit>summary{cursor:pointer;list-style:none;display:inline-flex;width:auto}
+.quran-plan-edit>summary::-webkit-details-marker{display:none}
+.quran-plan-edit[open]>summary{margin-bottom:12px}
+@media(max-width:640px){
+ .quran-subtabs{gap:6px}
+ .quran-subtab{padding:8px 12px;font-size:.82rem}
+ .quran-daily-grid,.quran-stations-grid{grid-template-columns:1fr}
+ .quran-log-fields{grid-template-columns:1fr 1fr}
+}
+@media(prefers-reduced-motion:reduce){
+ .quran-subtab{transition:none}
+}

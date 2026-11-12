@@ -425,6 +425,219 @@ async function ensureLearningSchema(env) {
   return learningSchemaReady;
 }
 
+// 0005_quran_path is applied here as an additive, idempotent safety net too.
+// It only creates missing tables/indexes; it never alters or deletes data.
+const QURAN_SCHEMA_STATEMENTS = [
+  `CREATE TABLE IF NOT EXISTS quran_paths (
+    student_id TEXT PRIMARY KEY REFERENCES students(id) ON DELETE CASCADE,
+    group_id TEXT REFERENCES groups(id) ON DELETE SET NULL,
+    hifz_plan TEXT NOT NULL DEFAULT 'plan_a' CHECK (hifz_plan IN ('plan_a','plan_b','plan_c')),
+    hifz_amount TEXT NOT NULL DEFAULT '',
+    hifz_unit TEXT NOT NULL DEFAULT 'سطر',
+    hifz_category TEXT NOT NULL DEFAULT '15' CHECK (hifz_category IN ('15','30','45','60')),
+    ward_ahzab INTEGER NOT NULL DEFAULT 1 CHECK (ward_ahzab IN (1,2,4)),
+    rest_day INTEGER CHECK (rest_day IS NULL OR (rest_day >= 0 AND rest_day <= 6)),
+    start_date TEXT NOT NULL,
+    active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0,1)),
+    updated_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+  )`,
+  `CREATE TABLE IF NOT EXISTS quran_daily (
+    id TEXT PRIMARY KEY,
+    student_id TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    day TEXT NOT NULL,
+    kind TEXT NOT NULL CHECK (kind IN ('hifz','thabit','ward')),
+    amount REAL NOT NULL DEFAULT 0 CHECK (amount >= 0),
+    unit TEXT NOT NULL DEFAULT '',
+    repetitions INTEGER NOT NULL DEFAULT 0 CHECK (repetitions >= 0 AND repetitions <= 100),
+    linked_scope TEXT NOT NULL DEFAULT '',
+    notes TEXT NOT NULL DEFAULT '',
+    created_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+  )`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS idx_quran_daily_unique ON quran_daily(student_id, day, kind)`,
+  `CREATE INDEX IF NOT EXISTS idx_quran_daily_student_day ON quran_daily(student_id, day)`,
+  `CREATE TABLE IF NOT EXISTS quran_pairs (
+    id TEXT PRIMARY KEY,
+    group_id TEXT REFERENCES groups(id) ON DELETE SET NULL,
+    student_a TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    student_b TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0,1)),
+    created_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    CHECK (student_a <> student_b)
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_quran_pairs_a ON quran_pairs(student_a, active)`,
+  `CREATE INDEX IF NOT EXISTS idx_quran_pairs_b ON quran_pairs(student_b, active)`,
+  `CREATE TABLE IF NOT EXISTS quran_pair_sessions (
+    id TEXT PRIMARY KEY,
+    pair_id TEXT NOT NULL REFERENCES quran_pairs(id) ON DELETE CASCADE,
+    day TEXT NOT NULL,
+    reciter_id TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    listener_id TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    amount TEXT NOT NULL DEFAULT '',
+    errors INTEGER NOT NULL DEFAULT 0 CHECK (errors >= 0 AND errors <= 10000),
+    error_positions TEXT NOT NULL DEFAULT '',
+    hesitations INTEGER NOT NULL DEFAULT 0 CHECK (hesitations >= 0 AND hesitations <= 10000),
+    prompts INTEGER NOT NULL DEFAULT 0 CHECK (prompts >= 0 AND prompts <= 10000),
+    minutes REAL NOT NULL DEFAULT 0 CHECK (minutes >= 0 AND minutes <= 1000),
+    expected_minutes REAL NOT NULL DEFAULT 0 CHECK (expected_minutes >= 0 AND expected_minutes <= 1000),
+    score INTEGER NOT NULL CHECK (score >= 0 AND score <= 100),
+    notes TEXT NOT NULL DEFAULT '',
+    signed_reciter INTEGER NOT NULL DEFAULT 0 CHECK (signed_reciter IN (0,1)),
+    signed_listener INTEGER NOT NULL DEFAULT 0 CHECK (signed_listener IN (0,1)),
+    override_reason TEXT NOT NULL DEFAULT '',
+    created_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    CHECK (reciter_id <> listener_id)
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_quran_pair_sessions_pair_day ON quran_pair_sessions(pair_id, day)`,
+  `CREATE TABLE IF NOT EXISTS quran_stations (
+    id TEXT PRIMARY KEY,
+    student_id TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    stage TEXT NOT NULL CHECK (stage IN ('15','30','45','60')),
+    scheduled_for TEXT NOT NULL,
+    memorized_amount TEXT NOT NULL DEFAULT '',
+    score INTEGER CHECK (score IS NULL OR (score >= 0 AND score <= 100)),
+    errors INTEGER NOT NULL DEFAULT 0 CHECK (errors >= 0 AND errors <= 10000),
+    notes TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'scheduled' CHECK (status IN ('scheduled','approved','rejected','cancelled')),
+    approved_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+    approved_at TEXT,
+    created_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_quran_stations_student ON quran_stations(student_id, scheduled_for)`,
+  `CREATE TABLE IF NOT EXISTS quran_makeups (
+    id TEXT PRIMARY KEY,
+    student_id TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    kind TEXT NOT NULL CHECK (kind IN ('hifz','thabit','ward')),
+    due_date TEXT NOT NULL,
+    amount TEXT NOT NULL DEFAULT '',
+    reason TEXT NOT NULL CHECK (reason IN ('shortcoming','interruption','incapacity','circumstance')),
+    reason_note TEXT NOT NULL DEFAULT '',
+    status TEXT NOT NULL DEFAULT 'open' CHECK (status IN ('open','planned','done','cancelled')),
+    proposed_date TEXT,
+    blocks_new INTEGER NOT NULL DEFAULT 0 CHECK (blocks_new IN (0,1)),
+    completed_at TEXT,
+    created_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_quran_makeups_student ON quran_makeups(student_id, status, due_date)`
+];
+let quranSchemaReady = null;
+async function ensureQuranSchema(env) {
+  if (quranSchemaReady) return quranSchemaReady;
+  quranSchemaReady = (async () => {
+    for (const statement of QURAN_SCHEMA_STATEMENTS) await env.DB.prepare(statement).run();
+    return true;
+  })().catch(error => { quranSchemaReady = null; throw error; });
+  return quranSchemaReady;
+}
+
+const QURAN_CATEGORIES = {
+  "15": { label: "15 حزبًا", thabit: 0.125, thabitLabel: "ثمن حزب", workDays: 5 },
+  "30": { label: "30 حزبًا", thabit: 0.25, thabitLabel: "ربع حزب", workDays: 5 },
+  "45": { label: "45 حزبًا", thabit: 0.375, thabitLabel: "ثلاثة أثمان حزب", workDays: 5 },
+  "60": { label: "60 حزبًا", thabit: 0.5, thabitLabel: "نصف حزب", workDays: 5 }
+};
+const QURAN_PLANS = { plan_a: "الخطة الأولى", plan_b: "الخطة الثانية", plan_c: "الخطة الثالثة" };
+const QURAN_WARD = { 1: "حزب واحد", 2: "حزبان", 4: "أربعة أحزاب" };
+const QURAN_KIND_LABELS = { hifz: "الحفظ الجديد", thabit: "التثبيت", ward: "الورد" };
+const QURAN_MAKEUP_REASONS = { shortcoming: "تقصير", interruption: "انقطاع", incapacity: "عجز عن الإنجاز", circumstance: "ظرف يحتاج إلى معالجة" };
+const QURAN_RUBRIC = { accuracy: 50, steady: 20, flow: 15, time: 15 };
+
+function quranSessionScore({ errors = 0, hesitations = 0, prompts = 0, minutes = 0, expected_minutes = 0 }) {
+  const safe = value => Math.max(0, Number(value) || 0);
+  const accuracy = Math.max(0, QURAN_RUBRIC.accuracy - Math.min(QURAN_RUBRIC.accuracy, safe(errors) * 2));
+  const steady = Math.max(0, QURAN_RUBRIC.steady - Math.min(QURAN_RUBRIC.steady, safe(hesitations) * 2));
+  const flow = Math.max(0, QURAN_RUBRIC.flow - Math.min(QURAN_RUBRIC.flow, safe(prompts) * 3));
+  let time = QURAN_RUBRIC.time;
+  if (safe(expected_minutes) > 0 && safe(minutes) > safe(expected_minutes)) {
+    const over = (safe(minutes) - safe(expected_minutes)) / safe(expected_minutes);
+    time = Math.max(0, QURAN_RUBRIC.time - Math.ceil(over * QURAN_RUBRIC.time));
+  }
+  const total = Math.max(0, Math.min(100, Math.round(accuracy + steady + flow + time)));
+  return { accuracy, steady, flow, time, total };
+}
+function quranGrade(score) {
+  const n = Number(score) || 0;
+  if (n >= 95) return "متقن";
+  if (n >= 85) return "ممتاز";
+  if (n >= 75) return "جيد جدًا";
+  if (n >= 60) return "جيد";
+  return "يحتاج إلى تثبيت";
+}
+function quranDateISO(value) {
+  const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(value || ""));
+  return match ? String(value) : "";
+}
+async function resolveQuranStudent(env, user, requestedId) {
+  let studentId = clean(requestedId, 80);
+  if (user.role === "student") {
+    if (!user.student_id) return { error: fail(404, "حساب الطالب غير مرتبط بملف طالب") };
+    if (studentId && studentId !== user.student_id) return { error: fail(403, "لا يمكنك الوصول إلى بيانات طالب آخر") };
+    studentId = user.student_id;
+  } else {
+    if (!["admin", "teacher", "director", "supervisor"].includes(user.role)) return { error: fail(403, "غير مسموح") };
+    if (!studentId) return { error: fail(400, "حدد الطالب") };
+    const scoped = await env.DB.prepare("SELECT id,group_id FROM students WHERE id=? AND active=1").bind(studentId).first();
+    if (!scoped) return { error: fail(404, "ملف الطالب غير موجود") };
+    if (user.role !== "admin" && !await canManageGroup(env, user, scoped.group_id)) return { error: fail(403, "هذا الطالب خارج صلاحيتك") };
+    return { student: scoped, staff: true };
+  }
+  const student = await env.DB.prepare("SELECT id,group_id FROM students WHERE id=? AND active=1").bind(studentId).first();
+  if (!student) return { error: fail(404, "ملف الطالب غير موجود") };
+  return { student, staff: false };
+}
+async function quranPathRow(env, studentId) {
+  return env.DB.prepare("SELECT * FROM quran_paths WHERE student_id=? AND active=1").bind(studentId).first();
+}
+function quranPathPayload(row) {
+  if (!row) return null;
+  const category = QURAN_CATEGORIES[row.hifz_category] || QURAN_CATEGORIES["15"];
+  return {
+    student_id: row.student_id,
+    group_id: row.group_id,
+    hifz_plan: row.hifz_plan,
+    hifz_plan_label: QURAN_PLANS[row.hifz_plan] || row.hifz_plan,
+    hifz_amount: row.hifz_amount,
+    hifz_unit: row.hifz_unit,
+    hifz_category: row.hifz_category,
+    hifz_category_label: category.label,
+    thabit_amount: category.thabit,
+    thabit_label: category.thabitLabel,
+    work_days: category.workDays,
+    ward_ahzab: Number(row.ward_ahzab || 1),
+    ward_label: QURAN_WARD[row.ward_ahzab] || QURAN_WARD[1],
+    rest_day: row.rest_day === null || row.rest_day === undefined ? null : Number(row.rest_day),
+    start_date: row.start_date,
+    updated_at: row.updated_at
+  };
+}
+async function quranDayState(env, studentId, day) {
+  const rows = await env.DB.prepare("SELECT * FROM quran_daily WHERE student_id=? AND day=?").bind(studentId, day).all();
+  const byKind = {};
+  for (const row of rows.results || []) byKind[row.kind] = row;
+  return byKind;
+}
+async function quranStreak(env, studentId) {
+  const rows = await env.DB.prepare("SELECT DISTINCT day FROM quran_daily WHERE student_id=? ORDER BY day DESC LIMIT 400").bind(studentId).all();
+  const days = (rows.results || []).map(row => row.day).filter(Boolean);
+  if (!days.length) return 0;
+  const today = academyDate();
+  let cursor = days[0] === today ? today : addCalendarDays(today, -1);
+  let streak = 0;
+  for (const day of days) {
+    if (day !== cursor) break;
+    streak += 1;
+    cursor = addCalendarDays(cursor, -1);
+  }
+  return streak;
+}
+
 function buildStudentTasks(student, assignments, submissions, plan, progress, attendance) {
   const today = academyDate();
   const tasks = [];
@@ -453,7 +666,7 @@ function buildStudentTasks(student, assignments, submissions, plan, progress, at
     });
   }
   const progressRows = (progress || []).filter(row => typeof row.date === "string");
-  const weekStart = academyDate(-6);
+  const weekStart = addCalendarDays(academyDate(), -6);
   const recentProgress = progressRows.filter(row => row.date >= weekStart && row.date <= today);
   const memorizedThisWeek = recentProgress.some(row => String(row.memorized || "").trim() || row.activity === "memorization");
   const reviewedThisWeek = recentProgress.some(row => String(row.reviewed || "").trim() || row.activity === "revision");
@@ -623,6 +836,9 @@ export default {
     if(user.must_change_password && !["/api/me","/api/me/password","/api/logout"].includes(path))return fail(403,"يجب تغيير كلمة المرور المؤقتة قبل متابعة استخدام الأكاديمية.");
     try { await ensureLearningSchema(env); } catch (error) {
       if (path.startsWith("/api/points") || path.startsWith("/api/store")) return fail(503, "تعذّر تهيئة جداول النقاط والمتجر. أعد المحاولة بعد قليل.");
+    }
+    try { await ensureQuranSchema(env); } catch (error) {
+      if (/^\/api\/quran\/(path|today|daily|companion|stations|makeups|summary)/.test(path)) return fail(503, "تعذّر تهيئة جداول مسار القرآن. أعد المحاولة بعد قليل.");
     }
     if(path==="/api/auth/google/link"&&method==="POST"){
       if(user.must_change_password)return fail(403,"غيّر كلمة المرور المؤقتة قبل ربط Google.");
@@ -2036,6 +2252,231 @@ export default {
       const plan={id:studentId,student_id:studentId,group_id:st.group_id,path_id:pathId,weekly_goal:weeklyGoal,weekly_targets:weeklyTargets,created_at:previous.created_at||nowIso(),updated_at:nowIso(),updated_by:user.id};
       await saveRecord(env,"quran_plan",plan);await log(env,user.id,"quran_plan_save",{student_id:studentId,path_id:pathId});
       return json({ok:true,plan});
+    }
+    if(path==="/api/quran/path"&&method==="GET"){
+      const resolved=await resolveQuranStudent(env,user,url.searchParams.get("student_id"));
+      if(resolved.error)return resolved.error;
+      const row=await quranPathRow(env,resolved.student.id);
+      return json({enrolled:Boolean(row),path:quranPathPayload(row),plans:QURAN_PLANS,categories:QURAN_CATEGORIES,ward_options:QURAN_WARD});
+    }
+    if(path==="/api/quran/path"&&method==="POST"){
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      const resolved=await resolveQuranStudent(env,user,b.student_id);
+      if(resolved.error)return resolved.error;
+      const plan=clean(b.hifz_plan,20),category=clean(b.hifz_category,2),ward=Number(b.ward_ahzab);
+      if(!QURAN_PLANS[plan])return fail(400,"اختر خطة حفظ من الخطط الثلاث");
+      if(!QURAN_CATEGORIES[category])return fail(400,"اختر فئة المحفوظ: 15 أو 30 أو 45 أو 60 حزبًا");
+      if(![1,2,4].includes(ward))return fail(400,"اختر مقدار الورد: حزب أو حزبان أو أربعة أحزاب");
+      const hifzAmount=clean(b.hifz_amount,80),hifzUnit=clean(b.hifz_unit,20)||"سطر";
+      if(!hifzAmount)return fail(400,"حدّد مقدار الحفظ اليومي المناسب لطاقتك");
+      const startDate=quranDateISO(b.start_date)||academyDate();
+      if(!startDate||startDate>academyDate())return fail(400,"لا يمكن أن يبدأ المسار في تاريخ مستقبلي");
+      const restRaw=b.rest_day;
+      const restDay=(restRaw===null||restRaw===undefined||restRaw==="")?null:Number(restRaw);
+      if(restDay!==null&&(!Number.isInteger(restDay)||restDay<0||restDay>6))return fail(400,"اختر يوم استدراك صحيحًا أو اتركه فارغًا");
+      await env.DB.prepare(`INSERT INTO quran_paths (student_id,group_id,hifz_plan,hifz_amount,hifz_unit,hifz_category,ward_ahzab,rest_day,start_date,active,updated_by,updated_at)
+        VALUES (?,?,?,?,?,?,?,?,?,1,?,?)
+        ON CONFLICT(student_id) DO UPDATE SET group_id=excluded.group_id,hifz_plan=excluded.hifz_plan,hifz_amount=excluded.hifz_amount,hifz_unit=excluded.hifz_unit,hifz_category=excluded.hifz_category,ward_ahzab=excluded.ward_ahzab,rest_day=excluded.rest_day,start_date=excluded.start_date,active=1,updated_by=excluded.updated_by,updated_at=excluded.updated_at`)
+        .bind(resolved.student.id,resolved.student.group_id||null,plan,hifzAmount,hifzUnit,category,ward,restDay,startDate,user.id,nowIso()).run();
+      await log(env,user.id,"quran_path_save",{student_id:resolved.student.id,plan,category,ward});
+      const row=await quranPathRow(env,resolved.student.id);
+      return json({ok:true,path:quranPathPayload(row)});
+    }
+    if(path==="/api/quran/today"&&method==="GET"){
+      const resolved=await resolveQuranStudent(env,user,url.searchParams.get("student_id"));
+      if(resolved.error)return resolved.error;
+      const pathRow=await quranPathRow(env,resolved.student.id);
+      const day=academyDate();
+      if(!pathRow)return json({enrolled:false,day,logs:{}});
+      const info=quranPathPayload(pathRow);
+      const logs=await quranDayState(env,resolved.student.id,day);
+      const makeup=await env.DB.prepare("SELECT id,kind,due_date,amount,reason,reason_note,status,proposed_date,blocks_new FROM quran_makeups WHERE student_id=? AND status IN ('open','planned') ORDER BY due_date LIMIT 20").bind(resolved.student.id).all();
+      const weekday=new Date(day+"T12:00:00Z").getUTCDay();
+      const blocked=(makeup.results||[]).some(row=>Number(row.blocks_new)===1);
+      return json({enrolled:true,day,weekday,is_rest_day:info.rest_day===weekday,path:info,logs:{hifz:logs.hifz||null,thabit:logs.thabit||null,ward:logs.ward||null},blocked,makeups:makeup.results||[],streak:await quranStreak(env,resolved.student.id)});
+    }
+    if(path==="/api/quran/daily"&&method==="POST"){
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      const resolved=await resolveQuranStudent(env,user,b.student_id);
+      if(resolved.error)return resolved.error;
+      const pathRow=await quranPathRow(env,resolved.student.id);
+      if(!pathRow)return fail(409,"اختر خطة الحفظ وفئة المحفوظ أولًا");
+      const kind=clean(b.kind,10);
+      if(!QURAN_KIND_LABELS[kind])return fail(400,"نوع السجل غير صحيح");
+      const day=quranDateISO(b.day)||academyDate();
+      if(day>academyDate())return fail(400,"لا يمكن تسجيل يوم مستقبلي");
+      if(day<addCalendarDays(academyDate(),-30))return fail(400,"لا يمكن إضافة سجل أقدم من 30 يومًا");
+      if(kind==="hifz"){
+        const block=await env.DB.prepare("SELECT 1 AS blocked FROM quran_makeups WHERE student_id=? AND status IN ('open','planned') AND blocks_new=1 LIMIT 1").bind(resolved.student.id).first();
+        if(block)return fail(409,"لديك مقدار أساسي غير منجز؛ أكمل الاستدراك واعتمده أولًا ثم سجّل الحفظ الجديد.");
+      }
+      const amount=Number(b.amount);
+      if(!Number.isFinite(amount)||amount<0||amount>1000)return fail(400,"أدخل مقدارًا صحيحًا");
+      const repetitions=Number.isInteger(Number(b.repetitions))?Number(b.repetitions):0;
+      if(repetitions<0||repetitions>100)return fail(400,"عدد التكرارات يجب أن يكون بين 0 و100");
+      const unit=clean(b.unit,20),linkedScope=clean(b.linked_scope,120),notes=clean(b.notes,600);
+      const existing=await env.DB.prepare("SELECT * FROM quran_daily WHERE student_id=? AND day=? AND kind=?").bind(resolved.student.id,day,kind).first();
+      if(existing){
+        if(Number(existing.amount)===amount&&existing.unit===unit&&Number(existing.repetitions)===repetitions&&existing.notes===notes)return json({ok:true,duplicate:true,entry:existing});
+        return fail(409,"سجّلت هذا القسم اليوم بمقدار مختلف. راجع سجل اليوم قبل إعادة التسجيل.");
+      }
+      const id=uuid();
+      await env.DB.prepare("INSERT INTO quran_daily (id,student_id,day,kind,amount,unit,repetitions,linked_scope,notes,created_by) VALUES (?,?,?,?,?,?,?,?,?,?)")
+        .bind(id,resolved.student.id,day,kind,amount,unit,repetitions,linkedScope,notes,user.id).run();
+      await log(env,user.id,"quran_daily_save",{student_id:resolved.student.id,day,kind,amount});
+      const entry=await env.DB.prepare("SELECT * FROM quran_daily WHERE id=?").bind(id).first();
+      return json({ok:true,entry},201);
+    }
+    if(path==="/api/quran/companion"&&method==="GET"){
+      const resolved=await resolveQuranStudent(env,user,url.searchParams.get("student_id"));
+      if(resolved.error)return resolved.error;
+      const studentId=resolved.student.id;
+      const pair=await env.DB.prepare("SELECT p.*,sa.display_name AS student_a_name,sb.display_name AS student_b_name,g.name AS group_name FROM quran_pairs p JOIN students sa ON sa.id=p.student_a JOIN students sb ON sb.id=p.student_b LEFT JOIN groups g ON g.id=p.group_id WHERE p.active=1 AND (p.student_a=? OR p.student_b=?) ORDER BY p.created_at DESC LIMIT 1").bind(studentId,studentId).first();
+      if(!pair)return json({paired:false,sessions:[],rubric:QURAN_RUBRIC});
+      const partnerId=pair.student_a===studentId?pair.student_b:pair.student_a;
+      const partnerName=pair.student_a===studentId?pair.student_b_name:pair.student_a_name;
+      const sessions=await env.DB.prepare("SELECT * FROM quran_pair_sessions WHERE pair_id=? ORDER BY day DESC, created_at DESC LIMIT 30").bind(pair.id).all();
+      return json({paired:true,pair:{id:pair.id,group_id:pair.group_id,group_name:pair.group_name,student_a:pair.student_a,student_b:pair.student_b,student_a_name:pair.student_a_name,student_b_name:pair.student_b_name,partner_id:partnerId,partner_name:partnerName},sessions:(sessions.results||[]).map(row=>({...row,grade:quranGrade(row.score)})),rubric:QURAN_RUBRIC});
+    }
+    if(path==="/api/quran/companion/pair"&&method==="POST"){
+      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"ربط الرفيقين من صلاحية الشيخ أو الإدارة");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      const studentA=clean(b.student_a,80),studentB=clean(b.student_b,80);
+      if(!studentA||!studentB||studentA===studentB)return fail(400,"اختر طالبين مختلفين");
+      const rows=await env.DB.prepare("SELECT id,group_id,display_name FROM students WHERE id IN (?,?) AND active=1").bind(studentA,studentB).all();
+      const list=rows.results||[];
+      if(list.length!==2)return fail(404,"أحد الطالبين غير موجود");
+      if(String(list[0].group_id||"")!==String(list[1].group_id||""))return fail(400,"يجب أن يكون الرفيقان في الفوج نفسه");
+      if(user.role!=="admin"&&!await canManageGroup(env,user,list[0].group_id))return fail(403,"هذان الطالبان خارج صلاحيتك");
+      await env.DB.prepare("UPDATE quran_pairs SET active=0 WHERE active=1 AND (student_a IN (?,?) OR student_b IN (?,?))").bind(studentA,studentB,studentA,studentB).run();
+      const id=uuid();
+      await env.DB.prepare("INSERT INTO quran_pairs (id,group_id,student_a,student_b,active,created_by) VALUES (?,?,?,?,1,?)").bind(id,list[0].group_id||null,studentA,studentB,user.id).run();
+      await log(env,user.id,"quran_pair_create",{pair_id:id,student_a:studentA,student_b:studentB});
+      return json({ok:true,pair:{id,student_a:studentA,student_b:studentB,group_id:list[0].group_id||null}},201);
+    }
+    if(path==="/api/quran/companion/session"&&method==="POST"){
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      const resolved=await resolveQuranStudent(env,user,b.student_id);
+      if(resolved.error)return resolved.error;
+      const studentId=resolved.student.id;
+      const pair=await env.DB.prepare("SELECT * FROM quran_pairs WHERE active=1 AND (student_a=? OR student_b=?) ORDER BY created_at DESC LIMIT 1").bind(studentId,studentId).first();
+      if(!pair)return fail(409,"لا يوجد رفيق مرتبط بحسابك بعد. تواصل مع الشيخ لربط الرفيقين.");
+      const reciterId=clean(b.reciter_id,80),listenerId=clean(b.listener_id,80);
+      const members=[pair.student_a,pair.student_b];
+      if(!members.includes(reciterId)||!members.includes(listenerId)||reciterId===listenerId)return fail(400,"حدّد المُسمِّع والمستمع من الرفيقين المرتبطين");
+      const amount=clean(b.amount,120);
+      if(!amount)return fail(400,"حدّد مقدار التسميع");
+      const errors=Math.max(0,Math.min(10000,Math.round(Number(b.errors)||0)));
+      const hesitations=Math.max(0,Math.min(10000,Math.round(Number(b.hesitations)||0)));
+      const prompts=Math.max(0,Math.min(10000,Math.round(Number(b.prompts)||0)));
+      const minutes=Math.max(0,Math.min(1000,Number(b.minutes)||0));
+      const expected=Math.max(0,Math.min(1000,Number(b.expected_minutes)||0));
+      const computed=quranSessionScore({errors,hesitations,prompts,minutes,expected_minutes:expected});
+      let score=computed.total,overrideReason="";
+      if(b.score!==undefined&&b.score!==null&&b.score!==""){
+        const manual=Math.round(Number(b.score));
+        if(!Number.isFinite(manual)||manual<0||manual>100)return fail(400,"الدرجة يجب أن تكون بين 0 و100");
+        if(Math.abs(manual-computed.total)>10){
+          if(!b.confirm_override||clean(b.override_reason,300).length<5)return fail(400,"الدرجة اليدوية تختلف عن المحسوبة ("+computed.total+") بأكثر من 10. أعد التأكيد واكتب سببًا واضحًا.");
+          overrideReason=clean(b.override_reason,300);
+        }
+        score=manual;
+      }
+      const id=uuid();
+      await env.DB.prepare(`INSERT INTO quran_pair_sessions (id,pair_id,day,reciter_id,listener_id,amount,errors,error_positions,hesitations,prompts,minutes,expected_minutes,score,notes,signed_reciter,signed_listener,override_reason,created_by)
+        VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`)
+        .bind(id,pair.id,academyDate(),reciterId,listenerId,amount,errors,clean(b.error_positions,600),hesitations,prompts,minutes,expected,score,clean(b.notes,600),b.signed_reciter?1:0,b.signed_listener?1:0,overrideReason,user.id).run();
+      await log(env,user.id,"quran_companion_session",{pair_id:pair.id,reciter_id:reciterId,score});
+      return json({ok:true,session:{id,score,grade:quranGrade(score),computed}},201);
+    }
+    if(path==="/api/quran/stations"&&method==="GET"){
+      const resolved=await resolveQuranStudent(env,user,url.searchParams.get("student_id"));
+      if(resolved.error)return resolved.error;
+      const rows=await env.DB.prepare("SELECT * FROM quran_stations WHERE student_id=? ORDER BY scheduled_for DESC, created_at DESC LIMIT 50").bind(resolved.student.id).all();
+      return json((rows.results||[]).map(row=>({...row,grade:row.score===null||row.score===undefined?null:quranGrade(row.score)})));
+    }
+    if(path==="/api/quran/stations"&&method==="POST"){
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      const resolved=await resolveQuranStudent(env,user,b.student_id);
+      if(resolved.error)return resolved.error;
+      const stage=clean(b.stage,2);
+      if(!["15","30","45","60"].includes(stage))return fail(400,"اختر محطة صحيحة: 15 أو 30 أو 45 أو 60 حزبًا");
+      const scheduledFor=quranDateISO(b.scheduled_for);
+      if(!scheduledFor)return fail(400,"حدّد موعد المحطة");
+      const id=uuid();
+      await env.DB.prepare("INSERT INTO quran_stations (id,student_id,stage,scheduled_for,memorized_amount,notes,status,created_by) VALUES (?,?,?,?,?,?, 'scheduled',?)")
+        .bind(id,resolved.student.id,stage,scheduledFor,clean(b.memorized_amount,120),clean(b.notes,600),user.id).run();
+      await log(env,user.id,"quran_station_request",{student_id:resolved.student.id,stage,scheduled_for:scheduledFor});
+      return json({ok:true,id},201);
+    }
+    if(path==="/api/quran/stations/decision"&&method==="POST"){
+      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"اعتماد المحطات من صلاحية الشيخ أو الإدارة");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      const id=clean(b.id,80),status=clean(b.status,20);
+      if(!["approved","rejected","cancelled"].includes(status))return fail(400,"حالة المحطة غير صحيحة");
+      const station=await env.DB.prepare("SELECT s.id,s.student_id,st.group_id FROM quran_stations s JOIN students st ON st.id=s.student_id WHERE s.id=?").bind(id).first();
+      if(!station)return fail(404,"المحطة غير موجودة");
+      if(user.role!=="admin"&&!await canManageGroup(env,user,station.group_id))return fail(403,"هذه المحطة خارج صلاحيتك");
+      const scoreRaw=b.score;
+      const score=(scoreRaw===null||scoreRaw===undefined||scoreRaw==="")?null:Math.round(Number(scoreRaw));
+      if(score!==null&&(!Number.isFinite(score)||score<0||score>100))return fail(400,"الدرجة يجب أن تكون بين 0 و100");
+      const errors=Math.max(0,Math.min(10000,Math.round(Number(b.errors)||0)));
+      await env.DB.prepare("UPDATE quran_stations SET status=?,score=?,errors=?,notes=?,approved_by=?,approved_at=? WHERE id=?")
+        .bind(status,score,errors,clean(b.notes,600),user.id,nowIso(),id).run();
+      await log(env,user.id,"quran_station_decision",{station_id:id,status,score});
+      return json({ok:true,id,status,score,grade:score===null?null:quranGrade(score)});
+    }
+    if(path==="/api/quran/makeups"&&method==="GET"){
+      const resolved=await resolveQuranStudent(env,user,url.searchParams.get("student_id"));
+      if(resolved.error)return resolved.error;
+      const rows=await env.DB.prepare("SELECT * FROM quran_makeups WHERE student_id=? ORDER BY status='done', due_date DESC LIMIT 50").bind(resolved.student.id).all();
+      return json((rows.results||[]).map(row=>({...row,kind_label:QURAN_KIND_LABELS[row.kind]||row.kind,reason_label:QURAN_MAKEUP_REASONS[row.reason]||row.reason})));
+    }
+    if(path==="/api/quran/makeups"&&method==="POST"){
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      const resolved=await resolveQuranStudent(env,user,b.student_id);
+      if(resolved.error)return resolved.error;
+      const kind=clean(b.kind,10),reason=clean(b.reason,20);
+      if(!QURAN_KIND_LABELS[kind])return fail(400,"حدّد نوع المقدار المتأخر");
+      if(!QURAN_MAKEUP_REASONS[reason])return fail(400,"حدّد سبب التأخر");
+      const dueDate=quranDateISO(b.due_date)||academyDate();
+      if(dueDate>academyDate())return fail(400,"تاريخ الاستحقاق لا يكون في المستقبل");
+      const proposed=quranDateISO(b.proposed_date)||addCalendarDays(academyDate(),3);
+      const id=uuid();
+      await env.DB.prepare("INSERT INTO quran_makeups (id,student_id,kind,due_date,amount,reason,reason_note,status,proposed_date,blocks_new,created_by) VALUES (?,?,?,?,?,?,?, 'open',?,0,?)")
+        .bind(id,resolved.student.id,kind,dueDate,clean(b.amount,120),reason,clean(b.reason_note,600),proposed,user.id).run();
+      await log(env,user.id,"quran_makeup_create",{student_id:resolved.student.id,kind,due_date:dueDate,reason});
+      return json({ok:true,id,status:"open",proposed_date:proposed},201);
+    }
+    if(path==="/api/quran/makeups/update"&&method==="POST"){
+      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"تحديث الاستدراك من صلاحية الشيخ أو الإدارة");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      const id=clean(b.id,80),status=clean(b.status,20);
+      if(!["open","planned","done","cancelled"].includes(status))return fail(400,"حالة الاستدراك غير صحيحة");
+      const row=await env.DB.prepare("SELECT m.id,m.student_id,st.group_id FROM quran_makeups m JOIN students st ON st.id=m.student_id WHERE m.id=?").bind(id).first();
+      if(!row)return fail(404,"سجل الاستدراك غير موجود");
+      if(user.role!=="admin"&&!await canManageGroup(env,user,row.group_id))return fail(403,"هذا السجل خارج صلاحيتك");
+      const proposed=quranDateISO(b.proposed_date);
+      const blocks=b.blocks_new===undefined?null:(b.blocks_new?1:0);
+      await env.DB.prepare("UPDATE quran_makeups SET status=?,proposed_date=COALESCE(?,proposed_date),blocks_new=COALESCE(?,blocks_new),completed_at=?,updated_at=? WHERE id=?")
+        .bind(status,proposed||null,blocks,status==="done"?nowIso():null,nowIso(),id).run();
+      await log(env,user.id,"quran_makeup_update",{makeup_id:id,status,blocks_new:blocks});
+      return json({ok:true,id,status});
+    }
+    if(path==="/api/quran/summary"&&method==="GET"){
+      const resolved=await resolveQuranStudent(env,user,url.searchParams.get("student_id"));
+      if(resolved.error)return resolved.error;
+      const studentId=resolved.student.id;
+      const pathRow=await quranPathRow(env,studentId);
+      const totalsRow=await env.DB.prepare("SELECT kind,COUNT(*) AS days,COALESCE(SUM(amount),0) AS total FROM quran_daily WHERE student_id=? GROUP BY kind").bind(studentId).all();
+      const byKind={hifz:{days:0,total:0},thabit:{days:0,total:0},ward:{days:0,total:0}};
+      for(const row of totalsRow.results||[])if(byKind[row.kind])byKind[row.kind]={days:Number(row.days||0),total:Number(row.total||0)};
+      const stations=await env.DB.prepare("SELECT status,COUNT(*) AS n FROM quran_stations WHERE student_id=? GROUP BY status").bind(studentId).all();
+      const stationCounts={};for(const row of stations.results||[])stationCounts[row.status]=Number(row.n||0);
+      const makeups=await env.DB.prepare("SELECT status,COUNT(*) AS n FROM quran_makeups WHERE student_id=? GROUP BY status").bind(studentId).all();
+      const makeupCounts={};for(const row of makeups.results||[])makeupCounts[row.status]=Number(row.n||0);
+      const recent=await env.DB.prepare("SELECT day,kind,amount,unit FROM quran_daily WHERE student_id=? ORDER BY day DESC LIMIT 30").bind(studentId).all();
+      return json({enrolled:Boolean(pathRow),path:quranPathPayload(pathRow),totals:byKind,stations:stationCounts,makeups:makeupCounts,streak:await quranStreak(env,studentId),recent:recent.results||[]});
     }
     if(path==="/api/curriculum"&&method==="GET"){
       const custom=await scopedRecords(env,user,"lessons",user.role==="student");

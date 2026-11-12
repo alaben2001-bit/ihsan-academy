@@ -57,6 +57,8 @@ jobs:
           done
       - name: Run points economy tests
         run: node scripts/points-local-test.mjs
+      - name: Run Quran path tests
+        run: node scripts/quran-path-test.mjs
       - name: Run role/permission tests
         run: node scripts/role-permission-test.mjs
       - name: Stop wrangler dev

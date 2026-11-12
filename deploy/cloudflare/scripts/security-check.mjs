@@ -320,7 +320,7 @@ assert.match(app, /if\(S\.tab==="home"\)return await home\(v\);if\(S\.tab==="tea
 assert.match(app, /أيام التقدم في القرآن: <strong>'\+Number\(gam\.stats\?\.quran_days\|\|0\)/, "Quran activity days must not be mislabeled as dawn attendance");
 assert.doesNotMatch(app, /القلوب المتبقية اليوم|gam\.hearts/, "the student dashboard must not imply an unenforced daily hearts limit");
 const quranFunction = app.slice(app.indexOf("async function quran(v){"), app.indexOf("\nconst EFFORT_TASKS=", app.indexOf("async function quran(v){")));
-assert.match(quranFunction, /return quranRosterPage\(v\);\s*}/, "staff Quran tracking must delegate to the active roster page");
+assert.match(quranFunction, /await quranRosterPage\(\$\("#quran-staff-body"\)\)/, "staff Quran tracking must delegate to the active roster page");
 assert.doesNotMatch(quranFunction, /quranMode|qform|qhistory|thumn_from/, "unreachable legacy Quran recording code must stay removed");
 assert.match(app, /function honorificDisplayName\(name,role\)/, "staff names must use the shared Sheikh honorific formatter");
 assert.match(app, /const displayUserName=honorificDisplayName\(S\.user\.name,S\.user\.role\)/, "the signed-in director, teacher and administrator names must use the shared honorific formatter");
