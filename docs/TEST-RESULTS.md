@@ -8,6 +8,7 @@
 | `npm run prepare:assets` | PASS | public/ regenerated |
 | `test:points:local` (70 check() calls) | 69/69 PASS (1 env setup skipped) | 2026-11-12 |
 | `test:quran:local` | 44/44 PASS | 2026-11-12 |
+| `test:backup:local` | 34/34 PASS | 2026-11-12 |
 | role-permission-test.mjs | 0 failures | 2026-11-12 |
 | Browser: world/card/guide/wallet | PASS | Ruby gradient applies; 0 console errors (expected 401 before login) |
 | Quran tabs (daily/plan/companion/stations) | PASS | served app.js contains `quranEnrollMarkup` + `quranSupervisionPage` |
@@ -17,7 +18,7 @@
 
 | workflow | الحالة | ملاحظة |
 |---|---|---|
-| cloudflare-free-check | يُشغَّل عند الدفع | check + prepare:assets + dry-run + points + Quran + role |
+| cloudflare-free-check | يُشغَّل عند الدفع | check + prepare:assets + dry-run + points + Quran + backup + role |
 
 ## إنتاج (a-ihsan.pages.dev)
 

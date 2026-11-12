@@ -49,6 +49,17 @@ assert.match(backend, /must_change_password=excluded\.must_change_password/, "re
 assert.match(backend, /INSERT INTO users \(id,display_name,identity_normalized,password_hash,role,active\) SELECT \?,\?,\?,\?, 'admin',1 WHERE NOT EXISTS \(SELECT 1 FROM users WHERE role='admin'\)/, "initial administrator creation must be atomic against concurrent bootstrap requests");
 assert.match(backend, /for\(const x of googleIdentities\)statements\.push/, "restore must retain verified Google account links");
 
+// A full backup must also preserve the learning economy and the Quran path, otherwise a restore silently loses them.
+assert.match(backend, /point_events:pointEvents\.results\|\|\[\]/, "full backup must preserve point events");
+assert.match(backend, /store_redemptions:storeRedemptions\.results\|\|\[\]/, "full backup must preserve store redemptions");
+assert.match(backend, /quran_daily:quranDaily\.results\|\|\[\]/, "full backup must preserve daily Quran logs");
+assert.match(backend, /quran_stations:quranStations\.results\|\|\[\]/, "full backup must preserve sheikh stations");
+assert.match(backend, /quran_makeups:quranMakeups\.results\|\|\[\]/, "full backup must preserve makeups");
+assert.match(backend, /format:"ihsan-academy-full-backup-v3"/, "full export must advertise the v3 format");
+assert.match(backend, /"ihsan-academy-full-backup-v2","ihsan-academy-full-backup-v3"/, "restore must accept both v3 and legacy v2 files");
+assert.match(backend, /INSERT INTO quran_daily \(id,student_id,day,kind/, "restore must write daily Quran logs");
+assert.match(backend, /INSERT INTO point_events \(id,student_id,group_id,rule_id/, "restore must write point events");
+
 assert.match(app, /const localDateISO=/, "browser date inputs must use the local calendar date");
 assert.match(app, /const head=\(a,b\)=>.*esc\(a\).*esc\(b\)/, "shared section headings must escape dynamic text before inserting HTML");
 assert.match(app, /field\("كلمة مرور مؤقتة \(اختيارية\)","password","password","","اتركها فارغة للتوليد الآمن"\)/, "the optional student password field must use a real placeholder, not an invalid minlength value");

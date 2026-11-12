@@ -1,11 +1,11 @@
-# النسخ الاحتياطي والاستعادة — 2026-11-11
+# النسخ الاحتياطي والاستعادة — 2026-11-12
 
 ## الـ endpoints (admin only)
 
-- `/api/admin/backup/export` — export.
-- `/api/admin/backup/full-export` — full export.
-- `/api/admin/backup/restore` — restore.
-- `/api/admin/backup/summary` — summary.
+- `/api/admin/backup/export` — نسخة تشغيلية بلا بصمات كلمات المرور.
+- `/api/admin/backup/full-export` — النسخة الكاملة القابلة للاستعادة (`ihsan-academy-full-backup-v3`).
+- `/api/admin/backup/restore` — استعادة دمجية (merge) تقبل `v3` و`v2`.
+- `/api/admin/backup/summary` — ملخّص أعداد السجلات.
 
 ## الحالة
 
@@ -13,26 +13,61 @@
 |---|---|
 | Export code exists | ✅ |
 | Restore code exists | ✅ |
-| Restore drill (isolated env) | ❌ not performed |
-| Scheduled/off-site backups | ❌ absent (manual only) |
-| Verification of backup integrity | ❌ not documented |
+| Restore drill (isolated env) | ✅ نُفّذ محليًا — 34/34 فحصًا |
+| Scheduled/off-site backups | ❌ غائب (يدوي فقط) |
+| Verification of backup integrity | ✅ آلي (`test:backup:local` + CI) |
 
-## مخاطر
+## ما تغيّر في v3
 
-- Manual-only backups: no schedule, no off-site, no verified restore.
-- Restore on production forbidden during testing (per safety rules).
-- Need isolated D1 database for restore drill.
+النسخة السابقة (`v2`) كانت تُصدّر الحسابات والأفواج والطلاب والسجلات والمدارس وسجل التدقيق فقط، بينما كانت الاستعادة تتجاهل — بصمت — اقتصاد النقاط ومسار القرآن. أُصلح ذلك:
 
-## خطة (P1)
+- التصدير الكامل أصبح `ihsan-academy-full-backup-v3` ويضم 6 جداول إضافية:
+  `point_rules`, `point_events`, `store_items`, `store_redemptions`,
+  `quran_paths`, `quran_daily`, `quran_pairs`, `quran_pair_sessions`,
+  `quran_stations`, `quran_makeups`.
+- الاستعادة تتحقق من كل صف (معرّفات، علاقات، قيم مسموحة، تواريخ) قبل أي كتابة.
+- تُرفض الملفات ذات التعارضات الفريدة بخطأ `409` قبل بدء الدمج:
+  `point_rules.event_type`, `point_events(kind,event_key)`, `quran_daily(student_id,day,kind)`.
+- ملفات `v2` القديمة تُقبل؛ الحقول الغائبة تُعامل كقوائم فارغة.
+- حدّ حجم الملف المرفوع 16 ميغابايت (كان 8).
 
-1. Create isolated D1 (local or separate database).
-2. Export from local test DB.
-3. Restore into isolated DB.
-4. Compare row counts + checksums (students, groups, point_events, store_redemptions, academy_records).
-5. Document steps + time-to-restore.
-6. Add schedule recommendation (cron + R2) — decision required from owner.
+## نتائج التدقيق المحلي
+
+بيئة معزولة: `wrangler dev` على قاعدة D1 محلية جديدة، بعد تطبيق الترحيلات `0001`–`0005`.
+
+| السيناريو | النتيجة |
+|---|---|
+| تصدير v3 يحتوي القواعد والحركات والمتجر والصرف | ✅ |
+| تصدير v3 يحتوي خطة القرآن واليومي والرفيق والمحطات والاستدراك | ✅ |
+| تعديل الخطة وقبول طلب صرف بعد التصدير ثم الاستعادة | ✅ رجع كلاهما إلى قيمة النسخة |
+| بقاء سجلات القرآن اليومية والمحطة والاستدراك بعد الاستعادة | ✅ |
+| قبول ملف v2 قديم | ✅ |
+| رفض الصيغة المجهولة | ✅ `400` |
+| رفض الاستعادة بلا كلمة تأكيد | ✅ `400` |
+| منع الطالب من الاستعادة | ✅ `403` |
+
+الأمر: `npm run test:backup:local` — النتيجة `34/34`، ويعمل أيضًا داخل CI بعد اختبارات القرآن.
+
+## دلالات الاستعادة
+
+- **دمج فقط**: إدراج أو تحديث حسب المعرّفات الثابتة (`ON CONFLICT(id) DO UPDATE`).
+- **لا حذف**: أي سجل موجود خارج الملف يبقى كما هو.
+- **قابل لإعادة المحاولة**: إذا توقفت العملية في منتصف الدفعات، إعادة إرسال الملف نفسه آمنة.
+- **حدود الحجم**: 10,000 مستخدم، 100,000 طالب، 100,000 سجل، 200,000 حركة نقاط، 500,000 سجل قرآن يومي.
+
+## مخاطر متبقية
+
+- النسخ ما زال **يدويًا**: لا جدولة، لا نسخ خارج الموقع، لا احتفاظ تاريخي.
+- لم تُجرَّب الاستعادة على قاعدة الإنتاج (ممنوع بحسب قواعد السلامة)، والتحقق من D1 الإنتاجي ما زال معلّقًا بسبب تعذّر تسجيل الدخول إلى Wrangler.
+- الملف الكامل سرّي: يحوي بصمات كلمات المرور وروابط Google وبيانات الطلاب.
+
+## التوصية (P1، تحتاج قرار المالك)
+
+1. جدولة تصدير دوري (Cron Trigger) إلى R2 مع تشفير عند الراحة واحتفاظ 30 يومًا.
+2. اختبار استعادة شهري على قاعدة معزولة، مع توثيق زمن الاستعادة.
+3. تدوير الأسرار ومراجعة صلاحيات الوصول إلى R2.
 
 ## لا تنفذ
 
-- Restore on production D1.
-- Overwrite production data.
+- استعادة على D1 الإنتاجي دون نسخة موثّقة وموافقة صريحة.
+- حذف أي سجل إنتاجي.
