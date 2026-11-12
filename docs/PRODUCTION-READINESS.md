@@ -4,7 +4,7 @@
 
 | بند | الحالة | دليل |
 |---|---|---|
-| Git متزامن (HEAD=origin) | ✅ | 374a59e على `migration/cloudflare-student-platform` |
+| Git متزامن (HEAD=origin) | ✅ | مطابق على `migration/cloudflare-student-platform` (آخر نشر 20261112-2) |
 | لا تغييرات معلّقة | ✅ | git status clean بعد الدفع |
 | النسخة المنشورة معروفة | ✅ | a-ihsan.pages.dev يخدم `?v=20261112-2` |
 | npm run check | ✅ | pass |
