@@ -4,9 +4,9 @@
 
 | بند | الحالة | دليل |
 |---|---|---|
-| Git متزامن (HEAD=origin) | ✅ | مطابق على `migration/cloudflare-student-platform` (آخر نشر 20261112-2) |
+| Git متزامن (HEAD=origin) | ✅ | مطابق على `migration/cloudflare-student-platform` (آخر نشر 20261112-3، `70961ea`) |
 | لا تغييرات معلّقة | ✅ | git status clean بعد الدفع |
-| النسخة المنشورة معروفة | ✅ | a-ihsan.pages.dev يخدم `?v=20261112-2` |
+| النسخة المنشورة معروفة | ✅ | a-ihsan.pages.dev يخدم `?v=20261112-3` (كاش PWA v142) |
 | npm run check | ✅ | pass |
 | اقتصاد 69/69 | ✅ | D1 محلية |
 | مسار القرآن 44/44 | ✅ | D1 محلية |

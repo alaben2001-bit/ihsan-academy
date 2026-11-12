@@ -25,10 +25,11 @@
 | فحص | النتيجة | دليل |
 |---|---|---|
 | /api/health | 200 ok | verified |
-| asset version | 20261112-2 | index/app.js/service-worker verified |
+| asset version | 20261112-3 | index/app.js/service-worker verified (SW v142) |
 | /api/quran/* | 401 (auth gate) | المسارات موجودة، ليست 404 |
 | /api/points/*, /api/tasks, /api/content, /api/competitions | 401 (auth gate) | cannot verify without credentials |
 | student pages render | **غير مختبر** | blocked on human login |
+| backup v3 in live app.js | ✅ | `ihsan-academy-full-backup-v3` موجود في app.js المنشور |
 | D1 0004/0005 | **غير مختبر** | blocked on wrangler auth |
 
 ## فشل
