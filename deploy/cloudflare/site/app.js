@@ -1453,7 +1453,7 @@ const QURAN_CAT_UI={
   "45":{label:"45 حزبًا",thabit:0.375,thabitLabel:"ثلاثة أثمان حزب",hint:"التثبيت اليومي: ثلاثة أثمان حزب، خمسة أيام في الأسبوع."},
   "60":{label:"60 حزبًا",thabit:0.5,thabitLabel:"نصف حزب",hint:"التثبيت اليومي: نصف حزب، خمسة أيام في الأسبوع."}
 };
-const QURAN_PLAN_UI={plan_a:"الخطة الأولى",plan_b:"الخطة الثانية",plan_c:"الخطة الثالثة"};
+const QURAN_PLAN_UI={plan_a:"الخطة الأولى · المكثفة",plan_b:"الخطة الثانية · المتوسطة",plan_c:"الخطة الثالثة · المتدرجة"};
 const QURAN_WARD_UI={1:"حزب واحد",2:"حزبان",4:"أربعة أحزاب"};
 const QURAN_WEEKDAYS=["الأحد","الإثنين","الثلاثاء","الأربعاء","الخميس","الجمعة","السبت"];
 const QURAN_KIND_UI={
@@ -1502,7 +1502,7 @@ function quranEnrollMarkup(existing){
     '<label class="field">يوم الاستدراك (اختياري)<select name="rest_day"><option value="" '+(p.rest_day===null||p.rest_day===undefined?"selected":"")+'>بدون تثبيت يوم</option>'+QURAN_WEEKDAYS.map((name,i)=>quranOption(i,name,p.rest_day)).join("")+'</select></label>'+
     '<label class="field">تاريخ البداية<input type="date" name="start_date" value="'+esc(p.start_date||localDateISO())+'"></label>'+
     '</div>'+
-    '<p class="muted small">يومان للراحة والاستدراك أسبوعيًا، وأسبوع بعد كل شهر. لا تُثبَّت أيام بأسمائها؛ يمكنك تغيير يوم الاستدراك لاحقًا.</p>'+
+    '<p class="muted small">المكثفة: صفحتان يوميًا · المتوسطة: صفحة واحدة · المتدرجة: وجه. يوم استدراك أسبوعي اختياري وأسبوع بعد كل شهر، ويمكن تغيير اليوم لاحقًا.</p>'+
     '<button class="btn" type="submit">'+(editing?"حفظ التعديل":"بدء المسار")+'</button></form></section>';
 }
 function quranLogCard(kind,pathInfo,logged){

@@ -4,23 +4,24 @@
 
 | بند | الحالة | دليل |
 |---|---|---|
-| Git متزامن (HEAD=origin) | ✅ | 6c963e2 |
-| لا تغييرات معلّقة | ✅ | git status clean |
-| النسخة المنشورة معروفة | ✅ | live files hash-match HEAD (normalized) |
+| Git متزامن (HEAD=origin) | ✅ | 374a59e على `migration/cloudflare-student-platform` |
+| لا تغييرات معلّقة | ✅ | git status clean بعد الدفع |
+| النسخة المنشورة معروفة | ✅ | a-ihsan.pages.dev يخدم `?v=20261112-2` |
 | npm run check | ✅ | pass |
-| اقتصاد 69/69 | ✅ | local D1 |
-| D1 الإنتاجية (مخطط) | ❌ غير مُتحقق | no wrangler auth |
-| حساب حقيقي | ❌ غير مُتحقق | no credentials |
-| الصلاحيات cross-role | ❌ غير مختبر | no automated tests |
-| Offline/PWA | ❌ غير مختبر | no tests |
-| Backup restore drill | ❌ غير م performed | not done |
+| اقتصاد 69/69 | ✅ | D1 محلية |
+| مسار القرآن 44/44 | ✅ | D1 محلية |
+| الصلاحيات cross-role | ✅ محليًا | role-permission-test: 0 failures |
+| D1 الإنتاجية (مخطط) | ❌ غير مُتحقَّق | لا يوجد wrangler auth |
+| حساب حقيقي | ❌ غير مُتحقَّق | لا توجد بيانات دخول |
+| Offline/PWA | ❌ غير مختبر | لا اختبارات |
+| استعادة نسخة احتياطية | ❌ لم تُجرَّب | لم تُنفَّذ |
 | Google OAuth | ❌ غير مُهيَّأ | setup_enabled:false |
-| Content review | ❌ غير م performed | no CONTENT-REVIEW yet |
+| مراجعة المحتوى الشرعي | ❌ لم تُجرَّب | بانتظار مراجع بشري |
 
 ## قرار
 
-**Not production-ready for full claim.** The code is deployable and the economy is locally verified, but production D1/role/offline/restore/content are unverified. Do not announce "ready" until the ❌ items above have evidence.
+**Not production-ready for full claim.** الكود منشور، والاقتصاد ومسار القرآن والصلاحيات مُتحقَّق منها محليًا، لكن D1 الإنتاجية وOAuth وoffline واستعادة النسخ والمراجعة الشرعية للمحتوى لم تُتحقق بعد. لا تُعلن «الجاهزية» قبل وجود دليل على بنود ❌.
 
 ## ما يمكن إعلانه الآن (bounded)
 
-- "الاقتصاد والعالم والبطاقة والدليل نُشرت وتعمل محليًا؛ production D1/role/offline verification pending."
+- «مسار القرآن (حفظ/تثبيت/ورد/رفيق/محطات/استدراك) والاقتصاد والعالم والبطاقة والدليل نُشرت وتعمل محليًا؛ التحقق على D1 الإنتاجية وOAuth وoffline معلّق.»

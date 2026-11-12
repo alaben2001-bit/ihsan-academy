@@ -1,4 +1,4 @@
-# نتائج الاختبار — 2026-11-11
+# نتائج الاختبار — 2026-11-12
 
 ## محلي (D1 محلية، wrangler dev:8788, BOOTSTRAP_SECRET=test-bootstrap-secret-1234)
 
@@ -6,31 +6,36 @@
 |---|---|---|
 | `npm run check` | PASS | "Security regression guardrails passed." |
 | `npm run prepare:assets` | PASS | public/ regenerated |
-| `test:points:local` (70 check() calls) | 69/69 PASS (1 env setup skipped) | log: 2026-11-11 |
-| قراءة manual flow | PASS | POST 201 (+5/+2), dup 409, GET logged_today:true, streak:1 |
-| Browser: world/card/guide/wallet | PASS | computed Ruby gradient applies; 0 console errors (only expected 401 /api/me before login) |
+| `test:points:local` (70 check() calls) | 69/69 PASS (1 env setup skipped) | 2026-11-12 |
+| `test:quran:local` | 44/44 PASS | 2026-11-12 |
+| role-permission-test.mjs | 0 failures | 2026-11-12 |
+| Browser: world/card/guide/wallet | PASS | Ruby gradient applies; 0 console errors (expected 401 before login) |
+| Quran tabs (daily/plan/companion/stations) | PASS | served app.js contains `quranEnrollMarkup` + `quranSupervisionPage` |
 | Card background cascade fix | PASS | bgImage = linear-gradient (Ruby) |
 
 ## CI (GitHub Actions)
 
 | workflow | الحالة | ملاحظة |
 |---|---|---|
-| cloudflare-free-check | PASS (last push 6c963e2) | check + prepare:assets + deploy dry-run |
+| cloudflare-free-check | يُشغَّل عند الدفع | check + prepare:assets + dry-run + points + Quran + role |
 
 ## إنتاج (a-ihsan.pages.dev)
 
 | فحص | النتيجة | دليل |
 |---|---|---|
 | /api/health | 200 ok | verified |
-| asset version | 20261111-4 | verified (live files hash-match HEAD normalized) |
+| asset version | 20261112-2 | index/app.js/service-worker verified |
+| /api/quran/* | 401 (auth gate) | المسارات موجودة، ليست 404 |
 | /api/points/*, /api/tasks, /api/content, /api/competitions | 401 (auth gate) | cannot verify without credentials |
 | student pages render | **غير مختبر** | blocked on human login |
-| D1 0004 | **غير مختبر** | blocked on wrangler auth |
+| D1 0004/0005 | **غير مختبر** | blocked on wrangler auth |
 
 ## فشل
 
-لا فشل مُسجَّل في الاختبارات المحلية. فجوات (غير فشل): cross-role tests (now covered by role-permission-test.mjs, 0 failures), offline, restore drill, production verification — see TEST-PLAN.md.
+لا فشل مُسجَّل في الاختبارات المحلية. فجوات (غير فشل): offline، استعادة النسخ، التحقق على الإنتاج — انظر TEST-PLAN.md.
 
-## إصلاح مكتشف during audit
+## إصلاحات مكتشفة أثناء التدقيق
 
 - `/api/admin/backup/full-export` كان يُرجع 500 بسبب متغير غير مُعرّف (`googleIdentities` missing from Promise.all destructure). أُصلح في `src/index.js`. Verified 200 locally.
+- `weekStart = academyDate(-6)` كان يمرّر رقمًا بدل تاريخ؛ أُصلح إلى `addCalendarDays(academyDate(), -6)`، وأُعيدت كتابة `quranStreak` بـ`addCalendarDays`.
+- `security-check.mjs` كان يتحقق من نص قديم لتفويض صفحة القرآن؛ حُدِّث إلى `await quranRosterPage($("#quran-staff-body"))`.

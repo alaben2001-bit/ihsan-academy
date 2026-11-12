@@ -543,7 +543,7 @@ const QURAN_CATEGORIES = {
   "45": { label: "45 حزبًا", thabit: 0.375, thabitLabel: "ثلاثة أثمان حزب", workDays: 5 },
   "60": { label: "60 حزبًا", thabit: 0.5, thabitLabel: "نصف حزب", workDays: 5 }
 };
-const QURAN_PLANS = { plan_a: "الخطة الأولى", plan_b: "الخطة الثانية", plan_c: "الخطة الثالثة" };
+const QURAN_PLANS = { plan_a: "الخطة الأولى · المكثفة", plan_b: "الخطة الثانية · المتوسطة", plan_c: "الخطة الثالثة · المتدرجة" };
 const QURAN_WARD = { 1: "حزب واحد", 2: "حزبان", 4: "أربعة أحزاب" };
 const QURAN_KIND_LABELS = { hifz: "الحفظ الجديد", thabit: "التثبيت", ward: "الورد" };
 const QURAN_MAKEUP_REASONS = { shortcoming: "تقصير", interruption: "انقطاع", incapacity: "عجز عن الإنجاز", circumstance: "ظرف يحتاج إلى معالجة" };
