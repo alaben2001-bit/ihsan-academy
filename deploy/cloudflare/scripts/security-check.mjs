@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { validDateOnly, academyDate, addCalendarDays } from "../src/index.js";
 
-const [backend, app, index, serviceWorker, migration, initialMigration, style, about, privacy, robots, sitemap, redirects] = await Promise.all([
+const [backend, app, index, serviceWorker, migration, initialMigration, style, about, privacy, robots, sitemap, redirects, competitionsMigration] = await Promise.all([
   readFile("src/index.js", "utf8"),
   readFile("site/app.js", "utf8"),
   readFile("site/index.html", "utf8"),
@@ -15,6 +15,7 @@ const [backend, app, index, serviceWorker, migration, initialMigration, style, a
   readFile("site/robots.txt", "utf8"),
   readFile("site/sitemap.xml", "utf8"),
   readFile("site/_redirects", "utf8"),
+  readFile("migrations/0006_competitions.sql", "utf8"),
 ]);
 
 assert.equal(validDateOnly("2024-02-29"), true, "valid leap-day due dates must be accepted");
@@ -55,10 +56,15 @@ assert.match(backend, /store_redemptions:storeRedemptions\.results\|\|\[\]/, "fu
 assert.match(backend, /quran_daily:quranDaily\.results\|\|\[\]/, "full backup must preserve daily Quran logs");
 assert.match(backend, /quran_stations:quranStations\.results\|\|\[\]/, "full backup must preserve sheikh stations");
 assert.match(backend, /quran_makeups:quranMakeups\.results\|\|\[\]/, "full backup must preserve makeups");
-assert.match(backend, /format:"ihsan-academy-full-backup-v3"/, "full export must advertise the v3 format");
-assert.match(backend, /"ihsan-academy-full-backup-v2","ihsan-academy-full-backup-v3"/, "restore must accept both v3 and legacy v2 files");
+assert.match(backend, /competitions:competitions\.results\|\|\[\]/, "full backup must preserve competitions");
+assert.match(backend, /competition_results:competitionResults\.results\|\|\[\]/, "full backup must preserve competition results");
+assert.match(backend, /format:"ihsan-academy-full-backup-v4"/, "full export must advertise the v4 format");
+assert.match(backend, /"ihsan-academy-full-backup-v2","ihsan-academy-full-backup-v3","ihsan-academy-full-backup-v4"/, "restore must accept v4 and legacy v2/v3 files");
 assert.match(backend, /INSERT INTO quran_daily \(id,student_id,day,kind/, "restore must write daily Quran logs");
 assert.match(backend, /INSERT INTO point_events \(id,student_id,group_id,rule_id/, "restore must write point events");
+assert.match(backend, /INSERT INTO competitions \(id,school_id,title/, "restore must write competitions");
+assert.match(backend, /INSERT INTO competition_results \(id,competition_id,registration_id/, "restore must write competition results");
+assert.match(backend, /competition_categories:competitionCategories\.length,competitions:competitions\.length/, "restore must report competition counts");
 
 assert.match(app, /const localDateISO=/, "browser date inputs must use the local calendar date");
 assert.match(app, /const head=\(a,b\)=>.*esc\(a\).*esc\(b\)/, "shared section headings must escape dynamic text before inserting HTML");
@@ -353,6 +359,28 @@ assert.match(app, /async function contentPage\(v\)/, "the hadith and mutoon scre
 assert.match(backend, /path==="\/api\/content"/, "the backend must expose the sourced content endpoint");
 assert.match(app, /async function competitionsPage\(v\)/, "the competitions screen must be reachable from the app");
 assert.match(backend, /path==="\/api\/competitions"/, "the backend must expose the competitions endpoint");
+assert.match(backend, /COMPETITION_STATUS_FLOW/, "competition lifecycle transitions must be server-enforced");
+assert.match(backend, /competitionEligibility\(env,user,competition\)/, "registration must enforce age, hizb and riwaya eligibility");
+assert.match(backend, /competitionCanManage\(env,user,competition\)/, "competition management and awards must be permission-gated");
+assert.match(backend, /competitionCanJudge\(env,user,competition,registration\)/, "judging must be scoped to assigned judges or managed groups");
+assert.match(backend, /eventKey:"competition:"\+competitionId\+":"\+row\.student_id\+":award"/, "competition awards must be idempotent per student and competition");
+assert.match(backend, /sourceCollection:"competition_results"/, "competition awards must reference their approved result");
+assert.match(backend, /if\(list\.some\(row=>\["approved","published"\]\.includes\(row\.status\)\)\)return fail\(409,"النتائج معتمدة مسبقًا"\)/, "approved competition results must not be awarded twice");
+assert.doesNotMatch(backend, /auto_?correct|ai_?correct/i, "competitions must not claim automatic recitation correction");
+assert.match(backend, /CREATE TABLE IF NOT EXISTS competition_reference_terms/, "competition terms must be editable reference data, not hardcoded seasonal rules");
+assert.match(backend, /memorized_hizb/, "competition eligibility must use the explicit memorized-hizb field when present");
+assert.match(app, /data-competition-tab/, "the competitions screen must expose role-aware tabs");
+assert.match(app, /data-register-form=/, "students must register from the competitions screen");
+assert.match(app, /data-score-form/, "judges must score criteria from the competitions screen");
+assert.match(app, /data-panel-generate/, "results generation must be available to authorized staff");
+assert.match(app, /data-panel-approve/, "result approval must be an explicit staff action");
+assert.match(app, /data-event-form=/, "the competition calendar must be editable from the UI");
+assert.match(app, /data-term-save/, "reference terms must be editable from the UI");
+for (const table of ["competition_categories", "competitions", "competition_registrations", "competition_judges", "competition_scores", "competition_results", "competition_events", "competition_reference_terms"]) {
+  assert.match(competitionsMigration, new RegExp("CREATE TABLE IF NOT EXISTS " + table), "0006 must create " + table);
+}
+assert.match(competitionsMigration, /INSERT OR IGNORE INTO point_rules[^;]*competition_award/, "0006 must seed the competition award rule");
+assert.doesNotMatch(competitionsMigration, /DELETE FROM academy_records/, "the legacy competition import must never delete old records");
 
 
 assert.doesNotMatch(app, /class="auth-entry-nourishment"/, "the login screen must stay clean without rotating dua cards");

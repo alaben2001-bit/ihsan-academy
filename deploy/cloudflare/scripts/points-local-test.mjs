@@ -285,30 +285,20 @@ async function main() {
   check("student cannot publish content", contentForbidden.status === 403, JSON.stringify(contentForbidden.data));
 
   // -------------------------------------------------------------------------
-  // 13) Competitions: draft visibility, entry, score, ranking, scope
+  // 13) Competitions live in scripts/competitions-test.mjs; keep only the
+  //     cross-cutting role gate here so the economy drill stays focused.
   // -------------------------------------------------------------------------
-  const competition = await call("/api/competitions", { method: "POST", token: admin, body: { title: "مسابقة اختبار", description: "أجب عن السؤال", status: "draft" } });
-  check("admin creates a draft competition", competition.status === 201 && competition.data?.id, JSON.stringify(competition.data));
-  const competitionId = competition.data.id;
-  const studentDraftList = await call("/api/competitions", { token: studentToken });
-  check("students do not see draft competitions", !(studentDraftList.data || []).some(item => item.id === competitionId), JSON.stringify(studentDraftList.data));
-  const publishCompetition = await call("/api/competitions/" + encodeURIComponent(competitionId), { method: "PATCH", token: admin, body: { status: "published" } });
-  check("admin publishes the competition", publishCompetition.status === 200, JSON.stringify(publishCompetition.data));
-  const studentCompetitionList = await call("/api/competitions", { token: studentToken });
-  check("students see the published competition", (studentCompetitionList.data || []).some(item => item.id === competitionId), JSON.stringify(studentCompetitionList.data));
-  const enter1 = await call("/api/competitions/" + encodeURIComponent(competitionId) + "/enter", { method: "POST", token: studentToken, body: { answer: "إجابة الاختبار" } });
-  check("student enters the competition", enter1.status === 201, JSON.stringify(enter1.data));
-  const entries = await call("/api/competitions/" + encodeURIComponent(competitionId) + "/entries", { token: admin });
-  const myEntry = (entries.data || []).find(entry => entry.student_id === student.id);
-  check("admin sees the competition entry", entries.status === 200 && Boolean(myEntry), JSON.stringify(entries.data));
-  const scoreEntry = await call("/api/competitions/" + encodeURIComponent(competitionId) + "/entries/" + encodeURIComponent(myEntry.id) + "/score", { method: "POST", token: admin, body: { score: 95, note: "ممتاز" } });
-  check("admin scores the entry", scoreEntry.status === 200 && scoreEntry.data?.entry?.score === 95, JSON.stringify(scoreEntry.data));
-  const ranking = await call("/api/competitions/" + encodeURIComponent(competitionId) + "/entries", { token: studentToken });
-  check("student sees the ranking with own first place", ranking.status === 200 && ranking.data?.ranking?.[0]?.is_self === true && ranking.data?.ranking?.[0]?.score === 95, JSON.stringify(ranking.data));
-  const teacherScore = await call("/api/competitions/" + encodeURIComponent(competitionId) + "/entries/" + encodeURIComponent(myEntry.id) + "/score", { method: "POST", token: teacherToken, body: { score: 10 } });
-  check("teacher outside the group cannot score an entry", teacherScore.status === 403, JSON.stringify(teacherScore.data));
   const studentCompetitionCreate = await call("/api/competitions", { method: "POST", token: studentToken, body: { title: "x", description: "y" } });
   check("student cannot create competitions", studentCompetitionCreate.status === 403, JSON.stringify(studentCompetitionCreate.data));
+  const studentCompetitionList = await call("/api/competitions", { token: studentToken });
+  check("students can read the competitions list", studentCompetitionList.status === 200 && Array.isArray(studentCompetitionList.data), JSON.stringify(studentCompetitionList.data));
+
+  // -------------------------------------------------------------------------
+  // 14) Restore the seeded attendance rule so later suites on the same local
+  //     database (backup, competitions) see the documented 5/2 default.
+  // -------------------------------------------------------------------------
+  const restoreRule = await call("/api/points/rules", { method: "POST", token: admin, body: { id: attendanceRule.id, event_type: "attendance_present", name: attendanceRule.name, description: attendanceRule.description, achievement_points: 5, store_points: 2, max_per_day: 1, auto_award: 1, active: 1, sort_order: attendanceRule.sort_order } });
+  check("attendance rule is restored to the seeded 5/2 default", restoreRule.status === 200 && restoreRule.data?.rule?.store_points === 2, JSON.stringify(restoreRule.data));
 
   const report = { base: BASE, failures, passed: results.filter(row => row.ok).length, total: results.length, results };
   const outputPath = process.env.POINTS_TEST_REPORT || "";

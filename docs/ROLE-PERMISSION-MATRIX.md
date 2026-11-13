@@ -19,7 +19,12 @@
 | redemption decision | ✅ | ✅? | ✅? | — | request own |
 | messages send | role-scoped recipients | role-scoped | role-scoped | role-scoped | role-scoped |
 | content publish | ✅ | ✅? | ✅? | — | read published |
-| competitions manage | ✅ | ✅? | ✅? | — | enter |
+| competitions create/manage | ✅ | own school | — | — | — |
+| competitions calendar/terms | ✅ | own school | — | — | read derived |
+| competition registration decision | ✅ | own school | managed group | managed group | — |
+| competition judging | ✅ | own school | assigned judge or managed group | assigned judge or managed group | — |
+| competition results generate/approve | ✅ | own school | — | — | — |
+| competition register | — | — | — | — | self (eligibility) |
 | audit view | ✅ | school | — | — | — |
 | backup export/restore | ✅ | — | — | — | — |
 
@@ -28,6 +33,7 @@
 - Director/teacher/supervisor boundaries (school/group/team scope) **لم تُختبر تلقائيًا** — manual/API audit required.
 - `❓` = policy unclear from code; needs explicit decision before granting.
 - لا توسع صلاحيات دون موافقة صاحب الأكاديمية (per task constraints).
+- **المسابقات (2026-11-13):** تحقق آلي عبر `competitions-test.mjs` (124 فحصًا) لصلاحيات admin/director/teacher/supervisor/student، ونطاق المدرسة والفوج، وتعيين/إزالة المحكمين، ومنع اعتماد النتائج أو منح الجوائز بغير صلاحية.
 
 ## اختبارات مطلوبة (P1)
 

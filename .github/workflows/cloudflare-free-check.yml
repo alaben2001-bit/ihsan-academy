@@ -46,6 +46,8 @@ jobs:
           cache: npm
           cache-dependency-path: deploy/cloudflare/package.json
       - run: npm install
+      - name: Prepare static assets
+        run: npm run prepare:assets
       - name: Apply local D1 migrations
         run: npx wrangler d1 migrations apply ihsan-academy-students --local
       - name: Start wrangler dev
@@ -63,6 +65,8 @@ jobs:
         run: node scripts/backup-restore-test.mjs
       - name: Run role/permission tests
         run: node scripts/role-permission-test.mjs
+      - name: Run competitions tests
+        run: node scripts/competitions-test.mjs
       - name: Stop wrangler dev
         if: always()
         run: pkill -f "wrangler dev" || true

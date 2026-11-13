@@ -278,7 +278,8 @@ async function awardPointsForEvent(env, options) {
   if (!rule) return [];
   const results = [];
   for (const kind of POINT_KINDS) {
-    const amount = Number(kind === "achievement" ? rule.achievement_points : rule.store_points);
+    const override = kind === "achievement" ? options.achievementPoints : options.storePoints;
+    const amount = Number(override !== undefined && override !== null ? override : (kind === "achievement" ? rule.achievement_points : rule.store_points));
     if (!Number.isFinite(amount) || amount <= 0) continue;
     if (rule.max_per_day !== null && rule.max_per_day !== undefined) {
       const used = await env.DB.prepare("SELECT COUNT(*) AS n FROM point_events WHERE student_id=? AND event_type=? AND kind=? AND awarded_date=? AND reversed_at IS NULL").bind(studentId, eventType, kind, date).first();
@@ -537,6 +538,328 @@ async function ensureQuranSchema(env) {
   return quranSchemaReady;
 }
 
+// 0006_competitions is applied here as an additive, idempotent safety net too.
+// It reuses the existing users/students/groups and point_events tables.
+const COMPETITION_SCHEMA_STATEMENTS = [
+  `CREATE TABLE IF NOT EXISTS competition_categories (
+    id TEXT PRIMARY KEY,
+    name TEXT NOT NULL,
+    code TEXT NOT NULL UNIQUE,
+    kind TEXT NOT NULL DEFAULT 'quran_hifz' CHECK (kind IN ('quran_hifz','quran_tilawa','quran_tajweed','hadith','mutoon','seerah','islamic_culture','other')),
+    min_hizb INTEGER CHECK (min_hizb IS NULL OR (min_hizb >= 0 AND min_hizb <= 60)),
+    max_hizb INTEGER CHECK (max_hizb IS NULL OR (max_hizb >= 1 AND max_hizb <= 60)),
+    min_age INTEGER CHECK (min_age IS NULL OR (min_age >= 3 AND min_age <= 100)),
+    max_age INTEGER CHECK (max_age IS NULL OR (max_age >= 3 AND max_age <= 100)),
+    active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0,1)),
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_competition_categories_active_order ON competition_categories(active, sort_order)`,
+  `INSERT OR IGNORE INTO competition_categories (id,name,code,kind,min_hizb,max_hizb,min_age,max_age,active,sort_order) VALUES
+    ('cat-hizb-15','15 حزبًا','hizb15','quran_hifz',0,15,NULL,NULL,1,10),
+    ('cat-hizb-30','30 حزبًا','hizb30','quran_hifz',15,30,NULL,NULL,1,20),
+    ('cat-hizb-45','45 حزبًا','hizb45','quran_hifz',30,45,NULL,NULL,1,30),
+    ('cat-hizb-60','60 حزبًا','hizb60','quran_hifz',45,60,NULL,NULL,1,40),
+    ('cat-general','عام','general','other',NULL,NULL,NULL,NULL,1,90)`,
+  `CREATE TABLE IF NOT EXISTS competitions (
+    id TEXT PRIMARY KEY,
+    school_id TEXT,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    kind TEXT NOT NULL DEFAULT 'quran_hifz' CHECK (kind IN ('quran_hifz','quran_tilawa','quran_tajweed','hadith','mutoon','seerah','islamic_culture','other')),
+    season TEXT NOT NULL DEFAULT 'general',
+    category_id TEXT REFERENCES competition_categories(id) ON DELETE SET NULL,
+    status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','announced','registration','judging','results','honored','archived')),
+    registration_starts_at TEXT,
+    registration_ends_at TEXT,
+    starts_at TEXT,
+    ends_at TEXT,
+    min_age INTEGER CHECK (min_age IS NULL OR (min_age >= 3 AND min_age <= 100)),
+    max_age INTEGER CHECK (max_age IS NULL OR (max_age >= 3 AND max_age <= 100)),
+    riwayat_json TEXT NOT NULL DEFAULT '[]',
+    min_hizb INTEGER CHECK (min_hizb IS NULL OR (min_hizb >= 0 AND min_hizb <= 60)),
+    max_hizb INTEGER CHECK (max_hizb IS NULL OR (max_hizb >= 1 AND max_hizb <= 60)),
+    requires_approval INTEGER NOT NULL DEFAULT 0 CHECK (requires_approval IN (0,1)),
+    max_participants INTEGER CHECK (max_participants IS NULL OR (max_participants >= 1 AND max_participants <= 100000)),
+    rules TEXT NOT NULL DEFAULT '',
+    judging_criteria_json TEXT NOT NULL DEFAULT '[]',
+    awards_json TEXT NOT NULL DEFAULT '[]',
+    participation_achievement INTEGER NOT NULL DEFAULT 0 CHECK (participation_achievement >= 0 AND participation_achievement <= 100000),
+    participation_store INTEGER NOT NULL DEFAULT 0 CHECK (participation_store >= 0 AND participation_store <= 100000),
+    created_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_competitions_status_dates ON competitions(status, registration_starts_at, registration_ends_at)`,
+  `CREATE INDEX IF NOT EXISTS idx_competitions_school ON competitions(school_id, status)`,
+  `CREATE TABLE IF NOT EXISTS competition_registrations (
+    id TEXT PRIMARY KEY,
+    competition_id TEXT NOT NULL REFERENCES competitions(id) ON DELETE CASCADE,
+    student_id TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    group_id TEXT REFERENCES groups(id) ON DELETE SET NULL,
+    status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected','withdrawn','disqualified')),
+    age_at_registration INTEGER CHECK (age_at_registration IS NULL OR (age_at_registration >= 3 AND age_at_registration <= 100)),
+    hizb_at_registration TEXT NOT NULL DEFAULT '',
+    riwaya TEXT NOT NULL DEFAULT '',
+    note TEXT NOT NULL DEFAULT '',
+    registered_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    decided_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+    decided_at TEXT,
+    decision_note TEXT NOT NULL DEFAULT '',
+    UNIQUE (competition_id, student_id)
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_competition_registrations_competition ON competition_registrations(competition_id, status)`,
+  `CREATE INDEX IF NOT EXISTS idx_competition_registrations_student ON competition_registrations(student_id, registered_at)`,
+  `CREATE INDEX IF NOT EXISTS idx_competition_registrations_group ON competition_registrations(group_id, status)`,
+  `CREATE TABLE IF NOT EXISTS competition_judges (
+    competition_id TEXT NOT NULL REFERENCES competitions(id) ON DELETE CASCADE,
+    user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    created_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    PRIMARY KEY (competition_id, user_id)
+  )`,
+  `CREATE TABLE IF NOT EXISTS competition_scores (
+    id TEXT PRIMARY KEY,
+    competition_id TEXT NOT NULL REFERENCES competitions(id) ON DELETE CASCADE,
+    registration_id TEXT NOT NULL REFERENCES competition_registrations(id) ON DELETE CASCADE,
+    judge_user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    criteria_json TEXT NOT NULL DEFAULT '[]',
+    total REAL NOT NULL CHECK (total >= 0 AND total <= 100),
+    note TEXT NOT NULL DEFAULT '',
+    scored_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    UNIQUE (competition_id, registration_id, judge_user_id)
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_competition_scores_registration ON competition_scores(registration_id)`,
+  `CREATE TABLE IF NOT EXISTS competition_results (
+    id TEXT PRIMARY KEY,
+    competition_id TEXT NOT NULL REFERENCES competitions(id) ON DELETE CASCADE,
+    registration_id TEXT NOT NULL REFERENCES competition_registrations(id) ON DELETE CASCADE,
+    student_id TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    group_id TEXT REFERENCES groups(id) ON DELETE SET NULL,
+    final_score REAL CHECK (final_score IS NULL OR (final_score >= 0 AND final_score <= 100)),
+    rank INTEGER CHECK (rank IS NULL OR rank >= 1),
+    status TEXT NOT NULL DEFAULT 'draft' CHECK (status IN ('draft','approved','published')),
+    award_achievement INTEGER NOT NULL DEFAULT 0 CHECK (award_achievement >= 0 AND award_achievement <= 100000),
+    award_store INTEGER NOT NULL DEFAULT 0 CHECK (award_store >= 0 AND award_store <= 100000),
+    award_event_achievement_id TEXT,
+    award_event_store_id TEXT,
+    note TEXT NOT NULL DEFAULT '',
+    approved_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+    approved_at TEXT,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    UNIQUE (competition_id, registration_id)
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_competition_results_competition ON competition_results(competition_id, rank, status)`,
+  `CREATE INDEX IF NOT EXISTS idx_competition_results_student ON competition_results(student_id, status)`,
+  `CREATE TABLE IF NOT EXISTS competition_events (
+    id TEXT PRIMARY KEY,
+    competition_id TEXT REFERENCES competitions(id) ON DELETE CASCADE,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL DEFAULT '',
+    event_date TEXT NOT NULL,
+    kind TEXT NOT NULL DEFAULT 'other' CHECK (kind IN ('announcement','registration','judging','result','honoring','other')),
+    active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0,1)),
+    created_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_competition_events_date ON competition_events(event_date, active)`,
+  `CREATE TABLE IF NOT EXISTS competition_reference_terms (
+    id TEXT PRIMARY KEY,
+    kind TEXT NOT NULL DEFAULT 'other' CHECK (kind IN ('quran_hifz','quran_tilawa','quran_tajweed','hadith','mutoon','seerah','islamic_culture','other')),
+    title TEXT NOT NULL,
+    body TEXT NOT NULL DEFAULT '',
+    source TEXT NOT NULL DEFAULT '',
+    active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0,1)),
+    sort_order INTEGER NOT NULL DEFAULT 0,
+    created_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_competition_terms_kind ON competition_reference_terms(kind, active, sort_order)`,
+  `INSERT OR IGNORE INTO competition_reference_terms (id,kind,title,body,source,active,sort_order) VALUES
+    ('term-general-template','other','قالب شروط عام','تُكتب هنا شروط كل دورة واعتمادها من الإدارة قبل الإعلان. لا تُعتمد شروط دورة سابقة تلقائيًا.','قالب قابل للتعديل',1,10)`,
+  `INSERT OR IGNORE INTO point_rules (id,event_type,name,description,achievement_points,store_points,max_per_day,auto_award,active,sort_order) VALUES
+    ('rule-competition-award','competition_award','مكافأة مسابقة','تُمنح باعتماد نتائج المسابقة وبمقدار مخصّص لكل مرتبة.',0,0,NULL,1,1,60)`
+];
+let competitionSchemaReady = null;
+async function ensureCompetitionSchema(env) {
+  if (competitionSchemaReady) return competitionSchemaReady;
+  competitionSchemaReady = (async () => {
+    for (const statement of COMPETITION_SCHEMA_STATEMENTS) await env.DB.prepare(statement).run();
+    const marker = await env.DB.prepare("SELECT id FROM academy_records WHERE collection='platform_settings' AND id='competition_legacy_import_v1'").first();
+    if (!marker) {
+      // Best-effort import of the previous JSON-shaped competitions. The old
+      // rows are never deleted; this only makes them visible in the new model.
+      await env.DB.prepare(`INSERT OR IGNORE INTO competitions (id,school_id,title,description,kind,season,category_id,status,registration_starts_at,registration_ends_at,starts_at,ends_at,created_by,created_at,updated_at,rules,judging_criteria_json,awards_json)
+        SELECT id,NULL,COALESCE(NULLIF(json_extract(payload_json,'$.title'),''),'مسابقة سابقة'),COALESCE(json_extract(payload_json,'$.description'),''),'other','general',NULL,
+        CASE json_extract(payload_json,'$.status') WHEN 'published' THEN 'registration' WHEN 'closed' THEN 'archived' ELSE 'draft' END,
+        NULL,NULL,json_extract(payload_json,'$.starts_at'),json_extract(payload_json,'$.ends_at'),NULL,
+        COALESCE(json_extract(payload_json,'$.created_at'),strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+        COALESCE(json_extract(payload_json,'$.updated_at'),strftime('%Y-%m-%dT%H:%M:%fZ','now')),'','[]','[]'
+        FROM academy_records WHERE collection='competitions'`).run();
+      await env.DB.prepare(`INSERT OR IGNORE INTO competition_registrations (id,competition_id,student_id,group_id,status,note,registered_at)
+        SELECT id,json_extract(payload_json,'$.competition_id'),student_id,group_id,
+        CASE WHEN json_extract(payload_json,'$.score') IS NULL THEN 'pending' ELSE 'approved' END,
+        COALESCE(json_extract(payload_json,'$.note'),''),
+        COALESCE(json_extract(payload_json,'$.created_at'),strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+        FROM academy_records WHERE collection='competition_entries' AND json_extract(payload_json,'$.competition_id') IS NOT NULL AND student_id IS NOT NULL`).run();
+      await env.DB.prepare(`INSERT OR IGNORE INTO competition_results (id,competition_id,registration_id,student_id,group_id,final_score,rank,status,note,created_at)
+        SELECT 'legacy-'||id,json_extract(payload_json,'$.competition_id'),id,student_id,group_id,
+        CASE WHEN CAST(json_extract(payload_json,'$.score') AS REAL) > 100 THEN ROUND(CAST(json_extract(payload_json,'$.score') AS REAL)/10.0,2) ELSE CAST(json_extract(payload_json,'$.score') AS REAL) END,
+        NULL,'draft','مستورد من النظام السابق',
+        COALESCE(json_extract(payload_json,'$.updated_at'),strftime('%Y-%m-%dT%H:%M:%fZ','now'))
+        FROM academy_records WHERE collection='competition_entries' AND json_extract(payload_json,'$.score') IS NOT NULL`).run();
+      await env.DB.prepare("INSERT OR IGNORE INTO academy_records (collection,id,payload_json,updated_at) VALUES ('platform_settings','competition_legacy_import_v1',?,?)").bind(JSON.stringify({ completed: true, at: nowIso() }), nowIso()).run();
+    }
+    return true;
+  })().catch(error => { competitionSchemaReady = null; throw error; });
+  return competitionSchemaReady;
+}
+
+const COMPETITION_KINDS = {
+  quran_hifz: "مسابقة حفظ القرآن",
+  quran_tilawa: "مسابقة الترتيل",
+  quran_tajweed: "مسابقة التجويد",
+  hadith: "مسابقة الحديث",
+  mutoon: "مسابقة المتون",
+  seerah: "مسابقة السيرة",
+  islamic_culture: "مسابقة الثقافة الإسلامية",
+  other: "مسابقة عامة"
+};
+const COMPETITION_STATUSES = {
+  draft: "مسودة",
+  announced: "معلنة",
+  registration: "التسجيل مفتوح",
+  judging: "التحكيم",
+  results: "النتائج",
+  honored: "التكريم",
+  archived: "مؤرشفة"
+};
+const COMPETITION_STATUS_FLOW = {
+  draft: ["announced"],
+  announced: ["registration", "draft"],
+  registration: ["judging", "announced"],
+  judging: ["results", "registration"],
+  results: ["honored", "judging"],
+  honored: ["archived", "results"],
+  archived: []
+};
+const COMPETITION_REGISTRATION_STATUSES = {
+  pending: "بانتظار الاعتماد",
+  approved: "معتمد",
+  rejected: "مرفوض",
+  withdrawn: "منسحب",
+  disqualified: "مستبعد"
+};
+const COMPETITION_DEFAULT_CRITERIA = {
+  quran_hifz: [
+    { id: "hifz", label: "الحفظ والإتقان", max: 50 },
+    { id: "adau", label: "الأداء والترتيل", max: 20 },
+    { id: "tajweed", label: "التجويد", max: 15 },
+    { id: "adab", label: "الوقار والالتزام", max: 15 }
+  ],
+  quran_tilawa: [
+    { id: "tilawa", label: "صحة التلاوة", max: 50 },
+    { id: "tajweed", label: "التجويد", max: 25 },
+    { id: "sawt", label: "حسن الصوت", max: 15 },
+    { id: "adab", label: "الوقار والالتزام", max: 10 }
+  ],
+  quran_tajweed: [
+    { id: "ahkam", label: "تطبيق الأحكام", max: 50 },
+    { id: "makharij", label: "المخارج والصفات", max: 25 },
+    { id: "tamathul", label: "التمثّل في التلاوة", max: 15 },
+    { id: "adab", label: "الوقار والالتزام", max: 10 }
+  ],
+  hadith: [
+    { id: "hifz", label: "الحفظ والاستظهار", max: 50 },
+    { id: "fahm", label: "الفهم والاستنباط", max: 25 },
+    { id: "adau", label: "العرض والأداء", max: 15 },
+    { id: "adab", label: "الأدب والالتزام", max: 10 }
+  ],
+  mutoon: [
+    { id: "hifz", label: "حفظ المتن", max: 50 },
+    { id: "fahm", label: "فهم المتن", max: 25 },
+    { id: "adau", label: "العرض", max: 15 },
+    { id: "adab", label: "الأدب والالتزام", max: 10 }
+  ],
+  seerah: [
+    { id: "maarifa", label: "المعرفة والضبط", max: 50 },
+    { id: "fahm", label: "الفهم والاستنباط", max: 25 },
+    { id: "adau", label: "العرض", max: 15 },
+    { id: "adab", label: "الأدب والالتزام", max: 10 }
+  ],
+  islamic_culture: [
+    { id: "maarifa", label: "المعرفة والضبط", max: 50 },
+    { id: "fahm", label: "الفهم والاستدلال", max: 25 },
+    { id: "adau", label: "العرض", max: 15 },
+    { id: "adab", label: "الأدب والالتزام", max: 10 }
+  ],
+  other: [
+    { id: "maarifa", label: "المعرفة والإتقان", max: 50 },
+    { id: "fahm", label: "الفهم", max: 25 },
+    { id: "adau", label: "العرض", max: 15 },
+    { id: "adab", label: "الأدب والالتزام", max: 10 }
+  ]
+};
+
+function competitionDefaultCriteria(kind) {
+  return (COMPETITION_DEFAULT_CRITERIA[kind] || COMPETITION_DEFAULT_CRITERIA.other).map(item => ({ ...item }));
+}
+function numberOrNull(value, min, max) {
+  if (value === null || value === undefined || value === "") return null;
+  const n = Number(value);
+  if (!Number.isFinite(n)) return null;
+  return Math.max(min, Math.min(max, n));
+}
+function defaultCompetitionAwards() {
+  // Default editable awards: top 3 only. Participation defaults to zero so no
+  // points are given for mere attendance.
+  return [
+    { place: 1, label: "المرتبة الأولى", achievement: 100, store: 50 },
+    { place: 2, label: "المرتبة الثانية", achievement: 70, store: 30 },
+    { place: 3, label: "المرتبة الثالثة", achievement: 50, store: 20 }
+  ];
+}
+function parseJsonArray(value) {
+  if (Array.isArray(value)) return value;
+  try { const parsed = JSON.parse(value || "[]"); return Array.isArray(parsed) ? parsed : []; } catch { return []; }
+}
+function normalizeCompetitionCriteria(value, kind) {
+  const rows = parseJsonArray(value);
+  const source = rows.length ? rows : competitionDefaultCriteria(kind);
+  const seen = new Set();
+  return source.map((row, index) => {
+    const id = clean(row && row.id, 40).replace(/[^a-z0-9_]/gi, "") || "criterion_" + (index + 1);
+    if (seen.has(id)) return null;
+    seen.add(id);
+    const label = clean(row && row.label, 120) || "معيار " + (index + 1);
+    const max = Number(row && row.max);
+    if (!Number.isFinite(max) || max < 1 || max > 100) return null;
+    return { id, label, max: Math.round(max * 100) / 100 };
+  }).filter(Boolean).slice(0, 12);
+}
+function normalizeCompetitionAwards(value) {
+  const rows = parseJsonArray(value);
+  return rows.map((row, index) => {
+    const place = Number(row && row.place);
+    const achievement = Number(row && row.achievement);
+    const store = Number(row && row.store);
+    if (!Number.isInteger(place) || place < 1 || place > 100) return null;
+    if (!Number.isFinite(achievement) || achievement < 0 || achievement > 100000) return null;
+    if (!Number.isFinite(store) || store < 0 || store > 100000) return null;
+    return { place, label: clean(row && row.label, 80) || "المرتبة " + place, achievement: Math.round(achievement), store: Math.round(store) };
+  }).filter(Boolean).slice(0, 20);
+}
+function normalizeRiwayat(value) {
+  const rows = parseJsonArray(value);
+  return [...new Set(rows.map(item => clean(typeof item === "string" ? item : item && item.name, 60)).filter(Boolean))].slice(0, 20);
+}
+function competitionHizbValue(value) {
+  const text = String(value || "").trim();
+  const match = text.match(/\d{1,2}/);
+  return match ? Number(match[0]) : null;
+}
+
 const QURAN_CATEGORIES = {
   "15": { label: "15 حزبًا", thabit: 0.125, thabitLabel: "ثمن حزب", workDays: 5 },
   "30": { label: "30 حزبًا", thabit: 0.25, thabitLabel: "ربع حزب", workDays: 5 },
@@ -731,6 +1054,112 @@ async function recentPointEvents(env, studentId, limit = 50) {
   const result = await env.DB.prepare("SELECT id,event_type,kind,points,reason,event_key,awarded_date,source_collection,source_id,awarded_by,created_at,reversed_at,reversal_reason FROM point_events WHERE student_id=? ORDER BY created_at DESC, id DESC LIMIT ?").bind(studentId, limit).all();
   return (result.results || []).map(row => ({ ...row, kind_label: POINT_KIND_LABELS[row.kind] || row.kind, reversed: Boolean(row.reversed_at) }));
 }
+async function competitionStudentFacts(env, studentId) {
+  const profileRow = await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='student_profiles' AND id=?").bind(studentId).first();
+  let profile = {};
+  try { profile = profileRow ? JSON.parse(profileRow.payload_json) : {}; } catch { profile = {}; }
+  const path = await env.DB.prepare("SELECT hifz_category FROM quran_paths WHERE student_id=? AND active=1").bind(studentId).first();
+  const memorized = Number(profile.memorized_hizb);
+  const memorizedValid = profile.memorized_hizb !== null && profile.memorized_hizb !== undefined && profile.memorized_hizb !== "" && Number.isInteger(memorized) && memorized >= 0 && memorized <= 60;
+  return {
+    age: Number.isInteger(Number(profile.age)) && Number(profile.age) >= 3 ? Number(profile.age) : null,
+    riwaya: clean(profile.riwaya, 60),
+    hizb: memorizedValid ? String(memorized) : (path?.hifz_category ? String(path.hifz_category) : ""),
+    hizb_value: memorizedValid ? memorized : (path?.hifz_category ? competitionHizbValue(path.hifz_category) : null)
+  };
+}
+
+async function competitionRegistrationRow(env, competitionId, studentId) {
+  return env.DB.prepare("SELECT * FROM competition_registrations WHERE competition_id=? AND student_id=?").bind(competitionId, studentId).first();
+}
+
+async function competitionEligibility(env, user, competition) {
+  const reasons = [];
+  if (!user || user.role !== "student" || !user.student_id || !user.group_id) {
+    return { eligible: false, reasons: ["المشاركة متاحة لحساب طالب مرتبط بفوج."], age: null, hizb: "", riwaya: "", registration: null };
+  }
+  const today = academyDate();
+  if (competition.status !== "registration") reasons.push("التسجيل غير مفتوح حاليًا.");
+  if (competition.registration_starts_at && today < competition.registration_starts_at) reasons.push("لم يبدأ التسجيل بعد.");
+  if (competition.registration_ends_at && today > competition.registration_ends_at) reasons.push("انتهى موعد التسجيل.");
+  const facts = await competitionStudentFacts(env, user.student_id);
+  const minAge = competition.min_age === null || competition.min_age === undefined ? null : Number(competition.min_age);
+  const maxAge = competition.max_age === null || competition.max_age === undefined ? null : Number(competition.max_age);
+  if (minAge !== null || maxAge !== null) {
+    if (facts.age === null) reasons.push("العمر غير مسجّل في ملف الطالب؛ راجع الشيخ لتحديثه.");
+    else if (minAge !== null && facts.age < minAge) reasons.push("العمر أقل من الحد الأدنى للفئة.");
+    else if (maxAge !== null && facts.age > maxAge) reasons.push("العمر أكبر من الحد الأعلى للفئة.");
+  }
+  const minHizb = competition.min_hizb === null || competition.min_hizb === undefined ? null : Number(competition.min_hizb);
+  const maxHizb = competition.max_hizb === null || competition.max_hizb === undefined ? null : Number(competition.max_hizb);
+  if (minHizb !== null || maxHizb !== null) {
+    if (facts.hizb_value === null) reasons.push("مقدار الحفظ غير محدد في مسار القرآن؛ راجع الشيخ لتحديثه.");
+    else if (minHizb !== null && facts.hizb_value < minHizb) reasons.push("مقدار الحفظ أقل من الحد الأدنى للفئة.");
+    else if (maxHizb !== null && facts.hizb_value > maxHizb) reasons.push("مقدار الحفظ أكبر من الحد الأعلى للفئة.");
+  }
+  const allowedRiwayat = parseJsonArray(competition.riwayat_json).map(item => clean(item, 60)).filter(Boolean);
+  if (allowedRiwayat.length && facts.riwaya && !allowedRiwayat.includes(facts.riwaya)) reasons.push("الرواية المسجلة ليست ضمن روايات المسابقة.");
+  if (allowedRiwayat.length && !facts.riwaya) reasons.push("الرواية غير مسجلة في ملف الطالب؛ راجع الشيخ لتحديثها.");
+  const registration = await competitionRegistrationRow(env, competition.id, user.student_id);
+  if (registration && !["rejected", "withdrawn"].includes(registration.status)) reasons.push("لديك تسجيل قائم في هذه المسابقة.");
+  return { eligible: reasons.length === 0, reasons, age: facts.age, hizb: facts.hizb, riwaya: facts.riwaya, registration };
+}
+
+async function competitionCanManage(env, user, competition) {
+  if (!user || !competition) return false;
+  if (user.role === "admin") return true;
+  if (user.role === "director") return Boolean(competition.school_id) && Array.isArray(user.school_ids) && user.school_ids.includes(competition.school_id);
+  return false;
+}
+
+async function competitionCanJudge(env, user, competition, registration) {
+  if (!user) return false;
+  if (user.role === "admin") return true;
+  if (user.role === "director") return competitionCanManage(env, user, competition);
+  if (["teacher", "supervisor"].includes(user.role)) {
+    const assigned = await env.DB.prepare("SELECT 1 AS ok FROM competition_judges WHERE competition_id=? AND user_id=?").bind(competition.id, user.id).first();
+    if (assigned) return true;
+    return registration ? canManageGroup(env, user, registration.group_id) : false;
+  }
+  return false;
+}
+
+function competitionCriteriaTotal(criteria, values) {
+  const map = new Map();
+  for (const row of Array.isArray(values) ? values : []) {
+    const id = clean(row && row.id, 40);
+    const score = Number(row && row.score);
+    if (id && Number.isFinite(score)) map.set(id, score);
+  }
+  let earned = 0, total = 0;
+  const detail = [];
+  for (const item of criteria) {
+    const max = Number(item.max) || 0;
+    const raw = map.has(item.id) ? Number(map.get(item.id)) : 0;
+    const score = Math.max(0, Math.min(max, Number.isFinite(raw) ? raw : 0));
+    earned += score; total += max;
+    detail.push({ id: item.id, label: item.label, max, score });
+  }
+  const normalized = total > 0 ? Math.round((earned / total) * 10000) / 100 : 0;
+  return { total: normalized, detail };
+}
+
+function competitionAwardForRank(awards, rank) {
+  const row = (awards || []).find(item => Number(item.place) === Number(rank));
+  return row ? { achievement: Number(row.achievement) || 0, store: Number(row.store) || 0, label: row.label || "" } : { achievement: 0, store: 0, label: "" };
+}
+
+function competitionJsonFields(row) {
+  if (!row) return row;
+  return {
+    ...row,
+    riwayat: parseJsonArray(row.riwayat_json).map(item => clean(item, 60)).filter(Boolean),
+    judging_criteria: normalizeCompetitionCriteria(row.judging_criteria_json, row.kind),
+    awards: normalizeCompetitionAwards(row.awards_json),
+    requires_approval: Boolean(row.requires_approval)
+  };
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url), path = url.pathname, method = request.method.toUpperCase();
@@ -839,6 +1268,9 @@ export default {
     }
     try { await ensureQuranSchema(env); } catch (error) {
       if (/^\/api\/quran\/(path|today|daily|companion|stations|makeups|summary)/.test(path)) return fail(503, "تعذّر تهيئة جداول مسار القرآن. أعد المحاولة بعد قليل.");
+    }
+    try { await ensureCompetitionSchema(env); } catch (error) {
+      if (path.startsWith("/api/competitions") || path.startsWith("/api/competition-")) return fail(503, "تعذّر تهيئة جداول المسابقات. أعد المحاولة بعد قليل.");
     }
     if(path==="/api/auth/google/link"&&method==="POST"){
       if(user.must_change_password)return fail(403,"غيّر كلمة المرور المؤقتة قبل ربط Google.");
@@ -1287,7 +1719,7 @@ export default {
       else if(!["admin","teacher","director","supervisor"].includes(user.role)||!await canManageGroup(env,user,s.group_id))return fail(403,"لا تملك صلاحية هذا الملف");
       const raw=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='student_profiles' AND id=?").bind(s.id).first();
       let p={};try{p=raw?JSON.parse(raw.payload_json):{}}catch{}
-      const result={phone:p.phone||"",preferred_contact:p.preferred_contact||"",guardian_name:p.guardian_name||"",guardian_phone:p.guardian_phone||"",age:p.age??"",school_grade:p.school_grade||"",school_name:p.school_name||"",average:p.average??"",notes:p.notes||"",updated_at:p.updated_at||""};
+      const result={phone:p.phone||"",preferred_contact:p.preferred_contact||"",guardian_name:p.guardian_name||"",guardian_phone:p.guardian_phone||"",age:p.age??"",riwaya:p.riwaya||"",memorized_hizb:p.memorized_hizb??"",school_grade:p.school_grade||"",school_name:p.school_name||"",average:p.average??"",notes:p.notes||"",updated_at:p.updated_at||""};
       if(user.role==="student")delete result.notes;
       return json(result);
     }
@@ -1297,10 +1729,11 @@ export default {
       if(!s)return fail(404,"ملف الطالب غير موجود");
       if(!await canManageGroup(env,user,s.group_id))return fail(403,"لا تملك صلاحية تعديل هذا الطالب");
       const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
-      const ageText=clean(b.age,3),averageText=clean(b.average,8),age=ageText===""?null:Number(ageText),average=averageText===""?null:Number(averageText);
+      const ageText=clean(b.age,3),averageText=clean(b.average,8),hizbText=clean(b.memorized_hizb,2),age=ageText===""?null:Number(ageText),average=averageText===""?null:Number(averageText),memorized= hizbText===""?null:Number(hizbText);
       if(age!==null&&(!Number.isInteger(age)||age<3||age>100))return fail(400,"العمر يجب أن يكون عددًا صحيحًا بين 3 و100");
       if(average!==null&&(!Number.isFinite(average)||average<0||average>20))return fail(400,"المعدل يجب أن يكون بين 0 و20");
-      const profile={phone:clean(b.phone,50),preferred_contact:clean(b.preferred_contact,80),guardian_name:clean(b.guardian_name,120),guardian_phone:clean(b.guardian_phone,50),age,school_grade:clean(b.school_grade,120),school_name:clean(b.school_name,160),average,notes:clean(b.notes,1200),updated_at:nowIso()};
+      if(memorized!==null&&(!Number.isInteger(memorized)||memorized<0||memorized>60))return fail(400,"مقدار الحفظ يجب أن يكون عدد أحزاب بين 0 و60");
+      const profile={phone:clean(b.phone,50),preferred_contact:clean(b.preferred_contact,80),guardian_name:clean(b.guardian_name,120),guardian_phone:clean(b.guardian_phone,50),age,riwaya:clean(b.riwaya,60),memorized_hizb:memorized,school_grade:clean(b.school_grade,120),school_name:clean(b.school_name,160),average,notes:clean(b.notes,1200),updated_at:nowIso()};
       await saveRecord(env,"student_profiles",{id:s.id,owner_user_id:user.id,group_id:s.group_id,student_id:s.id,...profile});
       await log(env,user.id,"student_profile_update",{student_id:s.id,group_id:s.group_id});
       return json({ok:true,...profile});
@@ -2022,109 +2455,422 @@ export default {
       await saveRecord(env,"content_progress",progress);await log(env,user.id,"content_progress",{content_id:contentId,status});
       return json({ok:true,progress});
     }
+    // -----------------------------------------------------------------------
+    // Competitions: data-driven categories, stages, human judging, results.
+    // All writes reuse the existing session user and point_events ledger.
+    // -----------------------------------------------------------------------
+    if(path==="/api/competitions/categories"&&method==="GET"){
+      const rows=await env.DB.prepare("SELECT * FROM competition_categories WHERE active=1 ORDER BY sort_order,name").all();
+      return json(rows.results||[]);
+    }
+    if(path==="/api/competitions/calendar"&&method==="GET"){
+      const today=academyDate();
+      let mySchoolId=null;
+      if(user.role==="student"&&user.group_id){const g=await env.DB.prepare("SELECT school_id FROM groups WHERE id=?").bind(user.group_id).first();mySchoolId=g?.school_id||null;}
+      const events=await env.DB.prepare("SELECT e.*,c.title AS competition_title,c.status AS competition_status,c.school_id FROM competition_events e LEFT JOIN competitions c ON c.id=e.competition_id WHERE e.active=1 ORDER BY e.event_date").all();
+      const visible=(events.results||[]).filter(row=>{
+        if(user.role==="student"){
+          if(row.competition_id&&row.competition_status==="draft")return false;
+          return !row.school_id||row.school_id===mySchoolId;
+        }
+        if(user.role==="director")return !row.school_id||(Array.isArray(user.school_ids)&&user.school_ids.includes(row.school_id));
+        return true;
+      });
+      const competitions=await env.DB.prepare("SELECT id,title,status,school_id,registration_starts_at,registration_ends_at,starts_at,ends_at FROM competitions WHERE status<>'draft' ORDER BY COALESCE(registration_starts_at,starts_at,created_at)").all();
+      const derived=[];
+      for(const row of competitions.results||[]){
+        if(user.role==="director"&&row.school_id&&!(Array.isArray(user.school_ids)&&user.school_ids.includes(row.school_id)))continue;
+        for(const [field,kind,label] of [["registration_starts_at","registration","بدء التسجيل"],["registration_ends_at","registration","انتهاء التسجيل"],["starts_at","judging","بدء المسابقة"],["ends_at","result","ختام المسابقة"]]){
+          if(row[field])derived.push({id:"competition:"+row.id+":"+field,competition_id:row.id,competition_title:row.title,title:row.title+" — "+label,event_date:row[field],kind,derived:true});
+        }
+      }
+      return json([...visible.map(row=>({...row,derived:false})),...derived].sort((a,b)=>String(a.event_date).localeCompare(String(b.event_date))));
+    }
     if(path==="/api/competitions"&&method==="GET"){
-      const all=await records(env,"competitions","",[]);
-      const sorted=all.sort((a,b)=>String(b.created_at||"").localeCompare(String(a.created_at||"")));
+      const rows=await env.DB.prepare("SELECT * FROM competitions ORDER BY COALESCE(starts_at,created_at) DESC").all();
+      const all=rows.results||[];
+      const counts=await env.DB.prepare("SELECT r.competition_id,COUNT(*) AS total,SUM(CASE WHEN r.status='approved' THEN 1 ELSE 0 END) AS approved,(SELECT COUNT(DISTINCT s.registration_id) FROM competition_scores s WHERE s.competition_id=r.competition_id) AS scored FROM competition_registrations r GROUP BY r.competition_id").all();
+      const countMap=new Map((counts.results||[]).map(row=>[row.competition_id,row]));
       if(user.role==="student"){
-        const entries=await records(env,"competition_entries"," AND student_id=?",[user.student_id||""]);
-        const mine=new Map(entries.map(entry=>[entry.competition_id,entry]));
-        return json(sorted.filter(item=>item.status==="published").map(item=>({...item,my_entry:mine.get(item.id)||null})));
+        let schoolId=null;
+        if(user.group_id){const g=await env.DB.prepare("SELECT school_id FROM groups WHERE id=?").bind(user.group_id).first();schoolId=g?.school_id||null;}
+        const visible=all.filter(item=>["announced","registration","judging","results","honored"].includes(item.status)&&(!item.school_id||item.school_id===schoolId));
+        const out=[];
+        for(const item of visible){
+          const competition=competitionJsonFields(item);
+          const eligibility=await competitionEligibility(env,user,competition);
+          out.push({...competition,my_registration:eligibility.registration,eligibility:{eligible:eligibility.eligible,reasons:eligibility.reasons},entries_count:Number(countMap.get(item.id)?.total||0)});
+        }
+        return json(out);
       }
       if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"غير مسموح");
-      const counts=await env.DB.prepare("SELECT json_extract(payload_json,'$.competition_id') AS competition_id, COUNT(*) AS n FROM academy_records WHERE collection='competition_entries' GROUP BY competition_id").all();
-      const countMap=new Map((counts.results||[]).map(row=>[row.competition_id,Number(row.n||0)]));
-      return json(sorted.map(item=>({...item,entries_count:countMap.get(item.id)||0})));
+      let visible=all;
+      if(user.role==="director"){
+        const schools=Array.isArray(user.school_ids)?user.school_ids:[];
+        visible=all.filter(item=>!item.school_id||schools.includes(item.school_id));
+      }else if(["teacher","supervisor"].includes(user.role)){
+        visible=all.filter(item=>!["draft","archived"].includes(item.status)||item.created_by===user.id);
+      }
+      return json(visible.map(item=>{const row=competitionJsonFields(item),c=countMap.get(item.id)||{};return {...row,entries_count:Number(c.total||0),approved_count:Number(c.approved||0),scored_count:Number(c.scored||0)}}));
     }
     if(path==="/api/competitions"&&method==="POST"){
-      if(user.role!=="admin")return fail(403,"إنشاء المسابقات للمدير العام فقط");
-      const parsed=await parseBody(request,12000);if(parsed.error)return parsed.error;const b=parsed.value;
-      const title=clean(b.title,180),description=clean(b.description,4000),startsAt=clean(b.starts_at,10),endsAt=clean(b.ends_at,10),status=clean(b.status,20)||"draft";
-      if(!title||!description)return fail(400,"أدخل عنوان المسابقة ووصفها");
-      if(!["draft","published","closed"].includes(status))return fail(400,"حالة المسابقة غير صحيحة");
-      if(startsAt&&!validDateOnly(startsAt))return fail(400,"تاريخ البداية غير صحيح");
-      if(endsAt&&!validDateOnly(endsAt))return fail(400,"تاريخ النهاية غير صحيح");
-      if(startsAt&&endsAt&&endsAt<startsAt)return fail(400,"تاريخ النهاية يجب أن يكون بعد البداية");
-      const competition={id:uuid(),title,description,starts_at:startsAt||null,ends_at:endsAt||null,status,created_by:user.id,created_at:nowIso(),updated_at:nowIso()};
-      await saveRecord(env,"competitions",competition);await log(env,user.id,"competition_create",{id:competition.id,status});
-      return json(competition,201);
+      if(!["admin","director"].includes(user.role))return fail(403,"إنشاء المسابقات متاح للإدارة");
+      const parsed=await parseBody(request,24000);if(parsed.error)return parsed.error;const b=parsed.value;
+      const title=clean(b.title,180),description=clean(b.description,6000),kind=clean(b.kind,40)||"quran_hifz",season=clean(b.season,80)||"general";
+      if(!title)return fail(400,"أدخل عنوان المسابقة");
+      if(!COMPETITION_KINDS[kind])return fail(400,"نوع المسابقة غير صحيح");
+      let schoolId=clean(b.school_id,80)||null;
+      if(user.role==="director"){
+        const schools=Array.isArray(user.school_ids)?user.school_ids:[];
+        if(!schoolId)schoolId=schools[0]||null;
+        if(!schoolId||!schools.includes(schoolId))return fail(403,"اختر مدرسة من نطاقك");
+      }else if(schoolId){
+        const school=await env.DB.prepare("SELECT id FROM quran_schools WHERE id=? AND active=1").bind(schoolId).first();
+        if(!school)return fail(400,"المدرسة غير موجودة");
+      }
+      const categoryId=clean(b.category_id,80)||null;
+      let category=null;
+      if(categoryId){category=await env.DB.prepare("SELECT * FROM competition_categories WHERE id=? AND active=1").bind(categoryId).first();if(!category)return fail(400,"الفئة غير موجودة");}
+      const registrationStarts=clean(b.registration_starts_at,10)||null,registrationEnds=clean(b.registration_ends_at,10)||null,startsAt=clean(b.starts_at,10)||null,endsAt=clean(b.ends_at,10)||null;
+      for(const [value,label] of [[registrationStarts,"بدء التسجيل"],[registrationEnds,"انتهاء التسجيل"],[startsAt,"بداية المسابقة"],[endsAt,"نهاية المسابقة"]])if(value&&!validDateOnly(value))return fail(400,"تاريخ "+label+" غير صحيح");
+      if(registrationStarts&&registrationEnds&&registrationEnds<registrationStarts)return fail(400,"انتهاء التسجيل يجب أن يكون بعد بدايته");
+      if(startsAt&&endsAt&&endsAt<startsAt)return fail(400,"نهاية المسابقة يجب أن تكون بعد بدايتها");
+      const minAge=numberOrNull(b.min_age,3,100),maxAge=numberOrNull(b.max_age,3,100);
+      if((minAge!==null&&maxAge!==null)&&maxAge<minAge)return fail(400,"الحد الأعلى للعمر يجب أن يكون أكبر من الأدنى");
+      const minHizb=numberOrNull(b.min_hizb,0,60),maxHizb=numberOrNull(b.max_hizb,1,60);
+      if((minHizb!==null&&maxHizb!==null)&&maxHizb<minHizb)return fail(400,"الحد الأعلى للحفظ يجب أن يكون أكبر من الأدنى");
+      const criteria=normalizeCompetitionCriteria(b.judging_criteria,kind);
+      if(!criteria.length)return fail(400,"أضف معيارًا واحدًا على الأقل للتحكيم");
+      const awards=normalizeCompetitionAwards(b.awards&&parseJsonArray(b.awards).length?b.awards:defaultCompetitionAwards());
+      const maxParticipants=numberOrNull(b.max_participants,1,100000);
+      const competition={id:uuid(),school_id:schoolId,title,description,kind,season,category_id:categoryId,status:"draft",registration_starts_at:registrationStarts,registration_ends_at:registrationEnds,starts_at:startsAt,ends_at:endsAt,min_age:minAge??(category?.min_age??null),max_age:maxAge??(category?.max_age??null),riwayat_json:JSON.stringify(normalizeRiwayat(b.riwayat)),min_hizb:minHizb??(category?.min_hizb??null),max_hizb:maxHizb??(category?.max_hizb??null),requires_approval:b.requires_approval===true||b.requires_approval==="true"?1:0,max_participants:maxParticipants,rules:clean(b.rules,8000),judging_criteria_json:JSON.stringify(criteria),awards_json:JSON.stringify(awards),participation_achievement:numberOrNull(b.participation_achievement,0,100000)??0,participation_store:numberOrNull(b.participation_store,0,100000)??0,created_by:user.id,created_at:nowIso(),updated_at:nowIso()};
+      await env.DB.prepare("INSERT INTO competitions (id,school_id,title,description,kind,season,category_id,status,registration_starts_at,registration_ends_at,starts_at,ends_at,min_age,max_age,riwayat_json,min_hizb,max_hizb,requires_approval,max_participants,rules,judging_criteria_json,awards_json,participation_achievement,participation_store,created_by,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)").bind(competition.id,competition.school_id,competition.title,competition.description,competition.kind,competition.season,competition.category_id,competition.status,competition.registration_starts_at,competition.registration_ends_at,competition.starts_at,competition.ends_at,competition.min_age,competition.max_age,competition.riwayat_json,competition.min_hizb,competition.max_hizb,competition.requires_approval,competition.max_participants,competition.rules,competition.judging_criteria_json,competition.awards_json,competition.participation_achievement,competition.participation_store,competition.created_by,competition.created_at,competition.updated_at).run();
+      await log(env,user.id,"competition_create",{id:competition.id,kind,status:"draft"});
+      return json(competitionJsonFields(competition),201);
     }
-    const competitionMatch=path.match(/^\/api\/competitions\/([^/]+)$/);
-    if(competitionMatch&&method==="PATCH"){
-      if(user.role!=="admin")return fail(403,"تعديل المسابقات للمدير العام فقط");
-      const competitionId=clean(competitionMatch[1],80);
-      const raw=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='competitions' AND id=?").bind(competitionId).first();
-      if(!raw)return fail(404,"المسابقة غير موجودة");
-      let old;try{old=JSON.parse(raw.payload_json)}catch{return fail(500,"تعذّرت قراءة المسابقة")};
-      const parsed=await parseBody(request,12000);if(parsed.error)return parsed.error;const b=parsed.value;
-      const title=b.title===undefined?old.title:clean(b.title,180);
-      const description=b.description===undefined?old.description:clean(b.description,4000);
-      const startsAt=b.starts_at===undefined?(old.starts_at||""):clean(b.starts_at,10);
-      const endsAt=b.ends_at===undefined?(old.ends_at||""):clean(b.ends_at,10);
-      const status=b.status===undefined?(old.status||"draft"):clean(b.status,20);
-      if(!title||!description)return fail(400,"العنوان والوصف مطلوبان");
-      if(!["draft","published","closed"].includes(status))return fail(400,"حالة المسابقة غير صحيحة");
-      if(startsAt&&!validDateOnly(startsAt))return fail(400,"تاريخ البداية غير صحيح");
-      if(endsAt&&!validDateOnly(endsAt))return fail(400,"تاريخ النهاية غير صحيح");
-      if(startsAt&&endsAt&&endsAt<startsAt)return fail(400,"تاريخ النهاية يجب أن يكون بعد البداية");
-      const updated={...old,title,description,starts_at:startsAt||null,ends_at:endsAt||null,status,updated_by:user.id,updated_at:nowIso()};
-      await saveRecord(env,"competitions",updated);await log(env,user.id,"competition_update",{id:competitionId,status});
-      return json({ok:true,competition:updated});
-    }
-    const competitionEnterMatch=path.match(/^\/api\/competitions\/([^/]+)\/enter$/);
-    if(competitionEnterMatch&&method==="POST"){
-      if(user.role!=="student"||!user.student_id||!user.group_id)return fail(403,"المشاركة متاحة لحساب الطالب المرتبط بفوج");
-      const competitionId=clean(competitionEnterMatch[1],80);
-      const raw=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='competitions' AND id=?").bind(competitionId).first();
-      if(!raw)return fail(404,"المسابقة غير موجودة");
-      let competition;try{competition=JSON.parse(raw.payload_json)}catch{return fail(500,"تعذّرت قراءة المسابقة")};
-      if(competition.status!=="published")return fail(409,"المسابقة غير مفتوحة للمشاركة");
-      const today=academyDate();
-      if(competition.starts_at&&today<competition.starts_at)return fail(409,"لم تبدأ المسابقة بعد");
-      if(competition.ends_at&&today>competition.ends_at)return fail(409,"انتهى وقت المسابقة");
-      const parsed=await parseBody(request,12000);if(parsed.error)return parsed.error;
-      const answer=clean(parsed.value.answer,6000);
-      if(!answer)return fail(400,"اكتب إجابتك أو مشاركتك");
-      const entryId=competitionId+":"+user.student_id;
-      const existing=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='competition_entries' AND id=?").bind(entryId).first();
-      let previous={};try{if(existing)previous=JSON.parse(existing.payload_json)}catch{}
-      if(previous?.score!==undefined&&previous?.score!==null)return fail(409,"تم تقييم مشاركتك، لا يمكن تعديلها بعد التقييم");
-      const entry={id:entryId,competition_id:competitionId,student_id:user.student_id,group_id:user.group_id,answer,score:previous?.score??null,note:previous?.note||"",status:"submitted",created_at:previous.created_at||nowIso(),updated_at:nowIso()};
-      await saveRecord(env,"competition_entries",entry);await log(env,user.id,"competition_enter",{competition_id:competitionId});
-      return json({ok:true,entry},201);
-    }
-    const competitionEntriesMatch=path.match(/^\/api\/competitions\/([^/]+)\/entries$/);
-    if(competitionEntriesMatch&&method==="GET"){
-      const competitionId=clean(competitionEntriesMatch[1],80);
-      const all=await records(env,"competition_entries","",[]);
-      const rows=all.filter(entry=>entry.competition_id===competitionId);
+    const competitionIdMatch=path.match(/^\/api\/competitions\/([^/]+)$/);
+    if(competitionIdMatch&&method==="GET"){
+      const competitionId=clean(competitionIdMatch[1],80);
+      const row=await env.DB.prepare("SELECT * FROM competitions WHERE id=?").bind(competitionId).first();
+      if(!row)return fail(404,"المسابقة غير موجودة");
+      const competition=competitionJsonFields(row);
       if(user.role==="student"){
-        if(!user.student_id)return fail(403,"غير مسموح");
-        const ranked=rows.filter(entry=>entry.score!==null&&entry.score!==undefined).sort((a,b)=>Number(b.score)-Number(a.score)).slice(0,20).map((entry,index)=>({rank:index+1,student_id:entry.student_id,score:entry.score,is_self:entry.student_id===user.student_id}));
-        return json({mine:rows.find(entry=>entry.student_id===user.student_id)||null,ranking:ranked});
+        if(row.status==="draft")return fail(404,"المسابقة غير موجودة");
+        const eligibility=await competitionEligibility(env,user,competition);
+        const result=await env.DB.prepare("SELECT * FROM competition_results WHERE competition_id=? AND student_id=? AND status='published'").bind(competitionId,user.student_id||"").first();
+        const events=await env.DB.prepare("SELECT * FROM competition_events WHERE competition_id=? AND active=1 ORDER BY event_date").bind(competitionId).all();
+        return json({...competition,my_registration:eligibility.registration,eligibility:{eligible:eligibility.eligible,reasons:eligibility.reasons},my_result:result||null,events:events.results||[]});
       }
       if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"غير مسموح");
-      const visible=[];
-      for(const entry of rows){if(await canManageGroup(env,user,entry.group_id))visible.push(entry)}
-      const ids=[...new Set(visible.map(entry=>entry.student_id))];
-      const names=new Map();
-      if(ids.length){const marks=ids.map(()=>"?").join(",");const found=await env.DB.prepare("SELECT id,display_name FROM students WHERE id IN ("+marks+")").bind(...ids).all();for(const row of found.results||[])names.set(row.id,row.display_name);}
-      return json(visible.sort((a,b)=>Number(b.score??-1)-Number(a.score??-1)).map(entry=>({...entry,student_name:names.get(entry.student_id)||"طالب"})));
+      if(user.role==="director"&&row.school_id&&!(Array.isArray(user.school_ids)&&user.school_ids.includes(row.school_id)))return fail(403,"هذه المسابقة خارج نطاق مدرستك");
+      const [events,judges,terms]=await Promise.all([
+        env.DB.prepare("SELECT * FROM competition_events WHERE competition_id=? AND active=1 ORDER BY event_date").bind(competitionId).all(),
+        env.DB.prepare("SELECT j.user_id,u.display_name FROM competition_judges j JOIN users u ON u.id=j.user_id WHERE j.competition_id=?").bind(competitionId).all(),
+        env.DB.prepare("SELECT * FROM competition_reference_terms WHERE active=1 AND (kind=? OR kind='other') ORDER BY sort_order").bind(row.kind).all()
+      ]);
+      return json({...competition,events:events.results||[],judges:judges.results||[],terms:terms.results||[]});
     }
-    const competitionScoreMatch=path.match(/^\/api\/competitions\/([^/]+)\/entries\/([^/]+)\/score$/);
-    if(competitionScoreMatch&&method==="POST"){
-      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"تقييم المشاركات للمعلم والإدارة");
-      const competitionId=clean(competitionScoreMatch[1],80),entryId=clean(decodeURIComponent(competitionScoreMatch[2]),120);
-      const raw=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='competition_entries' AND id=?").bind(entryId).first();
-      if(!raw)return fail(404,"المشاركة غير موجودة");
-      let entry;try{entry=JSON.parse(raw.payload_json)}catch{return fail(500,"تعذّرت قراءة المشاركة")};
-      if(entry.competition_id!==competitionId)return fail(400,"المشاركة لا تتبع هذه المسابقة");
-      if(!await canManageGroup(env,user,entry.group_id))return fail(403,"هذه المشاركة خارج صلاحيتك");
+    if(competitionIdMatch&&method==="PATCH"){
+      const competitionId=clean(competitionIdMatch[1],80);
+      const row=await env.DB.prepare("SELECT * FROM competitions WHERE id=?").bind(competitionId).first();
+      if(!row)return fail(404,"المسابقة غير موجودة");
+      if(!await competitionCanManage(env,user,row))return fail(403,"تعديل المسابقة متاح للإدارة المسؤولة");
+      const parsed=await parseBody(request,24000);if(parsed.error)return parsed.error;const b=parsed.value;
+      const kind=b.kind===undefined?row.kind:clean(b.kind,40);
+      if(!COMPETITION_KINDS[kind])return fail(400,"نوع المسابقة غير صحيح");
+      const scores=await env.DB.prepare("SELECT COUNT(*) AS n FROM competition_scores WHERE competition_id=?").bind(competitionId).first();
+      if(Number(scores?.n||0)>0&&b.judging_criteria!==undefined)return fail(409,"لا يمكن تغيير معايير التحكيم بعد بدء التقييم");
+      const title=b.title===undefined?row.title:clean(b.title,180);
+      if(!title)return fail(400,"عنوان المسابقة مطلوب");
+      const criteria=b.judging_criteria===undefined?parseJsonArray(row.judging_criteria_json):normalizeCompetitionCriteria(b.judging_criteria,kind);
+      if(!criteria.length)return fail(400,"أضف معيارًا واحدًا على الأقل للتحكيم");
+      const awards=b.awards===undefined?parseJsonArray(row.awards_json):normalizeCompetitionAwards(b.awards);
+      const registrationStarts=b.registration_starts_at===undefined?row.registration_starts_at:(clean(b.registration_starts_at,10)||null);
+      const registrationEnds=b.registration_ends_at===undefined?row.registration_ends_at:(clean(b.registration_ends_at,10)||null);
+      const startsAt=b.starts_at===undefined?row.starts_at:(clean(b.starts_at,10)||null);
+      const endsAt=b.ends_at===undefined?row.ends_at:(clean(b.ends_at,10)||null);
+      for(const [value,label] of [[registrationStarts,"بدء التسجيل"],[registrationEnds,"انتهاء التسجيل"],[startsAt,"بداية المسابقة"],[endsAt,"نهاية المسابقة"]])if(value&&!validDateOnly(value))return fail(400,"تاريخ "+label+" غير صحيح");
+      if(registrationStarts&&registrationEnds&&registrationEnds<registrationStarts)return fail(400,"انتهاء التسجيل يجب أن يكون بعد بدايته");
+      if(startsAt&&endsAt&&endsAt<startsAt)return fail(400,"نهاية المسابقة يجب أن تكون بعد بدايتها");
+      const minAge=b.min_age===undefined?row.min_age:numberOrNull(b.min_age,3,100);
+      const maxAge=b.max_age===undefined?row.max_age:numberOrNull(b.max_age,3,100);
+      if((minAge!==null&&maxAge!==null)&&maxAge<minAge)return fail(400,"الحد الأعلى للعمر يجب أن يكون أكبر من الأدنى");
+      const minHizb=b.min_hizb===undefined?row.min_hizb:numberOrNull(b.min_hizb,0,60);
+      const maxHizb=b.max_hizb===undefined?row.max_hizb:numberOrNull(b.max_hizb,1,60);
+      if((minHizb!==null&&maxHizb!==null)&&maxHizb<minHizb)return fail(400,"الحد الأعلى للحفظ يجب أن يكون أكبر من الأدنى");
+      const updated={...row,title,description:b.description===undefined?row.description:clean(b.description,6000),kind,season:b.season===undefined?row.season:clean(b.season,80),category_id:b.category_id===undefined?row.category_id:(clean(b.category_id,80)||null),registration_starts_at:registrationStarts,registration_ends_at:registrationEnds,starts_at:startsAt,ends_at:endsAt,min_age:minAge,max_age:maxAge,riwayat_json:b.riwayat===undefined?row.riwayat_json:JSON.stringify(normalizeRiwayat(b.riwayat)),min_hizb:minHizb,max_hizb:maxHizb,requires_approval:b.requires_approval===undefined?row.requires_approval:(b.requires_approval===true||b.requires_approval==="true"?1:0),max_participants:b.max_participants===undefined?row.max_participants:numberOrNull(b.max_participants,1,100000),rules:b.rules===undefined?row.rules:clean(b.rules,8000),judging_criteria_json:JSON.stringify(criteria),awards_json:JSON.stringify(awards),participation_achievement:b.participation_achievement===undefined?row.participation_achievement:(numberOrNull(b.participation_achievement,0,100000)??0),participation_store:b.participation_store===undefined?row.participation_store:(numberOrNull(b.participation_store,0,100000)??0),updated_at:nowIso()};
+      await env.DB.prepare("UPDATE competitions SET title=?,description=?,kind=?,season=?,category_id=?,registration_starts_at=?,registration_ends_at=?,starts_at=?,ends_at=?,min_age=?,max_age=?,riwayat_json=?,min_hizb=?,max_hizb=?,requires_approval=?,max_participants=?,rules=?,judging_criteria_json=?,awards_json=?,participation_achievement=?,participation_store=?,updated_at=? WHERE id=?").bind(updated.title,updated.description,updated.kind,updated.season,updated.category_id,updated.registration_starts_at,updated.registration_ends_at,updated.starts_at,updated.ends_at,updated.min_age,updated.max_age,updated.riwayat_json,updated.min_hizb,updated.max_hizb,updated.requires_approval,updated.max_participants,updated.rules,updated.judging_criteria_json,updated.awards_json,updated.participation_achievement,updated.participation_store,updated.updated_at,competitionId).run();
+      await log(env,user.id,"competition_update",{id:competitionId});
+      return json({ok:true,competition:competitionJsonFields(updated)});
+    }
+    const competitionStatusMatch=path.match(/^\/api\/competitions\/([^/]+)\/status$/);
+    if(competitionStatusMatch&&method==="POST"){
+      const competitionId=clean(competitionStatusMatch[1],80);
+      const row=await env.DB.prepare("SELECT * FROM competitions WHERE id=?").bind(competitionId).first();
+      if(!row)return fail(404,"المسابقة غير موجودة");
+      if(!await competitionCanManage(env,user,row))return fail(403,"تغيير حالة المسابقة متاح للإدارة المسؤولة");
       const parsed=await parseBody(request);if(parsed.error)return parsed.error;
-      const score=Number(parsed.value.score);
-      if(!Number.isFinite(score)||score<0||score>1000)return fail(400,"الدرجة يجب أن تكون من 0 إلى 1000");
-      const updated={...entry,score,note:clean(parsed.value.note,1000),status:"scored",scored_by:user.id,scored_at:nowIso(),updated_at:nowIso()};
-      await saveRecord(env,"competition_entries",updated);await log(env,user.id,"competition_score",{competition_id:competitionId,entry_id:entryId,score});
-      return json({ok:true,entry:updated});
+      const next=clean(parsed.value.status,20);
+      if(!COMPETITION_STATUSES[next])return fail(400,"حالة المسابقة غير صحيحة");
+      const allowed=COMPETITION_STATUS_FLOW[row.status]||[];
+      if(!allowed.includes(next))return fail(409,"لا يمكن الانتقال من «"+(COMPETITION_STATUSES[row.status]||row.status)+"» إلى «"+(COMPETITION_STATUSES[next]||next)+"»");
+      if(next==="registration"){
+        const criteria=normalizeCompetitionCriteria(row.judging_criteria_json,row.kind);
+        if(!criteria.length)return fail(409,"أضف معايير التحكيم قبل فتح التسجيل");
+      }
+      if(next==="judging"){
+        const approved=await env.DB.prepare("SELECT COUNT(*) AS n FROM competition_registrations WHERE competition_id=? AND status='approved'").bind(competitionId).first();
+        if(Number(approved?.n||0)===0)return fail(409,"اعتمد مشاركًا واحدًا على الأقل قبل بدء التحكيم");
+      }
+      if(next==="results"){
+        const results=await env.DB.prepare("SELECT COUNT(*) AS n FROM competition_results WHERE competition_id=?").bind(competitionId).first();
+        if(Number(results?.n||0)===0)return fail(409,"ولّد النتائج أولًا قبل الانتقال إلى مرحلة النتائج");
+      }
+      await env.DB.prepare("UPDATE competitions SET status=?,updated_at=? WHERE id=?").bind(next,nowIso(),competitionId).run();
+      await log(env,user.id,"competition_status",{id:competitionId,from:row.status,to:next});
+      return json({ok:true,status:next,status_label:COMPETITION_STATUSES[next]});
+    }
+    const competitionRegisterMatch=path.match(/^\/api\/competitions\/([^/]+)\/register$/);
+    if(competitionRegisterMatch&&method==="POST"){
+      if(user.role!=="student")return fail(403,"التسجيل متاح لحساب الطالب");
+      const competitionId=clean(competitionRegisterMatch[1],80);
+      const row=await env.DB.prepare("SELECT * FROM competitions WHERE id=?").bind(competitionId).first();
+      if(!row)return fail(404,"المسابقة غير موجودة");
+      const competition=competitionJsonFields(row);
+      const eligibility=await competitionEligibility(env,user,competition);
+      if(!eligibility.eligible)return fail(409,eligibility.reasons[0]||"لا تستوفي شروط المسابقة");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;
+      const note=clean(parsed.value.note,1000);
+      const riwaya=clean(parsed.value.riwaya,60)||eligibility.riwaya;
+      const allowedRiwayat=competition.riwayat;
+      if(allowedRiwayat.length&&!allowedRiwayat.includes(riwaya))return fail(400,"اختر رواية ضمن روايات المسابقة");
+      const max=row.max_participants===null?null:Number(row.max_participants);
+      if(max!==null){const count=await env.DB.prepare("SELECT COUNT(*) AS n FROM competition_registrations WHERE competition_id=? AND status IN ('pending','approved')").bind(competitionId).first();if(Number(count?.n||0)>=max)return fail(409,"اكتمل العدد المحدد للمسابقة");}
+      const status=row.requires_approval===1?"pending":"approved";
+      const registration={id:uuid(),competition_id:competitionId,student_id:user.student_id,group_id:user.group_id,status,age_at_registration:eligibility.age,hizb_at_registration:eligibility.hizb,riwaya,note,registered_at:nowIso(),decided_by:status==="approved"?user.id:null,decided_at:status==="approved"?nowIso():null,decision_note:""};
+      try{await env.DB.prepare("INSERT INTO competition_registrations (id,competition_id,student_id,group_id,status,age_at_registration,hizb_at_registration,riwaya,note,registered_at,decided_by,decided_at,decision_note) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)").bind(registration.id,registration.competition_id,registration.student_id,registration.group_id,registration.status,registration.age_at_registration,registration.hizb_at_registration,registration.riwaya,registration.note,registration.registered_at,registration.decided_by,registration.decided_at,registration.decision_note).run();}
+      catch{return fail(409,"لديك تسجيل قائم في هذه المسابقة");}
+      await log(env,user.id,"competition_register",{competition_id:competitionId,status});
+      return json({ok:true,registration},201);
+    }
+    const competitionRegistrationsMatch=path.match(/^\/api\/competitions\/([^/]+)\/registrations$/);
+    if(competitionRegistrationsMatch&&method==="GET"){
+      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"غير مسموح");
+      const competitionId=clean(competitionRegistrationsMatch[1],80);
+      const row=await env.DB.prepare("SELECT * FROM competitions WHERE id=?").bind(competitionId).first();
+      if(!row)return fail(404,"المسابقة غير موجودة");
+      if(user.role==="director"&&row.school_id&&!(Array.isArray(user.school_ids)&&user.school_ids.includes(row.school_id)))return fail(403,"هذه المسابقة خارج نطاق مدرستك");
+      const groupIds=await managedGroupIds(env,user);
+      let sql="SELECT r.*,s.display_name AS student_name,g.name AS group_name,(SELECT COUNT(*) FROM competition_scores cs WHERE cs.registration_id=r.id) AS scores_count,(SELECT ROUND(AVG(cs.total),2) FROM competition_scores cs WHERE cs.registration_id=r.id) AS average_score,cr.final_score,cr.rank,cr.status AS result_status,cr.award_achievement,cr.award_store FROM competition_registrations r JOIN students s ON s.id=r.student_id LEFT JOIN groups g ON g.id=r.group_id LEFT JOIN competition_results cr ON cr.competition_id=r.competition_id AND cr.registration_id=r.id WHERE r.competition_id=?";
+      const binds=[competitionId];
+      if(groupIds!==null){if(!groupIds.length)return json([]);sql+=" AND r.group_id IN ("+groupIds.map(()=>"?").join(",")+")";binds.push(...groupIds);}
+      sql+=" ORDER BY r.registered_at DESC";
+      const rows=await env.DB.prepare(sql).bind(...binds).all();
+      return json(rows.results||[]);
+    }
+    const competitionDecisionMatch=path.match(/^\/api\/competitions\/([^/]+)\/registrations\/([^/]+)\/decision$/);
+    if(competitionDecisionMatch&&method==="POST"){
+      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"غير مسموح");
+      const competitionId=clean(competitionDecisionMatch[1],80),registrationId=clean(competitionDecisionMatch[2],80);
+      const competition=await env.DB.prepare("SELECT * FROM competitions WHERE id=?").bind(competitionId).first();
+      if(!competition)return fail(404,"المسابقة غير موجودة");
+      const registration=await env.DB.prepare("SELECT * FROM competition_registrations WHERE id=? AND competition_id=?").bind(registrationId,competitionId).first();
+      if(!registration)return fail(404,"التسجيل غير موجود");
+      if(!await competitionCanManage(env,user,competition)&&!await canManageGroup(env,user,registration.group_id))return fail(403,"هذا التسجيل خارج صلاحيتك");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;
+      const decision=clean(parsed.value.decision,20),note=clean(parsed.value.note,600);
+      if(!["approved","rejected","withdrawn","disqualified"].includes(decision))return fail(400,"القرار غير صحيح");
+      if(decision==="rejected"&&note.length<3)return fail(400,"اكتب سبب الرفض");
+      if(registration.status==="disqualified"&&decision!=="approved")return fail(409,"لا يمكن تغيير قرار الاستبعاد");
+      const result=await env.DB.prepare("SELECT status FROM competition_results WHERE competition_id=? AND registration_id=?").bind(competitionId,registrationId).first();
+      if(result&&["approved","published"].includes(result.status))return fail(409,"النتيجة معتمدة؛ لا يمكن تغيير التسجيل");
+      await env.DB.prepare("UPDATE competition_registrations SET status=?,decided_by=?,decided_at=?,decision_note=? WHERE id=?").bind(decision,user.id,nowIso(),note,registrationId).run();
+      await log(env,user.id,"competition_registration_decision",{competition_id:competitionId,registration_id:registrationId,decision});
+      return json({ok:true,status:decision,status_label:COMPETITION_REGISTRATION_STATUSES[decision]});
+    }
+    const competitionScoreMatch=path.match(/^\/api\/competitions\/([^/]+)\/registrations\/([^/]+)\/score$/);
+    if(competitionScoreMatch&&method==="POST"){
+      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"التحكيم متاح للفريق التعليمي");
+      const competitionId=clean(competitionScoreMatch[1],80),registrationId=clean(competitionScoreMatch[2],80);
+      const competition=await env.DB.prepare("SELECT * FROM competitions WHERE id=?").bind(competitionId).first();
+      if(!competition)return fail(404,"المسابقة غير موجودة");
+      if(competition.status!=="judging")return fail(409,"التحكيم غير مفتوح حاليًا");
+      const registration=await env.DB.prepare("SELECT * FROM competition_registrations WHERE id=? AND competition_id=?").bind(registrationId,competitionId).first();
+      if(!registration)return fail(404,"التسجيل غير موجود");
+      if(registration.status!=="approved")return fail(409,"لا يمكن تقييم مشارك غير معتمد");
+      if(!await competitionCanJudge(env,user,competition,registration))return fail(403,"هذه المشاركة خارج صلاحيتك");
+      const criteria=normalizeCompetitionCriteria(competition.judging_criteria_json,competition.kind);
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;
+      const values=Array.isArray(parsed.value.criteria)?parsed.value.criteria:null;
+      if(!values)return fail(400,"أرسل درجات المعايير");
+      const provided=new Set(values.map(row=>clean(row&&row.id,40)).filter(Boolean));
+      for(const item of criteria)if(!provided.has(item.id))return fail(400,"أكمل درجة المعيار: "+item.label);
+      const computed=competitionCriteriaTotal(criteria,values);
+      const note=clean(parsed.value.note,1000);
+      const id=uuid(),now=nowIso();
+      await env.DB.prepare("INSERT INTO competition_scores (id,competition_id,registration_id,judge_user_id,criteria_json,total,note,scored_at) VALUES (?,?,?,?,?,?,?,?) ON CONFLICT(competition_id,registration_id,judge_user_id) DO UPDATE SET criteria_json=excluded.criteria_json,total=excluded.total,note=excluded.note,scored_at=excluded.scored_at").bind(id,competitionId,registrationId,user.id,JSON.stringify(computed.detail),computed.total,note,now).run();
+      await log(env,user.id,"competition_score",{competition_id:competitionId,registration_id:registrationId,total:computed.total});
+      return json({ok:true,total:computed.total,detail:computed.detail,scored_at:now});
+    }
+    const competitionJudgesMatch=path.match(/^\/api\/competitions\/([^/]+)\/judges$/);
+    if(competitionJudgesMatch&&method==="POST"){
+      const competitionId=clean(competitionJudgesMatch[1],80);
+      const competition=await env.DB.prepare("SELECT * FROM competitions WHERE id=?").bind(competitionId).first();
+      if(!competition)return fail(404,"المسابقة غير موجودة");
+      if(!await competitionCanManage(env,user,competition))return fail(403,"تعيين المحكمين متاح للإدارة المسؤولة");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;
+      const judgeId=clean(parsed.value.user_id,80);
+      const judge=await env.DB.prepare("SELECT id,display_name,role FROM users WHERE id=? AND active=1").bind(judgeId).first();
+      if(!judge||!["admin","teacher","director","supervisor"].includes(judge.role))return fail(400,"اختر محكمًا من الفريق التعليمي");
+      await env.DB.prepare("INSERT OR IGNORE INTO competition_judges (competition_id,user_id,created_by) VALUES (?,?,?)").bind(competitionId,judgeId,user.id).run();
+      await log(env,user.id,"competition_judge_add",{competition_id:competitionId,judge_id:judgeId});
+      return json({ok:true,judge:{id:judge.id,name:judge.display_name,role:judge.role}});
+    }
+    const competitionJudgeDeleteMatch=path.match(/^\/api\/competitions\/([^/]+)\/judges\/([^/]+)$/);
+    if(competitionJudgeDeleteMatch&&method==="DELETE"){
+      const competitionId=clean(competitionJudgeDeleteMatch[1],80);
+      const competition=await env.DB.prepare("SELECT * FROM competitions WHERE id=?").bind(competitionId).first();
+      if(!competition)return fail(404,"المسابقة غير موجودة");
+      if(!await competitionCanManage(env,user,competition))return fail(403,"تعيين المحكمين متاح للإدارة المسؤولة");
+      await env.DB.prepare("DELETE FROM competition_judges WHERE competition_id=? AND user_id=?").bind(competitionId,clean(competitionJudgeDeleteMatch[2],80)).run();
+      return json({ok:true});
+    }
+    const competitionResultsMatch=path.match(/^\/api\/competitions\/([^/]+)\/results$/);
+    if(competitionResultsMatch&&method==="GET"){
+      const competitionId=clean(competitionResultsMatch[1],80);
+      const competition=await env.DB.prepare("SELECT * FROM competitions WHERE id=?").bind(competitionId).first();
+      if(!competition)return fail(404,"المسابقة غير موجودة");
+      if(user.role==="student"){
+        const row=await env.DB.prepare("SELECT cr.*,s.display_name AS student_name FROM competition_results cr JOIN students s ON s.id=cr.student_id WHERE cr.competition_id=? AND cr.status='published' AND cr.student_id=?").bind(competitionId,user.student_id||"").first();
+        const ranking=await env.DB.prepare("SELECT cr.rank,cr.final_score,s.display_name AS student_name,cr.student_id FROM competition_results cr JOIN students s ON s.id=cr.student_id WHERE cr.competition_id=? AND cr.status='published' ORDER BY cr.rank LIMIT 50").bind(competitionId).all();
+        return json({mine:row||null,ranking:(ranking.results||[]).map(item=>({...item,is_self:item.student_id===user.student_id}))});
+      }
+      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"غير مسموح");
+      if(user.role==="director"&&competition.school_id&&!(Array.isArray(user.school_ids)&&user.school_ids.includes(competition.school_id)))return fail(403,"هذه المسابقة خارج نطاق مدرستك");
+      const rows=await env.DB.prepare("SELECT cr.*,s.display_name AS student_name,g.name AS group_name FROM competition_results cr JOIN students s ON s.id=cr.student_id LEFT JOIN groups g ON g.id=cr.group_id WHERE cr.competition_id=? ORDER BY cr.rank IS NULL,cr.rank,cr.final_score DESC").bind(competitionId).all();
+      return json(rows.results||[]);
+    }
+    const competitionGenerateMatch=path.match(/^\/api\/competitions\/([^/]+)\/results\/generate$/);
+    if(competitionGenerateMatch&&method==="POST"){
+      const competitionId=clean(competitionGenerateMatch[1],80);
+      const competition=await env.DB.prepare("SELECT * FROM competitions WHERE id=?").bind(competitionId).first();
+      if(!competition)return fail(404,"المسابقة غير موجودة");
+      if(!await competitionCanManage(env,user,competition))return fail(403,"توليد النتائج متاح للإدارة المسؤولة");
+      if(!["judging","results"].includes(competition.status))return fail(409,"ابدأ التحكيم قبل توليد النتائج");
+      const approved=await env.DB.prepare("SELECT status FROM competition_results WHERE competition_id=? AND status IN ('approved','published') LIMIT 1").bind(competitionId).first();
+      if(approved)return fail(409,"النتائج معتمدة؛ لا يمكن إعادة توليدها");
+      const rows=await env.DB.prepare("SELECT r.id,r.student_id,r.group_id,ROUND(AVG(s.total),2) AS average,COUNT(s.id) AS judges FROM competition_registrations r LEFT JOIN competition_scores s ON s.registration_id=r.id WHERE r.competition_id=? AND r.status='approved' GROUP BY r.id ORDER BY average IS NULL,average DESC,r.registered_at").bind(competitionId).all();
+      const list=rows.results||[];
+      if(!list.length)return fail(409,"لا يوجد مشاركون معتمدون");
+      const awards=normalizeCompetitionAwards(competition.awards_json);
+      const ranked=list.filter(row=>row.average!==null);
+      let lastScore=null,lastRank=0;
+      const rankMap=new Map();
+      ranked.forEach((row,index)=>{const score=Number(row.average);const rank=lastScore!==null&&score===lastScore?lastRank:index+1;lastScore=score;lastRank=rank;rankMap.set(row.id,rank);});
+      await env.DB.prepare("DELETE FROM competition_results WHERE competition_id=? AND status='draft'").bind(competitionId).run();
+      const statements=[];
+      for(const row of list){
+        const rank=rankMap.get(row.id)||null;
+        const award=rank?competitionAwardForRank(awards,rank):{achievement:0,store:0,label:""};
+        statements.push(env.DB.prepare("INSERT INTO competition_results (id,competition_id,registration_id,student_id,group_id,final_score,rank,status,award_achievement,award_store,note,created_at) VALUES (?,?,?,?,?,?,?,'draft',?,?,?,?)").bind(uuid(),competitionId,row.id,row.student_id,row.group_id,row.average===null?null:Number(row.average),rank,award.achievement,award.store,row.average===null?"لم يُقيَّم بعد":award.label,nowIso()));
+      }
+      if(statements.length)await env.DB.batch(statements);
+      if(competition.status==="judging")await env.DB.prepare("UPDATE competitions SET status='results',updated_at=? WHERE id=?").bind(nowIso(),competitionId).run();
+      await log(env,user.id,"competition_results_generate",{competition_id:competitionId,count:list.length});
+      const results=await env.DB.prepare("SELECT cr.*,s.display_name AS student_name FROM competition_results cr JOIN students s ON s.id=cr.student_id WHERE cr.competition_id=? ORDER BY cr.rank IS NULL,cr.rank").bind(competitionId).all();
+      return json({ok:true,status:"results",results:results.results||[]});
+    }
+    const competitionApproveMatch=path.match(/^\/api\/competitions\/([^/]+)\/results\/approve$/);
+    if(competitionApproveMatch&&method==="POST"){
+      const competitionId=clean(competitionApproveMatch[1],80);
+      const competition=await env.DB.prepare("SELECT * FROM competitions WHERE id=?").bind(competitionId).first();
+      if(!competition)return fail(404,"المسابقة غير موجودة");
+      if(!await competitionCanManage(env,user,competition))return fail(403,"اعتماد النتائج متاح للإدارة المسؤولة");
+      if(competition.status!=="results")return fail(409,"انتقل إلى مرحلة النتائج قبل الاعتماد");
+      const rows=await env.DB.prepare("SELECT * FROM competition_results WHERE competition_id=?").bind(competitionId).all();
+      const list=rows.results||[];
+      if(!list.length)return fail(409,"لا توجد نتائج للاعتماد");
+      if(list.some(row=>["approved","published"].includes(row.status)))return fail(409,"النتائج معتمدة مسبقًا");
+      const date=academyDate();
+      let awarded=0;
+      for(const row of list){
+        const award=row.rank?competitionAwardForRank(normalizeCompetitionAwards(competition.awards_json),row.rank):{achievement:0,store:0};
+        const achievement=Number(row.award_achievement||award.achievement||0),store=Number(row.award_store||award.store||0);
+        let achievementEventId=null,storeEventId=null;
+        if(achievement>0||store>0){
+          const events=await awardPointsForEvent(env,{studentId:row.student_id,groupId:row.group_id,eventType:"competition_award",eventKey:"competition:"+competitionId+":"+row.student_id+":award",date,reason:"مكافأة مسابقة: "+competition.title+(row.rank?" — المرتبة "+row.rank:""),sourceCollection:"competition_results",sourceId:row.id,awardedBy:user.id,achievementPoints:achievement,storePoints:store});
+          achievementEventId=events.find(event=>event.kind==="achievement")?.id||null;
+          storeEventId=events.find(event=>event.kind==="store")?.id||null;
+          if(events.some(event=>event.status==="awarded"))awarded+=1;
+        }
+        await env.DB.prepare("UPDATE competition_results SET status='published',award_achievement=?,award_store=?,award_event_achievement_id=?,award_event_store_id=?,approved_by=?,approved_at=? WHERE id=?").bind(achievement,store,achievementEventId,storeEventId,user.id,nowIso(),row.id).run();
+      }
+      await log(env,user.id,"competition_results_approve",{competition_id:competitionId,count:list.length,awarded});
+      return json({ok:true,status:"published",count:list.length,awarded});
+    }
+    if(path==="/api/competition-events"&&method==="GET"){
+      const competitionId=clean(url.searchParams.get("competition_id"),80);
+      const rows=competitionId?await env.DB.prepare("SELECT * FROM competition_events WHERE active=1 AND competition_id=? ORDER BY event_date").bind(competitionId).all():await env.DB.prepare("SELECT * FROM competition_events WHERE active=1 ORDER BY event_date").all();
+      return json(rows.results||[]);
+    }
+    if(path==="/api/competition-events"&&method==="POST"){
+      if(!["admin","director"].includes(user.role))return fail(403,"إدارة الرزنامة متاحة للإدارة");
+      const parsed=await parseBody(request,8000);if(parsed.error)return parsed.error;const b=parsed.value;
+      const title=clean(b.title,180),description=clean(b.description,3000),eventDate=clean(b.event_date,10),kind=clean(b.kind,30)||"other",competitionId=clean(b.competition_id,80)||null;
+      if(!title||!validDateOnly(eventDate))return fail(400,"أدخل عنوان الحدث وتاريخه");
+      if(!["announcement","registration","judging","result","honoring","other"].includes(kind))return fail(400,"نوع الحدث غير صحيح");
+      if(competitionId){const competition=await env.DB.prepare("SELECT * FROM competitions WHERE id=?").bind(competitionId).first();if(!competition)return fail(400,"المسابقة غير موجودة");if(!await competitionCanManage(env,user,competition))return fail(403,"هذه المسابقة خارج صلاحيتك");}
+      const id=uuid();
+      await env.DB.prepare("INSERT INTO competition_events (id,competition_id,title,description,event_date,kind,active,created_by) VALUES (?,?,?,?,?,?,1,?)").bind(id,competitionId,title,description,eventDate,kind,user.id).run();
+      await log(env,user.id,"competition_event_create",{id,competition_id:competitionId,event_date:eventDate});
+      return json({ok:true,id,title,description,event_date:eventDate,kind,competition_id:competitionId},201);
+    }
+    const competitionEventMatch=path.match(/^\/api\/competition-events\/([^/]+)$/);
+    if(competitionEventMatch&&method==="PATCH"){
+      if(!["admin","director"].includes(user.role))return fail(403,"إدارة الرزنامة متاحة للإدارة");
+      const event=await env.DB.prepare("SELECT * FROM competition_events WHERE id=?").bind(clean(competitionEventMatch[1],80)).first();
+      if(!event)return fail(404,"الحدث غير موجود");
+      if(event.competition_id){const competition=await env.DB.prepare("SELECT * FROM competitions WHERE id=?").bind(event.competition_id).first();if(competition&&!await competitionCanManage(env,user,competition))return fail(403,"هذه المسابقة خارج صلاحيتك");}
+      const parsed=await parseBody(request,8000);if(parsed.error)return parsed.error;const b=parsed.value;
+      const title=b.title===undefined?event.title:clean(b.title,180),description=b.description===undefined?event.description:clean(b.description,3000),eventDate=b.event_date===undefined?event.event_date:clean(b.event_date,10),kind=b.kind===undefined?event.kind:clean(b.kind,30);
+      if(!title||!validDateOnly(eventDate))return fail(400,"أدخل عنوان الحدث وتاريخه");
+      await env.DB.prepare("UPDATE competition_events SET title=?,description=?,event_date=?,kind=? WHERE id=?").bind(title,description,eventDate,kind,event.id).run();
+      return json({ok:true});
+    }
+    if(competitionEventMatch&&method==="DELETE"){
+      if(!["admin","director"].includes(user.role))return fail(403,"إدارة الرزنامة متاحة للإدارة");
+      await env.DB.prepare("UPDATE competition_events SET active=0 WHERE id=?").bind(clean(competitionEventMatch[1],80)).run();
+      return json({ok:true});
+    }
+    if(path==="/api/competition-terms"&&method==="GET"){
+      const kind=clean(url.searchParams.get("kind"),40);
+      const rows=kind?await env.DB.prepare("SELECT * FROM competition_reference_terms WHERE active=1 AND (kind=? OR kind='other') ORDER BY sort_order").bind(kind).all():await env.DB.prepare("SELECT * FROM competition_reference_terms WHERE active=1 ORDER BY sort_order").all();
+      return json(rows.results||[]);
+    }
+    if(path==="/api/competition-terms"&&method==="POST"){
+      if(!["admin","director"].includes(user.role))return fail(403,"إدارة الشروط المرجعية متاحة للإدارة");
+      const parsed=await parseBody(request,12000);if(parsed.error)return parsed.error;const b=parsed.value;
+      const kind=clean(b.kind,40)||"other",title=clean(b.title,180),body=clean(b.body,8000),source=clean(b.source,300);
+      if(!COMPETITION_KINDS[kind])return fail(400,"نوع المرجع غير صحيح");
+      if(!title||!body)return fail(400,"أدخل عنوان الشروط ونصها");
+      const id=uuid();
+      await env.DB.prepare("INSERT INTO competition_reference_terms (id,kind,title,body,source,active,sort_order,created_by) VALUES (?,?,?,?,?,1,?,?)").bind(id,kind,title,body,source,Number(b.sort_order||0),user.id).run();
+      await log(env,user.id,"competition_term_create",{id,kind});
+      return json({ok:true,id,kind,title,body,source},201);
+    }
+    const competitionTermMatch=path.match(/^\/api\/competition-terms\/([^/]+)$/);
+    if(competitionTermMatch&&method==="PATCH"){
+      if(!["admin","director"].includes(user.role))return fail(403,"إدارة الشروط المرجعية متاحة للإدارة");
+      const term=await env.DB.prepare("SELECT * FROM competition_reference_terms WHERE id=?").bind(clean(competitionTermMatch[1],80)).first();
+      if(!term)return fail(404,"المرجع غير موجود");
+      const parsed=await parseBody(request,12000);if(parsed.error)return parsed.error;const b=parsed.value;
+      await env.DB.prepare("UPDATE competition_reference_terms SET kind=?,title=?,body=?,source=?,sort_order=?,updated_at=? WHERE id=?").bind(b.kind===undefined?term.kind:clean(b.kind,40),b.title===undefined?term.title:clean(b.title,180),b.body===undefined?term.body:clean(b.body,8000),b.source===undefined?term.source:clean(b.source,300),b.sort_order===undefined?term.sort_order:Number(b.sort_order||0),nowIso(),term.id).run();
+      return json({ok:true});
+    }
+    if(competitionTermMatch&&method==="DELETE"){
+      if(!["admin","director"].includes(user.role))return fail(403,"إدارة الشروط المرجعية متاحة للإدارة");
+      await env.DB.prepare("UPDATE competition_reference_terms SET active=0,updated_at=? WHERE id=?").bind(nowIso(),clean(competitionTermMatch[1],80)).run();
+      return json({ok:true});
     }
     if(path==="/api/messages/recipients"&&method==="GET"){
       return json(await messageRecipientRows(env,user));
@@ -2867,9 +3613,9 @@ export default {
 
     if(path==="/api/admin/backup/full-export"&&method==="GET"){
       if(user.role!=="admin")return fail(403,"forbidden");
-      try { await log(env,user.id,"admin_backup_full_export",{format:"ihsan-academy-full-backup-v3"}); }
+      try { await log(env,user.id,"admin_backup_full_export",{format:"ihsan-academy-full-backup-v4"}); }
       catch (auditError) { console.error("Ihsan full-backup audit failed",{message:String(auditError?.message||auditError)}); }
-      const [users,groups,students,recordsResult,schools,audit,googleIdentities,pointRules,pointEvents,storeItems,storeRedemptions,quranPaths,quranDaily,quranPairs,quranPairSessions,quranStations,quranMakeups]=await Promise.all([
+      const [users,groups,students,recordsResult,schools,audit,googleIdentities,pointRules,pointEvents,storeItems,storeRedemptions,quranPaths,quranDaily,quranPairs,quranPairSessions,quranStations,quranMakeups,competitionCategories,competitions,competitionRegistrations,competitionJudges,competitionScores,competitionResults,competitionEvents,competitionTerms]=await Promise.all([
         env.DB.prepare("SELECT id,display_name,identity_normalized,password_hash,role,active,must_change_password,created_at FROM users ORDER BY created_at").all(),
         env.DB.prepare("SELECT id,name,school_id,active,created_at,teacher_id FROM groups ORDER BY created_at").all(),
         env.DB.prepare("SELECT id,user_id,display_name,group_id,active,created_at FROM students ORDER BY created_at").all(),
@@ -2886,9 +3632,17 @@ export default {
         env.DB.prepare("SELECT * FROM quran_pairs ORDER BY created_at").all(),
         env.DB.prepare("SELECT * FROM quran_pair_sessions ORDER BY day,created_at").all(),
         env.DB.prepare("SELECT * FROM quran_stations ORDER BY scheduled_for").all(),
-        env.DB.prepare("SELECT * FROM quran_makeups ORDER BY due_date").all()
+        env.DB.prepare("SELECT * FROM quran_makeups ORDER BY due_date").all(),
+        env.DB.prepare("SELECT * FROM competition_categories ORDER BY sort_order,id").all(),
+        env.DB.prepare("SELECT * FROM competitions ORDER BY created_at").all(),
+        env.DB.prepare("SELECT * FROM competition_registrations ORDER BY registered_at").all(),
+        env.DB.prepare("SELECT * FROM competition_judges ORDER BY created_at").all(),
+        env.DB.prepare("SELECT * FROM competition_scores ORDER BY scored_at").all(),
+        env.DB.prepare("SELECT * FROM competition_results ORDER BY created_at").all(),
+        env.DB.prepare("SELECT * FROM competition_events ORDER BY event_date").all(),
+        env.DB.prepare("SELECT * FROM competition_reference_terms ORDER BY sort_order,id").all()
       ]);
-      const payload={format:"ihsan-academy-full-backup-v3",created_at:nowIso(),notice:"نسخة كاملة قابلة للدمج والاستعادة: تتضمن بصمات كلمات المرور وروابط Google، واقتصاد النقاط، ومسار القرآن. تعامل معها كملف سري. لا تتضمن رموز الجلسات أو محاولات الدخول؛ سيحتاج المستخدمون إلى تسجيل الدخول مجددًا عند النقل إلى قاعدة جديدة.",data:{
+      const payload={format:"ihsan-academy-full-backup-v4",created_at:nowIso(),notice:"نسخة كاملة قابلة للدمج والاستعادة: تتضمن بصمات كلمات المرور وروابط Google، واقتصاد النقاط، ومسار القرآن، ومنظومة المسابقات. تعامل معها كملف سري. لا تتضمن رموز الجلسات أو محاولات الدخول؛ سيحتاج المستخدمون إلى تسجيل الدخول مجددًا عند النقل إلى قاعدة جديدة.",data:{
         users:users.results||[],
         google_identities:googleIdentities.results||[],
         groups:groups.results||[],
@@ -2905,7 +3659,15 @@ export default {
         quran_pairs:quranPairs.results||[],
         quran_pair_sessions:quranPairSessions.results||[],
         quran_stations:quranStations.results||[],
-        quran_makeups:quranMakeups.results||[]
+        quran_makeups:quranMakeups.results||[],
+        competition_categories:competitionCategories.results||[],
+        competitions:competitions.results||[],
+        competition_registrations:competitionRegistrations.results||[],
+        competition_judges:competitionJudges.results||[],
+        competition_scores:competitionScores.results||[],
+        competition_results:competitionResults.results||[],
+        competition_events:competitionEvents.results||[],
+        competition_reference_terms:competitionTerms.results||[]
       }};
       return json(payload,200,{"content-disposition":'attachment; filename="ihsan-academy-full-backup.json"',"cache-control":"no-store"});
     }
@@ -2914,14 +3676,14 @@ export default {
       const parsed=await parseBody(request,16*1024*1024); if(parsed.error)return parsed.error;
       const b=parsed.value;
       if(b.confirm_restore!=="RESTORE-IHSAN-ACADEMY")return fail(400,"أكد الاستعادة من واجهة الإدارة قبل الإرسال");
-      const supportedFormats=["ihsan-academy-full-backup-v2","ihsan-academy-full-backup-v3"];
-      if(!b.data||!supportedFormats.includes(b.format))return fail(400,"صيغة النسخة غير مدعومة؛ يلزم ملف النسخة الكاملة v2 أو v3");
+      const supportedFormats=["ihsan-academy-full-backup-v2","ihsan-academy-full-backup-v3","ihsan-academy-full-backup-v4"];
+      if(!b.data||!supportedFormats.includes(b.format))return fail(400,"صيغة النسخة غير مدعومة؛ يلزم ملف النسخة الكاملة v2 أو v3 أو v4");
       const d=b.data;
-      // v2 files predate the economy/Quran tables; treat missing lists as empty.
-      for(const key of ["google_identities","point_rules","point_events","store_items","store_redemptions","quran_paths","quran_daily","quran_pairs","quran_pair_sessions","quran_stations","quran_makeups"]){
+      // Older files predate the economy/Quran/competition tables; treat missing lists as empty.
+      for(const key of ["google_identities","point_rules","point_events","store_items","store_redemptions","quran_paths","quran_daily","quran_pairs","quran_pair_sessions","quran_stations","quran_makeups","competition_categories","competitions","competition_registrations","competition_judges","competition_scores","competition_results","competition_events","competition_reference_terms"]){
         if(d[key]===undefined||d[key]===null)d[key]=[];
       }
-       const limits={users:10000,groups:10000,students:100000,academy_records:100000,quran_schools:1000,audit_log:100000,google_identities:10000,point_rules:1000,point_events:200000,store_items:5000,store_redemptions:100000,quran_paths:100000,quran_daily:500000,quran_pairs:100000,quran_pair_sessions:200000,quran_stations:100000,quran_makeups:100000};
+       const limits={users:10000,groups:10000,students:100000,academy_records:100000,quran_schools:1000,audit_log:100000,google_identities:10000,point_rules:1000,point_events:200000,store_items:5000,store_redemptions:100000,quran_paths:100000,quran_daily:500000,quran_pairs:100000,quran_pair_sessions:200000,quran_stations:100000,quran_makeups:100000,competition_categories:1000,competitions:5000,competition_registrations:200000,competition_judges:20000,competition_scores:500000,competition_results:200000,competition_events:50000,competition_reference_terms:5000};
       for(const [key,max] of Object.entries(limits)){
         if(!Array.isArray(d[key])||d[key].length>max)return fail(400,"قائمة غير صالحة أو أكبر من الحد المسموح: "+key);
       }
@@ -2993,6 +3755,54 @@ export default {
       const quranMakeups=d.quran_makeups.map(x=>isObj(x)?{id:x.id,student_id:x.student_id,kind:x.kind,due_date:x.due_date,amount:x.amount===undefined?"":x.amount,reason:x.reason,reason_note:x.reason_note===undefined?"":x.reason_note,status:x.status,proposed_date:x.proposed_date===undefined?null:x.proposed_date,blocks_new:x.blocks_new===undefined?0:x.blocks_new,completed_at:x.completed_at===undefined?null:x.completed_at,created_by:x.created_by===undefined?null:x.created_by,created_at:x.created_at,updated_at:x.updated_at}:null);
       if(quranMakeups.some(x=>!x||!idOk(x.id)||!studentIds.has(x.student_id)||!["hifz","thabit","ward"].includes(x.kind)||!dateOk(x.due_date)||typeof x.amount!=="string"||x.amount.length>200||!["shortcoming","interruption","incapacity","circumstance"].includes(x.reason)||typeof x.reason_note!=="string"||x.reason_note.length>1000||!["open","planned","done","cancelled"].includes(x.status)||!optStr(x.proposed_date,80)||!activeOk(x.blocks_new)||!optStr(x.completed_at,80)||!optIdOk(x.created_by)||!dateOk(x.created_at)||!dateOk(x.updated_at)))return badRow("الاستدراكات");
       if(!unique(quranMakeups.map(x=>x.id)))return fail(400,"تحتوي النسخة على معرفات مكررة: الاستدراكات");
+      // ---- Competitions (v4). Older files stay empty. ----
+      const jsonArrOk=(x,max)=>{if(typeof x!=="string"||x.length>max)return false;try{return Array.isArray(JSON.parse(x))}catch{return false}};
+      const competitionKinds=["quran_hifz","quran_tilawa","quran_tajweed","hadith","mutoon","seerah","islamic_culture","other"];
+      const competitionStatuses=["draft","announced","registration","judging","results","honored","archived"];
+      const registrationStatuses=["pending","approved","rejected","withdrawn","disqualified"];
+      const competitionCategories=d.competition_categories.map(x=>isObj(x)?{id:x.id,name:x.name,code:x.code,kind:x.kind,min_hizb:x.min_hizb===undefined?null:x.min_hizb,max_hizb:x.max_hizb===undefined?null:x.max_hizb,min_age:x.min_age===undefined?null:x.min_age,max_age:x.max_age===undefined?null:x.max_age,active:x.active,sort_order:x.sort_order,created_at:x.created_at}:null);
+      if(competitionCategories.some(x=>!x||!idOk(x.id)||!txt(x.name,200)||!txt(x.code,80)||!competitionKinds.includes(x.kind)||!(x.min_hizb===null||intOk(x.min_hizb,0,60))||!(x.max_hizb===null||intOk(x.max_hizb,1,60))||!(x.min_age===null||intOk(x.min_age,3,100))||!(x.max_age===null||intOk(x.max_age,3,100))||!activeOk(x.active)||!intOk(x.sort_order,-100000,100000)||!dateOk(x.created_at)))return badRow("فئات المسابقات");
+      if(!unique(competitionCategories.map(x=>x.id))||!unique(competitionCategories.map(x=>x.code)))return fail(400,"تحتوي النسخة على معرفات مكررة: فئات المسابقات");
+      const categoryIds=new Set(competitionCategories.map(x=>x.id));
+      const competitions=d.competitions.map(x=>isObj(x)?{id:x.id,school_id:x.school_id===undefined?null:x.school_id,title:x.title,description:x.description===undefined?"":x.description,kind:x.kind,season:x.season===undefined?"general":x.season,category_id:x.category_id===undefined?null:x.category_id,status:x.status,registration_starts_at:x.registration_starts_at===undefined?null:x.registration_starts_at,registration_ends_at:x.registration_ends_at===undefined?null:x.registration_ends_at,starts_at:x.starts_at===undefined?null:x.starts_at,ends_at:x.ends_at===undefined?null:x.ends_at,min_age:x.min_age===undefined?null:x.min_age,max_age:x.max_age===undefined?null:x.max_age,riwayat_json:x.riwayat_json===undefined?"[]":x.riwayat_json,min_hizb:x.min_hizb===undefined?null:x.min_hizb,max_hizb:x.max_hizb===undefined?null:x.max_hizb,requires_approval:x.requires_approval===undefined?0:x.requires_approval,max_participants:x.max_participants===undefined?null:x.max_participants,rules:x.rules===undefined?"":x.rules,judging_criteria_json:x.judging_criteria_json===undefined?"[]":x.judging_criteria_json,awards_json:x.awards_json===undefined?"[]":x.awards_json,participation_achievement:x.participation_achievement===undefined?0:x.participation_achievement,participation_store:x.participation_store===undefined?0:x.participation_store,created_by:x.created_by===undefined?null:x.created_by,created_at:x.created_at,updated_at:x.updated_at}:null);
+      if(competitions.some(x=>!x||!idOk(x.id)||!optIdOk(x.school_id)||!txt(x.title,180)||typeof x.description!=="string"||x.description.length>10000||!competitionKinds.includes(x.kind)||typeof x.season!=="string"||x.season.length>80||!(x.category_id===null||categoryIds.has(x.category_id))||!competitionStatuses.includes(x.status)||!optStr(x.registration_starts_at,80)||!optStr(x.registration_ends_at,80)||!optStr(x.starts_at,80)||!optStr(x.ends_at,80)||!(x.min_age===null||intOk(x.min_age,3,100))||!(x.max_age===null||intOk(x.max_age,3,100))||!jsonArrOk(x.riwayat_json,4000)||!(x.min_hizb===null||intOk(x.min_hizb,0,60))||!(x.max_hizb===null||intOk(x.max_hizb,1,60))||!activeOk(x.requires_approval)||!(x.max_participants===null||intOk(x.max_participants,1,100000))||typeof x.rules!=="string"||x.rules.length>20000||!jsonArrOk(x.judging_criteria_json,20000)||!jsonArrOk(x.awards_json,20000)||!intOk(x.participation_achievement,0,100000)||!intOk(x.participation_store,0,100000)||!optIdOk(x.created_by)||!dateOk(x.created_at)||!dateOk(x.updated_at)))return badRow("المسابقات");
+      if(!unique(competitions.map(x=>x.id)))return fail(400,"تحتوي النسخة على معرفات مكررة: المسابقات");
+      const competitionIds=new Set(competitions.map(x=>x.id));
+      const competitionRegistrations=d.competition_registrations.map(x=>isObj(x)?{id:x.id,competition_id:x.competition_id,student_id:x.student_id,group_id:x.group_id===undefined?null:x.group_id,status:x.status,age_at_registration:x.age_at_registration===undefined?null:x.age_at_registration,hizb_at_registration:x.hizb_at_registration===undefined?"":x.hizb_at_registration,riwaya:x.riwaya===undefined?"":x.riwaya,note:x.note===undefined?"":x.note,registered_at:x.registered_at,decided_by:x.decided_by===undefined?null:x.decided_by,decided_at:x.decided_at===undefined?null:x.decided_at,decision_note:x.decision_note===undefined?"":x.decision_note}:null);
+      if(competitionRegistrations.some(x=>!x||!idOk(x.id)||!competitionIds.has(x.competition_id)||!studentIds.has(x.student_id)||(x.group_id!==null&&!groupIds.has(x.group_id))||!registrationStatuses.includes(x.status)||!(x.age_at_registration===null||intOk(x.age_at_registration,3,100))||typeof x.hizb_at_registration!=="string"||x.hizb_at_registration.length>40||typeof x.riwaya!=="string"||x.riwaya.length>60||typeof x.note!=="string"||x.note.length>2000||!dateOk(x.registered_at)||!optIdOk(x.decided_by)||!optStr(x.decided_at,80)||typeof x.decision_note!=="string"||x.decision_note.length>600))return badRow("تسجيلات المسابقات");
+      if(!unique(competitionRegistrations.map(x=>x.id))||!unique(competitionRegistrations.map(x=>x.competition_id+"\u0000"+x.student_id)))return fail(400,"تحتوي النسخة على معرفات مكررة: تسجيلات المسابقات");
+      const competitionRegistrationIds=new Set(competitionRegistrations.map(x=>x.id));
+      const competitionJudges=d.competition_judges.map(x=>isObj(x)?{competition_id:x.competition_id,user_id:x.user_id,created_by:x.created_by===undefined?null:x.created_by,created_at:x.created_at}:null);
+      if(competitionJudges.some(x=>!x||!competitionIds.has(x.competition_id)||!userIds.has(x.user_id)||!optIdOk(x.created_by)||!dateOk(x.created_at)))return badRow("محكمو المسابقات");
+      if(!unique(competitionJudges.map(x=>x.competition_id+"\u0000"+x.user_id)))return fail(400,"تحتوي النسخة على معرفات مكررة: محكمو المسابقات");
+      const competitionScores=d.competition_scores.map(x=>isObj(x)?{id:x.id,competition_id:x.competition_id,registration_id:x.registration_id,judge_user_id:x.judge_user_id,criteria_json:x.criteria_json===undefined?"[]":x.criteria_json,total:x.total,note:x.note===undefined?"":x.note,scored_at:x.scored_at}:null);
+      if(competitionScores.some(x=>!x||!idOk(x.id)||!competitionIds.has(x.competition_id)||!competitionRegistrationIds.has(x.registration_id)||!userIds.has(x.judge_user_id)||!jsonArrOk(x.criteria_json,20000)||!numOk(x.total,0,100)||typeof x.note!=="string"||x.note.length>2000||!dateOk(x.scored_at)))return badRow("درجات التحكيم");
+      if(!unique(competitionScores.map(x=>x.id))||!unique(competitionScores.map(x=>x.competition_id+"\u0000"+x.registration_id+"\u0000"+x.judge_user_id)))return fail(400,"تحتوي النسخة على معرفات مكررة: درجات التحكيم");
+      const competitionResults=d.competition_results.map(x=>isObj(x)?{id:x.id,competition_id:x.competition_id,registration_id:x.registration_id,student_id:x.student_id,group_id:x.group_id===undefined?null:x.group_id,final_score:x.final_score===undefined?null:x.final_score,rank:x.rank===undefined?null:x.rank,status:x.status,award_achievement:x.award_achievement===undefined?0:x.award_achievement,award_store:x.award_store===undefined?0:x.award_store,award_event_achievement_id:x.award_event_achievement_id===undefined?null:x.award_event_achievement_id,award_event_store_id:x.award_event_store_id===undefined?null:x.award_event_store_id,note:x.note===undefined?"":x.note,approved_by:x.approved_by===undefined?null:x.approved_by,approved_at:x.approved_at===undefined?null:x.approved_at,created_at:x.created_at}:null);
+      if(competitionResults.some(x=>!x||!idOk(x.id)||!competitionIds.has(x.competition_id)||!competitionRegistrationIds.has(x.registration_id)||!studentIds.has(x.student_id)||(x.group_id!==null&&!groupIds.has(x.group_id))||!(x.final_score===null||numOk(x.final_score,0,100))||!(x.rank===null||intOk(x.rank,1,100000))||!["draft","approved","published"].includes(x.status)||!intOk(x.award_achievement,0,100000)||!intOk(x.award_store,0,100000)||!optIdOk(x.award_event_achievement_id)||!optIdOk(x.award_event_store_id)||typeof x.note!=="string"||x.note.length>2000||!optIdOk(x.approved_by)||!optStr(x.approved_at,80)||!dateOk(x.created_at)))return badRow("نتائج المسابقات");
+      if(!unique(competitionResults.map(x=>x.id))||!unique(competitionResults.map(x=>x.competition_id+"\u0000"+x.registration_id)))return fail(400,"تحتوي النسخة على معرفات مكررة: نتائج المسابقات");
+      const competitionEvents=d.competition_events.map(x=>isObj(x)?{id:x.id,competition_id:x.competition_id===undefined?null:x.competition_id,title:x.title,description:x.description===undefined?"":x.description,event_date:x.event_date,kind:x.kind,active:x.active===undefined?1:x.active,created_by:x.created_by===undefined?null:x.created_by,created_at:x.created_at}:null);
+      if(competitionEvents.some(x=>!x||!idOk(x.id)||(x.competition_id!==null&&!competitionIds.has(x.competition_id))||!txt(x.title,180)||typeof x.description!=="string"||x.description.length>5000||!dateOk(x.event_date)||!["announcement","registration","judging","result","honoring","other"].includes(x.kind)||!activeOk(x.active)||!optIdOk(x.created_by)||!dateOk(x.created_at)))return badRow("رزنامة المسابقات");
+      if(!unique(competitionEvents.map(x=>x.id)))return fail(400,"تحتوي النسخة على معرفات مكررة: رزنامة المسابقات");
+      const competitionTerms=d.competition_reference_terms.map(x=>isObj(x)?{id:x.id,kind:x.kind,title:x.title,body:x.body===undefined?"":x.body,source:x.source===undefined?"":x.source,active:x.active===undefined?1:x.active,sort_order:x.sort_order===undefined?0:x.sort_order,created_by:x.created_by===undefined?null:x.created_by,created_at:x.created_at,updated_at:x.updated_at}:null);
+      if(competitionTerms.some(x=>!x||!idOk(x.id)||!competitionKinds.includes(x.kind)||!txt(x.title,180)||typeof x.body!=="string"||x.body.length>20000||typeof x.source!=="string"||x.source.length>300||!activeOk(x.active)||!intOk(x.sort_order,-100000,100000)||!optIdOk(x.created_by)||!dateOk(x.created_at)||!dateOk(x.updated_at)))return badRow("الشروط المرجعية للمسابقات");
+      if(!unique(competitionTerms.map(x=>x.id)))return fail(400,"تحتوي النسخة على معرفات مكررة: الشروط المرجعية");
+      if(competitionCategories.length||competitionRegistrations.length||competitionScores.length||competitionResults.length){
+        const [existingCategories,existingRegistrations,existingScores,existingResults]=await Promise.all([
+          competitionCategories.length?env.DB.prepare("SELECT id,code FROM competition_categories").all():{results:[]},
+          competitionRegistrations.length?env.DB.prepare("SELECT id,competition_id,student_id FROM competition_registrations").all():{results:[]},
+          competitionScores.length?env.DB.prepare("SELECT id,competition_id,registration_id,judge_user_id FROM competition_scores").all():{results:[]},
+          competitionResults.length?env.DB.prepare("SELECT id,competition_id,registration_id FROM competition_results").all():{results:[]}
+        ]);
+        const currentCategoryCode=new Map((existingCategories.results||[]).map(x=>[x.code,x.id]));
+        if(competitionCategories.some(x=>currentCategoryCode.has(x.code)&&currentCategoryCode.get(x.code)!==x.id))return fail(409,"توجد فئة مسابقة حالية بالرمز نفسه ومعرّف مختلف؛ لم تبدأ الاستعادة");
+        const currentRegistrationKey=new Map((existingRegistrations.results||[]).map(x=>[x.competition_id+"\u0000"+x.student_id,x.id]));
+        if(competitionRegistrations.some(x=>currentRegistrationKey.has(x.competition_id+"\u0000"+x.student_id)&&currentRegistrationKey.get(x.competition_id+"\u0000"+x.student_id)!==x.id))return fail(409,"يوجد تسجيل مسابقة حالي بالطالب والمسابقة نفسيهما ومعرّف مختلف؛ لم تبدأ الاستعادة");
+        const currentScoreKey=new Map((existingScores.results||[]).map(x=>[x.competition_id+"\u0000"+x.registration_id+"\u0000"+x.judge_user_id,x.id]));
+        if(competitionScores.some(x=>currentScoreKey.has(x.competition_id+"\u0000"+x.registration_id+"\u0000"+x.judge_user_id)&&currentScoreKey.get(x.competition_id+"\u0000"+x.registration_id+"\u0000"+x.judge_user_id)!==x.id))return fail(409,"توجد درجة تحكيم حالية بالمحكم والتسجيل نفسيهما ومعرّف مختلف؛ لم تبدأ الاستعادة");
+        const currentResultKey=new Map((existingResults.results||[]).map(x=>[x.competition_id+"\u0000"+x.registration_id,x.id]));
+        if(competitionResults.some(x=>currentResultKey.has(x.competition_id+"\u0000"+x.registration_id)&&currentResultKey.get(x.competition_id+"\u0000"+x.registration_id)!==x.id))return fail(409,"توجد نتيجة مسابقة حالية بالتسجيل نفسه ومعرّف مختلف؛ لم تبدأ الاستعادة");
+      }
       if(pointRules.length||pointEvents.length||quranDaily.length){
         const [existingRules,existingEvents,existingDaily]=await Promise.all([
           pointRules.length?env.DB.prepare("SELECT id,event_type FROM point_rules").all():{results:[]},
@@ -3036,15 +3846,23 @@ export default {
       for(const x of quranPairSessions)statements.push(env.DB.prepare("INSERT INTO quran_pair_sessions (id,pair_id,day,reciter_id,listener_id,amount,errors,error_positions,hesitations,prompts,minutes,expected_minutes,score,notes,signed_reciter,signed_listener,override_reason,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET pair_id=excluded.pair_id,day=excluded.day,reciter_id=excluded.reciter_id,listener_id=excluded.listener_id,amount=excluded.amount,errors=excluded.errors,error_positions=excluded.error_positions,hesitations=excluded.hesitations,prompts=excluded.prompts,minutes=excluded.minutes,expected_minutes=excluded.expected_minutes,score=excluded.score,notes=excluded.notes,signed_reciter=excluded.signed_reciter,signed_listener=excluded.signed_listener,override_reason=excluded.override_reason,created_by=excluded.created_by,created_at=excluded.created_at").bind(x.id,x.pair_id,x.day,x.reciter_id,x.listener_id,x.amount,x.errors,x.error_positions,x.hesitations,x.prompts,x.minutes,x.expected_minutes,x.score,x.notes,x.signed_reciter,x.signed_listener,x.override_reason,x.created_by,x.created_at));
       for(const x of quranStations)statements.push(env.DB.prepare("INSERT INTO quran_stations (id,student_id,stage,scheduled_for,memorized_amount,score,errors,notes,status,approved_by,approved_at,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET student_id=excluded.student_id,stage=excluded.stage,scheduled_for=excluded.scheduled_for,memorized_amount=excluded.memorized_amount,score=excluded.score,errors=excluded.errors,notes=excluded.notes,status=excluded.status,approved_by=excluded.approved_by,approved_at=excluded.approved_at,created_by=excluded.created_by,created_at=excluded.created_at").bind(x.id,x.student_id,x.stage,x.scheduled_for,x.memorized_amount,x.score,x.errors,x.notes,x.status,x.approved_by,x.approved_at,x.created_by,x.created_at));
       for(const x of quranMakeups)statements.push(env.DB.prepare("INSERT INTO quran_makeups (id,student_id,kind,due_date,amount,reason,reason_note,status,proposed_date,blocks_new,completed_at,created_by,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET student_id=excluded.student_id,kind=excluded.kind,due_date=excluded.due_date,amount=excluded.amount,reason=excluded.reason,reason_note=excluded.reason_note,status=excluded.status,proposed_date=excluded.proposed_date,blocks_new=excluded.blocks_new,completed_at=excluded.completed_at,created_by=excluded.created_by,created_at=excluded.created_at,updated_at=excluded.updated_at").bind(x.id,x.student_id,x.kind,x.due_date,x.amount,x.reason,x.reason_note,x.status,x.proposed_date,x.blocks_new,x.completed_at,x.created_by,x.created_at,x.updated_at));
+      for(const x of competitionCategories)statements.push(env.DB.prepare("INSERT INTO competition_categories (id,name,code,kind,min_hizb,max_hizb,min_age,max_age,active,sort_order,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,code=excluded.code,kind=excluded.kind,min_hizb=excluded.min_hizb,max_hizb=excluded.max_hizb,min_age=excluded.min_age,max_age=excluded.max_age,active=excluded.active,sort_order=excluded.sort_order,created_at=excluded.created_at").bind(x.id,x.name,x.code,x.kind,x.min_hizb,x.max_hizb,x.min_age,x.max_age,x.active,x.sort_order,x.created_at));
+      for(const x of competitions)statements.push(env.DB.prepare("INSERT INTO competitions (id,school_id,title,description,kind,season,category_id,status,registration_starts_at,registration_ends_at,starts_at,ends_at,min_age,max_age,riwayat_json,min_hizb,max_hizb,requires_approval,max_participants,rules,judging_criteria_json,awards_json,participation_achievement,participation_store,created_by,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET school_id=excluded.school_id,title=excluded.title,description=excluded.description,kind=excluded.kind,season=excluded.season,category_id=excluded.category_id,status=excluded.status,registration_starts_at=excluded.registration_starts_at,registration_ends_at=excluded.registration_ends_at,starts_at=excluded.starts_at,ends_at=excluded.ends_at,min_age=excluded.min_age,max_age=excluded.max_age,riwayat_json=excluded.riwayat_json,min_hizb=excluded.min_hizb,max_hizb=excluded.max_hizb,requires_approval=excluded.requires_approval,max_participants=excluded.max_participants,rules=excluded.rules,judging_criteria_json=excluded.judging_criteria_json,awards_json=excluded.awards_json,participation_achievement=excluded.participation_achievement,participation_store=excluded.participation_store,created_by=excluded.created_by,created_at=excluded.created_at,updated_at=excluded.updated_at").bind(x.id,x.school_id,x.title,x.description,x.kind,x.season,x.category_id,x.status,x.registration_starts_at,x.registration_ends_at,x.starts_at,x.ends_at,x.min_age,x.max_age,x.riwayat_json,x.min_hizb,x.max_hizb,x.requires_approval,x.max_participants,x.rules,x.judging_criteria_json,x.awards_json,x.participation_achievement,x.participation_store,x.created_by,x.created_at,x.updated_at));
+      for(const x of competitionRegistrations)statements.push(env.DB.prepare("INSERT INTO competition_registrations (id,competition_id,student_id,group_id,status,age_at_registration,hizb_at_registration,riwaya,note,registered_at,decided_by,decided_at,decision_note) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET competition_id=excluded.competition_id,student_id=excluded.student_id,group_id=excluded.group_id,status=excluded.status,age_at_registration=excluded.age_at_registration,hizb_at_registration=excluded.hizb_at_registration,riwaya=excluded.riwaya,note=excluded.note,registered_at=excluded.registered_at,decided_by=excluded.decided_by,decided_at=excluded.decided_at,decision_note=excluded.decision_note").bind(x.id,x.competition_id,x.student_id,x.group_id,x.status,x.age_at_registration,x.hizb_at_registration,x.riwaya,x.note,x.registered_at,x.decided_by,x.decided_at,x.decision_note));
+      for(const x of competitionJudges)statements.push(env.DB.prepare("INSERT INTO competition_judges (competition_id,user_id,created_by,created_at) VALUES (?,?,?,?) ON CONFLICT(competition_id,user_id) DO UPDATE SET created_by=excluded.created_by,created_at=excluded.created_at").bind(x.competition_id,x.user_id,x.created_by,x.created_at));
+      for(const x of competitionScores)statements.push(env.DB.prepare("INSERT INTO competition_scores (id,competition_id,registration_id,judge_user_id,criteria_json,total,note,scored_at) VALUES (?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET competition_id=excluded.competition_id,registration_id=excluded.registration_id,judge_user_id=excluded.judge_user_id,criteria_json=excluded.criteria_json,total=excluded.total,note=excluded.note,scored_at=excluded.scored_at").bind(x.id,x.competition_id,x.registration_id,x.judge_user_id,x.criteria_json,x.total,x.note,x.scored_at));
+      for(const x of competitionResults)statements.push(env.DB.prepare('INSERT INTO competition_results (id,competition_id,registration_id,student_id,group_id,final_score,"rank",status,award_achievement,award_store,award_event_achievement_id,award_event_store_id,note,approved_by,approved_at,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET competition_id=excluded.competition_id,registration_id=excluded.registration_id,student_id=excluded.student_id,group_id=excluded.group_id,final_score=excluded.final_score,"rank"=excluded."rank",status=excluded.status,award_achievement=excluded.award_achievement,award_store=excluded.award_store,award_event_achievement_id=excluded.award_event_achievement_id,award_event_store_id=excluded.award_event_store_id,note=excluded.note,approved_by=excluded.approved_by,approved_at=excluded.approved_at,created_at=excluded.created_at').bind(x.id,x.competition_id,x.registration_id,x.student_id,x.group_id,x.final_score,x.rank,x.status,x.award_achievement,x.award_store,x.award_event_achievement_id,x.award_event_store_id,x.note,x.approved_by,x.approved_at,x.created_at));
+      for(const x of competitionEvents)statements.push(env.DB.prepare("INSERT INTO competition_events (id,competition_id,title,description,event_date,kind,active,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET competition_id=excluded.competition_id,title=excluded.title,description=excluded.description,event_date=excluded.event_date,kind=excluded.kind,active=excluded.active,created_by=excluded.created_by,created_at=excluded.created_at").bind(x.id,x.competition_id,x.title,x.description,x.event_date,x.kind,x.active,x.created_by,x.created_at));
+      for(const x of competitionTerms)statements.push(env.DB.prepare("INSERT INTO competition_reference_terms (id,kind,title,body,source,active,sort_order,created_by,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET kind=excluded.kind,title=excluded.title,body=excluded.body,source=excluded.source,active=excluded.active,sort_order=excluded.sort_order,created_by=excluded.created_by,created_at=excluded.created_at,updated_at=excluded.updated_at").bind(x.id,x.kind,x.title,x.body,x.source,x.active,x.sort_order,x.created_by,x.created_at,x.updated_at));
       try{
         for(let i=0;i<statements.length;i+=40)await env.DB.batch(statements.slice(i,i+40));
       }catch(restoreError){
         console.error("Ihsan backup restore failed",{message:String(restoreError?.message||restoreError),statements:statements.length});
         return fail(500,"توقفت الاستعادة أثناء الحفظ. قد تكون بعض الدفعات حُفظت؛ أعد المحاولة بالملف نفسه، فالدمج بمعرّفات ثابتة قابل لإعادة المحاولة.");
       }
-      try{await log(env,user.id,"admin_backup_restore",{users:users.length,groups:groups.length,students:students.length,records:records.length,schools:schools.length,audit_entries:audit.length,point_events:pointEvents.length,quran_daily:quranDaily.length,quran_stations:quranStations.length})}
+      try{await log(env,user.id,"admin_backup_restore",{users:users.length,groups:groups.length,students:students.length,records:records.length,schools:schools.length,audit_entries:audit.length,point_events:pointEvents.length,quran_daily:quranDaily.length,quran_stations:quranStations.length,competitions:competitions.length,competition_registrations:competitionRegistrations.length,competition_results:competitionResults.length})}
       catch(auditError){console.error("Ihsan restore audit failed",{message:String(auditError?.message||auditError)})}
-      return json({ok:true,mode:"merge",restored:{users:users.length,groups:groups.length,students:students.length,records:records.length,quran_schools:schools.length,audit_entries:audit.length,point_rules:pointRules.length,point_events:pointEvents.length,store_items:storeItems.length,store_redemptions:storeRedemptions.length,quran_paths:quranPaths.length,quran_daily:quranDaily.length,quran_pairs:quranPairs.length,quran_pair_sessions:quranPairSessions.length,quran_stations:quranStations.length,quran_makeups:quranMakeups.length},notice:"تم دمج النسخة. لم تُحذف السجلات الموجودة خارج الملف؛ راجع البيانات قبل المتابعة."});
+      return json({ok:true,mode:"merge",restored:{users:users.length,groups:groups.length,students:students.length,records:records.length,quran_schools:schools.length,audit_entries:audit.length,point_rules:pointRules.length,point_events:pointEvents.length,store_items:storeItems.length,store_redemptions:storeRedemptions.length,quran_paths:quranPaths.length,quran_daily:quranDaily.length,quran_pairs:quranPairs.length,quran_pair_sessions:quranPairSessions.length,quran_stations:quranStations.length,quran_makeups:quranMakeups.length,competition_categories:competitionCategories.length,competitions:competitions.length,competition_registrations:competitionRegistrations.length,competition_judges:competitionJudges.length,competition_scores:competitionScores.length,competition_results:competitionResults.length,competition_events:competitionEvents.length,competition_reference_terms:competitionTerms.length},notice:"تم دمج النسخة. لم تُحذف السجلات الموجودة خارج الملف؛ راجع البيانات قبل المتابعة."});
     }
 
     return fail(404,"المسار غير موجود");
