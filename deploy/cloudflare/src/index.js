@@ -262,6 +262,44 @@ async function pointsTotals(env, studentId) {
   return { achievement: Number(row?.achievement || 0), store: Number(row?.store || 0) };
 }
 
+function storeItemAvailability(item, balance) {
+  const stock = item.stock === null || item.stock === undefined ? null : Number(item.stock);
+  const maxPerStudent = item.max_per_student === null || item.max_per_student === undefined ? null : Number(item.max_per_student);
+  const used = Number(item.used || 0);
+  const soldOut = stock !== null && stock <= 0;
+  const maxed = maxPerStudent !== null && used >= maxPerStudent;
+  const cost = Number(item.cost) || 0;
+  return {
+    sold_out: soldOut,
+    maxed,
+    eligible: !soldOut && !maxed,
+    used,
+    missing: Math.max(0, cost - Number(balance || 0))
+  };
+}
+function storeRecommendationPayload(items, balance) {
+  const active = (items || []).filter(item => Number(item.active) !== 0);
+  const decorated = active.map(item => ({ ...item, ...storeItemAvailability(item, balance) }));
+  const eligible = decorated.filter(item => item.eligible);
+  const affordable = eligible.filter(item => Number(item.cost) <= Number(balance || 0)).sort((a, b) => Number(b.cost) - Number(a.cost));
+  const locked = eligible.filter(item => Number(item.cost) > Number(balance || 0)).sort((a, b) => Number(a.cost) - Number(b.cost));
+  const nearest = locked[0] || null;
+  const publicItem = item => ({
+    id: item.id, name: item.name, description: item.description, icon: item.icon,
+    cost: Number(item.cost), stock: item.stock, max_per_student: item.max_per_student,
+    used: Number(item.used || 0)
+  });
+  return {
+    balance: Number(balance || 0),
+    empty: active.length === 0,
+    affordable: affordable.map(publicItem),
+    locked: locked.map(publicItem),
+    nearest: nearest ? { ...publicItem(nearest), missing: Number(nearest.cost) - Number(balance || 0), progress: Math.min(100, Math.round(Number(balance || 0) / Math.max(1, Number(nearest.cost)) * 100)) } : null,
+    sold_out: decorated.filter(item => item.sold_out).map(item => item.name),
+    maxed: decorated.filter(item => item.maxed).map(item => item.name)
+  };
+}
+
 async function insertPointEvent(env, event) {
   const id = event.id || uuid();
   const result = await env.DB.prepare(
@@ -940,6 +978,324 @@ function quranPathPayload(row) {
     updated_at: row.updated_at
   };
 }
+// ---------------------------------------------------------------------------
+// رحلة الطالب: حوار تدريجي، توصية خطة، والثمن بالوقت والانتباه.
+// الحالة تُحفظ في academy_records (collection=student_journey) بلا جدول جديد،
+// والتطبيق يستخدم مسار القرآن والخطة القائمين نفسيهما.
+// ---------------------------------------------------------------------------
+const JOURNEY_QUESTIONS = [
+  {
+    id: "memorized",
+    title: "كم تحفظ من كتاب الله الآن؟",
+    hint: "اختر أقرب مقدار بصدق؛ الصدق بداية الخطة، ولا أحد يحاسبك على قلة المحفوظ.",
+    options: [
+      { value: "none", label: "لا أحفظ شيئًا بعد", detail: "نبدأ من التأسيس بلا ضغط." },
+      { value: "lt5", label: "أقل من 5 أحزاب", detail: "قصار السور أو بدايات الحفظ." },
+      { value: "5_15", label: "من 5 إلى أقل من 15 حزبًا", detail: "أساس يحتاج تثبيتًا منتظمًا." },
+      { value: "15_30", label: "من 15 إلى أقل من 30 حزبًا", detail: "فئة 15 حزبًا المرجعية." },
+      { value: "30_45", label: "من 30 إلى أقل من 45 حزبًا", detail: "فئة 30 حزبًا المرجعية." },
+      { value: "45_60", label: "من 45 إلى أقل من 60 حزبًا", detail: "فئة 45 حزبًا المرجعية." },
+      { value: "60_plus", label: "60 حزبًا أو أكثر", detail: "فئة 60 حزبًا المرجعية." }
+    ]
+  },
+  {
+    id: "riwaya",
+    title: "بأي رواية تقرأ وتسمّع؟",
+    hint: "تُسجَّل الرواية للشيخ، ولا تغيّر مقدار الخطة تلقائيًا.",
+    options: [
+      { value: "hafs", label: "حفص عن عاصم", detail: "الرواية الأكثر انتشارًا في المنطقة." },
+      { value: "warsh", label: "ورش عن نافع", detail: "تُراجع مع الشيخ عند اعتماد الخطة." },
+      { value: "qalun", label: "قالون عن نافع", detail: "تُراجع مع الشيخ عند اعتماد الخطة." },
+      { value: "other", label: "رواية أخرى", detail: "اكتبها للشيخ عند المراجعة." }
+    ]
+  },
+  {
+    id: "daily_minutes",
+    title: "كم دقيقة تستطيع أن تمنح القرآن يوميًا بصدق؟",
+    hint: "الوقت الذي تلتزم به أفضل من وقت تتمناه ولا تستطيع الوفاء به.",
+    options: [
+      { value: "10", label: "10 دقائق", detail: "بداية صغيرة ثابتة." },
+      { value: "20", label: "20 دقيقة", detail: "خطوة يومية هادئة." },
+      { value: "30", label: "30 دقيقة", detail: "وقت متوازن لمعظم الطلاب." },
+      { value: "45", label: "45 دقيقة", detail: "وقت جيد لمن يريد تسريع التقدم." },
+      { value: "60", label: "ساعة", detail: "التزام يومي واضح." },
+      { value: "90", label: "90 دقيقة", detail: "وقت مكثف يحتاج انتظامًا." }
+    ]
+  },
+  {
+    id: "goal",
+    title: "ما هدفك في هذه المرحلة؟",
+    hint: "لكل هدف خطة مختلفة؛ لا توجد خطة واحدة تناسب الجميع.",
+    options: [
+      { value: "start", label: "أبدأ الحفظ من الصفر", detail: "تأسيس القراءة وقصار السور أولًا." },
+      { value: "stabilize", label: "أثبّت ما أحفظه", detail: "التثبيت والمراجعة قبل الزيادة." },
+      { value: "increase", label: "أزيد مقدار الحفظ", detail: "حفظ جديد متدرج مع مراجعة." },
+      { value: "complete", label: "أريد إتمام القرآن", detail: "مسار مرن للإتمام مع التثبيت." },
+      { value: "repair", label: "أعالج تعثرًا ومراجعة متراكمة", detail: "نبدأ بخفيف ونعيد بناء الانتظام." }
+    ]
+  },
+  {
+    id: "mastery",
+    title: "كيف ترى إتقانك لما حفظت؟",
+    hint: "التقدير هنا لتخفيف الخطة أو شدّها، وليس حكمًا على شخصك.",
+    options: [
+      { value: "weak", label: "أحتاج تثبيتًا كثيرًا", detail: "نبدأ بالتثبيت قبل الجديد." },
+      { value: "fair", label: "متوسط", detail: "أحتاج مراجعة منتظمة." },
+      { value: "good", label: "جيد", detail: "أستطيع تحمّل مقدار متوازن." },
+      { value: "strong", label: "قوي", detail: "أستطيع مقدارًا أكبر بإذن الله." }
+    ]
+  },
+  {
+    id: "difficulty",
+    title: "ما أكثر ما يعوق استمرارك؟",
+    hint: "لا حكم على شخصك؛ نبحث عن السبب لنخفف الطريق.",
+    options: [
+      { value: "time", label: "ضيق الوقت", detail: "سنخفف المقدار ونثبت الورد." },
+      { value: "consistency", label: "الاستمرارية", detail: "نبدأ بخطوة صغيرة يومية." },
+      { value: "memorization", label: "صعوبة الحفظ", detail: "نزيد التكرار ونقلل الجديد." },
+      { value: "review_backlog", label: "تراكم المراجعة", detail: "نبدأ بخطة استدراك خفيفة." },
+      { value: "none", label: "لا عائق كبير الآن", detail: "نبدأ بخطة متوازنة." }
+    ]
+  },
+  {
+    id: "ward",
+    title: "كم تريد أن يكون وردك اليومي؟",
+    hint: "الورد قراءة ومراجعة، وليس بديلًا عن التثبيت أو الحفظ.",
+    options: [
+      { value: "auto", label: "اقترح لي", detail: "نختاره بحسب وقتك ومحفوظك." },
+      { value: "1", label: "حزب واحد", detail: "ورد خفيف ثابت." },
+      { value: "2", label: "حزبان", detail: "ورد متوسط." },
+      { value: "4", label: "أربعة أحزاب", detail: "ورد موسّع يحتاج وقتًا." }
+    ]
+  },
+  {
+    id: "rest_day",
+    title: "أي يوم تجعله للاستدراك والراحة؟",
+    hint: "يوم واحد أسبوعيًا يخفف التراكم، ويمكن تغييره لاحقًا.",
+    options: [
+      { value: "5", label: "الجمعة (مقترح)", detail: "الخيار الافتراضي." },
+      { value: "0", label: "الأحد", detail: "يوم استدراك." },
+      { value: "1", label: "الإثنين", detail: "يوم استدراك." },
+      { value: "2", label: "الثلاثاء", detail: "يوم استدراك." },
+      { value: "3", label: "الأربعاء", detail: "يوم استدراك." },
+      { value: "4", label: "الخميس", detail: "يوم استدراك." },
+      { value: "6", label: "السبت", detail: "يوم استدراك." },
+      { value: "none", label: "بدون يوم محدد", detail: "لا نثبت يوم راحة." }
+    ]
+  }
+];
+const JOURNEY_QUESTION_IDS = JOURNEY_QUESTIONS.map(question => question.id);
+const JOURNEY_VARIANTS = {
+  light: { label: "الخفيفة", plan: "plan_c", hifz_amount: "1", hifz_unit: "وجه", hifz_minutes: 12, description: "وجه واحد، تثبيت ثابت، وورد قصير. للبداية أو عند ضيق الوقت." },
+  balanced: { label: "المتوازنة", plan: "plan_b", hifz_amount: "1", hifz_unit: "صفحة", hifz_minutes: 20, description: "صفحة واحدة مع تثبيت وورد متوسط. الخيار الأكثر استدامة." },
+  intense: { label: "المكثفة", plan: "plan_a", hifz_amount: "2", hifz_unit: "صفحة", hifz_minutes: 40, description: "صفحتان مع تثبيت وورد أوسع. لمن يملك وقتًا وانتظامًا." }
+};
+const JOURNEY_THABIT_MINUTES = { "15": 10, "30": 15, "45": 20, "60": 25 };
+const JOURNEY_WARD_MINUTES = { 1: 15, 2: 30, 4: 55 };
+
+function cleanJourneyAnswers(raw) {
+  const value = raw && typeof raw === "object" && !Array.isArray(raw) ? raw : {};
+  const answers = {};
+  for (const question of JOURNEY_QUESTIONS) {
+    const candidate = value[question.id];
+    if (candidate === undefined || candidate === null || candidate === "") continue;
+    const normalized = String(candidate);
+    if (question.options.some(option => option.value === normalized)) answers[question.id] = normalized;
+  }
+  return answers;
+}
+function journeyAnsweredCount(answers) {
+  return JOURNEY_QUESTION_IDS.filter(id => answers && answers[id] !== undefined).length;
+}
+function journeyComplete(answers) {
+  return journeyAnsweredCount(answers) === JOURNEY_QUESTION_IDS.length;
+}
+function journeyCategoryFor(memorized) {
+  if (["none", "lt5", "5_15", "15_30"].includes(memorized)) return "15";
+  if (memorized === "30_45") return "30";
+  if (memorized === "45_60") return "45";
+  if (memorized === "60_plus") return "60";
+  return "15";
+}
+function journeyWardFor(variantId, answers) {
+  if (answers.ward && answers.ward !== "auto") return Number(answers.ward);
+  if (variantId === "light") return 1;
+  if (variantId === "intense") return Number(answers.daily_minutes) >= 90 ? 4 : 2;
+  return Number(answers.daily_minutes) >= 30 ? 2 : 1;
+}
+function journeyRestDay(answers) {
+  if (answers.rest_day === "none") return null;
+  if (/^[0-6]$/.test(String(answers.rest_day ?? ""))) return Number(answers.rest_day);
+  return 5;
+}
+function journeyVariant(answers, variantId) {
+  const base = JOURNEY_VARIANTS[variantId] || JOURNEY_VARIANTS.balanced;
+  const category = journeyCategoryFor(answers.memorized);
+  const categoryInfo = QURAN_CATEGORIES[category] || QURAN_CATEGORIES["15"];
+  const ward = journeyWardFor(variantId, answers);
+  const wardMinutes = JOURNEY_WARD_MINUTES[ward] || JOURNEY_WARD_MINUTES[1];
+  const thabitMinutes = JOURNEY_THABIT_MINUTES[category] || 10;
+  const estimated = Number(base.hifz_minutes) + thabitMinutes + wardMinutes;
+  const available = Number(answers.daily_minutes) || 0;
+  const restDay = journeyRestDay(answers);
+  const fits = available > 0 ? estimated <= available : false;
+  const starter = ["start"].includes(answers.goal) || ["none", "lt5"].includes(answers.memorized);
+  const pathId = starter ? "starter" : "khatma";
+  return {
+    id: variantId,
+    label: base.label,
+    description: base.description,
+    plan: base.plan,
+    plan_label: QURAN_PLANS[base.plan] || base.plan,
+    hifz_amount: base.hifz_amount,
+    hifz_unit: base.hifz_unit,
+    hifz_category: category,
+    hifz_category_label: categoryInfo.label,
+    thabit_amount: categoryInfo.thabit,
+    thabit_label: categoryInfo.thabitLabel,
+    ward_ahzab: ward,
+    ward_label: QURAN_WARD[ward] || QURAN_WARD[1],
+    rest_day: restDay,
+    path_id: pathId,
+    weekly_goal: starter
+      ? "تأسيس القراءة وحفظ قصار السور، مع تثبيت " + categoryInfo.thabitLabel + " وورد " + (QURAN_WARD[ward] || QURAN_WARD[1]) + " خمسة أيام في الأسبوع."
+      : "حفظ " + base.hifz_amount + " " + base.hifz_unit + "، وتثبيت " + categoryInfo.thabitLabel + "، وورد " + (QURAN_WARD[ward] || QURAN_WARD[1]) + " خمسة أيام في الأسبوع.",
+    estimated_daily_minutes: estimated,
+    estimated_weekly_minutes: estimated * 5,
+    available_daily_minutes: available,
+    breakdown: { hifz: base.hifz_minutes, thabit: thabitMinutes, ward: wardMinutes },
+    fits,
+    over_by: Math.max(0, estimated - available)
+  };
+}
+function journeyPreferredVariant(answers) {
+  const minutes = Number(answers.daily_minutes) || 0;
+  if (answers.goal === "start" || ["none", "lt5"].includes(answers.memorized)) return "light";
+  if (answers.goal === "repair" || answers.difficulty === "review_backlog" || answers.mastery === "weak") return "light";
+  if (answers.goal === "complete" && minutes >= 60 && answers.mastery === "strong" && answers.difficulty === "none") return "intense";
+  if (minutes >= 45 && ["good", "strong"].includes(answers.mastery) && answers.difficulty === "none") return "balanced";
+  return "balanced";
+}
+function journeyRecommendation(answers) {
+  const variants = ["light", "balanced", "intense"].map(id => journeyVariant(answers, id));
+  let recommended = journeyPreferredVariant(answers);
+  const fits = id => variants.find(variant => variant.id === id)?.fits;
+  if (!fits(recommended)) {
+    if (fits("light")) recommended = "light";
+    else if (fits("balanced")) recommended = "balanced";
+    else if (fits("intense")) recommended = "intense";
+    else recommended = variants.slice().sort((a, b) => a.over_by - b.over_by)[0].id;
+  }
+  const selected = variants.find(variant => variant.id === recommended) || variants[1];
+  const reason = [];
+  const memorizedLabel = JOURNEY_QUESTIONS.find(q => q.id === "memorized")?.options.find(o => o.value === answers.memorized)?.label;
+  if (memorizedLabel) reason.push("محفوظك الحالي: " + memorizedLabel + ".");
+  if (answers.daily_minutes) reason.push("وقتك المعلن: " + answers.daily_minutes + " دقيقة يوميًا.");
+  if (answers.difficulty && answers.difficulty !== "none") {
+    const difficultyLabel = JOURNEY_QUESTIONS.find(q => q.id === "difficulty")?.options.find(o => o.value === answers.difficulty)?.label;
+    if (difficultyLabel) reason.push("راعينا عائق " + difficultyLabel + ".");
+  }
+  return {
+    recommended_variant: recommended,
+    recommended: selected,
+    variants,
+    category: selected.hifz_category,
+    category_label: selected.hifz_category_label,
+    thabit_label: selected.thabit_label,
+    thabit_reference_status: "proposal",
+    approval_required: true,
+    estimate_label: "تقدير تقريبي بالدقائق، يضبطه الشيخ بعد المراجعة.",
+    price: {
+      title: "الثمن: وقتك وانتباهك",
+      money: "لا رسوم مالية",
+      daily_minutes: selected.estimated_daily_minutes,
+      weekly_minutes: selected.estimated_weekly_minutes,
+      days_per_week: 5,
+      rest_day: selected.rest_day,
+      available_daily_minutes: selected.available_daily_minutes,
+      line: selected.fits
+        ? "خطتك داخل الوقت الذي أعلنته. الباقي راحة أو مراجعة حرة، لا مهام إضافية."
+        : "الخطة المقترحة تتجاوز وقتك المعلن. ابدأ بالأخف، أو أكّد المتابعة بعد مراجعة الشيخ."
+    },
+    reasons: reason,
+    note: "أرقام التثبيت المرجعية (60←نصف، 45←ثلاثة أثمان، 30←ربع، 15←ثمن) مقترحة وتنتظر اعتماد الشيخ. لا نغيّر خطتك بعد التطبيق دون إشعارك، وما يحتاج قرارًا شرعيًا أو تربويًا يبقى للشيخ."
+  };
+}
+function journeyRecordPayload(record, answers) {
+  const count = journeyAnsweredCount(answers);
+  const complete = journeyComplete(answers);
+  return {
+    id: record?.id || null,
+    status: record?.status || "in_progress",
+    approval_status: record?.approval_status || "none",
+    answers,
+    answered: count,
+    total: JOURNEY_QUESTION_IDS.length,
+    complete,
+    recommendation: complete ? journeyRecommendation(answers) : null,
+    path: record?.path || null,
+    applied_plan: record?.applied_plan || null,
+    request_note: record?.request_note || "",
+    review_note: record?.review_note || "",
+    applied_at: record?.applied_at || null,
+    reviewed_at: record?.reviewed_at || null,
+    revision: Number(record?.revision || 0)
+  };
+}
+
+async function saveQuranPlanForStudent(env, user, student, body) {
+  const pathId = clean(body.path_id, 40), allowed = ["khatma", "45", "30", "15", "starter"];
+  if (!allowed.includes(pathId)) return { error: fail(400, "اختر مسارًا قرآنيًا صحيحًا") };
+  const weeklyGoal = clean(body.weekly_goal, 250);
+  if (!weeklyGoal) return { error: fail(400, "اكتب هدفًا أسبوعيًا واضحًا") };
+  const existing = await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='quran_plan' AND student_id=? LIMIT 1").bind(student.id).first();
+  let previous = {};
+  try { if (existing) previous = JSON.parse(existing.payload_json); } catch {}
+  const weeklyTargets = Array.isArray(body.weekly_targets)
+    ? body.weekly_targets.slice(0, 12).map((w, i) => ({
+        week: i + 1,
+        memorization: clean(w?.memorization, 180),
+        revision: clean(w?.revision, 180),
+        understanding: clean(w?.understanding, 180),
+        application: clean(w?.application, 180)
+      }))
+    : Array.isArray(previous.weekly_targets) ? previous.weekly_targets : [];
+  const plan = {
+    id: student.id,
+    student_id: student.id,
+    group_id: student.group_id,
+    path_id: pathId,
+    weekly_goal: weeklyGoal,
+    weekly_targets: weeklyTargets,
+    created_at: previous.created_at || nowIso(),
+    updated_at: nowIso(),
+    updated_by: user.id
+  };
+  await saveRecord(env, "quran_plan", plan);
+  await log(env, user.id, "quran_plan_save", { student_id: student.id, path_id: pathId });
+  return { plan };
+}
+async function saveQuranPathForStudent(env, user, student, body) {
+  const plan = clean(body.hifz_plan, 20), category = clean(body.hifz_category, 2), ward = Number(body.ward_ahzab);
+  if (!QURAN_PLANS[plan]) return { error: fail(400, "اختر خطة حفظ من الخطط الثلاث") };
+  if (!QURAN_CATEGORIES[category]) return { error: fail(400, "اختر فئة المحفوظ: 15 أو 30 أو 45 أو 60 حزبًا") };
+  if (![1, 2, 4].includes(ward)) return { error: fail(400, "اختر مقدار الورد: حزب أو حزبان أو أربعة أحزاب") };
+  const hifzAmount = clean(body.hifz_amount, 80), hifzUnit = clean(body.hifz_unit, 20) || "سطر";
+  if (!hifzAmount) return { error: fail(400, "حدّد مقدار الحفظ اليومي المناسب لطاقتك") };
+  const startDate = quranDateISO(body.start_date) || academyDate();
+  if (!startDate || startDate > academyDate()) return { error: fail(400, "لا يمكن أن يبدأ المسار في تاريخ مستقبلي") };
+  const restRaw = body.rest_day;
+  const restDay = (restRaw === null || restRaw === undefined || restRaw === "") ? null : Number(restRaw);
+  if (restDay !== null && (!Number.isInteger(restDay) || restDay < 0 || restDay > 6)) return { error: fail(400, "اختر يوم استدراك صحيحًا أو اتركه فارغًا") };
+  await env.DB.prepare(`INSERT INTO quran_paths (student_id,group_id,hifz_plan,hifz_amount,hifz_unit,hifz_category,ward_ahzab,rest_day,start_date,active,updated_by,updated_at)
+    VALUES (?,?,?,?,?,?,?,?,?,1,?,?)
+    ON CONFLICT(student_id) DO UPDATE SET group_id=excluded.group_id,hifz_plan=excluded.hifz_plan,hifz_amount=excluded.hifz_amount,hifz_unit=excluded.hifz_unit,hifz_category=excluded.hifz_category,ward_ahzab=excluded.ward_ahzab,rest_day=excluded.rest_day,start_date=excluded.start_date,active=1,updated_by=excluded.updated_by,updated_at=excluded.updated_at`)
+    .bind(student.id, student.group_id || null, plan, hifzAmount, hifzUnit, category, ward, restDay, startDate, user.id, nowIso()).run();
+  await log(env, user.id, "quran_path_save", { student_id: student.id, plan, category, ward });
+  const row = await quranPathRow(env, student.id);
+  return { path: quranPathPayload(row) };
+}
+
 async function quranDayState(env, studentId, day) {
   const rows = await env.DB.prepare("SELECT * FROM quran_daily WHERE student_id=? AND day=?").bind(studentId, day).all();
   const byKind = {};
@@ -2952,6 +3308,220 @@ export default {
       const subject={id:uuid(),title,description,status:"published",created_by:user.id,created_at:nowIso()};
       await saveRecord(env,"subjects",subject);await log(env,user.id,"subject_create",{subject_id:subject.id});return json(subject,201);
     }
+    if(path==="/api/journey"&&method==="GET"){
+      const resolved=await resolveQuranStudent(env,user,url.searchParams.get("student_id"));
+      if(resolved.error)return resolved.error;
+      const student=resolved.student;
+      const raw=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='student_journey' AND id=?").bind(student.id).first();
+      let record=null;
+      try { record=raw?JSON.parse(raw.payload_json):null; } catch { record=null; }
+      const answers=cleanJourneyAnswers(record?.answers);
+      const pathRow=await quranPathRow(env,student.id);
+      const payload=journeyRecordPayload(record,answers);
+      payload.student_id=student.id;
+      payload.enrolled=Boolean(pathRow);
+      payload.path=quranPathPayload(pathRow);
+      payload.needs_onboarding=!pathRow&&(!record||record.status!=="applied");
+      payload.questions=JOURNEY_QUESTIONS;
+      if(resolved.staff){
+        const named=await env.DB.prepare("SELECT display_name FROM students WHERE id=?").bind(student.id).first();
+        payload.student_name=named?.display_name||"";
+      }
+      return json(payload);
+    }
+    if(path==="/api/journey"&&method==="POST"){
+      if(user.role!=="student"||!user.student_id)return fail(403,"رحلة الخطة يبدأها الطالب من حسابه");
+      const parsed=await parseBody(request,20000);if(parsed.error)return parsed.error;const b=parsed.value;
+      if(b.student_id&&b.student_id!==user.student_id)return fail(403,"لا يمكنك تعديل رحلة طالب آخر");
+      const resolved=await resolveQuranStudent(env,user,user.student_id);
+      if(resolved.error)return resolved.error;
+      const student=resolved.student;
+      const raw=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='student_journey' AND id=?").bind(student.id).first();
+      let record=null;
+      try { record=raw?JSON.parse(raw.payload_json):null; } catch { record=null; }
+      if(record?.status==="applied")return fail(409,"خطتك مطبقة بالفعل. اطلب تعديلها من الشيخ أو من صفحة مسار القرآن.");
+      const existing=cleanJourneyAnswers(record?.answers);
+      let answers={...existing};
+      if(b.key!==undefined){
+        const key=clean(b.key,40);
+        const question=JOURNEY_QUESTIONS.find(item=>item.id===key);
+        if(!question)return fail(400,"سؤال الرحلة غير معروف");
+        const value=String(b.value??"");
+        if(!question.options.some(option=>option.value===value))return fail(400,"اختر إجابة صحيحة من الخيارات");
+        answers[key]=value;
+      }
+      if(b.answers!==undefined){
+        if(!b.answers||typeof b.answers!=="object"||Array.isArray(b.answers))return fail(400,"صيغة إجابات الرحلة غير صحيحة");
+        const cleaned=cleanJourneyAnswers(b.answers);
+        for(const id of Object.keys(cleaned))answers[id]=cleaned[id];
+      }
+      answers=cleanJourneyAnswers(answers);
+      const next={
+        ...(record||{}),
+        id:student.id,
+        owner_user_id:user.id,
+        group_id:student.group_id||null,
+        student_id:student.id,
+        answers,
+        status:"in_progress",
+        approval_status:record?.approval_status==="changes_requested"?"changes_requested":(record?.approval_status==="approved"?"approved":"none"),
+        created_at:record?.created_at||nowIso(),
+        updated_at:nowIso()
+      };
+      await saveRecord(env,"student_journey",next);
+      if(!record)await log(env,user.id,"journey_start",{student_id:student.id});
+      const payload=journeyRecordPayload(next,answers);
+      payload.student_id=student.id;
+      payload.enrolled=Boolean(await quranPathRow(env,student.id));
+      payload.needs_onboarding=!payload.enrolled;
+      payload.questions=JOURNEY_QUESTIONS;
+      return json(payload);
+    }
+    if(path==="/api/journey/apply"&&method==="POST"){
+      if(user.role!=="student"||!user.student_id)return fail(403,"تطبيق الخطة من حساب الطالب");
+      const parsed=await parseBody(request,20000);if(parsed.error)return parsed.error;const b=parsed.value;
+      if(b.student_id&&b.student_id!==user.student_id)return fail(403,"لا يمكنك تطبيق خطة طالب آخر");
+      const resolved=await resolveQuranStudent(env,user,user.student_id);
+      if(resolved.error)return resolved.error;
+      const student=resolved.student;
+      const raw=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='student_journey' AND id=?").bind(student.id).first();
+      let record=null;
+      try { record=raw?JSON.parse(raw.payload_json):null; } catch { record=null; }
+      if(!record)return fail(409,"ابدأ رحلة الخطة وأكمل أسئلتها أولًا");
+      if(record.status==="applied")return fail(409,"خطتك مطبقة بالفعل؛ يمكن للشيخ تعديلها من صفحة متابعة القرآن.");
+      const answers=cleanJourneyAnswers(record.answers);
+      if(!journeyComplete(answers))return fail(409,"أكمل أسئلة الرحلة الثمانية قبل تطبيق الخطة");
+      const recommendation=journeyRecommendation(answers);
+      const variantId=clean(b.variant,20)||recommendation.recommended_variant;
+      const variant=recommendation.variants.find(item=>item.id===variantId);
+      if(!variant)return fail(400,"اختر خطة صحيحة: خفيفة أو متوازنة أو مكثفة");
+      if(!variant.fits&&b.acknowledge_over_budget!==true)return fail(409,"الخطة المختارة تتجاوز الوقت الذي أعلنته. اختر خطة أخف، أو أكّد المتابعة بعد مراجعة الشيخ.");
+      const hasRestField=Object.prototype.hasOwnProperty.call(b,"rest_day");
+      const restDay=!hasRestField||b.rest_day===""?variant.rest_day:(b.rest_day===null?null:Number(b.rest_day));
+      if(restDay!==null&&(!Number.isInteger(restDay)||restDay<0||restDay>6))return fail(400,"اختر يوم استدراك صحيحًا أو اتركه فارغًا");
+      const requestNote=clean(b.note,500);
+      const pathResult=await saveQuranPathForStudent(env,user,student,{
+        hifz_plan:variant.plan,
+        hifz_category:variant.hifz_category,
+        hifz_amount:variant.hifz_amount,
+        hifz_unit:variant.hifz_unit,
+        ward_ahzab:variant.ward_ahzab,
+        rest_day:restDay,
+        start_date:academyDate()
+      });
+      if(pathResult.error)return pathResult.error;
+      const planResult=await saveQuranPlanForStudent(env,user,student,{
+        path_id:variant.path_id,
+        weekly_goal:variant.weekly_goal
+      });
+      if(planResult.error)return planResult.error;
+      const appliedPlan={...variant,rest_day:restDay,weekly_goal:variant.weekly_goal};
+      const next={
+        ...record,
+        answers,
+        status:"applied",
+        approval_status:"pending",
+        applied_plan:appliedPlan,
+        applied_at:nowIso(),
+        request_note:requestNote,
+        review_note:"",
+        reviewed_by:null,
+        reviewed_at:null,
+        revision:Number(record.revision||0)+1,
+        updated_at:nowIso()
+      };
+      await saveRecord(env,"student_journey",next);
+      await log(env,user.id,"journey_apply",{student_id:student.id,variant:variant.id,category:variant.hifz_category,ward:variant.ward_ahzab,estimated_daily_minutes:variant.estimated_daily_minutes,over_budget:!variant.fits});
+      const payload=journeyRecordPayload(next,answers);
+      payload.student_id=student.id;
+      payload.enrolled=true;
+      payload.needs_onboarding=false;
+      payload.path=pathResult.path;
+      payload.plan=planResult.plan;
+      return json({ok:true,...payload});
+    }
+    if(path==="/api/journey/review"&&method==="GET"){
+      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"مراجعة خطط الطلاب للشيخ أو الإدارة");
+      const status=clean(url.searchParams.get("status"),20)||"pending";
+      const allowedStatuses=["pending","approved","changes_requested"];
+      if(!allowedStatuses.includes(status))return fail(400,"حالة المراجعة غير صحيحة");
+      const rows=(await records(env,"student_journey")).filter(row=>row.applied_at);
+      const studentIdsAll=[...new Set(rows.map(row=>row.student_id).filter(Boolean))];
+      const currentGroupByStudent=new Map();
+      if(studentIdsAll.length){
+        const marks=studentIdsAll.map(()=>"?").join(",");
+        const found=await env.DB.prepare("SELECT id,group_id FROM students WHERE id IN ("+marks+")").bind(...studentIdsAll).all();
+        for(const row of found.results||[])currentGroupByStudent.set(row.id,row.group_id);
+      }
+      const groupFor=row=>currentGroupByStudent.has(row.student_id)?currentGroupByStudent.get(row.student_id):row.group_id;
+      const groupIds=await managedGroupIds(env,user);
+      const allowedGroups=groupIds===null?null:new Set(groupIds);
+      const scoped=rows.filter(row=>allowedGroups===null||allowedGroups.has(groupFor(row)));
+      const counts={pending:0,approved:0,changes_requested:0};
+      for(const row of scoped){const state=row.approval_status||"pending";if(counts[state]!==undefined)counts[state]+=1;}
+      const filtered=scoped.filter(row=>(row.approval_status||"pending")===status).sort((a,b)=>String(b.applied_at||b.updated_at||"").localeCompare(String(a.applied_at||a.updated_at||"")));
+      const studentIds=[...new Set(filtered.map(row=>row.student_id).filter(Boolean))];
+      const groupIdsInRows=[...new Set(filtered.map(row=>groupFor(row)).filter(Boolean))];
+      const names=new Map(),groupNames=new Map();
+      if(studentIds.length){
+        const marks=studentIds.map(()=>"?").join(",");
+        const found=await env.DB.prepare("SELECT id,display_name FROM students WHERE id IN ("+marks+")").bind(...studentIds).all();
+        for(const row of found.results||[])names.set(row.id,row.display_name);
+      }
+      if(groupIdsInRows.length){
+        const marks=groupIdsInRows.map(()=>"?").join(",");
+        const found=await env.DB.prepare("SELECT id,name FROM groups WHERE id IN ("+marks+")").bind(...groupIdsInRows).all();
+        for(const row of found.results||[])groupNames.set(row.id,row.name);
+      }
+      return json({
+        status,
+        counts,
+        items:filtered.map(row=>({
+          student_id:row.student_id,
+          student_name:names.get(row.student_id)||"طالب",
+          group_id:groupFor(row)||null,
+          group_name:groupNames.get(groupFor(row))||"",
+          approval_status:row.approval_status||"pending",
+          applied_at:row.applied_at||null,
+          updated_at:row.updated_at||null,
+          revision:Number(row.revision||0),
+          plan:row.applied_plan||null,
+          answers:row.answers||{},
+          answers_summary:JOURNEY_QUESTIONS.filter(question=>row.answers&&row.answers[question.id]!==undefined).map(question=>({id:question.id,title:question.title,label:question.options.find(option=>option.value===String(row.answers[question.id]))?.label||row.answers[question.id]})),
+          request_note:row.request_note||"",
+          review_note:row.review_note||"",
+          reviewed_at:row.reviewed_at||null
+        }))
+      });
+    }
+    if(path==="/api/journey/review"&&method==="POST"){
+      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"مراجعة خطط الطلاب للشيخ أو الإدارة");
+      const parsed=await parseBody(request,12000);if(parsed.error)return parsed.error;const b=parsed.value;
+      const studentId=clean(b.student_id,80),decision=clean(b.decision,20),note=clean(b.note,500);
+      if(!["approved","changes_requested"].includes(decision))return fail(400,"اختر قرارًا صحيحًا: اعتماد أو طلب تعديل");
+      if(decision==="changes_requested"&&note.length<3)return fail(400,"اكتب ملاحظة واضحة للطالب عند طلب التعديل");
+      const raw=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='student_journey' AND id=?").bind(studentId).first();
+      if(!raw)return fail(404,"رحلة الطالب غير موجودة");
+      let record=null;
+      try { record=JSON.parse(raw.payload_json); } catch { return fail(500,"تعذّرت قراءة رحلة الطالب"); }
+      if(!record.applied_at)return fail(409,"لم يطبّق الطالب خطته بعد");
+      const currentStudent=await env.DB.prepare("SELECT group_id FROM students WHERE id=? AND active=1").bind(studentId).first();
+      if(!currentStudent)return fail(404,"ملف الطالب غير موجود");
+      if(!await canManageGroup(env,user,currentStudent.group_id))return fail(403,"هذه الخطة خارج صلاحيتك");
+      const now=nowIso();
+      const next={
+        ...record,
+        approval_status:decision,
+        review_note:note,
+        reviewed_by:user.id,
+        reviewed_at:now,
+        status:decision==="approved"?"applied":"in_progress",
+        updated_at:now
+      };
+      await saveRecord(env,"student_journey",next);
+      await log(env,user.id,decision==="approved"?"journey_review_approved":"journey_review_changes",{student_id:studentId,note});
+      return json({ok:true,student_id:studentId,approval_status:decision,review_note:note,reviewed_at:now,status:next.status});
+    }
     if(path==="/api/quran"&&method==="GET")return json({levels:[
       {id:"khatma",name:"الختمة الكاملة",duration_days:null,description:"مسار مرن لإتمام القرآن مع حفظ ما يناسب قدرة الطالب ومراجعته.",weekly_goal_default:"ورد أسبوعي ثابت من الحفظ والمراجعة"},
       {id:"45",name:"ختمة 45 يومًا",duration_days:45,description:"برنامج متوسط السرعة يجمع الإنجاز اليومي مع المراجعة.",weekly_goal_default:"قرابة جزء ونصف إلى جزأين يوميًا بحسب مستوى الطالب"},
@@ -2988,16 +3558,9 @@ export default {
       }
       const st=await env.DB.prepare("SELECT group_id FROM students WHERE id=? AND active=1").bind(studentId).first();
       if(!st||(user.role!=="student"&&!await canManageGroup(env,user,st.group_id)))return fail(403,"لا تملك صلاحية هذا الطالب");
-      const pathId=clean(b.path_id,40),allowed=["khatma","45","30","15","starter"];
-      if(!allowed.includes(pathId))return fail(400,"اختر مسارًا قرآنيًا صحيحًا");
-      const weeklyGoal=clean(b.weekly_goal,250);
-      if(!weeklyGoal)return fail(400,"اكتب هدفًا أسبوعيًا واضحًا");
-      const existing=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='quran_plan' AND student_id=? LIMIT 1").bind(studentId).first();
-      let previous={};try{if(existing)previous=JSON.parse(existing.payload_json)}catch{}
-      const weeklyTargets=Array.isArray(b.weekly_targets)?b.weekly_targets.slice(0,12).map((w,i)=>({week:i+1,memorization:clean(w?.memorization,180),revision:clean(w?.revision,180),understanding:clean(w?.understanding,180),application:clean(w?.application,180)})):Array.isArray(previous.weekly_targets)?previous.weekly_targets:[];
-      const plan={id:studentId,student_id:studentId,group_id:st.group_id,path_id:pathId,weekly_goal:weeklyGoal,weekly_targets:weeklyTargets,created_at:previous.created_at||nowIso(),updated_at:nowIso(),updated_by:user.id};
-      await saveRecord(env,"quran_plan",plan);await log(env,user.id,"quran_plan_save",{student_id:studentId,path_id:pathId});
-      return json({ok:true,plan});
+      const result=await saveQuranPlanForStudent(env,user,{id:studentId,group_id:st.group_id},b);
+      if(result.error)return result.error;
+      return json({ok:true,plan:result.plan});
     }
     if(path==="/api/quran/path"&&method==="GET"){
       const resolved=await resolveQuranStudent(env,user,url.searchParams.get("student_id"));
@@ -3009,24 +3572,9 @@ export default {
       const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
       const resolved=await resolveQuranStudent(env,user,b.student_id);
       if(resolved.error)return resolved.error;
-      const plan=clean(b.hifz_plan,20),category=clean(b.hifz_category,2),ward=Number(b.ward_ahzab);
-      if(!QURAN_PLANS[plan])return fail(400,"اختر خطة حفظ من الخطط الثلاث");
-      if(!QURAN_CATEGORIES[category])return fail(400,"اختر فئة المحفوظ: 15 أو 30 أو 45 أو 60 حزبًا");
-      if(![1,2,4].includes(ward))return fail(400,"اختر مقدار الورد: حزب أو حزبان أو أربعة أحزاب");
-      const hifzAmount=clean(b.hifz_amount,80),hifzUnit=clean(b.hifz_unit,20)||"سطر";
-      if(!hifzAmount)return fail(400,"حدّد مقدار الحفظ اليومي المناسب لطاقتك");
-      const startDate=quranDateISO(b.start_date)||academyDate();
-      if(!startDate||startDate>academyDate())return fail(400,"لا يمكن أن يبدأ المسار في تاريخ مستقبلي");
-      const restRaw=b.rest_day;
-      const restDay=(restRaw===null||restRaw===undefined||restRaw==="")?null:Number(restRaw);
-      if(restDay!==null&&(!Number.isInteger(restDay)||restDay<0||restDay>6))return fail(400,"اختر يوم استدراك صحيحًا أو اتركه فارغًا");
-      await env.DB.prepare(`INSERT INTO quran_paths (student_id,group_id,hifz_plan,hifz_amount,hifz_unit,hifz_category,ward_ahzab,rest_day,start_date,active,updated_by,updated_at)
-        VALUES (?,?,?,?,?,?,?,?,?,1,?,?)
-        ON CONFLICT(student_id) DO UPDATE SET group_id=excluded.group_id,hifz_plan=excluded.hifz_plan,hifz_amount=excluded.hifz_amount,hifz_unit=excluded.hifz_unit,hifz_category=excluded.hifz_category,ward_ahzab=excluded.ward_ahzab,rest_day=excluded.rest_day,start_date=excluded.start_date,active=1,updated_by=excluded.updated_by,updated_at=excluded.updated_at`)
-        .bind(resolved.student.id,resolved.student.group_id||null,plan,hifzAmount,hifzUnit,category,ward,restDay,startDate,user.id,nowIso()).run();
-      await log(env,user.id,"quran_path_save",{student_id:resolved.student.id,plan,category,ward});
-      const row=await quranPathRow(env,resolved.student.id);
-      return json({ok:true,path:quranPathPayload(row)});
+      const result=await saveQuranPathForStudent(env,user,resolved.student,b);
+      if(result.error)return result.error;
+      return json({ok:true,path:result.path});
     }
     if(path==="/api/quran/today"&&method==="GET"){
       const resolved=await resolveQuranStudent(env,user,url.searchParams.get("student_id"));
@@ -3467,8 +4015,16 @@ export default {
       const rows=user.role==="admin"
         ? await env.DB.prepare("SELECT id,name,description,icon,cost,stock,max_per_student,active,sort_order,created_at,updated_at FROM store_items ORDER BY sort_order, cost").all()
         : await env.DB.prepare(select+" WHERE active=1 ORDER BY sort_order, cost").all();
+      const items=rows.results||[];
+      let used=new Map();
+      if(user.role==="student"&&user.student_id){
+        const usage=await env.DB.prepare("SELECT item_id,COUNT(*) AS n FROM store_redemptions WHERE student_id=? AND status IN ('pending','approved','fulfilled') GROUP BY item_id").bind(user.student_id).all();
+        used=new Map((usage.results||[]).map(row=>[row.item_id,Number(row.n)]));
+      }
+      const enriched=items.map(item=>({...item,used:used.get(item.id)||0}));
       const balance=user.role==="student"&&user.student_id?(await pointsTotals(env,user.student_id)).store:null;
-      return json({items:rows.results||[],balance});
+      const recommendations=user.role==="student"&&user.student_id?storeRecommendationPayload(enriched,balance):null;
+      return json({items:enriched,balance,recommendations});
     }
     if(path==="/api/store/items"&&method==="POST"){
       if(user.role!=="admin")return fail(403,"إدارة المتجر للمدير فقط");

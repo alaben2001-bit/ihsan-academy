@@ -1,6 +1,6 @@
 # نتائج الاختبار — 2026-11-13
 
-## محلي (D1 محلية نظيفة، ترحيلات 0001–0006، wrangler dev:8788, BOOTSTRAP_SECRET=test-bootstrap-secret-1234)
+## محلي (D1 محلية نظيفة، ترحيلات 0001–0006)
 
 | اختبار | النتيجة | دليل |
 |---|---|---|
@@ -8,11 +8,16 @@
 | `npm run prepare:assets` | PASS | public/ regenerated |
 | `test:points:local` | 62/62 PASS | 2026-11-13 (يشمل إعادة قاعدة الحضور إلى 5/2) |
 | `test:quran:local` | 44/44 PASS | 2026-11-13 |
+| `test:journey:local` | 93/93 PASS | 2026-11-13/14، قاعدة نظيفة منفصلة `.wrangler-journey` على 8789، تشمل انتقال الفوج وصلاحية المراجعة |
 | `test:backup:local` | 53/53 PASS | 2026-11-13، صيغة v4 + مسابقات |
 | role-permission-test.mjs | 0 failures | 2026-11-13 |
 | `test:competitions:local` | 124/124 PASS | 2026-11-13 |
-| ترتيب E2E على قاعدة واحدة | PASS | points → quran → backup → role → competitions، بلا فشل |
-| Browser: world/card/guide/wallet | PASS | Ruby gradient applies; 0 console errors (expected 401 before login) |
+| ترتيب E2E على قاعدة واحدة | PASS | points → quran → journey → backup → role → competitions، بلا فشل |
+| Browser: journey wizard + resume | PASS | 8 أسئلة، حفظ إجابة، إعادة تحميل، «1 من 8» و«أكمل من حيث توقفت» |
+| Browser: student store | PASS | متجر صادق: متاح/أقرب/مقفل/نافد/شروط صرف، بلا منتجات وهمية |
+| Browser: admin store | PASS | نموذج إضافة/تعديل/إخفاء + 6 اقتراحات غير محفوظة |
+| Browser: teacher plan review | PASS | تبويبات الخطط الثلاث، بطاقة معتمدة، ملخص 8 إجابات، ملاحظة مراجعة |
+| Browser: world/card/guide/wallet | PASS | Ruby gradient applies; لا أخطاء JavaScript بعد الدخول |
 | Quran tabs (daily/plan/companion/stations) | PASS | served app.js contains `quranEnrollMarkup` + `quranSupervisionPage` |
 | Competitions UI | PASS | served app.js contains `competitionsPage` + `/competitions/` |
 | Card background cascade fix | PASS | bgImage = linear-gradient (Ruby) |

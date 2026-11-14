@@ -376,7 +376,7 @@ function showSettings(){
  const themeMarkup=themes.map((t,i)=>'<button type="button" class="theme-choice" data-theme-index="'+i+'" aria-pressed="'+(i===selectedIndex)+'"><span class="theme-swatch theme-swatch-'+i+'" aria-hidden="true"><i></i></span><span class="theme-choice-copy"><strong>'+esc(t.name)+'</strong><small>'+notes[i]+'</small></span><span class="theme-check" aria-hidden="true">✓</span></button>').join("");
  const googleLinked=Boolean(S.user?.google_linked)||safeStore.get("ihsan_google_linked")==="1";
  const securityMarkup=S.user?'<section class="settings-section"><div class="settings-section-title"><span class="settings-icon" aria-hidden="true">⌑</span><div><h3>الحساب والأمان</h3><p>احمِ حسابك بكلمة مرور قوية لا تستخدمها في موقع آخر.</p></div></div><div class="student-actions"><button type="button" class="btn" id="settings-password">تغيير كلمة المرور</button>'+(googleLinked?'<span class="google-linked-status" role="status">✓ Google مرتبط بهذا الحساب</span>':'<button type="button" class="btn secondary" id="settings-google-link">ربط حساب Google</button>')+'</div><div id="settings-google-link-area" class="google-login-section hidden"><div id="settings-google-link-host"></div><p id="settings-google-link-note" class="muted small">اربط حساب Google بحساب الأكاديمية الحالي؛ لن يُنشأ حساب جديد.</p></div></section>':'<section class="settings-section"><h3>الحساب والأمان</h3><p class="muted small">سجّل الدخول لإدارة إعدادات حسابك وكلمة المرور.</p></section>';
- const releaseMarkup='<section class="settings-section release-history-section"><div class="settings-section-title"><span class="settings-icon" aria-hidden="true">▤</span><div><h3>المميزات وسجل التطوير</h3><p>أهم مراحل المشروع الموثقة في سجل المستودع؛ هذه قائمة بالمراحل الكبرى لا بكل إصلاح صغير.</p></div></div><div class="release-history-list"><article class="release-history-item"><strong>V64 — نظام المسابقات القرآنية والعلمية</strong><p>أُضيف نظام مسابقات كامل داخل الأكاديمية نفسها: تصنيفات حفظ (15/30/45/60 حزبًا ومسابقة 60 حزبًا مستقلة)، وأنواع حفظ وترتيل وتجويد وحديث ومتون وسيرة وثقافة إسلامية، وشروط سنّ وحزب ورواية قابلة للتعديل، ودورة حياة من المسودة إلى الإعلان فالتسجيل فالتحكيم فالنتائج فالتكريم فالأرشفة. التحكيم بشري بمعايير قابلة للتخصيص ومتوسط عدة محكمين، والنتائج لا تُعتمد ولا تُمنح الجوائز إلا بصلاحية صريحة، وكل جائزة تُمنح مرة واحدة عبر سجل النقاط القائم دون المساس بسجلات الحضور أو الحفظ الأصلية. كما أصبح التقويم وشروط كل دورة بيانات قابلة للتحرير دون تعديل الشيفرة، والنسخة الاحتياطية الكاملة v4 تشمل جداول المسابقات.</p></article><article class="release-history-item"><strong>V63 — نسخة كاملة v3 للاستعادة</strong><p>أُصلح نقص خطير: النسخة الكاملة السابقة كانت تصدّر الحسابات والأفواج والطلاب والسجلات والمدارس وسجل التدقيق فقط، بينما كانت الاستعادة تتجاهل اقتصاد النقاط ومسار القرآن. الآن تشمل النسخة v3 قواعد النقاط وحركاتها والمتجر وطلبات الصرف وخطط القرآن واليومي والرفيق والمحطات والاستدراك، مع تحقق كامل من العلاقات ورفض التعارضات قبل الدمج. ملفات v2 القديمة ما زالت مقبولة، والحد الأقصى للملف 16 ميغابايت.</p></article><article class="release-history-item"><strong>V14 · الأساس التقني</strong><p>تهيئة واجهات وواجهات API، وفحوص صحة، وضبط الصلاحيات، وتجهيز مسارات الانتقال إلى قاعدة بيانات منظمة.</p></article><article class="release-history-item"><strong>V18 · متابعة التعليم</strong><p>أدوات الحضور الجماعي، والواجبات والاختبارات، وسجل الطالب، وملاحظات المعلم والتقارير الشهرية ولوحة ولي الأمر ضمن نطاق الصلاحيات.</p></article><article class="release-history-item"><strong>V23 · ربط التعلم بالحياة الدراسية</strong><p>توسيع المحتوى التعليمي، ومهام الطالب، والتواصل، ومسارات التعلم ومتابعة الإنجاز.</p></article><article class="release-history-item"><strong>V31 · نواة بيانات منظمة</strong><p>إضافة مخطط وترحيل قابلين للتحقق للبيانات المنظمة؛ لا يعني ذلك أن كل مسار تشغيل قد انتقل إلى تلك النواة.</p></article><article class="release-history-item"><strong>V49 · تنظيم المدرسة والفرق</strong><p>تنظيم الفرق الطلابية ومشرفيها، وبوابة المدرسة القرآنية، وتحسينات التثبيت والاستخدام على الهاتف.</p></article><article class="release-history-item"><strong>V56–V58 · المحتوى التعليمي</strong><p>حزم أولية للدروس والأسئلة، ثم توسيعها إلى 26 درسًا و92 سؤالًا تدريبيًا بحسب سجل المشروع؛ ويظل المحتوى الشرعي قابلًا لمراجعة الشيخ قبل نشره.</p></article><article class="release-history-item"><strong>نسخة Cloudflare · Pages وD1</strong><p>واجهة عربية RTL، وجلسات عبر كوكيز آمنة، وربط Google للحسابات المربوطة، وتطبيق ويب قابل للتثبيت.</p></article><article class="release-history-item"><strong>مسار القرآن · حفظ وتثبيت وورد ورفيق ومحطات واستدراك</strong><p>صفحة قرآنية واحدة للطالب تجمع الحفظ الجديد والتثبيت والورد اليومي، وتسميع الرفيق الثنائي ببطاقة 50/20/15/15، ومحطات الشيخ 15/30/45/60، وسجل استدراك يمنع الحفظ الجديد عند وجود مقدار أساسي متأخر. السجلات تُحفظ في D1 وتُطبع بطاقاتها.</p></article><article class="release-history-item"><strong>صيانة 22 أكتوبر 2026 · منشورة</strong><p>تحسين التباين الليلي والخط، وتنظيم القوائم، وتدوير الآيات دون زر يدوي، وترتيب الطلاب حسب المجالات، وحفظ الحضور وتسجيلات القرآن وبعض تعديلات الأفواج محليًا عند انقطاع الشبكة ثم مزامنتها عند عودتها. اجتازت فحوص الكود والبناء والنشر؛ ولا يزال اختبار الاستخدام الفعلي على الهاتف والحاسوب مطلوبًا لتأكيد التجربة كاملة.</p></article></div></section>';
+ const releaseMarkup='<section class="settings-section release-history-section"><div class="settings-section-title"><span class="settings-icon" aria-hidden="true">▤</span><div><h3>المميزات وسجل التطوير</h3><p>أهم مراحل المشروع الموثقة في سجل المستودع؛ هذه قائمة بالمراحل الكبرى لا بكل إصلاح صغير.</p></div></div><div class="release-history-list"><article class="release-history-item"><strong>V65 — رحلة الطالب والمتجر الصادق ومراجعة الخطط</strong><p>أُضيفت رحلة بداية تحاور الطالب سؤالًا واحدًا في كل مرة، وتحفظ تقدمها لتُستأنف بعد الانقطاع، ثم تعرض ثلاث خطط حفظ وتثبيت وورد بتكلفة الوقت لا بالمال، وتطبّق الخطة عبر مسار القرآن القائم نفسه دون جدول أو محفظة جديدة. ويمكن للطالب قبول التوصية أو تعديلها، وتُرسل الخطة إلى الشيخ ليعتمدها أو يطلب تعديلًا بملاحظة موثّقة عبر تبويب «خطط الطلاب» في واجهة الشيخ. كما أُعيد بناء المتجر ليعرض فقط المكافآت الحقيقية التي يعتمدها المدير مع تكلفتها ومخزونها وحدّها لكل طالب وشروط صرفها؛ لا منتجات وهمية ولا بذر تجريبي، وتُحجز النقاط عند الطلب وتُعاد تلقائيًا عند الرفض. أرقام التثبيت المرجعية (60←نصف، 45←ثلاثة أثمان، 30←ربع، 15←ثمن) معروضة كمقترح ينتظر اعتماد الشيخ، وليست شرطًا نهائيًا.</p></article><article class="release-history-item"><strong>V64 — نظام المسابقات القرآنية والعلمية</strong><p>أُضيف نظام مسابقات كامل داخل الأكاديمية نفسها: تصنيفات حفظ (15/30/45/60 حزبًا ومسابقة 60 حزبًا مستقلة)، وأنواع حفظ وترتيل وتجويد وحديث ومتون وسيرة وثقافة إسلامية، وشروط سنّ وحزب ورواية قابلة للتعديل، ودورة حياة من المسودة إلى الإعلان فالتسجيل فالتحكيم فالنتائج فالتكريم فالأرشفة. التحكيم بشري بمعايير قابلة للتخصيص ومتوسط عدة محكمين، والنتائج لا تُعتمد ولا تُمنح الجوائز إلا بصلاحية صريحة، وكل جائزة تُمنح مرة واحدة عبر سجل النقاط القائم دون المساس بسجلات الحضور أو الحفظ الأصلية. كما أصبح التقويم وشروط كل دورة بيانات قابلة للتحرير دون تعديل الشيفرة، والنسخة الاحتياطية الكاملة v4 تشمل جداول المسابقات.</p></article><article class="release-history-item"><strong>V63 — نسخة كاملة v3 للاستعادة</strong><p>أُصلح نقص خطير: النسخة الكاملة السابقة كانت تصدّر الحسابات والأفواج والطلاب والسجلات والمدارس وسجل التدقيق فقط، بينما كانت الاستعادة تتجاهل اقتصاد النقاط ومسار القرآن. الآن تشمل النسخة v3 قواعد النقاط وحركاتها والمتجر وطلبات الصرف وخطط القرآن واليومي والرفيق والمحطات والاستدراك، مع تحقق كامل من العلاقات ورفض التعارضات قبل الدمج. ملفات v2 القديمة ما زالت مقبولة، والحد الأقصى للملف 16 ميغابايت.</p></article><article class="release-history-item"><strong>V14 · الأساس التقني</strong><p>تهيئة واجهات وواجهات API، وفحوص صحة، وضبط الصلاحيات، وتجهيز مسارات الانتقال إلى قاعدة بيانات منظمة.</p></article><article class="release-history-item"><strong>V18 · متابعة التعليم</strong><p>أدوات الحضور الجماعي، والواجبات والاختبارات، وسجل الطالب، وملاحظات المعلم والتقارير الشهرية ولوحة ولي الأمر ضمن نطاق الصلاحيات.</p></article><article class="release-history-item"><strong>V23 · ربط التعلم بالحياة الدراسية</strong><p>توسيع المحتوى التعليمي، ومهام الطالب، والتواصل، ومسارات التعلم ومتابعة الإنجاز.</p></article><article class="release-history-item"><strong>V31 · نواة بيانات منظمة</strong><p>إضافة مخطط وترحيل قابلين للتحقق للبيانات المنظمة؛ لا يعني ذلك أن كل مسار تشغيل قد انتقل إلى تلك النواة.</p></article><article class="release-history-item"><strong>V49 · تنظيم المدرسة والفرق</strong><p>تنظيم الفرق الطلابية ومشرفيها، وبوابة المدرسة القرآنية، وتحسينات التثبيت والاستخدام على الهاتف.</p></article><article class="release-history-item"><strong>V56–V58 · المحتوى التعليمي</strong><p>حزم أولية للدروس والأسئلة، ثم توسيعها إلى 26 درسًا و92 سؤالًا تدريبيًا بحسب سجل المشروع؛ ويظل المحتوى الشرعي قابلًا لمراجعة الشيخ قبل نشره.</p></article><article class="release-history-item"><strong>نسخة Cloudflare · Pages وD1</strong><p>واجهة عربية RTL، وجلسات عبر كوكيز آمنة، وربط Google للحسابات المربوطة، وتطبيق ويب قابل للتثبيت.</p></article><article class="release-history-item"><strong>مسار القرآن · حفظ وتثبيت وورد ورفيق ومحطات واستدراك</strong><p>صفحة قرآنية واحدة للطالب تجمع الحفظ الجديد والتثبيت والورد اليومي، وتسميع الرفيق الثنائي ببطاقة 50/20/15/15، ومحطات الشيخ 15/30/45/60، وسجل استدراك يمنع الحفظ الجديد عند وجود مقدار أساسي متأخر. السجلات تُحفظ في D1 وتُطبع بطاقاتها.</p></article><article class="release-history-item"><strong>صيانة 22 أكتوبر 2026 · منشورة</strong><p>تحسين التباين الليلي والخط، وتنظيم القوائم، وتدوير الآيات دون زر يدوي، وترتيب الطلاب حسب المجالات، وحفظ الحضور وتسجيلات القرآن وبعض تعديلات الأفواج محليًا عند انقطاع الشبكة ثم مزامنتها عند عودتها. اجتازت فحوص الكود والبناء والنشر؛ ولا يزال اختبار الاستخدام الفعلي على الهاتف والحاسوب مطلوبًا لتأكيد التجربة كاملة.</p></article></div></section>';
  const notificationsMarkup='<section class="settings-section browser-notifications-section"><div class="settings-section-title"><span class="settings-icon" aria-hidden="true">♧</span><div><h3>تنبيهات التطبيق على الهاتف</h3><p>إشعار المتصفح لتحديثات الأكاديمية على هذا الجهاز.</p></div></div><p class="muted small" id="settings-notification-state">جارٍ التحقق من صلاحية إشعارات المتصفح.</p><div class="student-actions"><button type="button" class="btn" id="settings-notifications-enable">تفعيل التنبيهات</button><button type="button" class="btn secondary" id="settings-notifications-test">تجربة إشعار</button></div><p class="muted small">هذه إشعارات المتصفح المتاحة حاليًا، وليست بعدُ خدمة إشعارات دفع تعمل من الخادم بعد إغلاق التطبيق.</p></section>';
  const markup='<dialog id="settings-dialog" class="settings-dialog" aria-labelledby="settings-title"><div class="settings-head"><div><span class="eyebrow">تفضيلاتك الشخصية</span><h2 id="settings-title">إعدادات الأكاديمية</h2><p>اضبط الواجهة بما يريحك، وتُحفظ اختياراتك على هذا الجهاز.</p></div><button type="button" class="settings-close" id="settings-close" aria-label="إغلاق الإعدادات">×</button></div><div class="settings-body"><section class="settings-section settings-contact-section"><div class="settings-section-title"><span class="settings-icon" aria-hidden="true">✆</span><div><h3>التواصل والمساعدة</h3><p>قنوات مباشرة للملاحظات والتحسين والتنبيهات.</p></div></div><div class="settings-help-grid"><article class="settings-help-card"><h4>التواصل مع صاحب الأكاديمية</h4><p>للاستفسارات وملاحظات الاستخدام.</p><a class="btn" href="https://wa.me/213652358723?text=%D8%A7%D9%84%D8%B3%D9%84%D8%A7%D9%85%20%D8%B9%D9%84%D9%8A%D9%83%D9%85%D8%8C%20%D8%A3%D8%B1%D9%8A%D8%AF%20%D8%A7%D9%84%D8%AA%D9%88%D8%A7%D8%B5%D9%84%20%D8%A8%D8%B4%D8%A3%D9%86%20%D8%A3%D9%83%D8%A7%D8%AF%D9%8A%D9%85%D9%8A%D8%A9%20%D8%A7%D9%84%D8%A5%D8%AD%D8%B3%D8%A7%D9%86" target="_blank" rel="noopener noreferrer">واتساب · 0652358723</a></article><article class="settings-help-card"><h4>التنبيهات والأخطاء</h4><p>راجع التنبيهات، وأرسل بلاغًا مع اسم الصفحة والخطوات التي سبقت الخطأ.</p><button type="button" class="btn secondary" id="settings-open-notifications">فتح التنبيهات</button><a class="btn secondary" href="https://wa.me/213652358723?text=%D8%A8%D9%84%D8%A7%D8%BA%20%D8%B9%D9%86%20%D8%AE%D8%B7%D8%A3%3A%20%D8%A7%D8%B3%D9%85%20%D8%A7%D9%84%D8%B5%D9%81%D8%AD%D8%A9%20%D9%88%D8%B5%D9%81%20%D8%A7%D9%84%D8%AE%D8%B7%D8%A3%20%D9%88%D8%A7%D9%84%D8%AE%D8%B7%D9%88%D8%A7%D8%AA" target="_blank" rel="noopener noreferrer">الإبلاغ عن خطأ</a></article><article class="settings-help-card"><h4>ساعدنا على التطوير</h4><p>سجّل الحفظ بعد الحلقة مباشرة، وتأكد من رقم الثمن، واقترح تحسينًا محددًا مع ذكر الصفحة التي تخصه.</p><a class="btn secondary" href="https://wa.me/213652358723?text=%D8%A7%D9%82%D8%AA%D8%B1%D8%A7%D8%AD%20%D9%84%D8%AA%D8%B7%D9%88%D9%8A%D8%B1%20%D8%A3%D9%83%D8%A7%D8%AF%D9%8A%D9%85%D9%8A%D8%A9%20%D8%A7%D9%84%D8%A5%D8%AD%D8%B3%D8%A7%D9%86%3A%20" target="_blank" rel="noopener noreferrer">إرسال اقتراح</a></article><article class="settings-help-card"><h4>دعم الأكاديمية بالتبرع</h4><p>للتبرع والاستفسار عن وسيلة الدعم المتاحة، تواصل مع المالك؛ لم تُضف بيانات دفع غير مؤكدة.</p><a class="btn" href="https://wa.me/213652358723?text=%D8%A3%D8%B1%D8%BA%D8%A8%20%D9%81%D9%8A%20%D8%AF%D8%B9%D9%85%20%D8%A3%D9%83%D8%A7%D8%AF%D9%8A%D9%85%D9%8A%D8%A9%20%D8%A7%D9%84%D8%A5%D8%AD%D8%B3%D8%A7%D9%86%20%D8%A8%D8%A7%D9%84%D8%AA%D8%A8%D8%B1%D8%B9" target="_blank" rel="noopener noreferrer">التبرع ودعم المشروع</a></article></div></section>'+notificationsMarkup+'<section class="settings-section"><div class="settings-section-title"><span class="settings-icon" aria-hidden="true">◈</span><div><h3>ألوان الواجهة</h3><p>اختر سمة، وستتغيّر ألوان الصفحات والبطاقات معًا.</p></div></div><div class="theme-options">'+themeMarkup+'</div><div class="theme-mode-controls"><button type="button" id="settings-theme-random" class="btn secondary" aria-pressed="'+(themeMode!=="fixed")+'">🎲 عشوائي كل جلسة</button><span class="pill" id="theme-mode-status">'+(themeMode==="fixed"?'السمة المثبتة: '+esc(themes[selectedIndex].name):'يتغيّر اللون تلقائيًا مع كل جلسة جديدة')+'</span></div></section><section class="settings-section appearance-studio"><div class="settings-section-title"><span class="settings-icon" aria-hidden="true">✦</span><div><h3>تخصيص الواجهة</h3><p>خصّص الخلفية والأيقونات وحجم الخط بما يناسبك.</p></div></div><div class="appearance-grid"><div class="appearance-field"><label>خلفية الصفحات</label><div class="appearance-buttons"><button type="button" class="appearance-choice" data-appearance-bg="glow">✦ وهج</button><button type="button" class="appearance-choice" data-appearance-bg="geometry">◇ هندسية</button><button type="button" class="appearance-choice" data-appearance-bg="plain">○ صافية</button></div></div><div class="appearance-field"><label>شكل الأيقونات</label><div class="appearance-buttons appearance-icon-style-options"><button type="button" class="appearance-choice" data-icon-style="soft"><span class="appearance-demo-icon" data-demo-style="soft" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 14.8 9.2 21 12 14.8 14.8 12 21 9.2 14.8 3 12 9.2 9.2Z"/></svg></span><span>ناعمة</span></button><button type="button" class="appearance-choice" data-icon-style="bold"><span class="appearance-demo-icon" data-demo-style="bold" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 14.8 9.2 21 12 14.8 14.8 12 21 9.2 14.8 3 12 9.2 9.2Z"/></svg></span><span>بارزة</span></button><button type="button" class="appearance-choice" data-icon-style="framed"><span class="appearance-demo-icon" data-demo-style="framed" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3 14.8 9.2 21 12 14.8 14.8 12 21 9.2 14.8 3 12 9.2 9.2Z"/></svg></span><span>مؤطّرة</span></button></div></div><div class="appearance-field"><label>حجم الأيقونات <span class="muted small">معاينة بالحجم الحقيقي</span></label><div class="appearance-buttons appearance-icon-size-options"><button type="button" class="appearance-choice" data-icon-size="small"><span class="appearance-size-demo" data-demo-size="small" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 12h16M12 4v16"/><circle cx="12" cy="12" r="8"/></svg></span><span>صغير</span></button><button type="button" class="appearance-choice" data-icon-size="medium"><span class="appearance-size-demo" data-demo-size="medium" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 12h16M12 4v16"/><circle cx="12" cy="12" r="8"/></svg></span><span>متوسط</span></button><button type="button" class="appearance-choice" data-icon-size="large"><span class="appearance-size-demo" data-demo-size="large" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M4 12h16M12 4v16"/><circle cx="12" cy="12" r="8"/></svg></span><span>كبير</span></button></div></div><div class="appearance-live-preview" aria-live="polite"><div><strong>معاينة الأيقونات في الأكاديمية</strong><p>تتغيّر هذه الأمثلة فورًا مع اختيار الحجم والشكل، لتتخيّل ظهورها في القوائم والبطاقات.</p></div><div class="appearance-live-icons"><span class="appearance-live-item"><svg viewBox="0 0 24 24" class="nav-icon" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m3 10 9-7 9 7v10a1 1 0 0 1-1 1h-5v-7H9v7H4a1 1 0 0 1-1-1z"/></svg><small>الرئيسية</small></span><span class="appearance-live-item"><svg viewBox="0 0 24 24" class="nav-icon" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v18H6.5A2.5 2.5 0 0 1 4 17.5z"/><path d="M4 17.5A2.5 2.5 0 0 1 6.5 15H20"/></svg><small>القرآن</small></span><span class="appearance-live-item"><svg viewBox="0 0 24 24" class="nav-icon" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m12 21-1.45-1.32C5.4 14.99 2 11.9 2 8.1 2 5 4.42 2.5 7.5 2.5c1.74 0 3.41.81 4.5 2.1 1.09-1.29 2.76-2.1 4.5-2.1C19.58 2.5 22 5 22 8.1c0 3.8-3.4 6.89-8.55 11.59z"/></svg><small>إنجازي</small></span><span class="appearance-live-item"><svg viewBox="0 0 24 24" class="nav-icon" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m5 12 4 4L19 6"/></svg><small>المهام</small></span></div></div><div class="appearance-field appearance-font-field"><label for="settings-font-scale">حجم الخط <output id="settings-font-scale-value">100%</output></label><input id="settings-font-scale" type="range" min="85" max="180" step="5" value="'+Math.round(Math.min(1.8,Math.max(.85,Number(safeStore.get("ihsan_font_scale")||1)))*100)+'"><div class="appearance-range-labels"><span>أصغر</span><span>أكبر</span></div><p class="appearance-font-preview" id="settings-font-preview">بسم الله الرحمن الرحيم — العلم النافع والعمل الصالح</p></div></div></section><section class="settings-section"><div class="settings-section-title"><span class="settings-icon" aria-hidden="true">◌</span><div><h3>الأصوات والراحة</h3><p>مؤثرات قصيرة غير لحنية، دون موسيقى أو نغمات؛ للنقر والنجاح والتنبيه.</p></div></div><label class="settings-preference" for="settings-ui-sounds"><span><strong>مؤثرات الواجهة</strong><small>تشغيل أو إيقاف أصوات الضغط والنتائج على هذا الجهاز.</small></span><input id="settings-ui-sounds" type="checkbox" '+(safeStore.get("ihsan_ui_sounds")!=="0"?'checked':'')+'></label><div class="student-actions"><button type="button" class="btn secondary" id="settings-sound-preview">تجربة الصوت</button><span class="muted small" id="settings-sound-status">'+(safeStore.get("ihsan_ui_sounds")==="0"?'الأصوات متوقفة':'الأصوات مفعّلة')+'</span></div></section><section class="settings-section"><div class="settings-section-title"><span class="settings-icon" aria-hidden="true">◌</span><div><h3>الحركة والراحة</h3><p>خفّف الحركات الانتقالية إذا فضّلت واجهة أكثر هدوءًا.</p></div></div><label class="settings-preference" for="settings-reduced-motion"><span><strong>تقليل الحركة</strong><small>إيقاف الحركات والزخارف المتحركة غير الضرورية.</small></span><input id="settings-reduced-motion" type="checkbox" '+(reduced?'checked':'')+'></label></section>'+securityMarkup+releaseMarkup+'</div><div class="settings-foot"><span>أكاديمية الإحسان في بناء الإنسان</span></div></dialog>';
  document.body.insertAdjacentHTML("beforeend",markup);
@@ -815,6 +815,76 @@ window.addEventListener("popstate",async e=>{if(!S.user)return;const st=e.state|
 async function page(){const v=$("#view");if(S.mode==="ihsan"){if(S.tab==="groups"&&S.user.role==="teacher"){await load();return groups(v)}return curriculumPage(v)}v.innerHTML='<div class="loading">جار تحميل البيانات…</div>';try{if(S.tab==="system-check"&&S.user.role==="admin")return systemCheckPage(v);if(S.tab==="sheikh-check"&&S.user.role==="teacher")return sheikhCheckPage(v);if(S.tab==="world")return await worldPage(v);if(S.tab==="card")return await cardPage(v);if(S.tab==="guide")return await guidePage(v);if(S.tab==="home")return await home(v);if(S.tab==="teams")return await teamsPage(v);if(S.tab==="groups")return groups(v);if(S.tab==="tasks")return await tasksPage(v);if(S.tab==="hadith")return await contentPage(v);if(S.tab==="competitions")return await competitionsPage(v);if(S.tab==="points")return await pointsPage(v);if(S.tab==="teachers")return teachers(v);if(S.tab==="students")return students(v);if(S.tab==="attendance")return attendance(v);if(S.tab==="assignments")return await assignmentsPage(v);if(S.tab==="gradebook")return await gradebookPage(v);if(S.tab==="messages")return await messagesPage(v);if(S.tab==="reports")return reportsPage(v);if(S.tab==="leaderboard")return leaderboardPage(v);if(S.tab==="profile")return studentProfile(v,S.user.student_id);if(S.tab==="quran")return quran(v);if(S.tab==="effort")return effortPage(v);if(S.tab==="effort-ranking")return effortRankingPage(v);if(S.tab==="roster-bulk")return bulkRosterPage(v);if(S.tab==="quran-achievement")return quranAchievementPage(v);if(S.tab==="tests")return testsPage(v);if(S.tab==="notifications")return notificationsPage(v);v.innerHTML=head("القسم غير متاح","هذا القسم لم يعد متاحًا. اختر قسمًا من القائمة.")+'<button class="btn" id="back-home">العودة إلى الرئيسية</button>';$("#back-home").onclick=()=>go("home");return}catch(e){v.innerHTML='<div class="panel"><h2>تعذّر تحميل البيانات</h2><p class="notice error">'+esc(e.message)+'</p><button class="btn" id="retry">إعادة المحاولة</button></div>';$("#retry").onclick=page}}
 function pointsStatusLabel(status){const labels={pending:"قيد المراجعة",approved:"معتمد",rejected:"مرفوض",fulfilled:"منفذ",cancelled:"ملغى"};return labels[status]||status}
 function pointsDate(value){const text=String(value||"");return text?esc(text.replace("T"," ").slice(0,16)):"—"}
+const STORE_SUGGESTIONS=[
+ {icon:"📖",name:"مصحف جيب واضح الخط",description:"نسخة صغيرة لتكون معك في الطريق.",cost:1200},
+ {icon:"📝",name:"دفتر مراجعة",description:"دفتر صغير لتسجيل الأوجه والمراجعة.",cost:600},
+ {icon:"🎧",name:"جلسة تسميع فردية",description:"جلسة قصيرة مع الشيخ لتثبيت مقدار محدد.",cost:2000},
+ {icon:"🏅",name:"وسام إنجاز مطبوع",description:"وسام يحمل اسم الطالب ومرحلته.",cost:1500},
+ {icon:"🎁",name:"حقيبة الأكاديمية",description:"حقيبة عملية تحمل هوية الأكاديمية.",cost:3000},
+ {icon:"☕",name:"هدية تحفيزية صغيرة",description:"هدية رمزية تُسلَّم في الأكاديمية.",cost:800}
+];
+function storeItemState(item,balance){
+ const stock=item.stock===null||item.stock===undefined?null:Number(item.stock);
+ const max=item.max_per_student===null||item.max_per_student===undefined?null:Number(item.max_per_student);
+ const used=Number(item.used||0),cost=Number(item.cost)||0;
+ return {stock,max,used,cost,soldOut:stock!==null&&stock<=0,maxed:max!==null&&used>=max,missing:Math.max(0,cost-Number(balance||0))};
+}
+function storeItemFacts(item,balance){
+ const state=storeItemState(item,balance),parts=["التكلفة: "+Number(item.cost)+" من رصيد المتجر"];
+ if(state.stock!==null)parts.push(state.stock>0?"المتبقي: "+state.stock:"نفدت الكمية");
+ if(state.max!==null)parts.push("الحد لكل طالب: "+state.max+(state.used?" · استخدمت: "+state.used:""));
+ return parts.join(" · ");
+}
+function storeTermsMarkup(){
+ return '<details class="store-terms"><summary>شروط الصرف قبل أن تطلب</summary><ul><li>طلبك يُراجع من الشيخ أو الإدارة قبل التنفيذ، ولا يُسلَّم تلقائيًا.</li><li>يُحجز مبلغ المكافأة من رصيد المتجر فور الطلب، ويُعاد تلقائيًا إذا رُفض الطلب.</li><li>بعد تنفيذ الطلب لا يمكن إلغاؤه؛ تأكد من اختيارك.</li><li>نقاط الإنجاز مؤشر تراكمي لا تُصرف ولا تُحوَّل؛ رصيد المتجر وحده يُستخدم.</li><li>لا نعرض مكافأة نفدت كميتها أو بلغت حدّها؛ ونُحدّث المتاح فور الطلب.</li></ul></details>';
+}
+function storeStudentMarkup(store,summary){
+ const reco=store?.recommendations||null;
+ const balance=Number(reco?.balance??store?.balance??summary?.totals?.store??0);
+ let html='<section class="card store-student"><div class="section-head"><div><span class="eyebrow">متجر المكافآت</span><h3>مكافآت حقيقية، لا وهم</h3><p>نعرض فقط ما اعتمدته الإدارة ومتوفر فعليًا. رصيد المتجر الحالي: <strong>'+balance+'</strong>.</p></div></div>';
+ if(!reco||reco.empty){
+  html+='<div class="store-empty-honest"><strong>المتجر فارغ بصدق.</strong><p>لم تعتمد الإدارة مكافآت حقيقية بعد، ولن نعرض لك منتجات وهمية أو صورًا تجريبية. سيظهر هنا كل ما يُعتمد فعليًا مع تكلفته ومخزونه وشروطه.</p><small>رصيدك محفوظ ولا ينقص بانتظار إضافة المكافآت.</small></div>'+storeTermsMarkup()+'</section>';
+  return html;
+ }
+ if(reco.affordable.length){
+  html+='<div class="store-reco-grid">'+reco.affordable.map(item=>{
+   const state=storeItemState(item,balance);
+   return '<article class="store-reco-card"><span class="store-reco-icon" aria-hidden="true">'+esc(item.icon||"🎁")+'</span><span class="eyebrow">متاحة الآن</span><strong>'+esc(item.name)+'</strong><p>'+esc(item.description||"")+'</p><small>'+esc(storeItemFacts(item,balance))+'</small><div class="student-actions"><button class="btn" type="button" data-redeem="'+esc(item.id)+'"'+(state.maxed?" disabled":"")+'>'+(state.maxed?"بلغت الحد الأقصى":"طلب الصرف")+'</button></div></article>';
+  }).join("")+'</div>';
+ }else{
+  html+='<div class="notice"><strong>لا توجد مكافأة ضمن رصيدك الآن.</strong><p>واصل مهامك؛ كل حركة نقاط مسجلة، ولا نعرض مكافأة لا تستطيع صرفها كأنها متاحة.</p></div>';
+ }
+ if(reco.nearest){
+  const nearest=reco.nearest;
+  html+='<div class="store-nearest"><div><span class="eyebrow">أقرب مكافأة إلى رصيدك</span><strong>'+esc(nearest.name)+'</strong><small>تفصلك '+Number(nearest.missing||0)+' من رصيد المتجر · التكلفة '+Number(nearest.cost)+'</small></div><div class="store-nearest-meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+Number(nearest.progress||0)+'"><i style="width:'+Number(nearest.progress||0)+'%"></i></div></div>';
+ }
+ const lockedOthers=(reco.locked||[]).filter(item=>String(item.id)!==String(reco.nearest?.id||""));
+ if(lockedOthers.length){
+  html+='<div class="store-locked"><span class="eyebrow">مكافآت تحتاج رصيدًا أكبر</span><div class="list">'+lockedOthers.map(item=>'<div class="list-row"><div><strong>'+esc(item.icon||"🎁")+' '+esc(item.name)+'</strong><small>'+esc(storeItemFacts(item,balance))+' · تحتاج '+Math.max(0,Number(item.cost)-balance)+' إضافية</small></div><span class="pill">مقفلة مؤقتًا</span></div>').join("")+'</div></div>';
+ }
+ const exhausted=[];
+ if((reco.sold_out||[]).length)exhausted.push("نفدت كميتها: "+reco.sold_out.join("، "));
+ if((reco.maxed||[]).length)exhausted.push("بلغت حدّها لك: "+reco.maxed.join("، "));
+ if(exhausted.length)html+='<p class="muted small store-exhausted">'+esc(exhausted.join(" · "))+'</p>';
+ html+=storeTermsMarkup()+'</section>';
+ return html;
+}
+function storeStaffMarkup(store,canEdit){
+ const items=store?.items||[];
+ if(!canEdit){
+  return '<section class="card"><div class="section-head"><div><h3>المتجر</h3><p>عرض فقط؛ إضافة المخزون وتعديله من صلاحية المدير. لا تُنشأ مكافآت نيابة عن الإدارة من هنا.</p></div></div><div class="list">'+(items.length?items.map(item=>'<div class="list-row"><div><strong>'+esc(item.icon||"🎁")+' '+esc(item.name)+'</strong><small>'+esc(item.description||"")+' · '+Number(item.cost)+' من رصيد المتجر + (المخزون: '+(item.stock===null?"بلا حد":Number(item.stock))+')</small></div><span class="pill">'+(Number(item.active)===0?"مخفية":"معروضة")+'</span></div>').join(""):'<p class="muted">لم تُضف مواد إلى المتجر بعد.</p>')+'</div></section>';
+ }
+ const suggestions=STORE_SUGGESTIONS.map((item,index)=>'<button type="button" class="store-suggestion" data-store-suggest="'+index+'"><strong>'+esc(item.icon+" "+item.name)+'</strong><small>'+esc(item.description)+'</small></button>').join("");
+ const rows=items.map(item=>{
+  const active=Number(item.active)!==0;
+  return '<div class="list-row"><div><strong>'+esc(item.icon||"🎁")+' '+esc(item.name)+(active?"":" · مخفية")+'</strong><small>'+esc(item.description||"")+' · '+Number(item.cost)+' من رصيد المتجر · المخزون: '+(item.stock===null?"بلا حد":Number(item.stock))+' · حد الطالب: '+(item.max_per_student===null?"بلا حد":Number(item.max_per_student))+' · الترتيب: '+Number(item.sort_order||0)+'</small></div><div class="student-actions"><button class="btn secondary" type="button" data-store-edit="'+esc(item.id)+'">تعديل</button><button class="btn secondary" type="button" data-store-toggle="'+esc(item.id)+'">'+(active?"إخفاء":"إظهار")+'</button></div></div>';
+ }).join("");
+ return '<section class="card store-admin"><div class="section-head"><div><span class="eyebrow">إدارة المتجر</span><h3>أضف مكافآت حقيقية فقط</h3><p>لا يظهر للطالب إلا ما تحفظه هنا فعليًا مع مخزونه وشروطه. الاقتراحات أدناه قوالب غير محفوظة ولا يراها الطالب.</p></div></div>'+
+ '<div class="store-suggestions"><span class="eyebrow">اقتراحات إرشادية غير محفوظة — عدّلها ثم احفظ بعد تأكيد التوفر</span><div class="store-suggestion-grid">'+suggestions+'</div></div>'+
+ '<h4 id="store-form-title">إضافة مادة إلى المتجر</h4><form id="store-item-form" class="form-grid"><input type="hidden" name="item_id" value=""><label class="field">اسم المادة<input name="name" required maxlength="160"></label><label class="field">التكلفة (رصيد المتجر)<input name="cost" type="number" min="1" max="100000" required></label><label class="field">المخزون (فارغ = بلا حد)<input name="stock" type="number" min="0"></label><label class="field">حد الطالب (فارغ = بلا حد)<input name="max_per_student" type="number" min="1"></label><label class="field">الرمز<input name="icon" maxlength="8" placeholder="🎁"></label><label class="field">الترتيب<input name="sort_order" type="number" value="0"></label><label class="field wide">الوصف<textarea name="description" maxlength="2000" rows="2"></textarea></label><label class="field wide"><span><input name="active" type="checkbox" checked> معروضة للطلاب الآن</span></label><div class="student-actions"><button class="btn" type="submit">حفظ المادة</button><button class="btn secondary" type="button" id="store-form-cancel" hidden>إلغاء التعديل</button></div></form>'+
+ '<div class="list">'+(rows||'<p class="muted">لم تُضف مواد إلى المتجر بعد.</p>')+'</div></section>';
+}
+
 async function pointsPage(v){
  const isStudent=S.user.role==="student",canManage=["admin","teacher","director","supervisor"].includes(S.user.role);
  if(!isStudent&&!S.students.length)await load();
@@ -830,13 +900,6 @@ async function pointsPage(v){
  const store=await api("/store/items");
  const redemptions=await api("/store/redemptions");
  const rules=S.user.role==="admin"?await api("/points/rules"):[];
- const itemRows=(store.items||[]).map(item=>{
-  const soldOut=Number(item.active)===0||(item.stock!==null&&Number(item.stock)<=0);
-  const canRedeem=isStudent&&!soldOut&&Number(summary.totals.store)>=Number(item.cost);
-  const adminToggle=S.user.role==="admin"?'<button class="btn secondary" type="button" data-store-toggle="'+esc(item.id)+'">'+(Number(item.active)===0?"إظهار":"إخفاء")+'</button>':"";
-  const redeemBtn=isStudent?'<button class="btn" type="button" data-redeem="'+esc(item.id)+'"'+(canRedeem?"":" disabled")+'>طلب الصرف</button>':"";
-  return '<div class="list-row"><div><strong>'+esc(item.icon||"🎁")+' '+esc(item.name)+'</strong><small>'+esc(item.description||"")+' · التكلفة: '+Number(item.cost)+' من رصيد المتجر'+(item.stock!==null?" · المتاح: "+Number(item.stock):"")+(item.max_per_student?" · حد الطالب: "+Number(item.max_per_student):"")+(Number(item.active)===0?" · غير معروضة":"")+'</small></div><div style="display:flex;gap:8px;flex-wrap:wrap">'+adminToggle+redeemBtn+'</div></div>';
- }).join("");
  const redemptionRows=(redemptions||[]).map(r=>{
   const canDecide=canManage&&r.status==="pending";
   const noteInput=canDecide?'<input data-decision-note="'+esc(r.id)+'" placeholder="ملاحظة القرار (إلزامية للرفض)" maxlength="500" style="margin-top:6px">':"";
@@ -848,8 +911,7 @@ async function pointsPage(v){
  if(!isStudent)html+='<div class="card"><label class="field">اختر الطالب<select id="points-student-select">'+students.map(st=>'<option value="'+esc(st.id)+'"'+(st.id===studentId?" selected":"")+'>'+esc(st.name||st.display_name||"طالب")+'</option>').join("")+'</select></label><p class="muted small">الفوج: '+esc(summary.student.group_name||"—")+'</p></div>';
  html+='<div class="stats"><div class="stat"><small>نقاط الإنجاز</small><strong>'+Number(summary.totals.achievement)+'</strong></div><div class="stat"><small>رصيد المتجر</small><strong>'+Number(summary.totals.store)+'</strong></div><div class="stat"><small>طلبات قيد المراجعة</small><strong>'+Number(summary.pending_redemptions)+'</strong></div></div>';
  html+='<div class="notice">نقاط الإنجاز مؤشر تراكمي لا يُصرف. رصيد المتجر وحده يُستخدم في طلبات الصرف، وكل حركة مسجلة ولا تُحذف؛ التصحيح بعكس موثّق بسبب.</div>';
- html+='<section class="card"><div class="section-head"><div><h3>المتجر</h3><p>المواد المتاحة مقابل رصيد المتجر.</p></div></div><div class="list">'+(itemRows||'<p class="muted">لم تُضف مواد إلى المتجر بعد.</p>')+'</div></section>';
- if(S.user.role==="admin")html+='<section class="card"><h3>إضافة مادة إلى المتجر</h3><form id="store-item-form" class="form-grid"><label class="field">اسم المادة<input name="name" required maxlength="160"></label><label class="field">التكلفة<input name="cost" type="number" min="1" max="100000" required></label><label class="field">الكمية (فارغ = بلا حد)<input name="stock" type="number" min="0"></label><label class="field">حد الطالب (فارغ = بلا حد)<input name="max_per_student" type="number" min="1"></label><label class="field">الرمز<input name="icon" maxlength="8" placeholder="🎁"></label><label class="field">الترتيب<input name="sort_order" type="number" value="0"></label><label class="field">الوصف<textarea name="description" maxlength="2000" rows="2"></textarea></label><button class="btn" type="submit">إضافة المادة</button></form></section>';
+ html+=isStudent?storeStudentMarkup(store,summary):storeStaffMarkup(store,S.user.role==="admin");
  html+='<section class="card"><h3>طلبات الصرف</h3><div class="list">'+(redemptionRows||'<p class="muted">لا توجد طلبات صرف بعد.</p>')+'</div></section>';
  if(canManage)html+='<section class="card"><h3>منح نقاط يدوي</h3><form id="points-award-form" class="form-grid"><label class="field">نقاط الإنجاز<input name="achievement_points" type="number" min="0" max="1000" value="0"></label><label class="field">رصيد المتجر<input name="store_points" type="number" min="0" max="1000" value="0"></label><label class="field">سبب المنح (إلزامي)<input name="reason" required minlength="3" maxlength="500"></label><button class="btn" type="submit">منح النقاط</button></form></section>';
  html+='<section class="card"><h3>آخر الحركات</h3>'+(canManage?'<label class="field">سبب العكس قبل الضغط على «عكس»<input id="points-reverse-reason" maxlength="500" placeholder="مثال: تصحيح خطأ في تسجيل الحضور"></label>':"")+'<div class="list">'+(eventRows||'<p class="muted">لا توجد حركات نقاط بعد.</p>')+'</div></section>';
@@ -879,14 +941,52 @@ async function pointsPage(v){
   e.preventDefault();const form=e.currentTarget,data=new FormData(form);
   try{await api("/points/award",{method:"POST",body:JSON.stringify({student_id:studentId,achievement_points:Number(data.get("achievement_points")||0),store_points:Number(data.get("store_points")||0),reason:data.get("reason")})});toast("تم منح النقاط");await pointsPage(v)}catch(error){toast(error.message,true)}
  });
+ const storeForm=$("#store-item-form");
+ function resetStoreForm(){
+  if(!storeForm)return;
+  storeForm.reset();
+  const idField=storeForm.querySelector('[name="item_id"]');
+  if(idField)idField.value="";
+  const activeField=storeForm.querySelector('[name="active"]');
+  if(activeField)activeField.checked=true;
+  const title=$("#store-form-title"),cancel=$("#store-form-cancel");
+  if(title)title.textContent="إضافة مادة إلى المتجر";
+  if(cancel)cancel.hidden=true;
+ }
+ function fillStoreForm(item){
+  if(!storeForm||!item)return;
+  const set=(name,value)=>{const field=storeForm.querySelector('[name="'+name+'"]');if(field)field.value=value??""};
+  set("item_id",item.id);set("name",item.name);set("cost",item.cost);set("stock",item.stock===null?"":item.stock);set("max_per_student",item.max_per_student===null?"":item.max_per_student);set("icon",item.icon||"🎁");set("sort_order",item.sort_order||0);set("description",item.description||"");
+  const active=storeForm.querySelector('[name="active"]');if(active)active.checked=Number(item.active)!==0;
+  const title=$("#store-form-title"),cancel=$("#store-form-cancel");
+  if(title)title.textContent="تعديل مادة في المتجر";
+  if(cancel)cancel.hidden=false;
+  storeForm.scrollIntoView({block:"center"});
+ }
+ $("#store-form-cancel")?.addEventListener("click",resetStoreForm);
+ document.querySelectorAll("[data-store-edit]").forEach(btn=>btn.onclick=()=>{
+  const item=(store.items||[]).find(x=>x.id===btn.dataset.storeEdit);
+  fillStoreForm(item);
+ });
+ document.querySelectorAll("[data-store-suggest]").forEach(btn=>btn.onclick=()=>{
+  const suggestion=STORE_SUGGESTIONS[Number(btn.dataset.storeSuggest)];
+  if(!suggestion)return;
+  resetStoreForm();
+  fillStoreForm({...suggestion,id:"",active:1,sort_order:0,stock:null,max_per_student:null});
+  const nameField=storeForm?.querySelector('[name="name"]');
+  nameField?.focus();
+  toast("تعبئة اقتراح إرشادي. عدّل التكلفة والمخزون ثم احفظ بعد تأكيد التوفر.");
+ });
  $("#store-item-form")?.addEventListener("submit",async e=>{
-  e.preventDefault();const data=new FormData(e.currentTarget);
-  try{await api("/store/items",{method:"POST",body:JSON.stringify({name:data.get("name"),description:data.get("description"),icon:data.get("icon"),cost:Number(data.get("cost")),stock:data.get("stock")===""?null:Number(data.get("stock")),max_per_student:data.get("max_per_student")===""?null:Number(data.get("max_per_student")),sort_order:Number(data.get("sort_order")||0),active:true})});toast("تمت إضافة المادة");await pointsPage(v)}catch(error){toast(error.message,true)}
+  e.preventDefault();const form=e.currentTarget,data=new FormData(form),submit=form.querySelector('button[type="submit"]');
+  if(submit)submit.disabled=true;
+  try{const itemId=String(data.get("item_id")||"");await api("/store/items",{method:"POST",body:JSON.stringify({id:itemId||undefined,name:data.get("name"),description:data.get("description"),icon:data.get("icon"),cost:Number(data.get("cost")),stock:data.get("stock")===""?null:Number(data.get("stock")),max_per_student:data.get("max_per_student")===""?null:Number(data.get("max_per_student")),sort_order:Number(data.get("sort_order")||0),active:Boolean(data.get("active"))})});toast(itemId?"تم حفظ تعديل المادة":"تمت إضافة المادة بعد تأكيدك");await pointsPage(v)}catch(error){if(submit)submit.disabled=false;toast(error.message,true)}
  });
  document.querySelectorAll("[data-store-toggle]").forEach(btn=>btn.onclick=async()=>{
   const item=(store.items||[]).find(x=>x.id===btn.dataset.storeToggle);
   if(!item)return;
-  try{await api("/store/items",{method:"POST",body:JSON.stringify({...item,active:Number(item.active)===0})});toast("تم تحديث حالة المادة");await pointsPage(v)}catch(error){toast(error.message,true)}
+  btn.disabled=true;
+  try{await api("/store/items",{method:"POST",body:JSON.stringify({id:item.id,name:item.name,description:item.description,icon:item.icon,cost:Number(item.cost),stock:item.stock,max_per_student:item.max_per_student,sort_order:Number(item.sort_order||0),active:Number(item.active)===0})});toast("تم تحديث حالة المادة");await pointsPage(v)}catch(error){btn.disabled=false;toast(error.message,true)}
  });
  document.querySelectorAll("[data-rule-config]").forEach(btn=>btn.onclick=async()=>{
   try{
@@ -1217,10 +1317,190 @@ function passSerial(value){
 }
 function worldDate(value){const text=String(value||"");return text?esc(text.replace("T"," ").slice(0,16)):"—"}
 
+// ---------------------------------------------------------------------------
+// واجهة رحلة الطالب: سؤال واحد في كل مرة، حفظ تلقائي، توصية قابلة للاختيار،
+// ثم بطاقة «الثمن: وقتك وانتباهك» وتطبيق الخطة عبر مسار القرآن القائم.
+// ---------------------------------------------------------------------------
+let journeyUi = null;
+function journeyAnswerLabel(data, id) {
+  const question = (data.questions || []).find(item => item.id === id);
+  const value = data.answers ? data.answers[id] : "";
+  return question?.options?.find(option => option.value === String(value))?.label || "";
+}
+function journeyFirstUnanswered(data) {
+  const questions = data.questions || [];
+  const index = questions.findIndex(question => !data.answers || data.answers[question.id] === undefined);
+  return index < 0 ? 0 : index;
+}
+function journeyNextUnanswered(data, fromIndex) {
+  const questions = data.questions || [];
+  for (let i = fromIndex + 1; i < questions.length; i += 1) {
+    if (!data.answers || data.answers[questions[i].id] === undefined) return i;
+  }
+  for (let i = 0; i < questions.length; i += 1) {
+    if (!data.answers || data.answers[questions[i].id] === undefined) return i;
+  }
+  return -1;
+}
+function journeyStoreTeaser(store) {
+  const reco = store?.recommendations;
+  if (!reco) return "";
+  if (reco.empty) {
+    return '<div class="journey-store"><span class="eyebrow">المتجر</span><p>لا توجد مكافآت معتمدة بعد. لن نعرض لك منتجات وهمية؛ عندما تعتمد الإدارة مخزونًا حقيقيًا سيظهر هنا.</p></div>';
+  }
+  if (reco.nearest) {
+    return '<div class="journey-store"><span class="eyebrow">مكافأتك القادمة</span><strong>' + esc(reco.nearest.name) + '</strong><div class="journey-store-meter" aria-hidden="true"><i style="width:' + Number(reco.nearest.progress || 0) + '%"></i></div><small>تفصلك ' + Number(reco.nearest.missing || 0) + ' من رصيد المتجر · رصيدك ' + Number(reco.balance || 0) + '</small></div>';
+  }
+  const top = (reco.affordable || [])[0];
+  return '<div class="journey-store"><span class="eyebrow">متجرك</span><strong>' + (top ? esc(top.name) + ' متاحة الآن' : 'رصيدك جاهز') + '</strong><small>رصيد المتجر: ' + Number(reco.balance || 0) + '</small></div>';
+}
+function journeyIntroMarkup(data, store) {
+  const answered = Number(data.answered || 0), total = Number(data.total || 8);
+  const progress = total ? Math.round(answered / total * 100) : 0;
+  const firstName = String(S.user?.name || "الطالب").trim().split(/\s+/)[0];
+  const resume = answered > 0;
+  const changes = data.approval_status === "changes_requested" && data.review_note
+    ? '<div class="notice error"><strong>طلب الشيخ تعديلًا على خطتك:</strong> ' + esc(data.review_note) + '</div>' : "";
+  const tiers = [
+    ["خفيفة", "وجه واحد وتثبيت ثابت", "للبداية أو ضيق الوقت"],
+    ["متوازنة", "صفحة مع تثبيت وورد", "الخيار الأكثر استدامة"],
+    ["مكثفة", "صفحتان وورد أوسع", "لمن يملك وقتًا وانتظامًا"]
+  ].map(([name, line, hint]) => '<div class="journey-tier"><strong>' + name + '</strong><span>' + line + '</span><small>' + hint + '</small></div>').join("");
+  return changes +
+    '<div class="journey-intro-grid"><div class="journey-intro-copy"><span class="eyebrow">رحلة البداية · ' + answered + ' من ' + total + '</span><h3>أهلًا ' + esc(firstName) + '، لنرسم خطتك</h3><p>ثمانية أسئلة قصيرة، سؤال واحد في كل مرة. نحفظ تقدمك إن غادرت، ونعرض عليك خطة بوقتك لا بمالك. لا أسئلة عن أسرارك، ولا حكم على شخصك.</p><div class="journey-meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + progress + '"><i style="width:' + progress + '%"></i></div><div class="journey-tier-strip">' + tiers + '</div><button class="btn" type="button" data-journey-start>' + (resume ? "أكمل من حيث توقفت" : "ابدأ رحلة الخطة") + '</button><small class="muted">تقدير الوقت تقريبي، وأرقام التثبيت المرجعية تنتظر اعتماد الشيخ.</small></div><aside class="journey-price-preview"><span class="eyebrow">الثمن</span><strong>وقتك وانتباهك</strong><p>لا رسوم مالية، ولا اشتراك مدفوع. الثمن وقت تمنحه، وانتباه تحفظه، واستمرار تعود عليه.</p><ul><li>خطة حفظ وتثبيت وورد تناسب وقتك.</li><li>يمكنك اختيار الأخف أو الأعدل أو الأكثر.</li><li>مراجعة الشيخ قبل تثبيت الأرقام المرجعية.</li></ul>' + journeyStoreTeaser(store) + '</aside></div>';
+}
+function journeyStepMarkup(data, index) {
+  const question = (data.questions || [])[index];
+  if (!question) return journeyIntroMarkup(data, journeyUi?.store);
+  const total = Number(data.total || 8);
+  const progress = Math.round(Number(data.answered || 0) / total * 100);
+  const current = data.answers ? data.answers[question.id] : undefined;
+  const options = (question.options || []).map(option => {
+    const selected = current !== undefined && String(current) === String(option.value);
+    return '<button type="button" class="journey-option' + (selected ? " is-selected" : "") + '" data-journey-answer="' + esc(option.value) + '"><strong>' + esc(option.label) + '</strong><small>' + esc(option.detail || "") + '</small></button>';
+  }).join("");
+  return '<div class="journey-step"><div class="journey-step-head"><span class="eyebrow">السؤال ' + (index + 1) + ' من ' + total + '</span><div class="journey-meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="' + progress + '"><i style="width:' + progress + '%"></i></div></div><h3>' + esc(question.title) + '</h3><p>' + esc(question.hint || "") + '</p><div class="journey-options">' + options + '</div><div class="journey-step-actions">' + (index > 0 ? '<button class="btn secondary" type="button" data-journey-back>السابق</button>' : "") + '<span class="muted small">يُحفظ تقدمك تلقائيًا بعد كل إجابة.</span></div></div>';
+}
+function journeyReviewMarkup(data, options = {}) {
+  const reco = data.recommendation;
+  if (!reco) return journeyIntroMarkup(data, journeyUi?.store);
+  const variants = reco.variants || [];
+  const selected = variants.find(item => item.id === options.variant) || reco.recommended || variants[1];
+  if (!selected) return journeyIntroMarkup(data, journeyUi?.store);
+  const ack = Boolean(options.ack);
+  const restValue = options.rest !== undefined && options.rest !== null ? String(options.rest) : String(selected.rest_day ?? "none");
+  const restQuestion = (data.questions || []).find(question => question.id === "rest_day");
+  const restOptions = (restQuestion?.options || []).map(option => '<option value="' + esc(option.value) + '" ' + (String(option.value) === restValue ? "selected" : "") + '>' + esc(option.label) + '</option>').join("");
+  const changes = data.approval_status === "changes_requested" && data.review_note
+    ? '<div class="notice error"><strong>ملاحظة الشيخ:</strong> ' + esc(data.review_note) + '</div>' : "";
+  const variantCards = variants.map(variant => {
+    const isSelected = variant.id === selected.id;
+    const fit = variant.fits ? '<span class="pill is-good">داخل وقتك</span>' : '<span class="pill is-warn">تتجاوز وقتك بـ ' + Number(variant.over_by || 0) + ' دقيقة</span>';
+    return '<button type="button" class="journey-plan-card' + (isSelected ? " is-selected" : "") + '" data-journey-variant="' + esc(variant.id) + '"><span class="journey-plan-kicker">' + esc(variant.label) + '</span><strong>~' + Number(variant.estimated_daily_minutes) + ' دقيقة يوميًا</strong><small>' + esc(variant.description) + '</small><span class="journey-plan-parts">' + esc(variant.hifz_amount + " " + variant.hifz_unit) + ' · تثبيت ' + esc(variant.thabit_label) + ' · ورد ' + esc(variant.ward_label) + '</span>' + fit + '</button>';
+  }).join("");
+  const warning = !selected.fits
+    ? '<div class="notice error"><strong>هذه الخطة تتجاوز الوقت الذي أعلنته بـ ' + Number(selected.over_by || 0) + ' دقيقة يوميًا.</strong><p>إن اخترتها، ستبقى خطة مقترحة تحتاج مراجعة الشيخ. الأفضل أن تبدأ بما تستطيع الوفاء به.</p><label class="check-line"><input type="checkbox" data-journey-ack ' + (ack ? "checked" : "") + '> أتفهم ذلك وأريد المتابعة بعد مراجعة الشيخ.</label></div>'
+    : '<div class="notice">خطتك داخل الوقت الذي أعلنته. الباقي راحة أو مراجعة حرة، لا مهام إضافية.</div>';
+  return changes +
+    '<div class="journey-review"><div class="journey-review-head"><span class="eyebrow">خطتك المقترحة</span><h3>اختر ما يناسبك، ثم ابدأ</h3><p>الخطة ليست عقدًا دائمًا؛ يمكنك تعديلها لاحقًا مع الشيخ. الأرقام المرجعية للتثبيت مقترحة وتنتظر اعتماده.</p></div>' +
+    '<div class="journey-plan-grid">' + variantCards + '</div>' +
+    '<div class="journey-commitment"><div class="journey-commitment-main"><span class="eyebrow">الثمن</span><strong>~' + Number(selected.estimated_daily_minutes) + ' دقيقة يوميًا</strong><small>' + Number(selected.estimated_weekly_minutes) + ' دقيقة أسبوعيًا · ' + Number(reco.price?.days_per_week || 5) + ' أيام · راحة ' + esc((restQuestion?.options || []).find(option => String(option.value) === String(selected.rest_day ?? "none"))?.label || "بدون يوم محدد") + '</small></div><div class="journey-breakdown"><span>حفظ ~' + Number(selected.breakdown?.hifz || 0) + ' د</span><span>تثبيت ~' + Number(selected.breakdown?.thabit || 0) + ' د</span><span>ورد ~' + Number(selected.breakdown?.ward || 0) + ' د</span></div><div class="journey-commitment-line"><strong>لا رسوم مالية.</strong> الثمن وقتك وانتباهك، وما تكسبه من رصيد المتجر مكافأة تنظيمية لا ثمنًا للعبادة.</div></div>' +
+    warning +
+    '<div class="journey-form-row"><label class="field">يوم الاستدراك<select id="journey-rest">' + restOptions + '</select></label><label class="field">ملاحظة للشيخ (اختيارية)<textarea id="journey-note" maxlength="500" rows="2" placeholder="مثال: أحتاج مراجعة الخطة مع الشيخ قبل تثبيتها">' + esc(options.note || "") + '</textarea></label></div>' +
+    '<div class="student-actions"><button class="btn" type="button" data-journey-apply ' + (!selected.fits && !ack ? "disabled" : "") + '>ابدأ بهذه الخطة</button><button class="btn secondary" type="button" data-journey-edit>تعديل الإجابات</button></div>' +
+    '<p class="muted small">تطبيق الخطة يبدأ مهامك فورًا، ويُرسل طلب اعتماد إلى الشيخ. لا يتوقف تعلمك بانتظار الاعتماد، ولا تُغيّر خطتك جذريًا دون إشعارك.</p></div>';
+}
+function journeyStatusMarkup(data) {
+  const plan = data.applied_plan || {};
+  const pending = data.approval_status !== "approved";
+  const changes = data.approval_status === "changes_requested";
+  const note = changes && data.review_note ? '<div class="notice error"><strong>طلب الشيخ تعديلًا:</strong> ' + esc(data.review_note) + '</div>' : "";
+  return note + '<div class="journey-status"><span class="eyebrow">خطتك سارية · ' + (pending ? "بانتظار اعتماد الشيخ" : "معتمدة") + '</span><h3>' + esc(plan.plan_label || "خطتك القرآنية") + ' · فئة ' + esc(plan.hifz_category_label || "") + '</h3><p>يمكنك البدء الآن. اعتماد الشيخ يثبت الخطة، وطلبه للتعديل لا يوقف تعلمك.</p><div class="journey-status-grid"><div><small>الحفظ اليومي</small><strong>' + esc(plan.hifz_amount || "—") + ' ' + esc(plan.hifz_unit || "") + '</strong></div><div><small>التثبيت</small><strong>' + esc(plan.thabit_label || "—") + '</strong></div><div><small>الورد</small><strong>' + esc(plan.ward_label || "—") + '</strong></div><div><small>الثمن اليومي</small><strong>~' + Number(plan.estimated_daily_minutes || 0) + ' د</strong></div></div><div class="student-actions"><button class="btn" type="button" data-journey-quran>ابدأ مهمة اليوم</button>' + (changes ? '<button class="btn secondary" type="button" data-journey-edit>راجع خطتك</button>' : "") + '</div></div>';
+}
+function journeyStageMarkup(data, store) {
+  if (!data) return "";
+  if (data.status === "applied" && data.approval_status === "approved") return "";
+  if (data.status === "applied") return journeyStatusMarkup(data);
+  if (data.complete && data.recommendation) return journeyReviewMarkup(data, { variant: data.recommendation.recommended_variant });
+  return journeyIntroMarkup(data, store);
+}
+function journeyWorldMarkup(data, store) {
+  if (!data) return "";
+  const stage = journeyStageMarkup(data, store);
+  if (!stage) return "";
+  return '<section class="journey-shell" id="journey-shell" aria-labelledby="journey-shell-title"><div id="journey-stage">' + stage + '</div></section>';
+}
+function wireJourneyWorld(v, data, store) {
+  const stage = v.querySelector("#journey-stage");
+  if (!stage || !data) return;
+  journeyUi = { data, store, stage, index: journeyFirstUnanswered(data), variant: data.recommendation?.recommended_variant || "balanced", ack: false, rest: undefined, note: "" };
+  const ui = journeyUi;
+  function bind() {
+    stage.querySelectorAll("[data-journey-start]").forEach(button => button.onclick = () => { ui.index = journeyFirstUnanswered(ui.data); showStep(); });
+    stage.querySelectorAll("[data-journey-edit]").forEach(button => button.onclick = () => { ui.index = 0; showStep(); });
+    stage.querySelectorAll("[data-journey-quran]").forEach(button => button.onclick = () => go("quran"));
+    stage.querySelectorAll("[data-journey-variant]").forEach(button => button.onclick = () => {
+      readForm();
+      ui.variant = button.dataset.journeyVariant;
+      ui.ack = false;
+      showReview();
+    });
+    stage.querySelector("[data-journey-ack]")?.addEventListener("change", event => { readForm(); ui.ack = event.target.checked; showReview(); });
+    stage.querySelector("[data-journey-apply]")?.addEventListener("click", apply);
+  }
+  function readForm() {
+    const rest = stage.querySelector("#journey-rest"), note = stage.querySelector("#journey-note"), ack = stage.querySelector("[data-journey-ack]");
+    if (rest) ui.rest = rest.value;
+    if (note) ui.note = note.value;
+    if (ack) ui.ack = ack.checked;
+  }
+  function showStep() {
+    stage.innerHTML = journeyStepMarkup(ui.data, ui.index);
+    stage.querySelectorAll("[data-journey-answer]").forEach(button => button.onclick = async () => {
+      const question = (ui.data.questions || [])[ui.index];
+      if (!question) return;
+      button.disabled = true;
+      try {
+        const updated = await api("/journey", { method: "POST", body: JSON.stringify({ key: question.id, value: button.dataset.journeyAnswer }) });
+        ui.data = updated;
+        if (updated.complete) {
+          ui.variant = updated.recommendation?.recommended_variant || ui.variant;
+          showReview();
+          return;
+        }
+        const next = journeyNextUnanswered(updated, ui.index);
+        ui.index = next < 0 ? 0 : next;
+        showStep();
+      } catch (error) { button.disabled = false; toast(error.message, true); }
+    });
+    stage.querySelector("[data-journey-back]")?.addEventListener("click", () => { ui.index = Math.max(0, ui.index - 1); showStep(); });
+  }
+  function showReview() {
+    stage.innerHTML = journeyReviewMarkup(ui.data, { variant: ui.variant, ack: ui.ack, rest: ui.rest, note: ui.note });
+    bind();
+  }
+  async function apply() {
+    readForm();
+    const selected = (ui.data.recommendation?.variants || []).find(item => item.id === ui.variant);
+    if (!selected) return toast("اختر خطة أولًا", true);
+    if (!selected.fits && !ui.ack) return toast("أكّد أنك تفهم أن الخطة تتجاوز وقتك المعلن", true);
+    const button = stage.querySelector("[data-journey-apply]");
+    if (button) button.disabled = true;
+    try {
+      const rest = ui.rest === undefined || ui.rest === null || ui.rest === "" ? selected.rest_day : (ui.rest === "none" ? null : Number(ui.rest));
+      await api("/journey/apply", { method: "POST", body: JSON.stringify({ variant: ui.variant, rest_day: rest, note: ui.note || "", acknowledge_over_budget: ui.ack }) });
+      toast("بدأت خطتك. أول مهمة تنتظرك في مسار القرآن.");
+      if (typeof refreshWallet === "function") refreshWallet();
+      await worldPage(v);
+    } catch (error) { if (button) button.disabled = false; toast(error.message, true); }
+  }
+  bind();
+}
+
 async function worldPage(v){
  if(S.user.role!=="student"){v.innerHTML=head("عالمي","هذه الصفحة مخصّصة لحساب الطالب.")+'<div class="notice">عد إلى الرئيسية لمتابعة مهامك.</div>';return}
  v.innerHTML='<div class="loading">جار تجهيز عالمك…</div>';
- const result=await Promise.allSettled([api("/points/summary"),api("/gamification"),api("/tasks"),api("/leaderboard"),api("/points/reading")]);
+ const result=await Promise.allSettled([api("/points/summary"),api("/gamification"),api("/tasks"),api("/leaderboard"),api("/points/reading"),api("/journey"),api("/store/items")]);
  if(result[0].status!=="fulfilled"){
   v.innerHTML=head("عالمي","تعذّر تحميل بياناتك الآن.")+'<div class="notice error">'+esc(result[0].reason?.message||"تعذّر التحميل")+'</div><button class="btn" id="world-retry">إعادة المحاولة</button>';
   $("#world-retry")?.addEventListener("click",()=>worldPage(v));return;
@@ -1230,6 +1510,8 @@ async function worldPage(v){
  const tasks=result[2].status==="fulfilled"?result[2].value:{tasks:[],counts:{}};
  const board=result[3].status==="fulfilled"?result[3].value:[];
  const reading=result[4].status==="fulfilled"?result[4].value:null;
+ const journey=result[5].status==="fulfilled"?result[5].value:null;
+ const storeData=result[6].status==="fulfilled"?result[6].value:null;
  const achievement=Number(summary.totals?.achievement||0),store=Number(summary.totals?.store||0);
  const stage=worldStage(achievement);
  const me=board.find(x=>x.is_self);
@@ -1250,12 +1532,13 @@ async function worldPage(v){
   : '<div class="notice">'+(gam?.challenge_claimed?"استلمت مكافأة تحدي اليوم. أحسنت!":"تحدي اليوم يظهر عندما يجهز حسابك في فوج.")+'</div>';
  v.innerHTML='<div class="world-page">'+
   '<section class="world-hero"><div class="world-avatar" style="--world-progress:'+stage.progress+'%"><span class="world-avatar-halo" aria-hidden="true"></span><span class="world-avatar-icon" aria-hidden="true">'+stage.icon+'</span><span class="world-avatar-level">المستوى '+stage.index+'</span></div><div class="world-hero-copy"><span class="eyebrow">عالمك في الإحسان · '+esc(stage.title)+'</span><h2>بستان '+esc(firstName)+'</h2><p>'+esc(stage.line)+'</p><div class="world-progress"><div class="world-progress-head"><span>'+esc(stage.name)+'</span><span>'+(stage.next?Number(stage.remaining)+' نقطة إلى '+esc(stage.next.name):"أعلى مرتبة في العالم")+'</span></div><div class="world-meter"><i style="width:'+stage.progress+'%"></i></div></div><div class="world-chips"><span class="world-chip"><b>★</b> '+Number(achievement)+' إنجاز</span><span class="world-chip"><b>◈</b> '+Number(store)+' رصيد متجر</span><span class="world-chip"><b>🔥</b> '+streak+' يوم قراءة</span><span class="world-chip"><b>#</b> '+(me?Number(me.rank):"—")+' في الفوج</span></div></div></section>'+
-  '<div class="world-grid"><section class="card world-garden"><div class="section-head"><div><span class="eyebrow">بستانك</span><h3>مراتب تنمو بأعمالك</h3><p>كل مرتبة تفتح بخطوات حقيقية: حضور، حفظ، مراجعة، واجبات، اختبارات، وقراءة.</p></div><span class="pill">'+stage.index+' / '+stage.count+'</span></div><div class="world-plots">'+garden+'</div></section>'+
+  journeyWorldMarkup(journey,storeData)+'<div class="world-grid"><section class="card world-garden"><div class="section-head"><div><span class="eyebrow">بستانك</span><h3>مراتب تنمو بأعمالك</h3><p>كل مرتبة تفتح بخطوات حقيقية: حضور، حفظ، مراجعة، واجبات، اختبارات، وقراءة.</p></div><span class="pill">'+stage.index+' / '+stage.count+'</span></div><div class="world-plots">'+garden+'</div></section>'+
   '<section class="card world-quests"><div class="section-head"><div><span class="eyebrow">مهام اليوم</span><h3>خطوات صغيرة تبني عالمك</h3><p>ابدأ بأقرب خطوة؛ لا تنتظر يومًا كاملًا لتتحرك.</p></div></div><div class="world-quest-grid">'+quest("ورد القرآن",Number(gam?.stats?.quran_days||0)+" يوم","۞","quran")+quest("الحضور",Number(gam?.stats?.attendance||0)+" مرات","✓","attendance")+quest("المهام المنجزة",Number(counts.done||0)+" مهام","▤","tasks")+quest("الترتيب في الفوج",me?"#"+Number(me.rank):"—","#","leaderboard")+'</div>'+challengeBlock+'</section></div>'+
   '<section class="card world-reading"><div class="section-head"><div><span class="eyebrow">ورد القراءة</span><h3>سجّل قراءتك اليوم</h3><p>القراءة اليومية تبني سلسلة وتمنحك نقاط إنجاز ورصيد متجر مرة واحدة كل يوم.</p></div><span class="world-streak">🔥 '+streak+'</span></div>'+readingBlock+(recentEntries?'<div class="list world-reading-list">'+recentEntries+'</div>':"")+'</section>'+
   '<section class="card world-journey"><div class="section-head"><div><span class="eyebrow">الطريق</span><h3>من البذرة إلى المحراب</h3><p>هذه ليست لعبة منفصلة عن الأكاديمية؛ كل مرتبة هنا مبنية على عمل سجّلته فعليًا.</p></div><button class="btn secondary" type="button" data-world-go="guide">دليل الرحلة</button></div><div class="world-journey-track">'+WORLD_STAGES.map((item,i)=>'<div class="world-journey-stop '+(achievement>=item.min?"is-done":"")+(stage.index===i+1?" is-current":"")+'"><span>'+item.icon+'</span><strong>'+esc(item.name)+'</strong><small>'+Number(item.min)+'</small></div>').join("")+'</div></section>'+
   '</div>';
  v.querySelectorAll("[data-world-go]").forEach(btn=>btn.onclick=()=>go(btn.dataset.worldGo));
+ wireJourneyWorld(v,journey,storeData);
  $("#world-claim")?.addEventListener("click",async event=>{
   const button=event.currentTarget;button.disabled=true;
   try{await api("/gamification/claim",{method:"POST",body:JSON.stringify({challenge_id:gam?.daily_challenge?.id||"daily-quran"})});toast("تم تسجيل إنجازك ومكافأتك اليومية");await worldPage(v);refreshWallet()}
@@ -1717,7 +2000,7 @@ function quranJourneyMarkup(summary,pathInfo,stations){
   return '<section class="card quran-journey"><div class="section-head"><div><span class="eyebrow">الرحلة</span><h3>محطاتك الكبرى</h3><p>الشيخ يعتمد المحطات 15 و30 و45 و60؛ أما المقادير الوسيطة فيتابعها الرفيق.</p></div><button class="btn secondary" type="button" data-quran-print="journey">طباعة بطاقة المتابعة</button></div><div class="quran-gates">'+gates+'</div><div class="quran-journey-stats"><div><small>أيام الحفظ</small><strong>'+Number(totals.hifz?.days||0)+'</strong></div><div><small>أيام التثبيت</small><strong>'+Number(totals.thabit?.days||0)+'</strong></div><div><small>أحزاب التثبيت</small><strong>'+quranFmtAmount(thabit,"حزب")+'</strong></div><div><small>أيام الورد</small><strong>'+Number(totals.ward?.days||0)+'</strong></div><div><small>أحزاب الورد</small><strong>'+quranFmtAmount(ward,"حزب")+'</strong></div><div><small>استدراكات مفتوحة</small><strong>'+Number((makeups.open||0)+(makeups.planned||0))+'</strong></div></div></section>';
 }
 function quranDailyMarkup(pathData,todayData,summary,stations){
-  if(!pathData?.enrolled)return quranEnrollMarkup();
+  if(!pathData?.enrolled)return '<section class="card quran-start-callout"><span class="eyebrow">بداية الرحلة</span><h3>لن نختار عنك عشوائيًا</h3><p>ابدأ من عالمك بأسئلة قصيرة، وسنقترح عليك خطة حفظ وتثبيت وورد بحسب محفوظك ووقتك، ثم تطبقها هنا مباشرة. يمكنك أيضًا اختيار الخطة يدويًا.</p><button class="btn" type="button" data-go-world>ابدأ رحلة الخطة</button></section><details class="quran-plan-edit"><summary class="btn secondary">اختيار الخطة يدويًا</summary>'+quranEnrollMarkup()+'</details>';
   const pathInfo=pathData.path||{},logs=todayData?.logs||{};
   const blocked=Boolean(todayData?.blocked);
   const rest=todayData?.is_rest_day;
@@ -1793,15 +2076,30 @@ async function quran(v){
   return;
  }
  const tab=safeStore.getSession("ihsan_quran_staff_tab")||"roster";
- if(tab==="supervision"){await quranSupervisionPage(v);return}
- v.innerHTML=head("متابعة الحفظ والمراجعة","سجّل الحفظ والمراجعة، أو انتقل إلى متابعة الرفاق والمحطات والاستدراك.")+'<div class="quran-staff-switch"><button type="button" class="btn secondary is-active" data-quran-staff-tab="roster">تسجيل الحفظ والمراجعة</button><button type="button" class="btn secondary" data-quran-staff-tab="supervision">الرفيق والمحطات والاستدراك</button></div><div id="quran-staff-body"></div>';
- v.querySelectorAll("[data-quran-staff-tab]").forEach(btn=>btn.onclick=()=>{safeStore.setSession("ihsan_quran_staff_tab",btn.dataset.quranStaffTab);quran(v)});
+ const staffTabs=[["roster","تسجيل الحفظ والمراجعة"],["supervision","الرفيق والمحطات والاستدراك"],["plans","خطط الطلاب"]];
+ const staffSwitch='<div class="quran-staff-switch">'+staffTabs.map(([id,label])=>'<button type="button" class="btn secondary '+(id===tab?"is-active":"")+'" data-quran-staff-tab="'+id+'">'+label+'</button>').join("")+'</div>';
+ const wireStaffSwitch=host=>host.querySelectorAll("[data-quran-staff-tab]").forEach(btn=>btn.onclick=()=>{safeStore.setSession("ihsan_quran_staff_tab",btn.dataset.quranStaffTab);quran(v)});
+ if(tab==="supervision"){
+  v.innerHTML=head("الرفيق والمحطات والاستدراك","اربط الرفيقين في الفوج، واعتمد المحطات، وتابع الاستدراك دون خلط بينه وبين تسجيل الحفظ.")+staffSwitch+'<div id="quran-staff-body"></div>';
+  wireStaffSwitch(v);
+  await quranSupervisionPage($("#quran-staff-body"));
+  return;
+ }
+ if(tab==="plans"){
+  v.innerHTML=head("خطط الطلاب","راجع خطط الطلاب كما طلبوها، واعتمدها أو اطلب تعديلًا بملاحظة واضحة. لا تتغير خطة الطالب تلقائيًا، وتعلمه لا يتوقف بانتظار الاعتماد.")+staffSwitch+'<div id="quran-staff-body"></div>';
+  wireStaffSwitch(v);
+  await quranPlansReviewPage($("#quran-staff-body"));
+  return;
+ }
+ v.innerHTML=head("متابعة الحفظ والمراجعة","سجّل الحفظ والمراجعة، أو انتقل إلى متابعة الرفاق والمحطات والاستدراك أو مراجعة خطط الطلاب.")+staffSwitch+'<div id="quran-staff-body"></div>';
+ wireStaffSwitch(v);
  await quranRosterPage($("#quran-staff-body"));
 }
 function quranLogList(rows){
   return '<section class="card"><h3>سجل الحفظ والمراجعة والتسميع</h3><div class="list">'+(rows.length?rows.map(r=>'<article class="list-row"><div><strong>'+esc(r.date)+' · '+esc(quranActivityName(r.activity))+'</strong><small>الحفظ: '+esc(r.memorized||"—")+' · المراجعة: '+esc(r.reviewed||"—")+' · التسميع: '+esc(r.recitation||"—")+'</small><small>الأخطاء: '+Number(r.errors||0)+' · التقدير: '+(r.grade===null||r.grade===undefined?"—":esc(r.grade+"/10"))+' · التصحيح: '+(r.corrected?"تم":"قيد المتابعة")+'</small><small>ملاحظة المعلم: '+esc(r.feedback||r.notes||"—")+'</small><small>المهمة القادمة: '+esc(r.next_assignment||"—")+'</small></div><span class="pill">متابعة</span></article>').join(""):'<div class="empty">لم تُسجّل متابعة بعد. سيظهر تقدمك هنا عند تسميع القرآن للمعلم.</div>')+'</div></section>';
 }
 function wireQuranDaily(v,pathData,todayData,summary,stations){
+  v.querySelector("[data-go-world]")?.addEventListener("click",()=>go("world"));
   const enroll=v.querySelector("#quran-enroll-form");
   if(enroll)enroll.onsubmit=async event=>{
     event.preventDefault();const form=event.currentTarget,button=form.querySelector('button[type="submit"]');button.disabled=true;
@@ -1843,9 +2141,46 @@ function wireQuranStations(v){
     try{await api("/quran/makeups",{method:"POST",body:JSON.stringify({kind:f.get("kind"),due_date:f.get("due_date"),amount:f.get("amount")||"",reason:f.get("reason"),reason_note:f.get("reason_note")||"",proposed_date:f.get("proposed_date")||""})});toast("أُضيف إلى قائمة الاستدراك");await quran(v)}catch(error){button.disabled=false;toast(error.message,true)}
   };
 }
+async function quranPlansReviewPage(v){
+ const statuses=[["pending","بانتظار الاعتماد"],["changes_requested","طلبات تعديل"],["approved","معتمدة"]];
+ const current=safeStore.getSession("ihsan_plan_review_status")||"pending";
+ const embedded=v.id==="quran-staff-body";
+ v.innerHTML='<div class="loading">جار تحميل خطط الطلاب…</div>';
+ try{
+  const data=await api("/journey/review?status="+encodeURIComponent(current));
+  const counts=data.counts||{},items=data.items||[];
+  const tabs='<div class="quran-staff-switch">'+statuses.map(([id,label])=>'<button type="button" class="btn secondary '+(id===current?"is-active":"")+'" data-plan-review-status="'+id+'">'+label+' ('+Number(counts[id]||0)+')</button>').join("")+'</div>';
+  const rows=items.map(item=>{
+   const plan=item.plan||{};
+   const budget=plan.fits===false?'<span class="pill is-warn">تتجاوز الوقت بـ '+Number(plan.over_by||0)+' د</span>':'<span class="pill is-good">داخل الوقت المعلن</span>';
+   const summary=(item.answers_summary||[]).map(answer=>'<div class="list-row"><div><strong>'+esc(answer.title)+'</strong><small>'+esc(answer.label)+'</small></div></div>').join("");
+   const requestNote=item.request_note?'<div class="notice"><strong>ملاحظة الطالب:</strong> '+esc(item.request_note)+'</div>':"";
+   const reviewNote=item.review_note?'<div class="notice '+(item.approval_status==="changes_requested"?"error":"")+'"><strong>ملاحظة المراجعة:</strong> '+esc(item.review_note)+'</div>':"";
+   const actions=item.approval_status==="pending"?'<div class="plan-review-actions"><label class="field">ملاحظة للطالب (إلزامية عند طلب التعديل)<textarea data-plan-review-note="'+esc(item.student_id)+'" rows="2" maxlength="500" placeholder="مثال: خفّف الحفظ إلى وجه واحد مع تثبيت أثبت، ثم أعد الإرسال."></textarea></label><div class="student-actions"><button class="btn" type="button" data-plan-decision="approved" data-plan-student="'+esc(item.student_id)+'">اعتماد الخطة</button><button class="btn secondary" type="button" data-plan-decision="changes_requested" data-plan-student="'+esc(item.student_id)+'">طلب تعديل</button></div></div>':"";
+   return '<article class="card plan-review-card"><div class="section-head"><div><span class="eyebrow">'+esc(item.group_name||"بلا فوج")+' · '+esc(String(item.applied_at||"").slice(0,10))+'</span><h3>'+esc(item.student_name||"طالب")+'</h3><p>'+esc(plan.plan_label||"—")+' · فئة '+esc(plan.hifz_category_label||"—")+' · حفظ '+esc(plan.hifz_amount||"—")+' '+esc(plan.hifz_unit||"")+' · تثبيت '+esc(plan.thabit_label||"—")+' · ورد '+esc(plan.ward_label||"—")+'</p></div><div class="plan-review-pills">'+budget+'<span class="pill">~'+Number(plan.estimated_daily_minutes||0)+' د/يوم</span><span class="pill">'+(item.approval_status==="approved"?"معتمدة":item.approval_status==="changes_requested"?"بانتظار تعديل الطالب":"بانتظار قرارك")+'</span></div></div>'+requestNote+reviewNote+'<details class="plan-review-answers"><summary>إجابات الطالب ('+Number((item.answers_summary||[]).length)+')</summary><div class="list">'+(summary||'<div class="empty">لا توجد إجابات محفوظة.</div>')+'</div></details>'+actions+'</article>';
+  }).join("");
+  v.innerHTML=(embedded?"":head("خطط الطلاب","راجع خطط الطلاب كما طلبوها، واعتمدها أو اطلب تعديلًا بملاحظة واضحة. لا تتغير خطة الطالب تلقائيًا، وتعلمه لا يتوقف بانتظار الاعتماد."))+tabs+
+   '<div class="notice">الأرقام المرجعية للتثبيت (60←نصف، 45←ثلاثة أثمان، 30←ربع، 15←ثمن) مقترحة وتنتظر اعتماد الشيخ. الاعتماد يثبت خطة الطالب الحالية فقط، ولا يمنح نقاطًا أو يعدّل سجل حفظه.</div>'+
+   (rows||'<div class="empty">لا توجد خطط في هذه الحالة الآن.</div>');
+  v.querySelectorAll("[data-plan-review-status]").forEach(btn=>btn.onclick=()=>{safeStore.setSession("ihsan_plan_review_status",btn.dataset.planReviewStatus);quranPlansReviewPage(v)});
+  v.querySelectorAll("[data-plan-decision]").forEach(btn=>btn.onclick=async()=>{
+   const studentId=btn.dataset.planStudent,decision=btn.dataset.planDecision;
+   const noteInput=v.querySelector('[data-plan-review-note="'+studentId+'"]');
+   const note=noteInput?noteInput.value.trim():"";
+   if(decision==="changes_requested"&&note.length<3){toast("اكتب ملاحظة واضحة للطالب قبل طلب التعديل",true);noteInput?.focus();return}
+   btn.disabled=true;
+   try{await api("/journey/review",{method:"POST",body:JSON.stringify({student_id:studentId,decision,note})});toast(decision==="approved"?"اعتُمدت خطة الطالب":"أُرسل طلب التعديل إلى الطالب");await quranPlansReviewPage(v)}
+   catch(error){btn.disabled=false;toast(error.message,true)}
+  });
+ }catch(error){
+  v.innerHTML=(embedded?"":head("خطط الطلاب","تعذّر تحميل خطط الطلاب الآن."))+'<div class="notice error">'+esc(error.message)+'</div><button class="btn" id="retry-plan-review">إعادة المحاولة</button>';
+  $("#retry-plan-review")?.addEventListener("click",()=>quranPlansReviewPage(v));
+ }
+}
 async function quranSupervisionPage(v){
+  const embedded=v.id==="quran-staff-body";
   const groups=assignedGroups().slice().sort((a,b)=>compareStudentNames(a.name,b.name));
-  v.innerHTML=head("الرفيق والمحطات والاستدراك","اربط الرفيقين في الفوج، واعتمد المحطات، وتابع الاستدراك دون خلط بينه وبين تسجيل الحفظ.")+'<section class="card"><div class="section-head"><div><span class="eyebrow">اختيار الفوج</span><h3>ابدأ من فوجك</h3></div></div><label class="field">الفوج<select id="quran-sup-group"><option value="">اختر فوجًا</option>'+groups.map(g=>'<option value="'+esc(g.id)+'">'+esc(g.name)+'</option>').join("")+'</select></label><div id="quran-sup-body"><div class="empty">اختر فوجًا لعرض طلابه.</div></div></section>';
+  v.innerHTML=(embedded?"":head("الرفيق والمحطات والاستدراك","اربط الرفيقين في الفوج، واعتمد المحطات، وتابع الاستدراك دون خلط بينه وبين تسجيل الحفظ."))+'<section class="card"><div class="section-head"><div><span class="eyebrow">اختيار الفوج</span><h3>ابدأ من فوجك</h3></div></div><label class="field">الفوج<select id="quran-sup-group"><option value="">اختر فوجًا</option>'+groups.map(g=>'<option value="'+esc(g.id)+'">'+esc(g.name)+'</option>').join("")+'</select></label><div id="quran-sup-body"><div class="empty">اختر فوجًا لعرض طلابه.</div></div></section>';
   const select=$("#quran-sup-group"),host=$("#quran-sup-body");
   select.onchange=()=>render();
   async function render(){

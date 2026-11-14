@@ -61,6 +61,8 @@ jobs:
         run: node scripts/points-local-test.mjs
       - name: Run Quran path tests
         run: node scripts/quran-path-test.mjs
+      - name: Run student journey and store tests
+        run: node scripts/journey-store-test.mjs
       - name: Run backup/restore drill
         run: node scripts/backup-restore-test.mjs
       - name: Run role/permission tests

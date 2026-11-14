@@ -464,4 +464,18 @@ assert.match(robots, /Sitemap: https:\/\/a-ihsan\.pages\.dev\/sitemap\.xml/, "ro
 assert.match(sitemap, /https:\/\/a-ihsan\.pages\.dev\//, "the sitemap must use the primary production domain");
 assert.match(redirects, /\/about\.html\s+\/about\s+301/, "existing static path redirects must remain intact");
 
+// Journey and store guardrails: reuse existing storage and show only real catalog rows.
+assert.match(backend, /collection='student_journey'/, "journey state must use the existing academy_records store");
+assert.doesNotMatch(backend, /CREATE TABLE IF NOT EXISTS student_journey/, "journey must not add a duplicate table");
+assert.match(backend, /saveQuranPathForStudent\(env,user,student/, "journey apply must reuse the existing Quran path writer");
+assert.match(backend, /saveQuranPlanForStudent\(env,user,student/, "journey apply must reuse the existing Quran plan writer");
+assert.match(backend, /storeRecommendationPayload\(enriched,balance\)/, "student store reads must derive recommendations from real store rows");
+assert.match(backend, /if\(path==="\/api\/store\/items"&&method==="POST"\)\{\s*if\(user\.role!=="admin"\)return fail\(403,"إدارة المتجر للمدير فقط"\)/, "store creation and edits must remain admin-only");
+assert.match(app, /const STORE_SUGGESTIONS=/, "admin suggestions must remain UI-only helper templates");
+assert.match(app, /غير محفوظة ولا يراها الطالب/, "admin suggestions must disclose that they are not saved or shown to students");
+assert.match(app, /async function quranPlansReviewPage\(v\)/, "staff must have a journey review screen");
+assert.match(style, /\.journey-shell\{/, "the student journey must have dedicated responsive styling");
+assert.match(style, /\.store-terms\{/, "store redemption terms must be visibly styled");
+assert.match(style, /prefers-reduced-motion:reduce\)\{\s*\.journey-meter/, "journey and store motion must respect reduced-motion preferences");
+
 console.log("Security regression guardrails passed.");
