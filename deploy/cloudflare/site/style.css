@@ -3515,3 +3515,5 @@ html:root:root .academy-about-footnote{background:#241006!important;border-color
  .identity-sheet-head{padding:16px 16px 12px}
  .identity-sheet-body{padding:14px 16px 18px}
 }
+
+.store-item-image{width:100%;height:120px;object-fit:cover;border-radius:12px;margin-bottom:8px}

@@ -888,6 +888,12 @@ const STORE_SUGGESTIONS=[
  {icon:"🎁",name:"حقيبة الأكاديمية",description:"حقيبة عملية تحمل هوية الأكاديمية.",cost:3000},
  {icon:"☕",name:"هدية تحفيزية صغيرة",description:"هدية رمزية تُسلَّم في الأكاديمية.",cost:800}
 ];
+
+function storeItemImage(item){
+ const url=String(item?.image_url||"").trim();
+ if(url) return '<img class="store-item-image" src="'+esc(url)+'" alt="'+esc(item.name||"")+'" loading="lazy" onerror="this.style.display=\'none\'">';
+ return '<span class="store-reco-icon" aria-hidden="true">'+esc(item?.icon||"??")+'</span>';
+}
 function storeItemState(item,balance){
  const stock=item.stock===null||item.stock===undefined?null:Number(item.stock);
  const max=item.max_per_student===null||item.max_per_student===undefined?null:Number(item.max_per_student);
@@ -946,7 +952,7 @@ function storeStaffMarkup(store,canEdit){
  }).join("");
  return '<section class="card store-admin"><div class="section-head"><div><span class="eyebrow">إدارة المتجر</span><h3>أضف مكافآت حقيقية فقط</h3><p>لا يظهر للطالب إلا ما تحفظه هنا فعليًا مع مخزونه وشروطه. الاقتراحات أدناه قوالب غير محفوظة ولا يراها الطالب.</p></div></div>'+
  '<div class="store-suggestions"><span class="eyebrow">اقتراحات إرشادية غير محفوظة — عدّلها ثم احفظ بعد تأكيد التوفر</span><div class="store-suggestion-grid">'+suggestions+'</div></div>'+
- '<h4 id="store-form-title">إضافة مادة إلى المتجر</h4><form id="store-item-form" class="form-grid"><input type="hidden" name="item_id" value=""><label class="field">اسم المادة<input name="name" required maxlength="160"></label><label class="field">التكلفة (رصيد المتجر)<input name="cost" type="number" min="1" max="100000" required></label><label class="field">المخزون (فارغ = بلا حد)<input name="stock" type="number" min="0"></label><label class="field">حد الطالب (فارغ = بلا حد)<input name="max_per_student" type="number" min="1"></label><label class="field">الرمز<input name="icon" maxlength="8" placeholder="🎁"></label><label class="field">الترتيب<input name="sort_order" type="number" value="0"></label><label class="field wide">الوصف<textarea name="description" maxlength="2000" rows="2"></textarea></label><label class="field wide"><span><input name="active" type="checkbox" checked> معروضة للطلاب الآن</span></label><div class="student-actions"><button class="btn" type="submit">حفظ المادة</button><button class="btn secondary" type="button" id="store-form-cancel" hidden>إلغاء التعديل</button></div></form>'+
+ '<h4 id="store-form-title">إضافة مادة إلى المتجر</h4><form id="store-item-form" class="form-grid"><input type="hidden" name="item_id" value=""><label class="field">اسم المادة<input name="name" required maxlength="160"></label><label class="field">التكلفة (رصيد المتجر)<input name="cost" type="number" min="1" max="100000" required></label><label class="field">المخزون (فارغ = بلا حد)<input name="stock" type="number" min="0"></label><label class="field">حد الطالب (فارغ = بلا حد)<input name="max_per_student" type="number" min="1"></label><label class="field">الرمز<input name="icon" maxlength="8" placeholder="??"><label class="field">رابط الصورة (اختياري)<input name="image_url" maxlength="500" placeholder="https://..."></label></label><label class="field">الترتيب<input name="sort_order" type="number" value="0"></label><label class="field wide">الوصف<textarea name="description" maxlength="2000" rows="2"></textarea></label><label class="field wide"><span><input name="active" type="checkbox" checked> معروضة للطلاب الآن</span></label><div class="student-actions"><button class="btn" type="submit">حفظ المادة</button><button class="btn secondary" type="button" id="store-form-cancel" hidden>إلغاء التعديل</button></div></form>'+
  '<div class="list">'+(rows||'<p class="muted">لم تُضف مواد إلى المتجر بعد.</p>')+'</div></section>';
 }
 
@@ -1021,7 +1027,7 @@ async function pointsPage(v){
  function fillStoreForm(item){
   if(!storeForm||!item)return;
   const set=(name,value)=>{const field=storeForm.querySelector('[name="'+name+'"]');if(field)field.value=value??""};
-  set("item_id",item.id);set("name",item.name);set("cost",item.cost);set("stock",item.stock===null?"":item.stock);set("max_per_student",item.max_per_student===null?"":item.max_per_student);set("icon",item.icon||"🎁");set("sort_order",item.sort_order||0);set("description",item.description||"");
+  set("item_id",item.id);set("name",item.name);set("cost",item.cost);set("stock",item.stock===null?"":item.stock);set("max_per_student",item.max_per_student===null?"":item.max_per_student);set("icon",item.icon||"??");set("image_url",item.image_url||"");set("sort_order",item.sort_order||0);set("description",item.description||"");
   const active=storeForm.querySelector('[name="active"]');if(active)active.checked=Number(item.active)!==0;
   const title=$("#store-form-title"),cancel=$("#store-form-cancel");
   if(title)title.textContent="تعديل مادة في المتجر";
@@ -1045,7 +1051,7 @@ async function pointsPage(v){
  $("#store-item-form")?.addEventListener("submit",async e=>{
   e.preventDefault();const form=e.currentTarget,data=new FormData(form),submit=form.querySelector('button[type="submit"]');
   if(submit)submit.disabled=true;
-  try{const itemId=String(data.get("item_id")||"");await api("/store/items",{method:"POST",body:JSON.stringify({id:itemId||undefined,name:data.get("name"),description:data.get("description"),icon:data.get("icon"),cost:Number(data.get("cost")),stock:data.get("stock")===""?null:Number(data.get("stock")),max_per_student:data.get("max_per_student")===""?null:Number(data.get("max_per_student")),sort_order:Number(data.get("sort_order")||0),active:Boolean(data.get("active"))})});toast(itemId?"تم حفظ تعديل المادة":"تمت إضافة المادة بعد تأكيدك");await pointsPage(v)}catch(error){if(submit)submit.disabled=false;toast(error.message,true)}
+  try{const itemId=String(data.get("item_id")||"");await api("/store/items",{method:"POST",body:JSON.stringify({id:itemId||undefined,name:data.get("name"),description:data.get("description"),icon:data.get("icon"),image_url:data.get("image_url"),cost:Number(data.get("cost")),stock:data.get("stock")===""?null:Number(data.get("stock")),max_per_student:data.get("max_per_student")===""?null:Number(data.get("max_per_student")),sort_order:Number(data.get("sort_order")||0),active:Boolean(data.get("active"))})});toast(itemId?"تم حفظ تعديل المادة":"تمت إضافة المادة بعد تأكيدك");await pointsPage(v)}catch(error){if(submit)submit.disabled=false;toast(error.message,true)}
  });
  document.querySelectorAll("[data-store-toggle]").forEach(btn=>btn.onclick=async()=>{
   const item=(store.items||[]).find(x=>x.id===btn.dataset.storeToggle);

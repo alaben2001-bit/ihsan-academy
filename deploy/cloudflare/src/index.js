@@ -448,6 +448,7 @@ const LEARNING_SCHEMA_STATEMENTS = [
     name TEXT NOT NULL,
     description TEXT NOT NULL DEFAULT '',
     icon TEXT NOT NULL DEFAULT '🎁',
+    image_url TEXT,
     cost INTEGER NOT NULL CHECK (cost >= 1 AND cost <= 100000),
     stock INTEGER CHECK (stock IS NULL OR stock >= 0),
     max_per_student INTEGER CHECK (max_per_student IS NULL OR max_per_student >= 1),
@@ -485,6 +486,7 @@ async function ensureLearningSchema(env) {
     // idempotent, and the rule seeds use INSERT OR IGNORE so new default rules
     // appear even when the economy tables were created by an earlier release.
     for (const statement of LEARNING_SCHEMA_STATEMENTS) await env.DB.prepare(statement).run();
+    try { await env.DB.prepare("ALTER TABLE store_items ADD COLUMN image_url TEXT").run(); } catch {}
     return true;
   })().catch(error => { learningSchemaReady = null; throw error; });
   return learningSchemaReady;
@@ -4156,6 +4158,7 @@ export default {
       if(user.role!=="admin")return fail(403,"إدارة المتجر للمدير فقط");
       const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
       const name=clean(b.name,160),description=clean(b.description,2000),icon=clean(b.icon,8)||"🎁";
+      const imageUrl=clean(b.image_url,500);
       const cost=Number(b.cost);
       const rawStock=b.stock,stock=rawStock===""||rawStock===null||rawStock===undefined?null:Number(rawStock);
       const rawMax=b.max_per_student,maxPerStudent=rawMax===""||rawMax===null||rawMax===undefined?null:Number(rawMax);
@@ -4170,12 +4173,12 @@ export default {
       if(requestedId){
         const existing=await env.DB.prepare("SELECT * FROM store_items WHERE id=?").bind(requestedId).first();
         if(!existing)return fail(404,"المادة غير موجودة");
-        await env.DB.prepare("UPDATE store_items SET name=?,description=?,icon=?,cost=?,stock=?,max_per_student=?,active=?,sort_order=?,updated_at=? WHERE id=?").bind(name,description,icon,cost,stock,maxPerStudent,active,sortOrder,now,requestedId).run();
-        item={...existing,name,description,icon,cost,stock,max_per_student:maxPerStudent,active,sort_order:sortOrder,updated_at:now};
+        await env.DB.prepare("UPDATE store_items SET name=?,description=?,icon=?,image_url=?,cost=?,stock=?,max_per_student=?,active=?,sort_order=?,updated_at=? WHERE id=?").bind(name,description,icon,cost,stock,maxPerStudent,active,sortOrder,now,requestedId).run();
+        item={...existing,name,description,icon,image_url:imageUrl,cost,stock,max_per_student:maxPerStudent,active,sort_order:sortOrder,updated_at:now};
       }else{
         const id=uuid();
-        await env.DB.prepare("INSERT INTO store_items (id,name,description,icon,cost,stock,max_per_student,active,sort_order,created_by,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)").bind(id,name,description,icon,cost,stock,maxPerStudent,active,sortOrder,user.id,now,now).run();
-        item={id,name,description,icon,cost,stock,max_per_student:maxPerStudent,active,sort_order:sortOrder,created_at:now,updated_at:now};
+        await env.DB.prepare("INSERT INTO store_items (id,name,description,icon,image_url,cost,stock,max_per_student,active,sort_order,created_by,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)").bind(id,name,description,icon,cost,stock,maxPerStudent,active,sortOrder,user.id,now,now).run();
+        item={id,name,description,icon,image_url:imageUrl,cost,stock,max_per_student:maxPerStudent,active,sort_order:sortOrder,created_at:now,updated_at:now};
       }
       await log(env,user.id,"store_item_save",{item_id:item.id,cost,active});
       return json({ok:true,item},requestedId?200:201);
