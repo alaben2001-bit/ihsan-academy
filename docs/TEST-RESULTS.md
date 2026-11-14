@@ -12,7 +12,7 @@
 | `test:backup:local` | 53/53 PASS | 2026-11-13، صيغة v4 + مسابقات |
 | role-permission-test.mjs | 0 failures | 2026-11-13 |
 | `test:competitions:local` | 124/124 PASS | 2026-11-13 |
-| ترتيب E2E على قاعدة واحدة | PASS | points → quran → journey → backup → role → competitions، بلا فشل |
+| ترتيب E2E على قاعدة واحدة | PASS | 2026-11-14: journey 93/93 → points 62/62 → quran 44/44 → backup 53/53 → role 0 failures → competitions 124/124، بلا فشل (اختبار الرحلة أولًا لأنه يتحقق من متجر فارغ) |
 | Browser: journey wizard + resume | PASS | 8 أسئلة، حفظ إجابة، إعادة تحميل، «1 من 8» و«أكمل من حيث توقفت» |
 | Browser: student store | PASS | متجر صادق: متاح/أقرب/مقفل/نافد/شروط صرف، بلا منتجات وهمية |
 | Browser: admin store | PASS | نموذج إضافة/تعديل/إخفاء + 6 اقتراحات غير محفوظة |

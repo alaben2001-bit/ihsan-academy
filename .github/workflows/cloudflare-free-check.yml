@@ -57,12 +57,12 @@ jobs:
             if curl -sf http://127.0.0.1:8788/api/health >/dev/null; then echo "ready"; break; fi
             sleep 1
           done
+      - name: Run student journey and store tests (first: expects an empty catalog)
+        run: node scripts/journey-store-test.mjs
       - name: Run points economy tests
         run: node scripts/points-local-test.mjs
       - name: Run Quran path tests
         run: node scripts/quran-path-test.mjs
-      - name: Run student journey and store tests
-        run: node scripts/journey-store-test.mjs
       - name: Run backup/restore drill
         run: node scripts/backup-restore-test.mjs
       - name: Run role/permission tests

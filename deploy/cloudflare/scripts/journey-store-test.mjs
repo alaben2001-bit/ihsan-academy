@@ -128,6 +128,10 @@ async function main() {
   check("student store read succeeds before any catalog", emptyStore.status === 200 && emptyStore.data?.recommendations, JSON.stringify(emptyStore.data));
   check("empty store is reported honestly", emptyStore.data?.recommendations?.empty === true && (emptyStore.data?.items || []).length === 0, JSON.stringify(emptyStore.data));
   check("empty store shows no affordable or locked fakes", (emptyStore.data?.recommendations?.affordable || []).length === 0 && (emptyStore.data?.recommendations?.locked || []).length === 0 && emptyStore.data?.recommendations?.nearest === null, JSON.stringify(emptyStore.data?.recommendations));
+  if ((emptyStore.data?.items || []).length > 0) {
+    console.error("FATAL: the journey/store suite needs a clean database with an empty store catalog. Run it before the other suites (journey → points → quran → backup → role → competitions) or on a dedicated clean D1.");
+    process.exit(1);
+  }
 
   // 3) Journey start, validation, isolation, and resumability
   const journeyStart = await call("/api/journey", { token: studentA.token });
