@@ -4112,6 +4112,30 @@ export default {
       await log(env,user.id,"points_event_reverse",{event_id:eventId,student_id:row.student_id,points:row.points,kind:row.kind,reason});
       return json({ok:true,totals:await pointsTotals(env,row.student_id)});
     }
+    if(path==="/api/penalties"&&method==="GET"){
+      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"عرض الجزاءات من صلاحية الطاقم");
+      const studentId=clean(url.searchParams.get("student_id"),80);
+      if(!studentId)return fail(400,"حدّد الطالب");
+      const s=await env.DB.prepare("SELECT id,group_id FROM students WHERE id=?").bind(studentId).first();
+      if(!s||!await canManageGroup(env,user,s.group_id))return fail(403,"هذا الطالب خارج صلاحيتك");
+      const rows=await env.DB.prepare("SELECT id,student_id,points,reason,awarded_date,awarded_by,created_at,reversed_at,reversal_reason FROM point_events WHERE student_id=? AND event_type='penalty' ORDER BY created_at DESC LIMIT 100").bind(studentId).all();
+      return json(rows.results||[]);
+    }
+    if(path==="/api/penalties"&&method==="POST"){
+      if(user.role!=="admin")return fail(403,"الخصم (جزاء) من صلاحية المدير العام فقط");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      const resolved=await resolvePointStudent(env,user,clean(b.student_id,80));
+      if(resolved.error)return resolved.error;
+      const s=resolved.row,reason=clean(b.reason,500);
+      if(reason.length<5)return fail(400,"أدخل سبب الجزاء (5 أحرف على الأقل)");
+      const amount=Number(b.store_points);
+      if(!Number.isInteger(amount)||amount<=0||amount>MAX_MANUAL_POINTS)return fail(400,"مبلغ الخصم يجب أن يكون عددًا صحيحًا بين 1 و1000");
+      const totals=await pointsTotals(env,s.id);
+      if(amount>totals.store)return fail(409,"لا يمكن خصم أكثر من الرصيد المُنفق المتاح ("+totals.store+")");
+      const inserted=await insertPointEvent(env,{student_id:s.id,group_id:s.group_id,rule_id:null,event_type:"penalty",kind:"store",points:-amount,reason,awarded_date:academyDate(),awarded_by:user.id,event_key:"penalty:"+uuid()});
+      await log(env,user.id,"points_penalty",{student_id:s.id,amount,reason,event_id:inserted.id});
+      return json({ok:true,deducted:amount,totals:await pointsTotals(env,s.id)},201);
+    }
     if(path==="/api/store/items"&&method==="GET"){
       const select="SELECT id,name,description,icon,cost,stock,max_per_student,active,sort_order FROM store_items";
       const rows=user.role==="admin"
