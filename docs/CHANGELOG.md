@@ -1,5 +1,17 @@
 # سجل التغييرات — أكاديمية الإحسان (Cloudflare)
 
+## 2026-11-14 — منصة التيسير (قريبًا) + تعطيل حسابات المعلمين + كبير مشرفين عام + الأدعية والأذكار + حالات مراجعة المحتوى (V67، غير منشورة)
+
+- **الوحدة الثانية (منهج الإحسان) صارت teaser فقط**: بطاقة «قريبًا · استعراض العناوين»، ونافذة `openIhsanTeaser` تعرض عناوين الأقسام (معرفة الله، صحبتها، القرآن، الحال المرتحل، السنة، الأدب) دون محتوى أو بيانات أو تسجيل أو نقاط. `IHSAN_PREVIEW_ONLY=true` blocks direct `S.mode="ihsan"` in `start()`, `switchModule()`, `page()`, `popstate` and `[data-open-ihsan]`; saved locked mode is cleared on startup. لا توجد صلاحيات أو مسارات خلفية للوحدة zweite.
+- **حسابات المعلمين: تعطيل (soft deactivation)، لا حذف**. `DELETE /api/teachers/:id` (admin-only) blocks deletion while the teacher is assigned to any active group, then sets `users.active=0`, clears sessions, and logs `teacher_deactivate`. الواجهة تستخدم `data-delete-teacher` وتسمية «تعطيل الحساب».
+- **كبير مشرفين عام (طالب واحد يشرف على جميع مشرفي الفرق)**. يُخزَّن إضافيًا في `academy_records` collection `student_chief_supervisors` (لا جدول جديد). Endpoints: `GET/POST /api/admin/chief-supervisors`, `DELETE /api/admin/chief-supervisors/:studentId`. قرارات مشرفي الفرق وطلبات النقل تُخوّل المدير العام **أو** كبير المشرفين العام **أو** كبير مشرف الفوج. `/api/student-teams` يُعيد `is_global_chief`, `chief_groups`, ويُمكّن محدد الفوج للطالب المعيّن.
+- **الأدعية والأذكار امتداد للمحتوى (لا متجر متوازٍ)**: `CONTENT_KINDS` أضيف `duas: "dua_items"` و`adhkar: "adhkar_items"`؛ `CONTENT_STATUSES` = draft/needs_source/pending_review/approved/published/archived؛ `CONTENT_ATTRIBUTIONS` = نقل كما هو / نقل بتصرف يسير / تلخيص / شرح-صياغة / متعدد المصادر. `POST/PATCH /api/content` يقبل 6 حالات و`attribution` و`author`؛ النشر لا يزال يتطلب مصدرًا ومرجعًا.
+- **زرع مسوّدات موثّقة**: `POST /api/admin/content/seed-duas` (admin-only) يُدرج 5 أدعية + 4 أذكار من مصادر منشورة، **دائمًا** بحالة `pending_review`، مع تخطي المكرر حسب العنوان. لا نشر تلقائي. `docs/DUAS-AND-ADHKAR-DRAFT.md` يوثّق النصوص والمصادر والنسب.
+- **واجهة المحتوى**: 4 تبويبات (حديث، متون، أدعية، أذكار)، شارات حالة، نسبه/مؤلف، اختيار حالة من 6، وزر `#seed-duas`. تسميات الحالات بالعربية («بانتظار مراجعة الشيخ»).
+- **اختبارات**: `test:mobile:local` 44/44 (2026-11-14) — يشمل تعطيل المعلم، seed الأدعية، تعيين/إلغاء كبير المشرفين العام، ونطاق عبر الأفواج. `npm run check` PASS. E2E كامل على قاعدة نظيفة (journey 93/93 → points 62/62 → quran 44/44 → backup 53/53 → role 0 → competitions 124/124 → mobile 44/44).
+- **نسخة الأصول** `20261114-2`، وكاش PWA `v146-20261114-2`.
+- **لم يُنشر هذا الإصدار**، ولا توجد ترحيلات إنتاجية جديدة. التحقق البصري بالمتصفح غير متاح (المتصفح غير متصل).
+
 ## 2026-11-14 — هوية المستخدم والوصول الإداري على الهاتف + سرعة إضافة الفوج (V66، غير منشورة)
 
 - **سبب العطل:** كانت قاعدة CSS على الهاتف تُخفي `.workspace-user` عمدًا، فلم يعرف المستخدم من هو ولا دوره؛ وكانت أدوات الإدارة مربوطة بتفضيل `ihsan_admin_focus === "full"` غير المضبوط أصلًا، فيبقى المدير في «المهام اليومية» ولا يرى الأفواج والأدوات. هذا يفسر تقرير المالك: «لا أدري من أنا، ولا أستطيع التبديل، والامتيازات فارغة».

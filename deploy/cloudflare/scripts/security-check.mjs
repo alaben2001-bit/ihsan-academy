@@ -216,8 +216,15 @@ assert.match(app, /safeStore\.setSession\("ihsan_last_mode","school"\)/, "the se
 assert.match(app, /allah:'<path d="M12 21v-9"/, "knowledge/Allah area must use a botanical icon rather than a sparkle");
 assert.match(app, /prophet:'<path d="M7 3\.5/, "Prophet biography area must use a manuscript icon rather than a sparkle");
 assert.match(app, /daily-nourishment-grid/, "the dashboard must render daily supplication and learning-benefit cards");
-assert.match(app, /\$\("#open-school"\)\.onclick=async\(\)=>/, "the platform chooser must open the Quran school workspace");
-assert.match(app, /\$\("#open-ihsan"\)\.onclick=\(\)=>/, "the platform chooser must open the Ihsan learning workspace");
+assert.match(app, /\$\("#open-school"\)\.onclick=openSchoolModule/, "the platform chooser must open the Quran school workspace");
+assert.match(app, /\$\("#open-ihsan"\)\.onclick=openIhsanTeaser/, "the second platform must open a preview-only teaser, not a live workspace");
+assert.match(app, /const IHSAN_PREVIEW_ONLY=true/, "the second platform must remain explicitly locked behind a preview flag");
+assert.match(app, /const IHSAN_PREVIEW_SECTIONS=\[/, "the second platform preview must list section titles only");
+assert.match(app, /function openIhsanTeaser\(\)/, "the second platform teaser must be implemented");
+assert.doesNotMatch(app, /S\.mode="ihsan";S\.tab="all";shell\(\);await page\(\)/, "direct access to the locked second platform must be blocked");
+assert.match(app, /if\(S\.mode==="ihsan"\)\{S\.mode="hub";moduleChooser\(false\);return\}/, "the page router must redirect any locked second-platform state to the hub");
+assert.match(app, /if\(savedMode==="ihsan"\)\{safeStore\.setSession\("ihsan_last_mode","hub"\)/, "a saved locked mode must be cleared on startup");
+assert.match(style, /\.ihsan-teaser\{/, "the second platform teaser must have dedicated styling");
 assert.match(app, /safeStore\.setSession\("ihsan_last_mode","school"\)/, "the selected school workspace must be persisted across reloads");
 const styleVersion = index.match(/style\.css\?v=([\w-]+)/)?.[1];
 assert.ok(styleVersion && serviceWorker.includes(styleVersion), "service-worker cache must match the stylesheet asset version");
@@ -489,5 +496,33 @@ assert.doesNotMatch(style, /\.workspace-heading>p,\.workspace-search,\.workspace
 assert.match(style, /\.workspace-user\{display:flex;margin-inline-start:auto/, "the signed-in identity must remain visible on mobile");
 assert.match(style, /\.identity-sheet\{/, "the mobile account sheet must have dedicated styling");
 assert.match(app, /S\.groups=\[\.\.\.S\.groups,\{\.\.\.created,description:"",level:"عام"\}\]/, "creating a group must update local state instead of reloading every roster");
+
+// Teacher accounts are deactivated, never hard-deleted, and only when unassigned.
+assert.match(backend, /teacherMatch&&method==="DELETE"/, "teacher accounts must have a deactivation endpoint");
+assert.match(backend, /UPDATE users SET active=0 WHERE id=\?"\)\.bind\(target\.id\)\.run\(\)/, "teacher deactivation must preserve the user row and its history");
+assert.match(backend, /لا يمكن تعطيل حساب المعلم قبل إعادة تعيين أفواجه/, "teachers assigned to active groups must not be deactivated");
+assert.match(backend, /teacher_deactivate/, "teacher deactivation must be audited");
+assert.match(app, /data-delete-teacher=/, "admin must have a teacher deactivation control");
+assert.match(app, /تعطيل الحساب/, "teacher deactivation must be labelled honestly");
+
+// The global chief supervisor is one existing student supervising every group's team supervisors.
+assert.match(backend, /GLOBAL_CHIEF_COLLECTION = "student_chief_supervisors"/, "the global chief must reuse the existing academy_records store");
+assert.doesNotMatch(backend, /CREATE TABLE IF NOT EXISTS student_chief_supervisors/, "the global chief must not add a duplicate table");
+assert.match(backend, /if\(path==="\/api\/admin\/chief-supervisors"&&method==="POST"\)/, "the admin must be able to appoint a global chief");
+assert.match(backend, /isGlobalChiefStudent\(env,actor\.id\)/, "global chief decisions must bypass the same-group restriction");
+assert.match(backend, /is_global_chief:isGlobalChief/, "the teams API must tell the global chief that cross-group scope is available");
+assert.match(app, /id="chief-appoint-form"/, "the admin must have a visible global-chief appointment form");
+assert.match(app, /data-chief-revoke=/, "the admin must be able to revoke a global-chief appointment");
+
+// Content review states, attribution, and duas/adhkar drafts.
+assert.match(backend, /duas: "dua_items", adhkar: "adhkar_items"/, "duas and adhkar must reuse the existing content store");
+assert.match(backend, /const CONTENT_STATUSES = \["draft", "needs_source", "pending_review", "approved", "published", "archived"\]/, "content must support the documented review states");
+assert.match(backend, /const CONTENT_ATTRIBUTIONS = \{/, "content must record how text relates to its author");
+assert.match(backend, /if\(path==="\/api\/admin\/content\/seed-duas"&&method==="POST"\)/, "admins must be able to insert documented duas drafts");
+assert.match(backend, /status:"pending_review"/, "seeded duas must wait for sheikh review, never publish automatically");
+assert.match(app, /const KINDS=\{hadith:"الحديث النبوي",mutoon:"المتون العلمية",duas:"الأدعية المأثورة",adhkar:"الأذكار"\}/, "the content screen must expose duas and adhkar alongside hadith and mutoon");
+assert.match(app, /data-content-kind="'\+key\+'"/, "content kind tabs must be rendered from the supported kinds");
+assert.match(app, /id="seed-duas"/, "the admin must have a visible duas draft seed action");
+assert.match(app, /pending_review:"بانتظار مراجعة الشيخ"/, "content statuses must be shown in plain Arabic");
 
 console.log("Security regression guardrails passed.");

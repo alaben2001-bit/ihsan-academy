@@ -363,7 +363,33 @@ async function resolvePointStudent(env, user, studentId) {
 }
 
 const TASK_TYPE_LABELS = { assignment: "واجب", memorization: "حفظ", revision: "مراجعة", attendance: "حضور", behavior: "سلوك" };const TASK_STATUS_LABELS = { pending: "مطلوب", submitted: "بانتظار التصحيح", done: "منجز", late: "متأخر" };
-const CONTENT_KINDS = { hadith: "hadith_items", mutoon: "mutoon_items" };
+const CONTENT_KINDS = { hadith: "hadith_items", mutoon: "mutoon_items", duas: "dua_items", adhkar: "adhkar_items" };
+const CONTENT_STATUSES = ["draft", "needs_source", "pending_review", "approved", "published", "archived"];
+const CONTENT_ATTRIBUTIONS = {
+  verbatim: "نقل كما هو",
+  light_edit: "نقل بتصرف يسير",
+  summary: "تلخيص من كلام المؤلف",
+  academy: "شرح أو صياغة تربوية من الأكاديمية",
+  multi_source: "إضافة من مصادر متعددة"
+};
+const DUAS_SEED = [
+  {kind:"duas",title:"دعاء خيري الدنيا والآخرة",text:"رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ",source:"القرآن الكريم",reference:"سورة البقرة، الآية 201",attribution:"verbatim"},
+  {kind:"duas",title:"دعاء الثبات على الهداية",text:"رَبَّنَا لَا تُزِغْ قُلُوبَنَا بَعْدَ إِذْ هَدَيْتَنَا وَهَبْ لَنَا مِنْ لَدُنْكَ رَحْمَةً إِنَّكَ أَنْتَ الْوَهَّابُ",source:"القرآن الكريم",reference:"سورة آل عمران، الآية 8",attribution:"verbatim"},
+  {kind:"duas",title:"دعاء العلم النافع والرزق الطيب",text:"اللَّهُمَّ إِنِّي أَسْأَلُكَ عِلْمًا نَافِعًا، وَرِزْقًا طَيِّبًا، وَعَمَلًا مُتَقَبَّلًا",source:"سنن ابن ماجه",reference:"حديث 925",grade:"حسن",attribution:"verbatim"},
+  {kind:"duas",title:"دعاء العون على الذكر والشكر",text:"اللَّهُمَّ أَعِنِّي عَلَى ذِكْرِكَ وَشُكْرِكَ وَحُسْنِ عِبَادَتِكَ",source:"سنن أبي داود",reference:"حديث 1522، وصححه الألباني",grade:"صحيح",attribution:"verbatim"},
+  {kind:"duas",title:"دعاء تثبيت القلب على الدين",text:"يَا مُقَلِّبَ الْقُلُوبِ ثَبِّتْ قَلْبِي عَلَى دِينِكَ",source:"جامع الترمذي",reference:"حديث 2140، قال الترمذي: حسن",grade:"حسن",attribution:"verbatim"},
+  {kind:"adhkar",title:"تسبيح الصباح والمساء",text:"سُبْحَانَ اللَّهِ وَبِحَمْدِهِ",source:"صحيح مسلم",reference:"حديث 2691",grade:"صحيح",attribution:"verbatim"},
+  {kind:"adhkar",title:"ذكر التوحيد في الصباح والمساء",text:"لَا إِلَهَ إِلَّا اللَّهُ وَحْدَهُ لَا شَرِيكَ لَهُ، لَهُ الْمُلْكُ وَلَهُ الْحَمْدُ، وَهُوَ عَلَى كُلِّ شَيْءٍ قَدِيرٌ",source:"صحيح البخاري وصحيح مسلم",reference:"البخاري 3293، مسلم 2691",grade:"صحيح",attribution:"verbatim"},
+  {kind:"adhkar",title:"الاستعاذة بكلمات الله التامات",text:"أَعُوذُ بِكَلِمَاتِ اللَّهِ التَّامَّاتِ مِنْ شَرِّ مَا خَلَقَ",source:"صحيح مسلم",reference:"حديث 2709",grade:"صحيح",attribution:"verbatim"},
+  {kind:"adhkar",title:"ذكر الحفظ من الضرر",text:"بِسْمِ اللَّهِ الَّذِي لَا يَضُرُّ مَعَ اسْمِهِ شَيْءٌ فِي الْأَرْضِ وَلَا فِي السَّمَاءِ، وَهُوَ السَّمِيعُ الْعَلِيمُ",source:"سنن أبي داود وجامع الترمذي",reference:"أبو داود 5088، الترمذي 3388، وصححه الألباني",grade:"صحيح",attribution:"verbatim"}
+];
+const GLOBAL_CHIEF_COLLECTION = "student_chief_supervisors";
+async function isGlobalChiefStudent(env, studentId) {
+  if (!studentId) return false;
+  const row = await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection=? AND id=?").bind(GLOBAL_CHIEF_COLLECTION, String(studentId)).first();
+  if (!row) return false;
+  try { const value = JSON.parse(row.payload_json); return value.active !== false; } catch { return false; }
+}
 
 // 0004_learning_economy is applied here as an additive, idempotent safety net.
 // It only creates missing tables/indexes and seeds the default rules; it never
@@ -1826,19 +1852,60 @@ export default {
       await log(env,user.id,"student_team_supervisor_assign",{group_id:groupId,team_id:id,team_name:teamName,supervisor_student_id:supervisor.id,head_supervisor_student_id:chief.id});
       return json({ok:true,...assignment},201);
     }
+    if(path==="/api/admin/chief-supervisors"&&method==="GET"){
+      if(user.role!=="admin")return fail(403,"إدارة كبير المشرفين من صلاحية المدير العام فقط");
+      const rows=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection=? ORDER BY updated_at DESC").bind(GLOBAL_CHIEF_COLLECTION).all();
+      const chiefs=[];
+      for(const row of rows.results||[]){
+        let value;try{value=JSON.parse(row.payload_json)}catch{continue}
+        const student=await env.DB.prepare("SELECT s.id,s.display_name AS name,s.active,g.name AS group_name FROM students s LEFT JOIN groups g ON g.id=s.group_id WHERE s.id=?").bind(value.student_id||value.id).first();
+        chiefs.push({student_id:value.student_id||value.id,student_name:student?.name||value.student_name||"",group_name:student?.group_name||value.group_name||"",student_active:student?student.active===1:false,active:value.active!==false,appointed_at:value.appointed_at||value.updated_at||""});
+      }
+      return json(chiefs);
+    }
+    if(path==="/api/admin/chief-supervisors"&&method==="POST"){
+      if(user.role!=="admin")return fail(403,"تعيين كبير المشرفين من صلاحية المدير العام فقط");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      const studentId=clean(b.student_id,80);
+      if(!studentId)return fail(400,"اختر الطالب الذي سيصبح كبير المشرفين");
+      const student=await env.DB.prepare("SELECT s.id,s.display_name,s.group_id,g.name AS group_name FROM students s LEFT JOIN groups g ON g.id=s.group_id WHERE s.id=? AND s.active=1").bind(studentId).first();
+      if(!student)return fail(400,"كبير المشرفين يجب أن يكون طالبًا نشطًا");
+      const existing=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection=? AND id=?").bind(GLOBAL_CHIEF_COLLECTION,student.id).first();
+      if(existing){let current;try{current=JSON.parse(existing.payload_json)}catch{};if(current&&current.active!==false)return fail(409,"هذا الطالب معيّن كبيرًا للمشرفين بالفعل")}
+      const record={id:student.id,student_id:student.id,student_name:student.display_name,group_id:student.group_id,group_name:student.group_name||"",active:true,appointed_by:user.id,appointed_at:nowIso(),updated_at:nowIso()};
+      await saveRecord(env,GLOBAL_CHIEF_COLLECTION,record);
+      await log(env,user.id,"global_chief_appoint",{student_id:student.id,group_id:student.group_id});
+      return json({ok:true,chief:record},201);
+    }
+    const chiefMatch=path.match(/^\/api\/admin\/chief-supervisors\/([^/]+)$/);
+    if(chiefMatch&&method==="DELETE"){
+      if(user.role!=="admin")return fail(403,"إلغاء كبير المشرفين من صلاحية المدير العام فقط");
+      const row=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection=? AND id=?").bind(GLOBAL_CHIEF_COLLECTION,chiefMatch[1]).first();
+      if(!row)return fail(404,"كبير المشرفين غير موجود");
+      let value;try{value=JSON.parse(row.payload_json)}catch{return fail(500,"تعذر قراءة بيانات كبير المشرفين")}
+      value.active=false;value.revoked_by=user.id;value.revoked_at=nowIso();value.updated_at=nowIso();
+      await saveRecord(env,GLOBAL_CHIEF_COLLECTION,value);
+      await log(env,user.id,"global_chief_revoke",{student_id:value.student_id||value.id});
+      return json({ok:true});
+    }
     if(path==="/api/student-teams"&&method==="GET"){
-      let groupId=clean(url.searchParams.get("group_id"),80),currentStudent=null,isTeamSupervisor=false,isChiefSupervisor=false;
+      let groupId=clean(url.searchParams.get("group_id"),80),currentStudent=null,isTeamSupervisor=false,isChiefSupervisor=false,isGlobalChief=false,chiefGroups=[];
       if(user.role==="student"){
         currentStudent=await env.DB.prepare("SELECT id,group_id,display_name FROM students WHERE user_id=? AND active=1 LIMIT 1").bind(user.id).first();
         if(!currentStudent)return fail(404,"ملف الطالب غير موجود");
-        groupId=currentStudent.group_id;
+        isGlobalChief=await isGlobalChiefStudent(env,currentStudent.id);
+        if(isGlobalChief){
+          const groupRows=await env.DB.prepare("SELECT id,name FROM groups WHERE active=1 ORDER BY name").all();
+          chiefGroups=(groupRows.results||[]).map(row=>({id:row.id,name:row.name}));
+          if(!groupId||!chiefGroups.some(g=>g.id===groupId))groupId=currentStudent.group_id;
+        }else groupId=currentStudent.group_id;
       }else{
         if(!groupId)return fail(400,"حدّد الفوج لعرض فرقه");
         if(!await canManageGroup(env,user,groupId))return fail(403,"هذا الفوج خارج صلاحيتك");
       }
       const teamRows=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='student_team_supervisors' AND group_id=? ORDER BY updated_at").bind(groupId).all();
       const teams=(teamRows.results||[]).flatMap(row=>{try{const x=JSON.parse(row.payload_json);return [{id:x.id,group_id:x.group_id,team_name:x.team_name||"الفرقة الأولى",supervisor_student_id:x.supervisor_student_id||x.student_id,supervisor_name:x.supervisor_name||"",head_supervisor_student_id:x.head_supervisor_student_id||"",head_supervisor_name:x.head_supervisor_name||""}]}catch{return []}});
-      if(currentStudent){isTeamSupervisor=teams.some(t=>t.supervisor_student_id===currentStudent.id);isChiefSupervisor=teams.some(t=>t.head_supervisor_student_id===currentStudent.id);}
+      if(currentStudent){isTeamSupervisor=teams.some(t=>t.supervisor_student_id===currentStudent.id);isChiefSupervisor=isGlobalChief||teams.some(t=>t.head_supervisor_student_id===currentStudent.id);}
       const memberRows=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='student_team_memberships' AND group_id=? ORDER BY updated_at DESC").bind(groupId).all();
       let memberships=(memberRows.results||[]).flatMap(row=>{try{return [JSON.parse(row.payload_json)]}catch{return []}});
       const requestRows=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='student_team_transfer_requests' AND group_id=? ORDER BY updated_at DESC").bind(groupId).all();
@@ -1858,7 +1925,7 @@ export default {
       const eligibleRows=currentStudent&&isTeamSupervisor?await env.DB.prepare("SELECT s.id,s.display_name AS name,(SELECT json_extract(ar.payload_json,'$.team_id') FROM academy_records ar WHERE ar.collection='student_team_memberships' AND ar.student_id=s.id LIMIT 1) AS assigned_team_id FROM students s WHERE s.group_id=? AND s.active=1 ORDER BY s.display_name").bind(groupId).all():{results:[]};
       let currentMembership=null;if(currentStudent){const currentRow=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='student_team_memberships' AND id=?").bind(currentStudent.id).first();if(currentRow){try{currentMembership=JSON.parse(currentRow.payload_json)}catch{}}}
       const approvedSupervisorIds=supervisorRequests.filter(r=>r.status==="approved").map(r=>r.student_id);
-      return json({group_id:groupId,current_student_id:currentStudent?.id||null,current_membership:currentMembership,teams,memberships,requests,supervisor_requests:supervisorRequests,approved_supervisor_ids:approvedSupervisorIds,eligible_students:eligibleRows.results||[],is_chief_supervisor:isChiefSupervisor,can_assign_members:!currentStudent||isTeamSupervisor,can_approve_transfers:user.role==="admin"||isChiefSupervisor,can_approve_supervisor_requests:user.role==="admin"||isChiefSupervisor});
+      return json({group_id:groupId,current_student_id:currentStudent?.id||null,current_membership:currentMembership,teams,memberships,requests,supervisor_requests:supervisorRequests,approved_supervisor_ids:approvedSupervisorIds,eligible_students:eligibleRows.results||[],is_chief_supervisor:isChiefSupervisor,is_global_chief:isGlobalChief,chief_groups:chiefGroups,can_assign_members:!currentStudent||isTeamSupervisor,can_approve_transfers:user.role==="admin"||isChiefSupervisor,can_approve_supervisor_requests:user.role==="admin"||isChiefSupervisor});
     }
     if(path==="/api/student-team-supervisor-requests"&&method==="POST"){
       if(user.role!=="student")return fail(403,"طلبات الانضمام إلى مشرفي الفرق مخصصة للطلبة");
@@ -1884,9 +1951,12 @@ export default {
       let authorized=user.role==="admin";
       if(user.role==="student"){
         const actor=await env.DB.prepare("SELECT id,group_id FROM students WHERE user_id=? AND active=1 LIMIT 1").bind(user.id).first();
-        if(actor&&actor.group_id===supervisorRequest.group_id){
-          const chiefRows=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='student_team_supervisors' AND group_id=?").bind(supervisorRequest.group_id).all();
-          authorized=(chiefRows.results||[]).some(r=>{try{return JSON.parse(r.payload_json).head_supervisor_student_id===actor.id}catch{return false}});
+        if(actor){
+          authorized=await isGlobalChiefStudent(env,actor.id);
+          if(!authorized&&actor.group_id===supervisorRequest.group_id){
+            const chiefRows=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='student_team_supervisors' AND group_id=?").bind(supervisorRequest.group_id).all();
+            authorized=(chiefRows.results||[]).some(r=>{try{return JSON.parse(r.payload_json).head_supervisor_student_id===actor.id}catch{return false}});
+          }
         }
       }
       if(!authorized)return fail(403,"اعتماد مشرفي الفرق من صلاحية كبير المشرفين المعيّن أو المدير العام");
@@ -1952,9 +2022,12 @@ export default {
       let authorized=user.role==="admin";
       if(user.role==="student"){
         const actor=await env.DB.prepare("SELECT id,group_id FROM students WHERE user_id=? AND active=1 LIMIT 1").bind(user.id).first();
-        if(actor&&actor.group_id===transfer.group_id){
-          const chiefRows=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='student_team_supervisors' AND group_id=?").bind(transfer.group_id).all();
-          authorized=(chiefRows.results||[]).some(row=>{try{return JSON.parse(row.payload_json).head_supervisor_student_id===actor.id}catch{return false}});
+        if(actor){
+          authorized=await isGlobalChiefStudent(env,actor.id);
+          if(!authorized&&actor.group_id===transfer.group_id){
+            const chiefRows=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='student_team_supervisors' AND group_id=?").bind(transfer.group_id).all();
+            authorized=(chiefRows.results||[]).some(row=>{try{return JSON.parse(row.payload_json).head_supervisor_student_id===actor.id}catch{return false}});
+          }
         }
       }
       if(!authorized)return fail(403,"الموافقة على طلبات النقل من صلاحية كبير المشرفين المعيّن أو المدير العام");
@@ -2044,6 +2117,18 @@ export default {
       if(password)await env.DB.prepare("UPDATE users SET display_name=?,identity_normalized=?,password_hash=?,must_change_password=1 WHERE id=?").bind(name,identity,await passwordHash(password),target.id).run();
       else await env.DB.prepare("UPDATE users SET display_name=?,identity_normalized=? WHERE id=?").bind(name,identity,target.id).run();
       await log(env,user.id,"teacher_update",{id:target.id,name});return json({ok:true,name,username:identity});
+    }
+    if(teacherMatch&&method==="DELETE"){
+      if(user.role!=="admin")return fail(403,"تعطيل حسابات المعلمين للمدير فقط");
+      const target=await env.DB.prepare("SELECT id,display_name FROM users WHERE id=? AND role='teacher' AND active=1").bind(teacherMatch[1]).first();
+      if(!target)return fail(404,"المعلم غير موجود");
+      const assigned=await env.DB.prepare("SELECT name FROM groups WHERE teacher_id=? AND active=1 ORDER BY name").bind(target.id).all();
+      const assignedNames=(assigned.results||[]).map(row=>row.name).filter(Boolean);
+      if(assignedNames.length)return fail(409,"لا يمكن تعطيل حساب المعلم قبل إعادة تعيين أفواجه: "+assignedNames.join("، "));
+      await env.DB.prepare("UPDATE users SET active=0 WHERE id=?").bind(target.id).run();
+      await env.DB.prepare("DELETE FROM sessions WHERE user_id=?").bind(target.id).run();
+      await log(env,user.id,"teacher_deactivate",{id:target.id,name:target.display_name});
+      return json({ok:true});
     }
     if(path==="/api/admin/roster-add"&&method==="POST"){
       if(user.role!=="admin")return fail(403,"إضافة القائمة الاسمية للمدير العام فقط");
@@ -2760,12 +2845,27 @@ export default {
       const kind=clean(b.kind,20)||"hadith",collection=CONTENT_KINDS[kind];
       if(!collection)return fail(400,"نوع المحتوى غير معروف");
       const title=clean(b.title,200),text=clean(b.text,8000),source=clean(b.source,200),reference=clean(b.reference,200),grade=clean(b.grade,40),status=clean(b.status,20)||"draft";
+      const attribution=CONTENT_ATTRIBUTIONS[clean(b.attribution,30)]?clean(b.attribution,30):"";
+      const author=clean(b.author,160);
       if(!title||!text)return fail(400,"أدخل عنوان النص ومتنه");
-      if(!["draft","published"].includes(status))return fail(400,"حالة النشر غير صحيحة");
+      if(!CONTENT_STATUSES.includes(status))return fail(400,"حالة المحتوى غير صحيحة");
       if(status==="published"&&(!source||!reference))return fail(400,"لا يمكن نشر نص دون تحديد المصدر والمرجع");
-      const item={id:uuid(),kind,title,text,source,reference,grade,status,created_by:user.id,created_at:nowIso(),updated_at:nowIso()};
+      const item={id:uuid(),kind,title,text,source,reference,grade,status,attribution,author,created_by:user.id,created_at:nowIso(),updated_at:nowIso()};
       await saveRecord(env,collection,item);await log(env,user.id,"content_create",{kind,id:item.id,status});
       return json(item,201);
+    }
+    if(path==="/api/admin/content/seed-duas"&&method==="POST"){
+      if(user.role!=="admin")return fail(403,"تهيئة مسودات الأدعية والأذكار للمدير العام فقط");
+      let created=0,skipped=0;
+      for(const seed of DUAS_SEED){
+        const collection=CONTENT_KINDS[seed.kind];
+        const existing=await env.DB.prepare("SELECT id FROM academy_records WHERE collection=? AND json_extract(payload_json,'$.title')=?").bind(collection,seed.title).first();
+        if(existing){skipped++;continue}
+        const item={id:uuid(),kind:seed.kind,title:seed.title,text:seed.text,source:seed.source,reference:seed.reference,grade:seed.grade||"",status:"pending_review",attribution:seed.attribution,author:"",created_by:user.id,created_at:nowIso(),updated_at:nowIso()};
+        await saveRecord(env,collection,item);created++;
+      }
+      await log(env,user.id,"content_seed_duas",{created,skipped});
+      return json({ok:true,created,skipped,status:"pending_review"},created?201:200);
     }
     const contentMatch=path.match(/^\/api\/content\/([^/]+)$/);
     if(contentMatch&&method==="PATCH"){
@@ -2784,10 +2884,12 @@ export default {
       const reference=b.reference===undefined?found.item.reference:clean(b.reference,200);
       const grade=b.grade===undefined?(found.item.grade||""):clean(b.grade,40);
       const status=b.status===undefined?(found.item.status||"draft"):clean(b.status,20);
+      const attribution=b.attribution===undefined?(found.item.attribution||""):(CONTENT_ATTRIBUTIONS[clean(b.attribution,30)]?clean(b.attribution,30):"");
+      const author=b.author===undefined?(found.item.author||""):clean(b.author,160);
       if(!title||!text)return fail(400,"العنوان والنص مطلوبان");
-      if(!["draft","published"].includes(status))return fail(400,"حالة النشر غير صحيحة");
+      if(!CONTENT_STATUSES.includes(status))return fail(400,"حالة المحتوى غير صحيحة");
       if(status==="published"&&(!source||!reference))return fail(400,"لا يمكن نشر نص دون تحديد المصدر والمرجع");
-      const updated={...found.item,title,text,source,reference,grade,status,updated_by:user.id,updated_at:nowIso()};
+      const updated={...found.item,title,text,source,reference,grade,status,attribution,author,updated_by:user.id,updated_at:nowIso()};
       await saveRecord(env,CONTENT_KINDS[found.kind],updated);await log(env,user.id,"content_update",{kind:found.kind,id:contentId,status});
       return json({ok:true,item:updated});
     }
