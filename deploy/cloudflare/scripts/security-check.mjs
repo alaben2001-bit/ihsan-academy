@@ -478,4 +478,16 @@ assert.match(style, /\.journey-shell\{/, "the student journey must have dedicate
 assert.match(style, /\.store-terms\{/, "store redemption terms must be visibly styled");
 assert.match(style, /prefers-reduced-motion:reduce\)\{\s*\.journey-meter/, "journey and store motion must respect reduced-motion preferences");
 
+// Mobile identity and administration access must never disappear.
+assert.match(app, /id="identity-open"/, "the workspace header must expose the signed-in identity");
+assert.match(app, /function identitySheet\(\)/, "tapping the identity chip must open an account sheet");
+assert.match(app, /id="identity-switch-module"/, "the account sheet must offer the school/Ihsan module switch");
+assert.match(app, /id="identity-admin-focus"/, "the account sheet must let an admin switch between daily and full administration");
+assert.match(app, /function adminFocusIsFull\(\)\{return safeStore\.get\("ihsan_admin_focus"\)!=="daily"\}/, "admin tools must be visible by default, not hidden behind an unset preference");
+assert.match(app, /class="module-user-line"/, "the hub must state who is signed in and with which role");
+assert.doesNotMatch(style, /\.workspace-heading>p,\.workspace-search,\.workspace-user\{display:none\}/, "mobile CSS must not hide the signed-in identity");
+assert.match(style, /\.workspace-user\{display:flex;margin-inline-start:auto/, "the signed-in identity must remain visible on mobile");
+assert.match(style, /\.identity-sheet\{/, "the mobile account sheet must have dedicated styling");
+assert.match(app, /S\.groups=\[\.\.\.S\.groups,\{\.\.\.created,description:"",level:"عام"\}\]/, "creating a group must update local state instead of reloading every roster");
+
 console.log("Security regression guardrails passed.");

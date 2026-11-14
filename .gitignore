@@ -18,6 +18,7 @@ coverage/
 /deploy/cloudflare/public/
 /deploy/cloudflare/.wrangler/
 /deploy/cloudflare/.wrangler-journey/
+/deploy/cloudflare/.wrangler-mobile/
 
 # Local Cloudflare secrets (never commit)
 .dev.vars

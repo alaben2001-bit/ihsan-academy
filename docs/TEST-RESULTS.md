@@ -1,14 +1,15 @@
-# نتائج الاختبار — 2026-11-13
+# نتائج الاختبار — 2026-11-14
 
 ## محلي (D1 محلية نظيفة، ترحيلات 0001–0006)
 
 | اختبار | النتيجة | دليل |
 |---|---|---|
-| `npm run check` | PASS | "Security regression guardrails passed." |
-| `npm run prepare:assets` | PASS | public/ regenerated |
+| `npm run check` | PASS | "Security regression guardrails passed." + فحص صياغة `mobile-smoke-test.mjs` |
+| `npm run prepare:assets` | PASS | public/ regenerated at `20261114-1` |
 | `test:points:local` | 62/62 PASS | 2026-11-13 (يشمل إعادة قاعدة الحضور إلى 5/2) |
 | `test:quran:local` | 44/44 PASS | 2026-11-13 |
-| `test:journey:local` | 93/93 PASS | 2026-11-13/14، قاعدة نظيفة منفصلة `.wrangler-journey` على 8789، تشمل انتقال الفوج وصلاحية المراجعة |
+| `test:journey:local` | 93/93 PASS | 2026-11-14، قاعدة نظيفة جديدة `.wrangler-mobile` على 8789 (ترحيلات 0001–0006)، تشمل انتقال الفوج وصلاحية المراجعة |
+| `test:mobile:local` | 21/21 PASS | 2026-11-14: الأصول المخدومة `20261114-1`، هوية الهاتف ونافذة الحساب، تبديل الوحدة، ظهور أدوات الإدارة افتراضيًا، دخول المدير، إنشاء فوج 56ms وقائمة 52ms |
 | `test:backup:local` | 53/53 PASS | 2026-11-13، صيغة v4 + مسابقات |
 | role-permission-test.mjs | 0 failures | 2026-11-13 |
 | `test:competitions:local` | 124/124 PASS | 2026-11-13 |
@@ -53,7 +54,7 @@
 
 ## فشل
 
-لا فشل مُسجَّل في الاختبارات المحلية. فجوات (غير فشل): offline، التحقق على D1 الإنتاجية، حساب طالب حقيقي — انظر TEST-PLAN.md.
+لا فشل مُسجَّل في الاختبارات المحلية. فجوات (غير فشل): offline، التحقق على D1 الإنتاجية، حساب طالب حقيقي، والتحقق البصري بالمتصفح (المتصفح غير متصل بالجلسة) — انظر TEST-PLAN.md. التحقق من إصلاح الهاتف جرى عبر الأصول المخدومة وفحوص HTTP (`test:mobile:local` 21/21) لا عبر لقطة شاشة.
 
 ## إصلاحات مكتشفة أثناء التدقيق
 

@@ -69,6 +69,8 @@ jobs:
         run: node scripts/role-permission-test.mjs
       - name: Run competitions tests
         run: node scripts/competitions-test.mjs
+      - name: Run mobile identity and group-creation smoke test
+        run: node scripts/mobile-smoke-test.mjs
       - name: Stop wrangler dev
         if: always()
         run: pkill -f "wrangler dev" || true
