@@ -66,7 +66,6 @@ window.addEventListener("error",function(e){var a=document.getElementById("app")
 const $=s=>document.querySelector(s), app=$("#app");
 const safeStore={get(k){try{return localStorage.getItem(k)||""}catch{return ""}},set(k,v){try{localStorage.setItem(k,v)}catch{}},remove(k){try{localStorage.removeItem(k)}catch{}},getSession(k){try{return sessionStorage.getItem(k)||""}catch{return ""}},setSession(k,v){try{sessionStorage.setItem(k,v)}catch{}},removeSession(k){try{sessionStorage.removeItem(k)}catch{}}};
 function clearSessionToken(){safeStore.remove("ihsan_token");safeStore.removeSession("ihsan_token")}
-function storeSessionToken(){clearSessionToken()}
 const localDateISO=(value=new Date())=>{
  const parts=new Intl.DateTimeFormat("en-US",{timeZone:"Africa/Algiers",year:"numeric",month:"2-digit",day:"2-digit"}).formatToParts(value);
  const fields=Object.fromEntries(parts.map(part=>[part.type,part.value]));
@@ -358,7 +357,7 @@ function renderTopActions(){
  const entryView=!S.user||S.mode==="hub";
  let actions=!S.user?'<button class="btn secondary academy-about-trigger" id="academy-about-open" type="button" aria-label="التعريف بالأكاديمية ورؤيتها">عن الأكاديمية</button> ':"";
  actions+='<button class="btn secondary" id="settings-open" type="button" aria-label="إعدادات الأكاديمية">الإعدادات</button> ';
- if(entryView)actions+='<button class="btn secondary install-app-button" id="install-app" type="button" '+(installed?'disabled aria-label="التطبيق مثبت بالفعل"':'aria-label="تثبيت أكاديمية الإحسان على الهاتف"')+'>'+(installed?'التطبيق مثبت':'تثبيت التطبيق')+'</button>';
+ if(entryView)actions+='<button class="btn secondary install-app-button" id="install-app" type="button" '+(installed?'disabled aria-label="التطبيق مثبت بالفعل"':'aria-label="تثبيت أكاديمية الإحسان على الهاتف"')+'>'+(installed?'التطبيق مثبت':'تثبيت الأكاديمية')+'</button>';
  if(S.user)actions+=' <button class="btn secondary" id="logout" type="button">خروج</button>';
  const topActions=$("#top-actions");if(topActions)topActions.innerHTML=actions;
  $("#academy-about-open")?.addEventListener("click",showAcademyAbout);$("#settings-open")?.addEventListener("click",showSettings);$("#switch-module-top")?.addEventListener("click",()=>moduleChooser());$("#logout")?.addEventListener("click",logout);

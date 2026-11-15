@@ -1115,6 +1115,12 @@ const QURAN_CATEGORIES = {
   "45": { label: "45 حزبًا", thabit: 0.375, thabitLabel: "ثلاثة أثمان حزب", workDays: 5 },
   "60": { label: "60 حزبًا", thabit: 0.5, thabitLabel: "نصف حزب", workDays: 5 }
 };
+const QURAN_THABIT_PLANS = {
+  "4": { thumns: 4, thabit: 0.5, label: "4 أثمان أسبوعياً", months: 8 },
+  "8": { thumns: 8, thabit: 1.0, label: "8 أثمان أسبوعياً", months: 8 },
+  "12": { thumns: 12, thabit: 1.5, label: "12 ثمناً أسبوعياً", months: 8 }
+};
+const QURAN_THABIT_REFERENCE_STATUS = "proposal (8-month program, pending Sheikh approval)";
 const QURAN_PLANS = { plan_a: "الخطة الأولى · المكثفة", plan_b: "الخطة الثانية · المتوسطة", plan_c: "الخطة الثالثة · المتدرجة" };
 const QURAN_WARD = { 1: "حزب واحد", 2: "حزبان", 4: "أربعة أحزاب" };
 const QURAN_KIND_LABELS = { hifz: "الحفظ الجديد", thabit: "التثبيت", ward: "الورد" };
@@ -3881,7 +3887,7 @@ export default {
       const resolved=await resolveQuranStudent(env,user,url.searchParams.get("student_id"));
       if(resolved.error)return resolved.error;
       const row=await quranPathRow(env,resolved.student.id);
-      return json({enrolled:Boolean(row),path:quranPathPayload(row),plans:QURAN_PLANS,categories:QURAN_CATEGORIES,ward_options:QURAN_WARD});
+      return json({enrolled:Boolean(row),path:quranPathPayload(row),plans:QURAN_PLANS,categories:QURAN_CATEGORIES,ward_options:QURAN_WARD,thabit_plans:QURAN_THABIT_PLANS,thabit_reference_status:QURAN_THABIT_REFERENCE_STATUS});
     }
     if(path==="/api/quran/path"&&method==="POST"){
       const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
