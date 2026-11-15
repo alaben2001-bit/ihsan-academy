@@ -3628,3 +3628,40 @@ html:root:root .academy-about-footnote{background:#241006!important;border-color
 .join-request-controls{display:grid;gap:8px;min-width:min(280px,100%)}
 .btn.sm{padding:6px 10px;font-size:12px}
 @media(max-width:640px){.join-request-controls{min-width:100%;width:100%}}
+
+/* ============ SCHEDULE — جدولي (المسيرة + التقويم) ============ */
+.quran-program-stats{display:flex;flex-wrap:wrap;gap:10px;margin:12px 0}
+.quran-program-stats>div{display:flex;flex-direction:column;gap:2px;min-width:110px;padding:10px 14px;border:1px solid var(--line);border-radius:13px;background:var(--surface-2);text-align:center}
+.quran-program-stats small{color:var(--muted)}
+.quran-week-rest td,.quran-week-rest th{background:color-mix(in srgb,var(--mint) 55%,var(--surface))}
+.quran-check{display:inline-block;width:22px;height:22px;border:2px solid var(--green);border-radius:6px;vertical-align:middle}
+.qcal-nav{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.qcal-weekdays{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px;margin:10px 0 5px}
+.qcal-weekdays span{text-align:center;font-size:.78rem;color:var(--muted);font-weight:700}
+.qcal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:5px}
+.qcal-cell{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;min-height:64px;border:1px solid var(--line);background:var(--surface-2);border-radius:13px;cursor:pointer;color:inherit;font:inherit;padding:6px 2px;transition:border-color .15s ease,transform .15s ease}
+.qcal-cell:hover{border-color:var(--gold);transform:translateY(-1px)}
+.qcal-cell.is-empty{background:transparent;border-color:transparent;cursor:default;pointer-events:none}
+.qcal-cell.is-today{outline:2px solid var(--gold);outline-offset:-2px}
+.qcal-cell.is-selected{border-color:var(--gold);box-shadow:0 0 0 2px var(--gold) inset}
+.qcal-cell.is-rest{background:color-mix(in srgb,var(--mint) 45%,var(--surface))}
+.qcal-cell.is-complete{border-color:#2e8b57}
+.qcal-daynum{font-weight:800;font-size:1.05rem;color:var(--ink)}
+.qcal-marks{display:flex;gap:3px;align-items:center;min-height:8px}
+.qcal-dot{width:9px;height:9px;border-radius:999px;background:#d8d2c4;border:1px solid #b8b2a4}
+.qcal-dot-hifz.is-done{background:#1f7a4d;border-color:#14532d}
+.qcal-dot-thabit.is-done{background:#b45309;border-color:#7c3a06}
+.qcal-dot-ward.is-done{background:#1d4ed8;border-color:#1e3a8a}
+.qcal-rest-dot{width:9px;height:9px;border-radius:999px;background:#8b8b8b}
+.qcal-detail{margin-top:12px;padding:14px;border:1px solid var(--line);border-radius:14px;background:var(--surface-2)}
+.qcal-detail h4{margin:0 0 10px}
+.qcal-task{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;padding:10px;border:1px solid var(--line);border-radius:12px;background:var(--surface);margin-bottom:8px}
+.qcal-task:last-child{margin-bottom:0}
+.qcal-task.is-done{border-color:#2e8b57;background:color-mix(in srgb,#2e8b57 8%,var(--surface))}
+.qcal-task-main{display:flex;gap:10px;align-items:center;flex:1;min-width:200px}
+.qcal-task-check{flex:0 0 26px;width:26px;height:26px;border:2px solid var(--green);border-radius:7px;display:grid;place-items:center;font-weight:800;color:var(--green)}
+.qcal-task.is-done .qcal-task-check{background:var(--green);color:#fff}
+.qcal-task small{flex-basis:100%}
+.qcal-amount input{width:90px;border:1px solid var(--line);border-radius:9px;padding:8px;background:var(--surface-2);color:var(--ink)}
+@media print{.topbar,.sidebar,.nav-btn,.section-head .student-actions,.qcal-nav,button[data-sch-print]{display:none !important}}
+@media(max-width:560px){.qcal-cell{min-height:54px}.qcal-daynum{font-size:.9rem}}

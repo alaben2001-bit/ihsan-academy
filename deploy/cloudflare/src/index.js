@@ -197,6 +197,8 @@ async function canManageGroup(env, user, groupId) {
   return false;
 }
 async function canViewGroup(env, user, groupId) {
+  if (!user) return false;
+  if (user.role === "visitor") return false; // الزائر/المحسن لا يرى بيانات داخلية حتى لو كانت بلا فوج
   if (!groupId || user.role === "admin") return true;
   if (user.role === "student") return user.group_id === groupId;
   return canManageGroup(env, user, groupId);
@@ -1188,6 +1190,7 @@ async function resolveQuranStudent(env, user, requestedId) {
   let studentId = clean(requestedId, 80);
   if (user.role === "student") {
     if (!user.student_id) return { error: fail(404, "حساب الطالب غير مرتبط بملف طالب") };
+    if (!user.group_id) return { error: fail(403, "طلب انضمامك إلى المدرسة قيد الاعتماد؛ لن تظهر بيانات المسار والحفظ قبل اعتماد الشيخ طلبك وإسنادك إلى فوج") };
     if (studentId && studentId !== user.student_id) return { error: fail(403, "لا يمكنك الوصول إلى بيانات طالب آخر") };
     studentId = user.student_id;
   } else {
@@ -4089,6 +4092,14 @@ export default {
       const result=await saveQuranPathForStudent(env,user,resolved.student,b);
       if(result.error)return result.error;
       return json({ok:true,path:result.path});
+    }
+    if(path==="/api/quran/logs"&&method==="GET"){
+      const resolved=await resolveQuranStudent(env,user,url.searchParams.get("student_id"));
+      if(resolved.error)return resolved.error;
+      const monthRaw=clean(url.searchParams.get("month"),7);
+      const month=/^\d{4}-\d{2}$/.test(monthRaw)?monthRaw:academyDate().slice(0,7);
+      const rows=await env.DB.prepare("SELECT id,day,kind,amount,unit,repetitions FROM quran_daily WHERE student_id=? AND day LIKE ? ORDER BY day,created_at").bind(resolved.student.id,month+"-%").all();
+      return json((rows.results||[]).map(r=>({day:r.day,kind:r.kind,amount:Number(r.amount),unit:r.unit,repetitions:Number(r.repetitions||0)})));
     }
     if(path==="/api/quran/today"&&method==="GET"){
       const resolved=await resolveQuranStudent(env,user,url.searchParams.get("student_id"));

@@ -1858,6 +1858,239 @@ function quranEightMonthMarkup(pathData){
   +'<h4>الورد اليومي (مستقل عن الحفظ والتثبيت)</h4><div class="quran-path-chips">'+wardChips+'</div><p class="muted small">الورد قراءة يومية مستقلة لا تُغني عن الحفظ الجديد ولا عن التثبيت، ولا يُحسب إنجازه بدلًا عنهما. تُسجّل الثلاثة مفصولة في حسابك، ولا تُخلط نقاطها بعضها ببعض.</p></section>';
 }
 
+// ---- جدولي: بطاقة البرنامج + مسيرة 8 أشهر + شهري + أسبوعي + تقويم + طباعة ----
+function quranPhCardStyles(){
+  return 'body{font-family:"IBM Plex Sans Arabic",Tahoma,Arial,sans-serif;direction:rtl;color:#111;margin:0;padding:20px;background:#fff}h1{font-size:22px;margin:0 0 4px}h2{font-size:16px;margin:22px 0 8px;border-bottom:2px solid #14532d;padding-bottom:6px;color:#14532d}p{margin:4px 0;font-size:13px}table{width:100%;border-collapse:collapse;font-size:12px;margin:8px 0 16px}th,td{border:1px solid #999;padding:7px 8px;text-align:right;vertical-align:top}th{background:#eef5ee;color:#14532d}.meta{color:#444;font-size:12px}.chip{display:inline-block;border:1px solid #14532d;border-radius:999px;padding:2px 10px;font-size:12px;margin:2px}.blank{border-bottom:1px solid #777;display:inline-block;min-width:180px}.page{page-break-after:always}@page{size:A4;margin:14mm}.muted{color:#555}.tafew{text-align:center}.small{font-size:11px}';
+}
+function quranScheduleTasks(pathInfo){
+  const info=pathInfo||{};
+  const hifzAmount=String(info.hifz_amount||"").trim()||"المقدار المحدد";
+  const hifzUnit=String(info.hifz_unit||"").trim();
+  const thabit=String(info.thabit_label||"").trim()||"التثبيت المقرر";
+  const ward=String(info.ward_label||"").trim()||"الورد المقرر";
+  return [
+    {kind:"hifz",label:"الحفظ الجديد: "+hifzAmount+(hifzUnit?" "+hifzUnit:"")+" — مع الربط بما سبقه"},
+    {kind:"thabit",label:"التثبيت: "+thabit+" — 15 تكرارًا مع مراجعة الربط"},
+    {kind:"ward",label:"الورد اليومي: "+ward+" — قراءة مستقلة عن الحفظ والتثبيت"}
+  ];
+}
+function quranScheduleMarkup(pathData, todayData, summary, monthLogs){
+  const enrolled=Boolean(pathData&&pathData.enrolled);
+  const info=(pathData&&pathData.path)||{};
+  const logs=(monthLogs&&Array.isArray(monthLogs))?monthLogs:[];
+  const totals=(summary&&summary.totals)||{};
+  const stations=(summary&&summary.stations)||{};
+  const weekdayName=(d)=>QURAN_WEEKDAYS[Number(d)]||"";
+  const restName=(info.rest_day!==null&&info.rest_day!==undefined)?weekdayName(info.rest_day):"";
+  const nineMonths=[
+    {m:1,title:"الانطلاق من خطتك",note:"ثبت إيقاعك اليومي: الحفظ، ثم التثبيت مع الربط، ثم الورد، والزم يوم الاستراحة.",gate:"—"},
+    {m:2,title:"الاستمرار والمراجعة التراكمية",note:"ركّز على ما مضى مع المتشابهات بين السور.",gate:"—"},
+    {m:3,title:"المحطة الأولى",note:"اعرض على الشيخ ما بلغت من الحفظ، واطلب اعتماد محطة 15 حزبًا.",gate:"محطة 15 حزبًا"},
+    {m:4,title:"التثبيت والعزم",note:"واصل بخطتك؛ لا تزد على مقدارك قبل اعتماد الشيخ.",gate:"—"},
+    {m:5,title:"المحطة الثانية",note:"اعرض محطة 30 حزبًا على الشيخ، وتثبيت أربعمئة وجه ما قبلها.",gate:"محطة 30 حزبًا"},
+    {m:6,title:"نحو التمكين",note:"ربط متشابهات المراحل وتكرار المعاني والمتشابهات.",gate:"—"},
+    {m:7,title:"التمكين والمراجعة الشاملة",note:"سرد وتمكين قبل الختمة، على وتيرة خطتك نفسها.",gate:"محطة 45 حزبًا"},
+    {m:8,title:"الختم والاختبار الختامي",note:"المحطة الرابعة والاختبار الختامي مع الشيخ؛ النجاح بالإتقان لا بالسرعة.",gate:"محطة 60 حزبًا — الختم"}
+  ];
+  if(!enrolled){
+    return '<section class="card quran-program-card"><div class="section-head"><div><span class="eyebrow">جدولي</span><h3>لم تُنشئ مسارك بعد</h3><p>أنشئ خطتك أولًا من تبويب «يومي» أو «خطتي»، ثم ارجع إلى «جدولي» لتظهر لك البطاقة كاملة مع المسيرة والتقويم والطباعة.</p></div></div></section>';
+  }
+  const chips='<div class="quran-path-chips">'
+    +'<span class="world-chip"><b>المسار</b> '+esc(info.hifz_plan_label||"—")+'</span>'
+    +'<span class="world-chip"><b>الفئة</b> '+esc(info.hifz_category_label||"—")+'</span>'
+    +'<span class="world-chip"><b>الحفظ</b> '+esc(info.hifz_amount||"—")+' '+esc(info.hifz_unit||"")+'</span>'
+    +'<span class="world-chip"><b>التثبيت</b> '+esc(info.thabit_label||"—")+'</span>'
+    +'<span class="world-chip"><b>الورد</b> '+esc(info.ward_label||"—")+'</span>'
+    +(restName?'<span class="world-chip"><b>الاستدراك</b> '+esc(restName)+'</span>':"")
+    +'</div>';
+  const totalsRow='<div class="quran-program-stats">'
+    +'<div><small>أيام الحفظ</small><strong>'+Number(totals.hifz?.days||0)+'</strong></div>'
+    +'<div><small>أيام التثبيت</small><strong>'+Number(totals.thabit?.days||0)+'</strong></div>'
+    +'<div><small>تكرار التثبيت</small><strong>'+Number(totals.thabit?.repetitions||0)+'</strong></div>'
+    +'<div><small>أيام الورد</small><strong>'+Number(totals.ward?.days||0)+'</strong></div>'
+    +'<div><small>محطات معتمدة</small><strong>'+Number(stations.approved||0)+' / 4</strong></div>'
+    +'</div>';
+  const journeyRows=nineMonths.map(row=>'<tr><td class="tafew"><strong>الشهر '+row.m+'</strong></td><td><strong>'+esc(row.title)+'</strong><br><small class="muted">'+esc(row.note)+'</small></td><td class="tafew">'+esc(row.gate)+'</td></tr>').join("");
+  const now=new Date();
+  const monthStr=localDateISO().slice(0,7);
+  const monthLabel=new Date(monthStr+"-02T12:00:00").toLocaleDateString("ar-DZ",{month:"long",year:"numeric"});
+  const monthName=monthLabel;
+  const daysInMonth=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+  const weeks=[];
+  for(let start=1,w=1;start<=daysInMonth;start+=7,w++){const end=Math.min(daysInMonth,start+6);weeks.push({n:w,from:start,to:end});}
+  const monthRows=weeks.map(w=>'<tr><td class="tafew"><strong>الأسبوع '+w.n+'</strong></td><td class="tafew">من '+monthStr+'-'+String(w.from).padStart(2,"0")+' إلى '+monthStr+'-'+String(w.to).padStart(2,"0")+'</td><td>الحفظ: '+esc(info.hifz_amount||"—")+' '+esc(info.hifz_unit||"")+' يوميًا × 5 أيام · التثبيت: '+esc(info.thabit_label||"—")+' · الورد: '+esc(info.ward_label||"—")+'</td></tr>').join("");
+  const tasks=quranScheduleTasks(info);
+  const weekRows=QURAN_WEEKDAYS.map((name,i)=>{
+    const rest=Number(info.rest_day)===i;
+    return '<tr'+(rest?' class="quran-week-rest"':"")+'><th>'+esc(name)+(rest?' <small>استدراك</small>':"")+'</th><td>'+(rest?'راحة محددة في خطتك — يستعاض عنها بيوم آخر مع الشيخ عند الحاجة.':tasks.map(t=>'• '+esc(t.label)).join("<br>"))+'</td><td class="tafew">'+(rest?'—':'<span class="quran-check"></span>')+'</td></tr>';
+  }).join("");
+  const done={};
+  for(const row of logs){done[row.day]=done[row.day]||{};done[row.day][row.kind]=row;}
+  const todayIso=localDateISO();
+  const firstWeekday=new Date(monthStr+"-01T12:00:00").getDay();
+  const cellCount=firstWeekday+daysInMonth;
+  const trailing=(7-(cellCount%7))%7;
+  let cells="";
+  for(let i=0;i<firstWeekday;i++)cells+='<div class="qcal-cell is-empty" aria-hidden="true"></div>';
+  for(let d=1;d<=daysInMonth;d++){
+    const iso=monthStr+"-"+String(d).padStart(2,"0");
+    const wd=new Date(iso+"T12:00:00").getDay();
+    const isRest=Number(info.rest_day)===wd;
+    const dLogs=done[iso]||{};
+    const doneCount=["hifz","thabit","ward"].filter(k=>dLogs[k]).length;
+    const isToday=iso===todayIso;
+    cells+='<button type="button" class="qcal-cell'+(isRest?" is-rest":"")+(isToday?" is-today":"")+(doneCount===3?" is-complete":"")+'" data-qcal-day="'+iso+'" aria-label="'+iso+' — '+doneCount+' من 3"><span class="qcal-daynum">'+d+'</span><span class="qcal-marks">'+(isRest?'<i class="qcal-rest-dot" title="استدراك"></i>':"")+["hifz","thabit","ward"].map(k=>'<i class="qcal-dot qcal-dot-'+k+(dLogs[k]?" is-done":"")+'" title="'+({hifz:"حفظ",thabit:"تثبيت",ward:"ورد"}[k])+'"></i>').join("")+'</span></button>';
+  }
+  for(let i=0;i<trailing;i++)cells+='<div class="qcal-cell is-empty" aria-hidden="true"></div>';
+  return '<section class="card quran-program-card"><div class="section-head"><div><span class="eyebrow">جدولي</span><h3>بطاقة برنامجي</h3><p>ملخص مسارك كما هو سارٍ الآن؛ اطبعه وعلّقه حتى يبقى أمام عينيك.</p></div><div class="student-actions"><button class="btn" type="button" data-sch-print="all">طباعة جدولي كاملًا</button></div></div>'
+   +chips+totalsRow+'</section>'
+   +'<section class="card quran-eight-journey"><div class="section-head"><div><span class="eyebrow">مسيرة الثمانية أشهر</span><h3>خارطة الطريق من الآن إلى الختم</h3><p>المحطات 15 و30 و45 و60 حزبًا يعتمدها الشيخ؛ وأنت تمشي على إيقاع خطتك نفسها شهرًا شهرًا.</p></div><button class="btn secondary" type="button" data-sch-print="all">طباعة المسيرة</button></div>'
+   +'<div class="table-wrap"><table><thead><tr><th>الشهر</th><th>المطلوب</th><th>المحطة</th></tr></thead><tbody>'+journeyRows+'</tbody></table></div></section>'
+   +'<section class="card quran-month-plan"><div class="section-head"><div><span class="eyebrow">الجدول الشهري</span><h3>خطة '+esc(monthName)+'</h3><p>كل أسبوع = خمسة أيام عمل بحسب خطتك، والسبت والجمعة بحسب يوم راحتك.</p></div><button class="btn secondary" type="button" data-sch-print="month">طباعة الجدول الشهري</button></div>'
+   +'<div class="table-wrap"><table><thead><tr><th>الأسبوع</th><th>النطاق</th><th>المهام اليومية</th></tr></thead><tbody>'+monthRows+'</tbody></table></div></section>'
+   +'<section class="card quran-week-plan"><div class="section-head"><div><span class="eyebrow">الجدول الأسبوعي</span><h3>مهامك في كل يوم</h3><p>الأسماء الدقيقة لكل مهمة كما هي في خطتك؛ انسخها وعلّقها، وعلّم أمام كل مهمة عند إتمامها.</p></div><button class="btn secondary" type="button" data-sch-print="week">طباعة الجدول الأسبوعي</button></div>'
+   +'<div class="table-wrap"><table><thead><tr><th>اليوم</th><th>المهام</th><th>✓</th></tr></thead><tbody>'+weekRows+'</tbody></table></div></section>'
+   +'<section class="card quran-calendar"><div class="section-head"><div><span class="eyebrow">التقويم</span><h3>مهامك على التقويم</h3><p>اضغط أي يوم لعرض مهامه أو تسجيل المنجز منه؛ الأخضر يعني أن المهمة أُنجزت يومها.</p></div><div class="qcal-nav"><button class="btn secondary" type="button" id="qcal-prev" aria-label="الشهر السابق">‹ السابق</button><strong id="qcal-title" class="qcal-title"></strong><button class="btn secondary" type="button" id="qcal-today">اليوم</button><button class="btn secondary" type="button" id="qcal-next" aria-label="الشهر التالي">التالي ›</button><button class="btn secondary" type="button" data-sch-print="calendar">طباعة التقويم</button></div></div>'
+   +'<div class="qcal-weekdays"><span>الأحد</span><span>الإثنين</span><span>الثلاثاء</span><span>الأربعاء</span><span>الخميس</span><span>الجمعة</span><span>السبت</span></div>'
+   +'<div class="qcal-grid" id="qcal-grid">'+cells+'</div>'
+   +'<div class="qcal-detail" id="qcal-detail"><p class="muted">اختر يومًا من التقويم لعرض مهامه.</p></div>'
+   +'</section>';
+}
+function quranSchedulePrintSheet(info, summary, monthLogs, monthStr, name){
+  const win=window.open("","_blank","width=900,height=1300");
+  if(!win){toast("تعذر فتح نافذة الطباعة؛ اسمح بالنوافذ المنبثقة",true);return}
+  const infoSafe=info||{};
+  const totals=(summary&&summary.totals)||{};
+  const tasks=quranScheduleTasks(infoSafe);
+  const restName=(infoSafe.rest_day!==null&&infoSafe.rest_day!==undefined)?(QURAN_WEEKDAYS[Number(infoSafe.rest_day)]||""):"";
+  const todayStr=new Date().toLocaleDateString("ar-DZ",{weekday:"long",year:"numeric",month:"long",day:"numeric"});
+  const journey=[["الشهر 1","الانطلاق من خطتك","—"],["الشهر 2","الاستمرار والمراجعة التراكمية","—"],["الشهر 3","المحطة الأولى — اعرض على الشيخ","محطة 15 حزبًا"],["الشهر 4","التثبيت والعزم","—"],["الشهر 5","المحطة الثانية","محطة 30 حزبًا"],["الشهر 6","نحو التمكين","—"],["الشهر 7","التمكين والمراجعة الشاملة","محطة 45 حزبًا"],["الشهر 8","الختم والاختبار الختامي","محطة 60 حزبًا — الختم"]];
+  const journeyRows=journey.map(r=>'<tr><td><strong>'+esc(r[0])+'</strong></td><td>'+esc(r[1])+'</td><td>'+esc(r[2])+'</td></tr>').join("");
+  const now=new Date(monthStr+"-02T12:00:00");
+  const daysInMonth=new Date(now.getFullYear(),now.getMonth()+1,0).getDate();
+  const weeks=[];
+  for(let start=1,w=1;start<=daysInMonth;start+=7,w++){const end=Math.min(daysInMonth,start+6);weeks.push('<tr><td><strong>الأسبوع '+w+'</strong></td><td>من '+monthStr+'-'+String(start).padStart(2,"0")+' إلى '+monthStr+'-'+String(end).padStart(2,"0")+'</td><td>الحفظ: '+esc(infoSafe.hifz_amount||"—")+' '+esc(infoSafe.hifz_unit||"")+' يوميًا × 5 · التثبيت: '+esc(infoSafe.thabit_label||"—")+' · الورد: '+esc(infoSafe.ward_label||"—")+'</td></tr>');}
+  const done={};
+  for(const row of (monthLogs||[])){done[row.day]=done[row.day]||{};done[row.day][row.kind]=true;}
+  const firstWeekday=new Date(monthStr+"-01T12:00:00").getDay();
+  const cellCount=firstWeekday+daysInMonth;
+  const trailing=(7-(cellCount%7))%7;
+  let calCells="";
+  for(let i=0;i<firstWeekday;i++)calCells+='<td class="muted"></td>';
+  for(let d=1;d<=daysInMonth;d++){
+    const iso=monthStr+"-"+String(d).padStart(2,"0");
+    const wd=new Date(iso+"T12:00:00").getDay();
+    const isRest=Number(infoSafe.rest_day)===wd;
+    const dLogs=done[iso]||{};
+    calCells+='<td class="'+(isRest?'tafew':'')+'"><strong>'+d+'</strong>'+(isRest?'<br><span class="small">استدراك</span>':'<br><span class="small">'+(dLogs.hifz?"✓ حفظ ":"• حفظ ")+(dLogs.thabit?"✓ تثبيت ":"• تثبيت ")+(dLogs.ward?"✓ ورد":"• ورد")+'</span>')+'</td>';
+    if((firstWeekday+d)%7===0&&d!==daysInMonth)calCells+='</tr><tr>';
+  }
+  if(trailing)for(let i=0;i<trailing;i++)calCells+='<td class="muted"></td>';
+  const weekRows=QURAN_WEEKDAYS.map((n,i)=>{
+    const rest=Number(infoSafe.rest_day)===i;
+    return '<tr><th>'+esc(n)+(rest?' — استدراك':"")+'</th><td>'+(rest?'راحة محددة في خطتك':tasks.map(t=>'• '+esc(t.label)).join("<br>"))+'</td><td class="tafew">'+(rest?"—":"☐")+'</td></tr>';
+  }).join("");
+  win.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>جدولي — '+esc(name||"")+'</title><style>'+quranPhCardStyles()+'</style></head><body>'
+    +'<div class="page"><h1>أكاديمية الإحسان — جدولي القرآني</h1><p class="meta">الطالب: <strong>'+esc(name||"")+'</strong> · التاريخ: '+esc(todayStr)+'</p>'
+    +'<h2>بطاقة البرنامج</h2><table><tbody>'
+    +'<tr><th>المسار</th><td>'+esc(infoSafe.hifz_plan_label||"—")+' ('+esc(infoSafe.hifz_category_label||"")+')</td></tr>'
+    +'<tr><th>الحفظ اليومي</th><td>'+esc(infoSafe.hifz_amount||"—")+' '+esc(infoSafe.hifz_unit||"")+'</td></tr>'
+    +'<tr><th>التثبيت اليومي</th><td>'+esc(infoSafe.thabit_label||"—")+' (15 تكرارًا، خمسة أيام في الأسبوع)</td></tr>'
+    +'<tr><th>الورد اليومي</th><td>'+esc(infoSafe.ward_label||"—")+' — مستقل عن الحفظ والتثبيت</td></tr>'
+    +'<tr><th>يوم الاستدراك</th><td>'+esc(restName||"بلا يوم محدد")+'</td></tr>'
+    +'<tr><th>التقدم</th><td>أيام الحفظ: '+Number(totals.hifz?.days||0)+' · أيام التثبيت: '+Number(totals.thabit?.days||0)+' · أيام الورد: '+Number(totals.ward?.days||0)+'</td></tr>'
+    +'</tbody></table><h2>التوقيع</h2><p>الطالب: <span class="blank"></span> &nbsp;&nbsp; الشيخ: <span class="blank"></span></p></div>'
+    +'<div class="page"><h2>مسيرة الثمانية أشهر</h2><table><thead><tr><th>الشهر</th><th>المطلوب</th><th>المحطة</th></tr></thead><tbody>'+journeyRows+'</tbody></table><p class="muted small">أرقام التثبيت المرجعية (15←ثمن، 30←ربع، 45←ثلاثة أثمان، 60←نصف) مقترحة وتنتظر اعتماد الشيخ.</p></div>'
+    +'<div class="page"><h2>الجدول الشهري</h2><table><thead><tr><th>الأسبوع</th><th>النطاق</th><th>المهام اليومية</th></tr></thead><tbody>'+weeks.join("")+'</tbody></table></div>'
+    +'<div class="page"><h2>الجدول الأسبوعي</h2><table><thead><tr><th>اليوم</th><th>المهام</th><th>✓</th></tr></thead><tbody>'+weekRows+'</tbody></table></div>'
+    +'<div class="page"><h2>تقويم الشهر ('+esc(monthStr)+')</h2><table><thead><tr><th>الأحد</th><th>الإثنين</th><th>الثلاثاء</th><th>الأربعاء</th><th>الخميس</th><th>الجمعة</th><th>السبت</th></tr></thead><tbody><tr>'+calCells+'</tr></tbody></table><p class="muted small">✓ تعني مُسجَّلة ذلك اليوم.</p></div>'
+    +'</body></html>');
+  win.document.close();win.focus();setTimeout(()=>{try{win.print()}catch{}},350);
+}
+
+function wireQuranSchedule(v,pathData,summary){
+  const info=(pathData&&pathData.path)||{};
+  const gridHost=v.querySelector("#qcal-grid");
+  const detailHost=v.querySelector("#qcal-detail");
+  const titleHost=v.querySelector("#qcal-title");
+  if(!gridHost)return;
+  let monthStr=localDateISO().slice(0,7);
+  let selected=localDateISO();
+  const hifzDefault=(()=>{const n=parseFloat(String(info.hifz_amount||""));return isFinite(n)?n:""})();
+  const tasks=quranScheduleTasks(info);
+  function doneMap(logs){
+    const done={};
+    for(const row of logs){done[row.day]=done[row.day]||{};done[row.day][row.kind]=row;}
+    return done;
+  }
+  function renderGrid(logs){
+    const [y,m]=monthStr.split("-").map(Number);
+    const daysInMonth=new Date(y,m,0).getDate();
+    const firstWeekday=new Date(y,m-1,1,12).getDay();
+    const todayIso=localDateISO();
+    const done=doneMap(logs);
+    const trailing=(7-((firstWeekday+daysInMonth)%7))%7;
+    let cells="";
+    for(let i=0;i<firstWeekday;i++)cells+='<div class="qcal-cell is-empty" aria-hidden="true"></div>';
+    for(let d=1;d<=daysInMonth;d++){
+      const iso=y+"-"+String(m).padStart(2,"0")+"-"+String(d).padStart(2,"0");
+      const wd=new Date(iso+"T12:00:00").getDay();
+      const isRest=Number(info.rest_day)===wd;
+      const dLogs=done[iso]||{};
+      const doneCount=["hifz","thabit","ward"].filter(k=>dLogs[k]).length;
+      cells+='<button type="button" class="qcal-cell'+(isRest?" is-rest":"")+(iso===todayIso?" is-today":"")+(doneCount===3?" is-complete":"")+(iso===selected?" is-selected":"")+'" data-qcal-day="'+iso+'" aria-label="'+iso+' — '+doneCount+' من 3 مهام منجزة"><span class="qcal-daynum">'+d+'</span><span class="qcal-marks">'+(isRest?'<i class="qcal-rest-dot"></i>':"")+["hifz","thabit","ward"].map(k=>'<i class="qcal-dot qcal-dot-'+k+(dLogs[k]?" is-done":"")+'"></i>').join("")+'</span></button>';
+    }
+    for(let i=0;i<trailing;i++)cells+='<div class="qcal-cell is-empty" aria-hidden="true"></div>';
+    gridHost.innerHTML=cells;
+    if(titleHost)titleHost.textContent=new Date(y,m-1,1,12).toLocaleDateString("ar-DZ",{month:"long",year:"numeric"});
+    gridHost.querySelectorAll("[data-qcal-day]").forEach(btn=>btn.onclick=()=>{selected=btn.dataset.qcalDay;renderGrid(logs);renderDetail(logs);});
+  }
+  function renderDetail(logs){
+    if(!detailHost)return;
+    const todayIso=localDateISO();
+    const isFuture=selected>todayIso;
+    const wd=new Date(selected+"T12:00:00").getDay();
+    const isRest=Number(info.rest_day)===wd;
+    const done=doneMap(logs);
+    const dLogs=done[selected]||{};
+    const rows=isRest
+      ?'<div class="notice">يوم استدراك محدد في خطتك — راحة مقررة؛ معرفته راحة لا كسلًا.</div>'
+      :tasks.map(t=>{
+        const logged=dLogs[t.kind];
+        const canLog=!isFuture&&!logged&&S.user.role==="student";
+        const defVal=t.kind==="hifz"?hifzDefault:t.kind==="thabit"?(info.thabit_amount??""):t.kind==="ward"?(info.ward_ahzab??""):"";
+        return '<form class="qcal-task'+(logged?" is-done":"")+'" data-qcal-log="'+t.kind+'"><div class="qcal-task-main"><span class="qcal-task-check" aria-hidden="true">'+(logged?"✓":"")+'</span><span class="qcal-task-label">'+esc(t.label)+'</span></div>'
+          +(logged?'<small class="muted">أُنجز: '+esc(quranFmtAmount(logged.amount,logged.unit))+(Number(logged.repetitions)?' · '+Number(logged.repetitions)+' تكرارًا':'')+'</small>'
+            :(canLog?'<label class="qcal-amount"><span style="position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)">المقدار</span><input type="number" step="0.01" min="0" max="1000" name="amount" placeholder="المقدار" value="'+esc(String(defVal))+'" required></label><button class="btn secondary sm" type="submit">أتممتها</button>'
+            :'<small class="muted">يوم قادم؛ ستُفتح مهامه يومه.</small>'))
+          +'</form>';
+      }).join("");
+    detailHost.innerHTML='<h4>'+esc(new Date(selected+"T12:00:00").toLocaleDateString("ar-DZ",{weekday:"long",day:"numeric",month:"long",year:"numeric"}))+(selected===todayIso?' <span class="pill">اليوم</span>':'')+'</h4>'+rows;
+    detailHost.querySelectorAll("[data-qcal-log]").forEach(form=>form.onsubmit=async event=>{
+      event.preventDefault();
+      const kind=form.dataset.qcalLog,button=form.querySelector('button[type="submit"]');
+      if(button)button.disabled=true;
+      const defaults={hifz:{unit:info.hifz_unit||"صفحة",reps:0},thabit:{unit:"حزب",reps:15},ward:{unit:"حزب",reps:0}}[kind];
+      const amount=Number(form.querySelector('input[name=amount]').value);
+      try{await api("/quran/daily",{method:"POST",body:JSON.stringify({kind,amount,unit:defaults.unit,repetitions:defaults.reps,day:selected})});toast("أُثبتت المهمة في تقويمك");await reload();}
+      catch(error){if(button)button.disabled=false;toast(error.message,true);}
+    });
+  }
+  async function reload(){
+    try{const logs=await api("/quran/logs?month="+encodeURIComponent(monthStr));renderGrid(logs);renderDetail(logs);}
+    catch(error){toast(error.message,true);}
+  }
+  v.querySelector("#qcal-prev")?.addEventListener("click",()=>{const [y,m]=monthStr.split("-").map(Number);const d=new Date(y,m-2,1);monthStr=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");reload();});
+  v.querySelector("#qcal-next")?.addEventListener("click",()=>{const [y,m]=monthStr.split("-").map(Number);const d=new Date(y,m,1);monthStr=d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0");reload();});
+  v.querySelector("#qcal-today")?.addEventListener("click",()=>{monthStr=localDateISO().slice(0,7);selected=localDateISO();reload();});
+  v.querySelectorAll("[data-sch-print]").forEach(btn=>btn.addEventListener("click",async()=>{
+    let monthLogs=[];
+    try{monthLogs=await api("/quran/logs?month="+encodeURIComponent(localDateISO().slice(0,7)));}catch{}
+    quranSchedulePrintSheet(info,summary,monthLogs,localDateISO().slice(0,7),S.user.name);
+  }));
+  reload();
+}
+
 // ---- واجهة الشيخ: المسح والمتابعة (QR حقيقي أو اختيار يدوي) ----
 async function scanPage(v){
   if(!["admin","teacher","director","supervisor"].includes(S.user.role)){v.innerHTML=head("المسح والمتابعة","هذه الصفحة متاحة للشيخ أو المشرف أو المدير فقط.");return}
@@ -2519,7 +2752,7 @@ function quranScorePreview(values){
 }
 function quranGradeLabel(score){const n=Number(score)||0;if(n>=95)return "متقن";if(n>=85)return "ممتاز";if(n>=75)return "جيد جدًا";if(n>=60)return "جيد";return "يحتاج إلى تثبيت"}
 function quranTabsMarkup(active){
-  const tabs=[["daily","يومي"],["plan","خطتي"],["companion","الرفيق"],["stations","المحطات والاستدراك"]];
+  const tabs=[["daily","يومي"],["plan","خطتي"],["schedule","جدولي"],["companion","الرفيق"],["stations","المحطات والاستدراك"]];
   return '<nav class="quran-subtabs" aria-label="أقسام مسار القرآن">'+tabs.map(([id,label])=>'<button type="button" class="quran-subtab '+(id===active?"is-active":"")+'" data-quran-tab="'+id+'">'+label+'</button>').join("")+'</nav>';
 }
 function quranOption(value,label,selected){
@@ -2617,7 +2850,7 @@ async function quran(v){
  let levels=[];
  try{const pathData=await api("/quran");levels=pathData.levels||[]}catch{}
  if(isStudent){
-  const result=await Promise.allSettled([api("/quran/progress"),api("/quran/plan"),api("/quran/path"),api("/quran/today"),api("/quran/summary"),api("/quran/companion"),api("/quran/stations"),api("/quran/makeups")]);
+  const result=await Promise.allSettled([api("/quran/progress"),api("/quran/plan"),api("/quran/path"),api("/quran/today"),api("/quran/summary"),api("/quran/companion"),api("/quran/stations"),api("/quran/makeups"),api("/quran/logs?month="+encodeURIComponent(localDateISO().slice(0,7)))]);
   const rows=result[0].status==="fulfilled"?result[0].value:[],plan=result[1].status==="fulfilled"?result[1].value:null;
   const pathData=result[2].status==="fulfilled"?result[2].value:{enrolled:false};
   const todayData=result[3].status==="fulfilled"?result[3].value:{enrolled:false,logs:{}};
@@ -2625,9 +2858,11 @@ async function quran(v){
   const companion=result[5].status==="fulfilled"?result[5].value:{paired:false,sessions:[]};
   const stations=result[6].status==="fulfilled"?result[6].value:[];
   const makeups=result[7].status==="fulfilled"?result[7].value:[];
+  const monthLogs=result[8].status==="fulfilled"?result[8].value:[];
   const tab=safeStore.getSession("ihsan_quran_tab")||"daily";
   let body="";
   if(tab==="plan")body=quranEightMonthMarkup(pathData)+quranPlanMarkup(levels,plan,S.user.student_id,true)+quranProgressSummary(rows)+quranPeriodReportMarkup(rows)+quranLogList(rows);
+  else if(tab==="schedule")body=quranScheduleMarkup(pathData,todayData,summary,monthLogs);
   else if(tab==="companion")body=quranCompanionMarkup(companion);
   else if(tab==="stations")body=quranStationsMarkup(stations,makeups);
   else body=quranDailyMarkup(pathData,todayData,summary,stations);
@@ -2635,6 +2870,7 @@ async function quran(v){
   v.querySelectorAll("[data-quran-tab]").forEach(btn=>btn.onclick=()=>{safeStore.setSession("ihsan_quran_tab",btn.dataset.quranTab);quran(v)});
   if(tab==="plan")wireQuranPlan(v,levels);
   else if(tab==="daily")wireQuranDaily(v,pathData,todayData,summary,stations);
+  else if(tab==="schedule")wireQuranSchedule(v,pathData,summary);
   else if(tab==="companion")wireQuranCompanion(v,companion);
   else if(tab==="stations")wireQuranStations(v);
   return;
