@@ -71,6 +71,8 @@ jobs:
         run: node scripts/competitions-test.mjs
       - name: Run mobile identity and group-creation smoke test
         run: node scripts/mobile-smoke-test.mjs
+      - name: Run student cards, QR scans, missions and idempotent store tests
+        run: node scripts/cards-missions-test.mjs
       - name: Stop wrangler dev
         if: always()
         run: pkill -f "wrangler dev" || true

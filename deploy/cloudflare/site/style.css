@@ -3517,3 +3517,67 @@ html:root:root .academy-about-footnote{background:#241006!important;border-color
 }
 
 .store-item-image{width:100%;height:120px;object-fit:cover;border-radius:12px;margin-bottom:8px}
+
+/* ==========================================================
+   V71 — بطاقات الطلاب بثلاثة رموز QR، عالم المهام، الطباعة
+   ========================================================== */
+.scan-notice{border-color:rgba(232,196,119,.5);background:linear-gradient(150deg,rgba(232,196,119,.14),rgba(var(--ep-glow),.1));font-weight:600}
+.card-qr-sheet{margin:16px 0}
+.card-qr-actions{display:flex;gap:8px;flex-wrap:wrap}
+.card-qr-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:12px;margin-top:6px}
+.card-qr{margin:0;display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:16px;border:1px solid var(--line);background:var(--surface-2)}
+.card-qr.is-missing{opacity:.62;border-style:dashed}
+.card-qr-code{display:grid;place-items:center;aspect-ratio:1;padding:8px;border-radius:12px;background:#fff;overflow:hidden}
+.card-qr-code svg{width:100%;height:100%;display:block}
+.card-qr-missing{color:#9aa7a1;font-size:2rem;line-height:1}
+.card-qr figcaption{display:flex;flex-direction:column;gap:3px}
+.card-qr figcaption strong{font-size:.92rem;color:var(--ink)}
+.card-qr figcaption small{font-size:.72rem;line-height:1.7;color:var(--muted)}
+.cards-toolbar{display:flex;flex-wrap:wrap;align-items:flex-end;gap:14px;margin-bottom:16px}
+.cards-toolbar .field{margin:0;min-width:220px}
+.cards-toolbar p{flex:1 1 100%;margin:0}
+.cards-sheet-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px}
+.student-card-print{display:flex;flex-direction:column;gap:10px;padding:16px;border-radius:18px;border:1px solid var(--line);background:var(--surface-2);break-inside:avoid;page-break-inside:avoid}
+.student-card-print-head{display:flex;flex-direction:column;gap:2px}
+.student-card-print-head strong{font-size:1.02rem;color:var(--ink)}
+.student-card-print-head small{font-size:.74rem;color:var(--muted)}
+.student-card-print-actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:auto}
+.student-card-print-actions .btn{flex:1 1 auto}
+.world-missions{margin:16px 0}
+.mission-story-grid,.mission-side-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;margin-top:12px}
+.mission-story,.mission-side{display:flex;align-items:center;gap:10px;padding:12px;border-radius:14px;border:1px solid var(--line);background:var(--surface-2);text-align:right;font:inherit;color:inherit}
+.mission-story.is-done{border-color:rgba(232,196,119,.5);background:linear-gradient(150deg,rgba(232,196,119,.12),rgba(var(--ep-glow),.08))}
+.mission-side{cursor:pointer;transition:border-color .2s,transform .2s}
+.mission-side:hover:not(:disabled){border-color:var(--gold);transform:translateY(-1px)}
+.mission-side:disabled{cursor:default;opacity:.78}
+.mission-side.is-ready{border-color:rgba(232,196,119,.55)}
+.mission-side.is-claimed{opacity:.7}
+.mission-icon{display:grid;place-items:center;width:36px;height:36px;flex:0 0 36px;border-radius:11px;background:rgba(232,196,119,.14);font-size:1.15rem}
+.mission-body{display:flex;flex-direction:column;gap:3px;flex:1;min-width:0}
+.mission-body strong{font-size:.9rem;color:var(--ink)}
+.mission-body small{font-size:.72rem;line-height:1.7;color:var(--muted)}
+.mission-meter{height:5px;border-radius:999px;background:rgba(255,255,255,.1);overflow:hidden;margin-top:3px}
+.mission-meter i{display:block;height:100%;border-radius:999px;background:linear-gradient(90deg,var(--gold),var(--ep-glow))}
+.mission-collectibles{display:flex;gap:6px;flex-wrap:wrap}
+.mission-collectible{display:grid;place-items:center;width:32px;height:32px;border-radius:10px;border:1px dashed var(--line);opacity:.4;font-size:1rem}
+.mission-collectible.is-unlocked{opacity:1;border-style:solid;border-color:rgba(232,196,119,.55);background:rgba(232,196,119,.14)}
+@media(max-width:760px){
+ .cards-sheet-grid{grid-template-columns:1fr}
+ .mission-story-grid,.mission-side-grid{grid-template-columns:1fr}
+}
+@media print{
+ @page{size:auto;margin:10mm}
+ body[data-print="card"] .workspace-head,body[data-print="card"] .sidebar,body[data-print="card"] .topbar,body[data-print="card"] footer,body[data-print="card"] .card-page-head,body[data-print="card"] .pass-stats,body[data-print="card"] .card-page-grid,body[data-print="card"] .card-qr-sheet,body[data-print="card"] .guide-actions{display:none!important}
+ body[data-print="card"] .app-authenticated .layout.app-shell,body[data-print="card"] .app-authenticated .workspace,body[data-print="card"] .app-authenticated .content-area,body[data-print="card"] .app-authenticated .content,body[data-print="cards"] .app-authenticated .layout.app-shell,body[data-print="cards"] .app-authenticated .workspace,body[data-print="cards"] .app-authenticated .content-area,body[data-print="cards"] .app-authenticated .content{display:block!important;width:100%!important;height:auto!important;padding:0!important;margin:0!important;background:#fff!important}
+ body[data-print="card"] .student-pass-wrap{display:block!important;padding:0!important}
+ body[data-print="card"] .student-pass{width:100%!important;min-height:0!important;box-shadow:none!important;border:1px solid #444!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+ body[data-print="cards"] .workspace-head,body[data-print="cards"] .sidebar,body[data-print="cards"] .topbar,body[data-print="cards"] footer,body[data-print="cards"] .cards-toolbar,body[data-print="cards"] .student-card-print-actions,body[data-print="cards"] .card-page-head{display:none!important}
+ body[data-print="cards"] .cards-sheet-grid{display:grid!important;grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:10px!important}
+ body[data-print="cards"] .student-card-print{box-shadow:none!important;border:1px solid #444!important;background:#fff!important;color:#111!important}
+ body[data-print="cards"] .student-card-print-head strong{color:#111!important}
+ body[data-print="cards"] .card-qr{background:#fff!important;border-color:#bbb!important}
+}
+@media(prefers-reduced-motion:reduce){
+ .mission-side{transition:none}
+ .mission-side:hover:not(:disabled){transform:none}
+}

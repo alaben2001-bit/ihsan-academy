@@ -97,7 +97,7 @@ async function main() {
   // Seed economy: reading award + store redemption (debit event).
   const reading = await call("/api/points/reading", { method: "POST", token: studentA.token, body: { surah: "الفاتحة", portion: "صفحة", reflection: "اختبار النسخ" } });
   check("student logs daily reading for points", reading.status === 201 && (reading.data?.awards || []).some(a => a.kind === "store" && a.status === "awarded"), JSON.stringify(reading.data));
-  const item = await call("/api/store/items", { method: "POST", token: admin, body: { name: "مادة اختبار النسخ " + RUN, cost: 2, stock: 5 } });
+  const item = await call("/api/store/items", { method: "POST", token: admin, body: { name: "مادة اختبار النسخ " + RUN, cost: 2, stock: 5, image_url: "https://example.org/reward-" + RUN + ".png" } });
   check("admin creates a store item", item.status === 201 && item.data?.item?.id, JSON.stringify(item.data));
   const itemId = item.data.item.id;
   const redeem = await call("/api/store/redeem", { method: "POST", token: studentA.token, body: { item_id: itemId } });
@@ -153,6 +153,7 @@ async function main() {
   check("full export returns v4", exported.status === 200 && backup.format === "ihsan-academy-full-backup-v4", JSON.stringify({ status: exported.status, format: backup.format }));
   check("export includes point rules and events", (data.point_rules || []).length >= 7 && (data.point_events || []).length >= 2, JSON.stringify({ rules: (data.point_rules || []).length, events: (data.point_events || []).length }));
   check("export includes store items and redemptions", (data.store_items || []).some(x => x.id === itemId) && (data.store_redemptions || []).some(x => x.id === redemptionId), JSON.stringify({ items: (data.store_items || []).length, redemptions: (data.store_redemptions || []).length }));
+  check("export keeps the optional store product image", (data.store_items || []).some(x => x.id === itemId && x.image_url === "https://example.org/reward-" + RUN + ".png"), JSON.stringify((data.store_items || []).find(x => x.id === itemId)));
   check("export includes the Quran path", (data.quran_paths || []).some(x => x.student_id === studentA.id), JSON.stringify((data.quran_paths || []).length));
   check("export includes three daily logs", (data.quran_daily || []).filter(x => x.student_id === studentA.id).length === 3, JSON.stringify((data.quran_daily || []).filter(x => x.student_id === studentA.id)));
   check("export includes pair, session, station and makeup", (data.quran_pairs || []).length >= 1 && (data.quran_pair_sessions || []).length >= 1 && (data.quran_stations || []).length >= 1 && (data.quran_makeups || []).length >= 1, JSON.stringify({ pairs: (data.quran_pairs || []).length, sessions: (data.quran_pair_sessions || []).length, stations: (data.quran_stations || []).length, makeups: (data.quran_makeups || []).length }));
@@ -179,6 +180,8 @@ async function main() {
   check("restore keeps the daily logs", Boolean(dailyAfter.data?.logs?.hifz) && Boolean(dailyAfter.data?.logs?.thabit) && Boolean(dailyAfter.data?.logs?.ward), JSON.stringify(dailyAfter.data?.logs));
   const redemptionsAfter = await call("/api/store/redemptions?status=pending", { token: admin });
   check("restore reverts the redemption decision", (redemptionsAfter.data || []).some(x => x.id === redemptionId), JSON.stringify(redemptionsAfter.data));
+  const itemsAfterRestore = await call("/api/store/items", { token: admin });
+  check("restore keeps the optional store product image", (itemsAfterRestore.data?.items || []).some(x => x.id === itemId && x.image_url === "https://example.org/reward-" + RUN + ".png"), JSON.stringify((itemsAfterRestore.data?.items || []).find(x => x.id === itemId)));
   const stationAfter = await call("/api/quran/stations", { token: studentA.token });
   check("restore keeps the station", (stationAfter.data || []).some(x => x.student_id === studentA.id), JSON.stringify(stationAfter.data));
   const makeupAfter = await call("/api/quran/makeups", { token: studentA.token });
