@@ -1,4 +1,4 @@
-﻿/* Arabic anti-self-XSS notice for the academy's own developer console. */
+/* Arabic anti-self-XSS notice for the academy's own developer console. */
 console.warn("تنبيه أمني من أكاديمية الإحسان:\nقد يتيح استخدام وحدة التحكم (Console) للمهاجمين انتحال هويتك وسرقة معلوماتك عبر هجوم يُعرف باسم Self-XSS.\nلا تُدخل أو تلصق أي شيفرة لا تفهمها، ولا تنفّذ تعليمات يرسلها إليك مجهول.");
 let ihsanInstallPrompt=null;
 let ihsanGoogleNonce="";
@@ -951,7 +951,7 @@ window.addEventListener("popstate",async e=>{if(!S.user)return;const st=e.state|
 async function page(){const v=$("#view");try{window.IhsanScanner&&window.IhsanScanner.stop()}catch{}
 if(S.mode==="ihsan"){S.mode="hub";moduleChooser(false);return}
 if((S.user?.role==="visitor"||(S.user?.role==="student"&&!S.user?.group_id))&&S.tab!=="home")S.tab="home";
-v.innerHTML='<div class="loading">جار تحميل البيانات…</div>';try{if(S.tab==="system-check"&&S.user.role==="admin")return systemCheckPage(v);if(S.tab==="join-requests"&&["admin","teacher","director"].includes(S.user.role))return await joinRequestsPage(v);if(S.tab==="sheikh-check"&&S.user.role==="teacher")return sheikhCheckPage(v);if(S.tab==="world")return await worldPage(v);if(S.tab==="card")return await cardPage(v);if(S.tab==="cards")return await staffCardsPage(v);if(S.tab==="scan"&&["admin","teacher","director","supervisor"].includes(S.user.role))return await scanPage(v);if(S.tab==="guide")return await guidePage(v);if(S.tab==="home" && S.user.role==="student" && !S.user.group_id) return await studentJoinRequestPage(v);
+v.innerHTML='<div class="loading">جار تحميل البيانات…</div>';try{if(S.tab==="system-check"&&S.user.role==="admin")return systemCheckPage(v);if(S.tab==="join-requests"&&["admin","teacher","director"].includes(S.user.role))return await joinRequestsPage(v);if(S.tab==="sheikh-check"&&S.user.role==="teacher")return sheikhCheckPage(v);if(S.tab==="world")return await worldPage(v);if(S.tab==="card")return await cardPage(v);if(S.tab==="cards")return await staffCardsPage(v);if(S.tab==="scan"&&["admin","teacher","director","supervisor"].includes(S.user.role))return await scanPage(v);if(S.tab==="guide")return await guidePage(v);if(S.tab==="home" && S.user.role==="student" && !S.user.group_id) return pendingStudentHome(v);
  if(S.tab==="home")return await home(v);if(S.tab==="teams")return await teamsPage(v);if(S.tab==="groups")return groups(v);if(S.tab==="tasks")return await tasksPage(v);if(S.tab==="hadith")return await contentPage(v);if(S.tab==="competitions")return await competitionsPage(v);if(S.tab==="points")return await pointsPage(v);if(S.tab==="teachers")return teachers(v);if(S.tab==="students")return students(v);if(S.tab==="attendance")return attendance(v);if(S.tab==="assignments")return await assignmentsPage(v);if(S.tab==="gradebook")return await gradebookPage(v);if(S.tab==="messages")return await messagesPage(v);if(S.tab==="reports")return reportsPage(v);if(S.tab==="leaderboard")return leaderboardPage(v);if(S.tab==="profile")return studentProfile(v,S.user.student_id);if(S.tab==="quran")return quran(v);if(S.tab==="effort")return effortPage(v);if(S.tab==="effort-ranking")return effortRankingPage(v);if(S.tab==="roster-bulk")return bulkRosterPage(v);if(S.tab==="quran-achievement")return quranAchievementPage(v);if(S.tab==="roadmap")return roadmapPage(v);if(S.tab==="hierarchy")return hierarchyPage(v);if(S.tab==="tests")return testsPage(v);
  if(S.tab==="notifications")return notificationsPage(v);v.innerHTML=head("القسم غير متاح","هذا القسم لم يعد متاحًا. اختر قسمًا من القائمة.")+'<button class="btn" id="back-home">العودة إلى الرئيسية</button>';$("#back-home").onclick=()=>go("home");return}catch(e){v.innerHTML='<div class="panel"><h2>تعذّر تحميل البيانات</h2><p class="notice error">'+esc(e.message)+'</p><button class="btn" id="retry">إعادة المحاولة</button></div>';$("#retry").onclick=page}}
 function pointsStatusLabel(status){const labels={pending:"قيد المراجعة",approved:"معتمد",rejected:"مرفوض",fulfilled:"منفذ",cancelled:"ملغى"};return labels[status]||status}
@@ -1852,7 +1852,7 @@ function quranEightMonthMarkup(pathData){
  const planCards=Object.entries(plans).map(([id,p])=>'<article class="quran-eight-plan"><span class="quran-eight-num">'+esc(String(p.thumns))+'</span><strong>'+esc(p.label||id)+'</strong><small>ضمن برنامج الثمانية أشهر · بالقدر الأسبوعي من الأثمان · خمسة أيام في الأسبوع مع يوم استراحة</small></article>').join("");
  const catRows=Object.entries(cats).map(([id,c])=>'<tr><th>'+esc(c.label||id)+'</th><td>'+esc(c.thabitLabel||"")+' يوميًا</td><td>'+Number(c.workDays||5)+' أيام أسبوعيًا</td></tr>').join("");
  const wardChips=Object.entries(ward).map(([id,label])=>'<span class="world-chip"><b>الورد</b> '+esc(label)+'</span>').join("");
- return '<section class="card quran-plans-eight"><div class="section-head"><div><span class="eyebrow">برنامج الثمانية أشهر</span><h3>خطط الحفظ الثلاث</h3><p>ثلاثة مقادير أسبوعية ضمن برنامج الثمانية أشهر؛ يعتمد الشيخ ما يناسب وقتك وقدرتك. أرقام التثبيت مقترحة بانتظار اعتماده، ولا تتغير خطتك تلقائيًا.</p></div></div>'
+ return '<section class="card quran-plans-eight"><div class="section-head"><div><span class="eyebrow">برنامج الثمانية أشهر</span><h3>خطط الحفظ الثلاث</h3><p>ثلاثة مقادير أسبوعية ضمن برنامج الثمانية أشهر؛ يعتمد الشيخ ما يناسب وقتك وقدرتك. أرقام التثبيت معتمدة من الشيخ، ولا تتغير خطتك تلقائيًا.</p></div></div>'
   +'<div class="quran-eight-grid">'+planCards+'</div>'
   +'<h4>التثبيت بحسب مقدار المحفوظ</h4><div class="table-wrap"><table><thead><tr><th>مقدار المحفوظ</th><th>التثبيت اليومي</th><th>أيام العمل</th></tr></thead><tbody>'+catRows+'</tbody></table></div>'
   +'<h4>الورد اليومي (مستقل عن الحفظ والتثبيت)</h4><div class="quran-path-chips">'+wardChips+'</div><p class="muted small">الورد قراءة يومية مستقلة لا تُغني عن الحفظ الجديد ولا عن التثبيت، ولا يُحسب إنجازه بدلًا عنهما. تُسجّل الثلاثة مفصولة في حسابك، ولا تُخلط نقاطها بعضها ببعض.</p></section>';
@@ -1887,7 +1887,7 @@ function quranScheduleMarkup(pathData, todayData, summary, monthLogs){
     {m:2,title:"الاستمرار والمراجعة التراكمية",note:"ركّز على ما مضى مع المتشابهات بين السور.",gate:"—"},
     {m:3,title:"المحطة الأولى",note:"اعرض على الشيخ ما بلغت من الحفظ، واطلب اعتماد محطة 15 حزبًا.",gate:"محطة 15 حزبًا"},
     {m:4,title:"التثبيت والعزم",note:"واصل بخطتك؛ لا تزد على مقدارك قبل اعتماد الشيخ.",gate:"—"},
-    {m:5,title:"المحطة الثانية",note:"اعرض محطة 30 حزبًا على الشيخ، وتثبيت أربعمئة وجه ما قبلها.",gate:"محطة 30 حزبًا"},
+    {m:5,title:"المحطة الثانية",note:"اعرض على الشيخ ما بلغت، وأكمل تثبيت ما سبقها من الأحزاب.",gate:"محطة 30 حزبًا"},
     {m:6,title:"نحو التمكين",note:"ربط متشابهات المراحل وتكرار المعاني والمتشابهات.",gate:"—"},
     {m:7,title:"التمكين والمراجعة الشاملة",note:"سرد وتمكين قبل الختمة، على وتيرة خطتك نفسها.",gate:"محطة 45 حزبًا"},
     {m:8,title:"الختم والاختبار الختامي",note:"المحطة الرابعة والاختبار الختامي مع الشيخ؛ النجاح بالإتقان لا بالسرعة.",gate:"محطة 60 حزبًا — الختم"}
@@ -1906,7 +1906,7 @@ function quranScheduleMarkup(pathData, todayData, summary, monthLogs){
   const totalsRow='<div class="quran-program-stats">'
     +'<div><small>أيام الحفظ</small><strong>'+Number(totals.hifz?.days||0)+'</strong></div>'
     +'<div><small>أيام التثبيت</small><strong>'+Number(totals.thabit?.days||0)+'</strong></div>'
-    +'<div><small>تكرار التثبيت</small><strong>'+Number(totals.thabit?.repetitions||0)+'</strong></div>'
+    +'<div><small>أحزاب التثبيت</small><strong>'+quranFmtAmount(totals.thabit?.total||0,"حزب")+'</strong></div>'
     +'<div><small>أيام الورد</small><strong>'+Number(totals.ward?.days||0)+'</strong></div>'
     +'<div><small>محطات معتمدة</small><strong>'+Number(stations.approved||0)+' / 4</strong></div>'
     +'</div>';
@@ -3370,7 +3370,7 @@ async function roadmapPage(v){
  if(!isAdmin){v.innerHTML=head("خريطة الإنجاز","هذه الصفحة مخصصة للمدير العام.");return}
  const stages=[
   {name:"السياق والأدوار والصلاحيات",status:"منجز ومختبر",detail:"RBAC، managedGroupIds، supervisor staff، global chief"},
-  {name:"خطط الحفظ (مبتدئ/متوسط/عالٍ + تمهيدي)",status:"قيد العمل",detail:"البيانات 15/30/45/60 موجودة؛ 8 أشهر ونتائج 1/3/6/8 بانتظار اعتماد Sheikh"},
+  {name:"خطط الحفظ (مبتدئ/متوسط/عالٍ + تمهيدي)",status:"معتمدة",detail:"البيانات 15/30/45/60؛ برنامج الثمانية أشهر معتمد بخطط 4/8/12 ثُمنًا أسبوعيًا"},
   {name:"الورد «فمي بشوق» (7 أجزاء)",status:"مخطط",detail:"توضيح تلاوة من المصحف vs استماع vs حفظ vs تسميع"},
   {name:"الثبات 8 أشهر",status:"مخطط",detail:"تصنيفات Thabit + 2.5/5/7.5 مُعلَّمة كاقتراح"},
   {name:"QCM تفاعلي",status:"مخطط",detail:"شرح ← مثال ← سؤال ← تصحيح ← إعادة"},
@@ -3570,7 +3570,7 @@ async function showSignup(){
   let schools=[];
   try{schools=await api("/public/quran-schools")}catch{schools=[]}
   const schoolOptions=schools.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.name)+'</option>').join("");
-  app.innerHTML='<div class="auth-layout"><section class="welcome"><div><span class="eyebrow">أكاديمية الإحسان</span><h1>إنشاء حساب</h1></div></section><section class="panel stack"><h2>إنشاء حساب جديد</h2><p class="muted small">أنشئ حسابك ثم اطلب الانضمام إلى المدرسة أو الفوج.</p><form id="signup-form" class="stack"><label class="field">اسمك ولقبك<input name="name" required maxlength="120" autocomplete="off"></label><label class="field">البريد الإلكتروني<input name="username" type="email" required autocomplete="off"></label><label class="field">كلمة المرور<input name="password" type="password" required minlength="10" autocomplete="new-password"></label><label class="field">نوع الحساب<select name="kind"><option value="student">طالب</option><option value="teacher">شيخ / معلم</option><option value="visitor">زائر / محسن</option></select></label><label class="field" id="signup-school-field">المدرسة القرآنية<select name="school_id"><option value="">-- اختيار --</option>'+schoolOptions+'</select></label><label class="field">ملاحظة<textarea name="note" maxlength="500" rows="2"></textarea></label><div id="signup-error" class="notice error hidden"></div><button class="btn" type="submit">إنشاء الحساب</button><button type="button" class="btn secondary" id="back-login">العودة لتسجيل الدخول</button></form></section></div>';
+  app.innerHTML='<div class="auth-layout"><section class="welcome"><div><span class="eyebrow">أكاديمية الإحسان</span><h1>إنشاء حساب</h1></div></section><section class="panel stack"><h2>إنشاء حساب جديد</h2><p class="muted small">أنشئ حسابك ثم اطلب الانضمام إلى المدرسة أو الفوج.</p><form id="signup-form" class="stack"><label class="field">اسمك ولقبك<input name="name" required maxlength="120" autocomplete="off"></label><label class="field">البريد الإلكتروني<input name="username" type="email" required autocomplete="off"></label><label class="field">كلمة المرور<input name="password" type="password" required minlength="10" autocomplete="new-password"></label><label class="field">نوع الحساب<select name="kind"><option value="student">طالب</option><option value="teacher">شيخ / معلم</option></select></label><label class="field" id="signup-school-field">المدرسة القرآنية<select name="school_id"><option value="">-- اختيار --</option>'+schoolOptions+'</select></label><label class="field">ملاحظة<textarea name="note" maxlength="500" rows="2"></textarea></label><div id="signup-error" class="notice error hidden"></div><button class="btn" type="submit">إنشاء الحساب</button><button type="button" class="btn secondary" id="back-login">العودة لتسجيل الدخول</button></form></section></div>';
   const form=$("#signup-form");
   const kindSelect=form.querySelector('select[name="kind"]');
   const schoolField=$("#signup-school-field");
