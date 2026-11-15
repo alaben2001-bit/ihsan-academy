@@ -362,6 +362,188 @@ async function resolvePointStudent(env, user, studentId) {
   return { row };
 }
 
+// ---------------------------------------------------------------------------
+// V71: بطاقة الطالب بثلاثة رموز QR مستقلة، عالم المهام، وحدّ المعدل.
+// البطاقة تُحفظ في academy_records (collection=student_cards) بلا جدول جديد،
+// ومعرّفها هو معرّف الطالب حتى تبقى بطاقة واحدة لكل طالب ولا تتكرر.
+// كل رمز سرّي محدود الأجل؛ نُخزّن بصمته للتحقق ونُبقي السرّ لطباعة البطاقة.
+// ---------------------------------------------------------------------------
+const CARD_KINDS = {
+  add_points: { label: "إضافة نقاط", ttlDays: 90, requiresAuth: true },
+  profile: { label: "الملف الشخصي", ttlDays: 365, requiresAuth: true },
+  login: { label: "الدخول السريع", ttlDays: 365, requiresAuth: false }
+};
+const CARD_KIND_ORDER = ["add_points", "profile", "login"];
+const CARD_SECRET_BYTES = 24;
+const cardSecret = () => hex(crypto.getRandomValues(new Uint8Array(CARD_SECRET_BYTES)));
+const cardExpiry = days => new Date(Date.now() + Number(days) * 86400000).toISOString();
+const cardActive = token => Boolean(token) && !token.revoked_at && (!token.expires_at || token.expires_at > nowIso());
+
+async function cardRecord(env, cardId) {
+  const id = clean(cardId, 80);
+  if (!id) return null;
+  const row = await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='student_cards' AND id=?").bind(id).first();
+  if (!row) return null;
+  try { return JSON.parse(row.payload_json); } catch { return null; }
+}
+function cardPublic(card) {
+  const tokens = {};
+  for (const kind of CARD_KIND_ORDER) {
+    const token = card?.tokens?.[kind];
+    tokens[kind] = {
+      kind,
+      label: CARD_KINDS[kind].label,
+      issued_at: token?.issued_at || null,
+      expires_at: token?.expires_at || null,
+      revoked_at: token?.revoked_at || null,
+      active: cardActive(token)
+    };
+  }
+  return { id: card.id, student_id: card.student_id, group_id: card.group_id, name: card.name, created_at: card.created_at, updated_at: card.updated_at, tokens };
+}
+async function issueCardToken(card, kind) {
+  const secret = cardSecret();
+  const now = nowIso();
+  const tokens = { ...(card.tokens || {}) };
+  tokens[kind] = { hash: await hashToken(secret), secret, issued_at: now, expires_at: cardExpiry(CARD_KINDS[kind].ttlDays), revoked_at: null };
+  return { ...card, tokens, updated_at: now };
+}
+function cardLinks(card, origin) {
+  const base = String(origin || "").replace(/\/+$/, "");
+  const links = {};
+  for (const kind of CARD_KIND_ORDER) {
+    const token = card?.tokens?.[kind];
+    if (!cardActive(token) || !token.secret) continue;
+    links[kind] = base + "/#scan=" + kind + "." + card.id + "." + token.secret;
+  }
+  return links;
+}
+async function verifyCardToken(card, kind, secret) {
+  const token = card?.tokens?.[kind];
+  if (!CARD_KINDS[kind] || !cardActive(token)) return false;
+  const value = String(secret || "");
+  if (!/^[a-f0-9]{32,64}$/i.test(value)) return false;
+  return (await hashToken(value)) === token.hash;
+}
+async function studentCardRow(env, studentId) {
+  return env.DB.prepare("SELECT s.id,s.display_name AS name,s.group_id,g.name AS group_name,u.identity_normalized AS username FROM students s LEFT JOIN groups g ON g.id=s.group_id LEFT JOIN users u ON u.id=s.user_id WHERE s.id=? AND s.active=1").bind(studentId).first();
+}
+async function canAccessStudentCard(env, user, student) {
+  if (!user || !student) return false;
+  if (user.role === "admin") return true;
+  if (user.role === "student") return user.student_id === student.id;
+  if (["teacher", "director", "supervisor"].includes(user.role)) return canManageGroup(env, user, student.group_id);
+  return false;
+}
+
+// حدّ المعدل: جدول صغير مستقل، ويُسمح بالمرور إن لم يكن الجدول موجودًا بعد
+// حتى لا يتعطل العمل الحقيقي قبل تطبيق الترحيل 0008.
+const RATE_LIMIT_SCHEMA_STATEMENTS = [
+  `CREATE TABLE IF NOT EXISTS rate_limits (
+    bucket TEXT NOT NULL,
+    key TEXT NOT NULL,
+    window_start INTEGER NOT NULL,
+    hits INTEGER NOT NULL DEFAULT 0,
+    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    PRIMARY KEY (bucket, key, window_start)
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_rate_limits_window ON rate_limits(window_start)`
+];
+let rateLimitSchemaReady = null;
+async function ensureRateLimitSchema(env) {
+  if (rateLimitSchemaReady) return rateLimitSchemaReady;
+  rateLimitSchemaReady = (async () => {
+    for (const statement of RATE_LIMIT_SCHEMA_STATEMENTS) await env.DB.prepare(statement).run();
+    return true;
+  })().catch(error => { rateLimitSchemaReady = null; throw error; });
+  return rateLimitSchemaReady;
+}
+async function rateLimit(env, bucket, key, limit, windowSeconds) {
+  const max = Math.max(1, Number(limit) || 1), seconds = Math.max(1, Number(windowSeconds) || 60);
+  try {
+    await ensureRateLimitSchema(env);
+    const now = Date.now(), windowMs = seconds * 1000, windowStart = Math.floor(now / windowMs) * windowMs;
+    const row = await env.DB.prepare("INSERT INTO rate_limits (bucket,key,window_start,hits,updated_at) VALUES (?,?,?,1,?) ON CONFLICT(bucket,key,window_start) DO UPDATE SET hits=hits+1,updated_at=excluded.updated_at RETURNING hits").bind(bucket, key, windowStart, nowIso()).first();
+    const hits = Number(row?.hits || 1);
+    return { allowed: hits <= max, degraded: false, hits, limit: max, retry_after: Math.max(1, Math.ceil((windowStart + windowMs - now) / 1000)) };
+  } catch {
+    return { allowed: true, degraded: true, hits: 0, limit: max, retry_after: 0 };
+  }
+}
+const rateLimitKey = request => clean(request.headers.get("cf-connecting-ip") || request.headers.get("x-forwarded-for") || "unknown", 120) || "unknown";
+
+// عالم المهام: قصص ومراحل تُشتق من أعمال حقيقية مسجّلة، ومهام يومية تُستلم
+// مرة واحدة عبر محرك النقاط الموجود (event_type=mission_side) بلا محفظة جديدة.
+const MISSION_STORY = [
+  { id: "story-seed", title: "البذرة", icon: "🌱", text: "سجّل أول ورد قراءة.", metric: "reading_days", target: 1 },
+  { id: "story-steadfast", title: "الثبات", icon: "🌿", text: "حافظ على سلسلة قراءة سبعة أيام.", metric: "reading_streak", target: 7 },
+  { id: "story-listener", title: "المتعلّم", icon: "📖", text: "سجّل عشرة دروس حفظ أو مراجعة.", metric: "quran_entries", target: 10 },
+  { id: "story-present", title: "المواظب", icon: "🕌", text: "احضر خمس حلقات.", metric: "attendance_days", target: 5 },
+  { id: "story-light", title: "النور", icon: "✨", text: "اجمع 500 نقطة إنجاز من أعمال حقيقية.", metric: "achievement", target: 500 }
+];
+const MISSION_SIDE = [
+  { id: "side-attendance", title: "حاضر اليوم", icon: "✓", text: "سجّل حضورك في حلقتك اليوم.", metric: "attendance_today" },
+  { id: "side-quran", title: "ورد القرآن", icon: "۞", text: "أضف حفظًا أو مراجعة اليوم.", metric: "quran_today" },
+  { id: "side-reading", title: "قراءة وتدبّر", icon: "📖", text: "سجّل ورد قراءتك اليوم.", metric: "reading_today" },
+  { id: "side-challenge", title: "تحدي اليوم", icon: "★", text: "استلم تحدي اليوم من عالمك.", metric: "challenge_today" }
+];
+const MISSION_COLLECTIBLES = [
+  { id: "collectible-seed", title: "بذرة الإحسان", icon: "🌱", story: "story-seed" },
+  { id: "collectible-light", title: "نور الورد", icon: "✨", story: "story-light" },
+  { id: "collectible-heart", title: "قلب مواظب", icon: "🕌", story: "story-present" },
+  { id: "collectible-book", title: "رفيق المصحف", icon: "📖", story: "story-listener" }
+];
+async function studentMissionFacts(env, studentId) {
+  const today = academyDate();
+  const [attendanceRows, quranRows, readingRows, challenge, totals] = await Promise.all([
+    records(env, "attendance", " AND student_id=?", [studentId]),
+    records(env, "quran_progress", " AND student_id=?", [studentId]),
+    records(env, "reading_log", " AND student_id=?", [studentId]),
+    env.DB.prepare("SELECT COUNT(*) AS n FROM point_events WHERE student_id=? AND event_type='daily_challenge' AND awarded_date=? AND reversed_at IS NULL").bind(studentId, today).first(),
+    pointsTotals(env, studentId)
+  ]);
+  const attendanceDays = new Set(attendanceRows.filter(row => row.status === "present" && row.date).map(row => row.date)).size;
+  const readingDays = new Set(readingRows.map(row => String(row.day || "")).filter(Boolean));
+  let readingStreak = 0;
+  for (let i = 0; i < 400; i += 1) { const day = academyDate(new Date(Date.now() - i * 86400000)); if (!readingDays.has(day)) break; readingStreak += 1; }
+  return {
+    today,
+    attendance_today: attendanceRows.some(row => row.date === today && row.status === "present"),
+    quran_today: quranRows.some(row => row.date === today),
+    reading_today: readingDays.has(today),
+    challenge_today: Number(challenge?.n || 0) > 0,
+    attendance_days: attendanceDays,
+    quran_entries: quranRows.length,
+    reading_days: readingDays.size,
+    reading_streak: readingStreak,
+    achievement: Number(totals.achievement || 0)
+  };
+}
+async function missionPayload(env, studentId) {
+  const facts = await studentMissionFacts(env, studentId);
+  const claimRow = await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='student_missions' AND id=?").bind(studentId).first();
+  let claims = {};
+  if (claimRow) { try { claims = JSON.parse(claimRow.payload_json).claims || {}; } catch { claims = {}; } }
+  const story = MISSION_STORY.map(mission => {
+    const value = Number(facts[mission.metric] || 0);
+    const progress = Math.min(100, Math.round(value / Math.max(1, mission.target) * 100));
+    return { ...mission, value, progress, done: value >= mission.target };
+  });
+  const side = MISSION_SIDE.map(mission => {
+    const done = Boolean(facts[mission.metric]);
+    return { ...mission, done, claimed: Boolean(claims[mission.id]), claimable: done && !claims[mission.id] };
+  });
+  return {
+    today: facts.today,
+    story,
+    side,
+    badges: story.filter(mission => mission.done).map(mission => ({ id: mission.id, title: mission.title, icon: mission.icon })),
+    collectibles: MISSION_COLLECTIBLES.map(item => ({ ...item, unlocked: Boolean(story.find(mission => mission.id === item.story && mission.done)) })),
+    stats: { attendance_days: facts.attendance_days, quran_entries: facts.quran_entries, reading_days: facts.reading_days, reading_streak: facts.reading_streak, achievement: facts.achievement },
+    bonus_rule: await env.DB.prepare("SELECT name,achievement_points,store_points,active FROM point_rules WHERE event_type='mission_side'").first()
+  };
+}
+
 const TASK_TYPE_LABELS = { assignment: "واجب", memorization: "حفظ", revision: "مراجعة", attendance: "حضور", behavior: "سلوك" };const TASK_STATUS_LABELS = { pending: "مطلوب", submitted: "بانتظار التصحيح", done: "منجز", late: "متأخر" };
 const CONTENT_KINDS = { hadith: "hadith_items", mutoon: "mutoon_items", duas: "dua_items", adhkar: "adhkar_items" };
 const CONTENT_STATUSES = ["draft", "needs_source", "pending_review", "approved", "published", "archived"];
@@ -419,7 +601,8 @@ const LEARNING_SCHEMA_STATEMENTS = [
     ('rule-assignment-excellent','assignment_excellent','إتقان واجب','تُمنح عند اعتماد مراجعة تسليم بدرجة إتقان (80% فأكثر).',20,10,5,1,1,31),
     ('rule-test-completed','test_completed','إكمال اختبار','تُمنح عند إكمال اختبار ونشره في السجل.',10,5,3,1,1,40),
     ('rule-daily-challenge','daily_challenge','تحدي اليوم','تُمنح عند استلام تحدي اليوم.',5,5,1,1,1,50),
-    ('rule-quran-reading','quran_reading','قراءة وتدبّر','تُمنح عند تسجيل ورد قراءة يومي مرة واحدة.',5,2,1,1,1,55)`,
+    ('rule-quran-reading','quran_reading','قراءة وتدبّر','تُمنح عند تسجيل ورد قراءة يومي مرة واحدة.',5,2,1,1,1,55),
+    ('rule-mission-side','mission_side','مهمة يومية','تُمنح عند استلام مهمة يومية مكتملة من عالم الطالب، مرة واحدة يوميًا.',5,2,1,1,1,60)`,
   `CREATE TABLE IF NOT EXISTS point_events (
     id TEXT PRIMARY KEY,
     student_id TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
@@ -1643,6 +1826,34 @@ export default {
       const token = requestSessionToken(request);
       if (token) await env.DB.prepare("DELETE FROM sessions WHERE token_hash=?").bind(await hashToken(token)).run();
       return clearedSessionResponse({ok:true});
+    }
+    // مسح رمز البطاقة: يُستدعى قبل بوابة الدخول لأن رمز «الدخول السريع» يُقرأ
+    // بلا جلسة (ولا يسجّل الدخول تلقائيًا)، وبقية الأنواع تتطلب جلسة وصلاحية.
+    if (path === "/api/cards/resolve" && method === "POST") {
+      if (!bearerSessionToken(request) && cookieSessionToken(request) && !csrfIsValid(request)) return fail(403,"تعذّر التحقق من حماية الطلب. حدّث الصفحة ثم أعد المحاولة.");
+      const parsed=await parseBody(request,4000);if(parsed.error)return parsed.error;const b=parsed.value;
+      const kind=clean(b.kind,20),cardId=clean(b.card_id,80),secret=clean(b.secret,80);
+      if(!CARD_KINDS[kind])return fail(400,"نوع رمز البطاقة غير معروف");
+      if(!cardId||!secret)return fail(400,"رمز البطاقة غير مكتمل");
+      // حدّ المسح لكل بطاقة على حدة (لا لكل جهاز) حتى يستطيع الشيخ مسح بطاقات فوجه
+      // كاملة من جهاز واحد، مع حماية كل بطاقة من تخمين الرمز السري.
+      const limited=await rateLimit(env,"card-resolve:"+kind,kind==="login"?cardId:rateLimitKey(request),kind==="login"?12:40,600);
+      if(!limited.allowed)return json({error:"محاولات مسح كثيرة خلال وقت قصير. انتظر قليلًا ثم أعد المحاولة.",retry_after:limited.retry_after},429,{"retry-after":String(limited.retry_after)});
+      const card=await cardRecord(env,cardId);
+      if(!card||!await verifyCardToken(card,kind,secret))return fail(404,"رمز البطاقة غير صالح أو منتهٍ. اطلب إعادة إصداره من الإدارة.");
+      const student=await studentCardRow(env,card.student_id);
+      if(!student)return fail(404,"ملف الطالب غير متاح");
+      if(kind==="login"){
+        await log(env,null,"student_card_scan_login",{card_id:card.id,student_id:student.id});
+        return json({ok:true,kind,requires_password:true,student:{name:student.name,username:student.username||"",group_name:student.group_name||""},message:"امسح البطاقة ثم أدخل كلمة المرور. لا يتم الدخول تلقائيًا حفاظًا على الخصوصية."});
+      }
+      const scanner=await currentUser(request,env);
+      if(!scanner)return fail(401,"سجّل الدخول أولًا ثم أعد مسح البطاقة.");
+      if(!await canAccessStudentCard(env,scanner,student))return fail(403,"هذه البطاقة خارج صلاحيتك");
+      if(kind==="add_points"&&scanner.role==="student")return fail(403,"رمز إضافة النقاط يُستخدم من الشيخ أو المشرف");
+      const totals=await pointsTotals(env,student.id);
+      await log(env,scanner.id,"student_card_scan_"+kind,{card_id:card.id,student_id:student.id});
+      return json({ok:true,kind,student:{id:student.id,name:student.name,group_id:student.group_id,group_name:student.group_name||""},totals,next:kind==="add_points"?"points":"profile"});
     }
     const user=await currentUser(request,env); if(!user)return fail(401,"يرجى تسجيل الدخول");
     if (!bearerSessionToken(request) && cookieSessionToken(request) && ["POST","PUT","PATCH","DELETE"].includes(method) && !csrfIsValid(request)) return fail(403,"تعذّر التحقق من حماية الطلب. حدّث الصفحة ثم أعد المحاولة.");
@@ -4138,10 +4349,135 @@ export default {
       await log(env,user.id,"points_penalty",{student_id:s.id,amount,reason,event_id:inserted.id});
       return json({ok:true,deducted:amount,totals:await pointsTotals(env,s.id)},201);
     }
+    // -----------------------------------------------------------------------
+    // بطاقات الطلاب: إنشاء/عرض/إعادة إصدار/إلغاء/طباعة جماعية.
+    // -----------------------------------------------------------------------
+    if(path==="/api/student-cards"&&method==="GET"){
+      const requested=clean(url.searchParams.get("student_id"),80);
+      const studentId=user.role==="student"?user.student_id:requested;
+      if(!studentId)return fail(400,"حدّد الطالب");
+      const student=await studentCardRow(env,studentId);
+      if(!student)return fail(404,"ملف الطالب غير موجود");
+      if(!await canAccessStudentCard(env,user,student))return fail(403,"هذه البطاقة خارج صلاحيتك");
+      const card=await cardRecord(env,student.id);
+      return json({card:card?cardPublic(card):null,links:card?cardLinks(card,url.origin):{},student:{id:student.id,name:student.name,group_id:student.group_id,group_name:student.group_name||""}});
+    }
+    if(path==="/api/student-cards"&&method==="POST"){
+      const parsed=await parseBody(request,4000);if(parsed.error)return parsed.error;const b=parsed.value;
+      const studentId=user.role==="student"?user.student_id:(clean(b.student_id,80)||user.student_id);
+      if(!studentId)return fail(400,"حدّد الطالب");
+      const student=await studentCardRow(env,studentId);
+      if(!student)return fail(404,"ملف الطالب غير موجود");
+      if(!await canAccessStudentCard(env,user,student))return fail(403,"هذه البطاقة خارج صلاحيتك");
+      let card=await cardRecord(env,student.id);
+      const created=!card;
+      if(!card){
+        card={id:student.id,student_id:student.id,group_id:student.group_id,name:student.name,created_by:user.id,created_at:nowIso(),updated_at:nowIso(),tokens:{}};
+        for(const kind of CARD_KIND_ORDER)card=await issueCardToken(card,kind);
+        await saveRecord(env,"student_cards",card);
+      }
+      await log(env,user.id,created?"student_card_create":"student_card_open",{card_id:card.id,student_id:student.id});
+      return json({ok:true,created,card:cardPublic(card),links:cardLinks(card,url.origin),student:{id:student.id,name:student.name,group_id:student.group_id,group_name:student.group_name||""}},created?201:200);
+    }
+    if(path==="/api/student-cards/bulk"&&method==="POST"){
+      if(user.role==="student")return fail(403,"غير مسموح");
+      const parsed=await parseBody(request,4000);if(parsed.error)return parsed.error;const b=parsed.value;
+      const groupId=clean(b.group_id,80);
+      if(!groupId||!await canManageGroup(env,user,groupId))return fail(403,"اختر فوجًا ضمن صلاحيتك");
+      const group=await groupRow(env,groupId);
+      if(!group||group.active!==1)return fail(404,"الفوج غير موجود أو غير نشط");
+      const rows=await env.DB.prepare("SELECT id,display_name AS name FROM students WHERE group_id=? AND active=1 ORDER BY display_name LIMIT 200").bind(groupId).all();
+      const cards=[];
+      for(const row of rows.results||[]){
+        let card=await cardRecord(env,row.id);
+        if(!card){
+          card={id:row.id,student_id:row.id,group_id:groupId,name:row.name,created_by:user.id,created_at:nowIso(),updated_at:nowIso(),tokens:{}};
+          for(const kind of CARD_KIND_ORDER)card=await issueCardToken(card,kind);
+          await saveRecord(env,"student_cards",card);
+        }
+        cards.push({student:{id:row.id,name:row.name,group_id:groupId,group_name:group.name},card:cardPublic(card),links:cardLinks(card,url.origin)});
+      }
+      await log(env,user.id,"student_cards_bulk",{group_id:groupId,count:cards.length});
+      return json({group:{id:group.id,name:group.name},count:cards.length,cards});
+    }
+    const cardReissueMatch=path.match(/^\/api\/student-cards\/([^/]+)\/reissue$/);
+    if(cardReissueMatch&&method==="POST"){
+      const card=await cardRecord(env,decodeURIComponent(cardReissueMatch[1]));
+      if(!card)return fail(404,"البطاقة غير موجودة");
+      const student=await studentCardRow(env,card.student_id);
+      if(!student||!await canAccessStudentCard(env,user,student))return fail(403,"هذه البطاقة خارج صلاحيتك");
+      const parsed=await parseBody(request,4000);if(parsed.error)return parsed.error;const b=parsed.value;
+      const requestedKind=clean(b.kind,20);
+      if(requestedKind&&!CARD_KINDS[requestedKind])return fail(400,"نوع الرمز غير معروف");
+      const kinds=requestedKind?[requestedKind]:CARD_KIND_ORDER;
+      let updated=card;
+      for(const kind of kinds)updated=await issueCardToken(updated,kind);
+      updated.name=student.name;updated.group_id=student.group_id;
+      await saveRecord(env,"student_cards",updated);
+      await log(env,user.id,"student_card_reissue",{card_id:updated.id,student_id:student.id,kinds});
+      return json({ok:true,card:cardPublic(updated),links:cardLinks(updated,url.origin)});
+    }
+    const cardRevokeMatch=path.match(/^\/api\/student-cards\/([^/]+)\/revoke$/);
+    if(cardRevokeMatch&&method==="POST"){
+      const card=await cardRecord(env,decodeURIComponent(cardRevokeMatch[1]));
+      if(!card)return fail(404,"البطاقة غير موجودة");
+      const student=await studentCardRow(env,card.student_id);
+      if(!student||!await canAccessStudentCard(env,user,student))return fail(403,"هذه البطاقة خارج صلاحيتك");
+      const parsed=await parseBody(request,4000);if(parsed.error)return parsed.error;const b=parsed.value;
+      const reason=clean(b.reason,300),requestedKind=clean(b.kind,20);
+      if(reason.length<3)return fail(400,"اكتب سبب إلغاء الرمز");
+      if(requestedKind&&!CARD_KINDS[requestedKind])return fail(400,"نوع الرمز غير معروف");
+      const kinds=requestedKind?[requestedKind]:CARD_KIND_ORDER,now=nowIso();
+      const tokens={...(card.tokens||{})};
+      for(const kind of kinds){if(tokens[kind])tokens[kind]={...tokens[kind],revoked_at:now,revoked_reason:reason};}
+      const updated={...card,tokens,updated_at:now};
+      await saveRecord(env,"student_cards",updated);
+      await log(env,user.id,"student_card_revoke",{card_id:updated.id,student_id:student.id,kinds,reason});
+      return json({ok:true,card:cardPublic(updated),links:cardLinks(updated,url.origin)});
+    }
+    const cardPrintMatch=path.match(/^\/api\/student-cards\/([^/]+)\/print$/);
+    if(cardPrintMatch&&method==="GET"){
+      const card=await cardRecord(env,decodeURIComponent(cardPrintMatch[1]));
+      if(!card)return fail(404,"البطاقة غير موجودة");
+      const student=await studentCardRow(env,card.student_id);
+      if(!student||!await canAccessStudentCard(env,user,student))return fail(403,"هذه البطاقة خارج صلاحيتك");
+      await log(env,user.id,"student_card_print",{card_id:card.id,student_id:student.id});
+      return json({ok:true,card:cardPublic(card),links:cardLinks(card,url.origin),student:{id:student.id,name:student.name,group_id:student.group_id,group_name:student.group_name||""}});
+    }
+    // -----------------------------------------------------------------------
+    // عالم المهام: يُشتق من أعمال حقيقية، والاستلام عبر محرك النقاط الموجود.
+    // -----------------------------------------------------------------------
+    if(path==="/api/missions"&&method==="GET"){
+      if(user.role!=="student"||!user.student_id)return fail(403,"المهام متاحة لحساب الطالب");
+      return json(await missionPayload(env,user.student_id));
+    }
+    if(path==="/api/missions/claim"&&method==="POST"){
+      if(user.role!=="student"||!user.student_id||!user.group_id)return fail(403,"المهام متاحة لحساب الطالب المرتبط بفوج");
+      const limited=await rateLimit(env,"mission-claim",user.student_id,10,600);
+      if(!limited.allowed)return fail(429,"محاولات استلام كثيرة خلال وقت قصير. انتظر قليلًا.");
+      const parsed=await parseBody(request,4000);if(parsed.error)return parsed.error;const b=parsed.value;
+      const missionId=clean(b.mission_id,60);
+      const mission=MISSION_SIDE.find(item=>item.id===missionId);
+      if(!mission)return fail(400,"مهمة غير معروفة");
+      const payload=await missionPayload(env,user.student_id);
+      const state=payload.side.find(item=>item.id===missionId);
+      if(!state||!state.done)return fail(409,"أكمل المهمة أولًا ثم استلم مكافأتها");
+      if(state.claimed)return fail(409,"استلمت مكافأة هذه المهمة اليوم");
+      const today=payload.today;
+      const awards=await awardPointsForEvent(env,{studentId:user.student_id,groupId:user.group_id,eventType:"mission_side",eventKey:"mission:"+missionId+":"+today+":"+user.student_id,date:today,reason:"مهمة يومية: "+mission.title,sourceCollection:"student_missions",sourceId:user.student_id,awardedBy:user.id});
+      const claimRow=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='student_missions' AND id=?").bind(user.student_id).first();
+      let record={id:user.student_id,student_id:user.student_id,group_id:user.group_id,claims:{},updated_at:nowIso()};
+      if(claimRow){try{record={...record,...JSON.parse(claimRow.payload_json)}}catch{}}
+      record.claims={...(record.claims||{}),[missionId]:today};
+      record.updated_at=nowIso();
+      await saveRecord(env,"student_missions",record);
+      await log(env,user.id,"mission_claim",{mission_id:missionId,day:today,awards});
+      return json({ok:true,awards,totals:await pointsTotals(env,user.student_id),missions:await missionPayload(env,user.student_id)});
+    }
     if(path==="/api/store/items"&&method==="GET"){
-      const select="SELECT id,name,description,icon,cost,stock,max_per_student,active,sort_order FROM store_items";
+      const select="SELECT id,name,description,icon,image_url,cost,stock,max_per_student,active,sort_order FROM store_items";
       const rows=user.role==="admin"
-        ? await env.DB.prepare("SELECT id,name,description,icon,cost,stock,max_per_student,active,sort_order,created_at,updated_at FROM store_items ORDER BY sort_order, cost").all()
+        ? await env.DB.prepare("SELECT id,name,description,icon,image_url,cost,stock,max_per_student,active,sort_order,created_at,updated_at FROM store_items ORDER BY sort_order, cost").all()
         : await env.DB.prepare(select+" WHERE active=1 ORDER BY sort_order, cost").all();
       const items=rows.results||[];
       let used=new Map();
@@ -4173,11 +4509,11 @@ export default {
       if(requestedId){
         const existing=await env.DB.prepare("SELECT * FROM store_items WHERE id=?").bind(requestedId).first();
         if(!existing)return fail(404,"المادة غير موجودة");
-        await env.DB.prepare("UPDATE store_items SET name=?,description=?,icon=?,image_url=?,cost=?,stock=?,max_per_student=?,active=?,sort_order=?,updated_at=? WHERE id=?").bind(name,description,icon,cost,stock,maxPerStudent,active,sortOrder,now,requestedId).run();
+        await env.DB.prepare("UPDATE store_items SET name=?,description=?,icon=?,image_url=?,cost=?,stock=?,max_per_student=?,active=?,sort_order=?,updated_at=? WHERE id=?").bind(name,description,icon,imageUrl,cost,stock,maxPerStudent,active,sortOrder,now,requestedId).run();
         item={...existing,name,description,icon,image_url:imageUrl,cost,stock,max_per_student:maxPerStudent,active,sort_order:sortOrder,updated_at:now};
       }else{
         const id=uuid();
-        await env.DB.prepare("INSERT INTO store_items (id,name,description,icon,image_url,cost,stock,max_per_student,active,sort_order,created_by,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)").bind(id,name,description,icon,cost,stock,maxPerStudent,active,sortOrder,user.id,now,now).run();
+        await env.DB.prepare("INSERT INTO store_items (id,name,description,icon,image_url,cost,stock,max_per_student,active,sort_order,created_by,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)").bind(id,name,description,icon,imageUrl,cost,stock,maxPerStudent,active,sortOrder,user.id,now,now).run();
         item={id,name,description,icon,image_url:imageUrl,cost,stock,max_per_student:maxPerStudent,active,sort_order:sortOrder,created_at:now,updated_at:now};
       }
       await log(env,user.id,"store_item_save",{item_id:item.id,cost,active});
@@ -4185,8 +4521,17 @@ export default {
     }
     if(path==="/api/store/redeem"&&method==="POST"){
       if(user.role!=="student"||!user.student_id||!user.group_id)return fail(403,"طلب الصرف متاح لحساب الطالب المرتبط بفوج");
+      const limited=await rateLimit(env,"store-redeem",user.student_id,20,600);
+      if(!limited.allowed)return fail(429,"طلبات صرف كثيرة خلال وقت قصير. انتظر قليلًا ثم أعد المحاولة.");
       const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
-      const itemId=clean(b.item_id,80),note=clean(b.note,300);
+      const itemId=clean(b.item_id,80),note=clean(b.note,300),requestId=clean(b.request_id,80);
+      // معرّف الصرف مشتق من request_id حتى يعيد الطلب نفسه نتيجة واحدة ولا يخصم مرتين.
+      let redemptionId=uuid();
+      if(requestId)redemptionId="rdm-"+(await hashToken("redeem:"+user.student_id+":"+requestId)).slice(0,32);
+      if(requestId){
+        const existing=await env.DB.prepare("SELECT id,item_id,item_name,cost,status,note FROM store_redemptions WHERE id=?").bind(redemptionId).first();
+        if(existing)return json({ok:true,duplicate:true,redemption:{id:existing.id,item_id:existing.item_id,item_name:existing.item_name,cost:Number(existing.cost),status:existing.status,note:existing.note},balance:(await pointsTotals(env,user.student_id)).store});
+      }
       const item=await env.DB.prepare("SELECT * FROM store_items WHERE id=? AND active=1").bind(itemId).first();
       if(!item)return fail(404,"المادة غير متاحة");
       const balance=(await pointsTotals(env,user.student_id)).store;
@@ -4200,7 +4545,7 @@ export default {
         const stockUpdate=await env.DB.prepare("UPDATE store_items SET stock=stock-1,updated_at=? WHERE id=? AND stock>0").bind(nowIso(),itemId).run();
         if(!Number(stockUpdate?.meta?.changes||0))return fail(409,"نفدت الكمية المتاحة");
       }
-      const redemptionId=uuid(),eventId=uuid();
+      const eventId=uuid();
       try{
         await insertPointEvent(env,{id:eventId,student_id:user.student_id,group_id:user.group_id,rule_id:null,event_type:"store_redemption",kind:"store",points:-Number(item.cost),reason:"طلب صرف: "+item.name,event_key:"redeem:"+redemptionId,awarded_date:academyDate(),source_collection:"store_redemptions",source_id:redemptionId,awarded_by:user.id});
         await env.DB.prepare("INSERT INTO store_redemptions (id,item_id,item_name,student_id,group_id,cost,status,note,debit_event_id) VALUES (?,?,?,?,?,?,'pending',?,?)").bind(redemptionId,itemId,item.name,user.student_id,user.group_id,Number(item.cost),note,eventId).run();
@@ -4209,7 +4554,7 @@ export default {
         try{await env.DB.prepare("UPDATE point_events SET reversed_at=?,reversed_by=?,reversal_reason=? WHERE id=? AND reversed_at IS NULL").bind(nowIso(),user.id,"فشل إنشاء طلب الصرف",eventId).run()}catch{}
         throw error;
       }
-      await log(env,user.id,"store_redeem",{redemption_id:redemptionId,item_id:itemId,cost:item.cost});
+      await log(env,user.id,"store_redeem",{redemption_id:redemptionId,item_id:itemId,cost:item.cost,request_id:requestId||null});
       return json({ok:true,redemption:{id:redemptionId,item_id:itemId,item_name:item.name,cost:Number(item.cost),status:"pending",note},balance:balance-Number(item.cost)},201);
     }
     if(path==="/api/store/redemptions"&&method==="GET"){
@@ -4414,8 +4759,8 @@ export default {
       if(pointEvents.some(x=>!x||!idOk(x.id)||!studentIds.has(x.student_id)||(x.group_id!==null&&!groupIds.has(x.group_id))||(x.rule_id!==null&&!ruleIds.has(x.rule_id))||!txt(x.event_type,120)||!["achievement","store"].includes(x.kind)||!intOk(x.points,-100000,100000)||x.points===0||typeof x.reason!=="string"||x.reason.length>500||!txt(x.event_key,200)||!dateOk(x.awarded_date)||!optStr(x.source_collection,100)||!optIdOk(x.source_id)||!optIdOk(x.awarded_by)||!dateOk(x.created_at)||!optStr(x.reversed_at,80)||!optIdOk(x.reversed_by)||!optStr(x.reversal_reason,500)))return badRow("حركات النقاط");
       if(!unique(pointEvents.map(x=>x.id))||!unique(pointEvents.map(x=>x.kind+"\u0000"+x.event_key)))return fail(400,"تحتوي النسخة على معرفات مكررة: حركات النقاط");
       const eventIds=new Set(pointEvents.map(x=>x.id));
-      const storeItems=d.store_items.map(x=>isObj(x)?{id:x.id,name:x.name,description:x.description===undefined?"":x.description,icon:x.icon===undefined?"🎁":x.icon,cost:x.cost,stock:x.stock===undefined?null:x.stock,max_per_student:x.max_per_student===undefined?null:x.max_per_student,active:x.active,sort_order:x.sort_order,created_by:x.created_by===undefined?null:x.created_by,created_at:x.created_at,updated_at:x.updated_at}:null);
-      if(storeItems.some(x=>!x||!idOk(x.id)||!txt(x.name,160)||typeof x.description!=="string"||x.description.length>2000||!txt(x.icon,16)||!intOk(x.cost,1,100000)||!(x.stock===null||intOk(x.stock,0,1000000))||!(x.max_per_student===null||intOk(x.max_per_student,1,1000000))||!activeOk(x.active)||!intOk(x.sort_order,-100000,100000)||!optIdOk(x.created_by)||!dateOk(x.created_at)||!dateOk(x.updated_at)))return badRow("مواد المتجر");
+      const storeItems=d.store_items.map(x=>isObj(x)?{id:x.id,name:x.name,description:x.description===undefined?"":x.description,icon:x.icon===undefined?"🎁":x.icon,image_url:x.image_url===undefined||x.image_url===null?"":x.image_url,cost:x.cost,stock:x.stock===undefined?null:x.stock,max_per_student:x.max_per_student===undefined?null:x.max_per_student,active:x.active,sort_order:x.sort_order,created_by:x.created_by===undefined?null:x.created_by,created_at:x.created_at,updated_at:x.updated_at}:null);
+      if(storeItems.some(x=>!x||!idOk(x.id)||!txt(x.name,160)||typeof x.description!=="string"||x.description.length>2000||!txt(x.icon,16)||typeof x.image_url!=="string"||x.image_url.length>500||!intOk(x.cost,1,100000)||!(x.stock===null||intOk(x.stock,0,1000000))||!(x.max_per_student===null||intOk(x.max_per_student,1,1000000))||!activeOk(x.active)||!intOk(x.sort_order,-100000,100000)||!optIdOk(x.created_by)||!dateOk(x.created_at)||!dateOk(x.updated_at)))return badRow("مواد المتجر");
       if(!unique(storeItems.map(x=>x.id)))return fail(400,"تحتوي النسخة على معرفات مكررة: مواد المتجر");
       const storeItemIds=new Set(storeItems.map(x=>x.id));
       const storeRedemptions=d.store_redemptions.map(x=>isObj(x)?{id:x.id,item_id:x.item_id,item_name:x.item_name,student_id:x.student_id,group_id:x.group_id===undefined?null:x.group_id,cost:x.cost,status:x.status,note:x.note===undefined?"":x.note,requested_at:x.requested_at,decided_by:x.decided_by===undefined?null:x.decided_by,decided_at:x.decided_at===undefined?null:x.decided_at,decision_note:x.decision_note===undefined?"":x.decision_note,debit_event_id:x.debit_event_id===undefined?null:x.debit_event_id}:null);
@@ -4523,7 +4868,7 @@ export default {
       for(const x of audit)statements.push(env.DB.prepare("INSERT INTO audit_log (id,user_id,action,metadata_json,created_at) VALUES (?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET user_id=excluded.user_id,action=excluded.action,metadata_json=excluded.metadata_json,created_at=excluded.created_at").bind(x.id,x.user_id,x.action,x.metadata_json,x.created_at));
       for(const x of pointRules)statements.push(env.DB.prepare("INSERT INTO point_rules (id,event_type,name,description,achievement_points,store_points,max_per_day,auto_award,active,sort_order,created_by,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET event_type=excluded.event_type,name=excluded.name,description=excluded.description,achievement_points=excluded.achievement_points,store_points=excluded.store_points,max_per_day=excluded.max_per_day,auto_award=excluded.auto_award,active=excluded.active,sort_order=excluded.sort_order,created_by=excluded.created_by,created_at=excluded.created_at,updated_at=excluded.updated_at").bind(x.id,x.event_type,x.name,x.description,x.achievement_points,x.store_points,x.max_per_day,x.auto_award,x.active,x.sort_order,x.created_by,x.created_at,x.updated_at));
       for(const x of pointEvents)statements.push(env.DB.prepare("INSERT INTO point_events (id,student_id,group_id,rule_id,event_type,kind,points,reason,event_key,awarded_date,source_collection,source_id,awarded_by,created_at,reversed_at,reversed_by,reversal_reason) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET student_id=excluded.student_id,group_id=excluded.group_id,rule_id=excluded.rule_id,event_type=excluded.event_type,kind=excluded.kind,points=excluded.points,reason=excluded.reason,event_key=excluded.event_key,awarded_date=excluded.awarded_date,source_collection=excluded.source_collection,source_id=excluded.source_id,awarded_by=excluded.awarded_by,created_at=excluded.created_at,reversed_at=excluded.reversed_at,reversed_by=excluded.reversed_by,reversal_reason=excluded.reversal_reason").bind(x.id,x.student_id,x.group_id,x.rule_id,x.event_type,x.kind,x.points,x.reason,x.event_key,x.awarded_date,x.source_collection,x.source_id,x.awarded_by,x.created_at,x.reversed_at,x.reversed_by,x.reversal_reason));
-      for(const x of storeItems)statements.push(env.DB.prepare("INSERT INTO store_items (id,name,description,icon,cost,stock,max_per_student,active,sort_order,created_by,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,description=excluded.description,icon=excluded.icon,cost=excluded.cost,stock=excluded.stock,max_per_student=excluded.max_per_student,active=excluded.active,sort_order=excluded.sort_order,created_by=excluded.created_by,created_at=excluded.created_at,updated_at=excluded.updated_at").bind(x.id,x.name,x.description,x.icon,x.cost,x.stock,x.max_per_student,x.active,x.sort_order,x.created_by,x.created_at,x.updated_at));
+      for(const x of storeItems)statements.push(env.DB.prepare("INSERT INTO store_items (id,name,description,icon,image_url,cost,stock,max_per_student,active,sort_order,created_by,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET name=excluded.name,description=excluded.description,icon=excluded.icon,image_url=excluded.image_url,cost=excluded.cost,stock=excluded.stock,max_per_student=excluded.max_per_student,active=excluded.active,sort_order=excluded.sort_order,created_by=excluded.created_by,created_at=excluded.created_at,updated_at=excluded.updated_at").bind(x.id,x.name,x.description,x.icon,x.image_url,x.cost,x.stock,x.max_per_student,x.active,x.sort_order,x.created_by,x.created_at,x.updated_at));
       for(const x of storeRedemptions)statements.push(env.DB.prepare("INSERT INTO store_redemptions (id,item_id,item_name,student_id,group_id,cost,status,note,requested_at,decided_by,decided_at,decision_note,debit_event_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET item_id=excluded.item_id,item_name=excluded.item_name,student_id=excluded.student_id,group_id=excluded.group_id,cost=excluded.cost,status=excluded.status,note=excluded.note,requested_at=excluded.requested_at,decided_by=excluded.decided_by,decided_at=excluded.decided_at,decision_note=excluded.decision_note,debit_event_id=excluded.debit_event_id").bind(x.id,x.item_id,x.item_name,x.student_id,x.group_id,x.cost,x.status,x.note,x.requested_at,x.decided_by,x.decided_at,x.decision_note,x.debit_event_id));
       for(const x of quranPaths)statements.push(env.DB.prepare("INSERT INTO quran_paths (student_id,group_id,hifz_plan,hifz_amount,hifz_unit,hifz_category,ward_ahzab,rest_day,start_date,active,updated_by,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(student_id) DO UPDATE SET group_id=excluded.group_id,hifz_plan=excluded.hifz_plan,hifz_amount=excluded.hifz_amount,hifz_unit=excluded.hifz_unit,hifz_category=excluded.hifz_category,ward_ahzab=excluded.ward_ahzab,rest_day=excluded.rest_day,start_date=excluded.start_date,active=excluded.active,updated_by=excluded.updated_by,created_at=excluded.created_at,updated_at=excluded.updated_at").bind(x.student_id,x.group_id,x.hifz_plan,x.hifz_amount,x.hifz_unit,x.hifz_category,x.ward_ahzab,x.rest_day,x.start_date,x.active,x.updated_by,x.created_at,x.updated_at));
       for(const x of quranDaily)statements.push(env.DB.prepare("INSERT INTO quran_daily (id,student_id,day,kind,amount,unit,repetitions,linked_scope,notes,created_by,created_at) VALUES (?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET student_id=excluded.student_id,day=excluded.day,kind=excluded.kind,amount=excluded.amount,unit=excluded.unit,repetitions=excluded.repetitions,linked_scope=excluded.linked_scope,notes=excluded.notes,created_by=excluded.created_by,created_at=excluded.created_at").bind(x.id,x.student_id,x.day,x.kind,x.amount,x.unit,x.repetitions,x.linked_scope,x.notes,x.created_by,x.created_at));

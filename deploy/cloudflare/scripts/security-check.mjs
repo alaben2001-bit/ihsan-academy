@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { validDateOnly, academyDate, addCalendarDays } from "../src/index.js";
 
-const [backend, app, index, serviceWorker, migration, initialMigration, style, about, privacy, robots, sitemap, redirects, competitionsMigration] = await Promise.all([
+const [backend, app, index, serviceWorker, migration, initialMigration, style, about, privacy, robots, sitemap, redirects, competitionsMigration, rateLimitsMigration, qrScript] = await Promise.all([
   readFile("src/index.js", "utf8"),
   readFile("site/app.js", "utf8"),
   readFile("site/index.html", "utf8"),
@@ -16,6 +16,8 @@ const [backend, app, index, serviceWorker, migration, initialMigration, style, a
   readFile("site/sitemap.xml", "utf8"),
   readFile("site/_redirects", "utf8"),
   readFile("migrations/0006_competitions.sql", "utf8"),
+  readFile("migrations/0008_rate_limits.sql", "utf8"),
+  readFile("site/qr.js", "utf8"),
 ]);
 
 assert.equal(validDateOnly("2024-02-29"), true, "valid leap-day due dates must be accepted");
@@ -524,5 +526,60 @@ assert.match(app, /const KINDS=\{hadith:"الحديث النبوي",mutoon:"ال
 assert.match(app, /data-content-kind="'\+key\+'"/, "content kind tabs must be rendered from the supported kinds");
 assert.match(app, /id="seed-duas"/, "the admin must have a visible duas draft seed action");
 assert.match(app, /pending_review:"بانتظار مراجعة الشيخ"/, "content statuses must be shown in plain Arabic");
+
+// V71: student cards with three independent QR kinds, card scans, missions, and
+// server-side rate limiting. All state reuses existing tables/records stores.
+assert.match(backend, /collection='student_cards'/, "student cards must reuse the existing academy_records store");
+assert.doesNotMatch(backend, /CREATE TABLE IF NOT EXISTS student_cards/, "student cards must not add a duplicate table");
+assert.match(backend, /card=\{id:student\.id,student_id:student\.id/, "the card id must equal the student id (one card per student)");
+assert.match(backend, /const CARD_KINDS = \{/, "card QR kinds must be declared explicitly");
+assert.match(backend, /add_points: \{ label: "إضافة نقاط", ttlDays: 90, requiresAuth: true \}/, "the add-points QR must expire after 90 days");
+assert.match(backend, /profile: \{ label: "الملف الشخصي", ttlDays: 365, requiresAuth: true \}/, "the profile QR must expire after 365 days");
+assert.match(backend, /login: \{ label: "الدخول السريع", ttlDays: 365, requiresAuth: false \}/, "the login QR must expire after 365 days and stay anonymous");
+assert.match(backend, /tokens\[kind\] = \{ hash: await hashToken\(secret\), secret, issued_at: now/, "card tokens must store a hash for verification and the secret for reprint");
+assert.ok(backend.indexOf('path === "/api/cards/resolve"') > 0 && backend.indexOf('path === "/api/cards/resolve"') < backend.indexOf('const user=await currentUser(request,env); if(!user)return fail(401'), "card resolution must run before the login gate so the login QR can be read anonymously");
+assert.match(backend, /requires_password:true,student:\{name:student\.name,username:student\.username/, "the login QR must return only a name and username, never a session");
+assert.match(backend, /if\(kind==="add_points"&&scanner\.role==="student"\)return fail\(403/, "students must not use the add-points QR on themselves");
+assert.match(backend, /if\(!await canAccessStudentCard\(env,scanner,student\)\)return fail\(403,"هذه البطاقة خارج صلاحيتك"\)/, "card scans must respect group scope");
+assert.match(backend, /if\(path==="\/api\/student-cards\/bulk"&&method==="POST"\)/, "staff must be able to bulk-create group cards");
+assert.match(backend, /student-cards\\\/\(\[\^\/\]\+\)\\\/reissue/, "cards must support reissue");
+assert.match(backend, /student-cards\\\/\(\[\^\/\]\+\)\\\/revoke/, "cards must support revoke");
+assert.match(backend, /if\(reason\.length<3\)return fail\(400,"اكتب سبب إلغاء الرمز"\)/, "revoking a card token must require a written reason");
+assert.match(backend, /student_card_reissue/, "card reissue must be audited");
+assert.match(backend, /student_card_revoke/, "card revoke must be audited");
+assert.match(backend, /student_card_print/, "card printing must be audited");
+assert.match(rateLimitsMigration, /CREATE TABLE IF NOT EXISTS rate_limits/, "0008 must create the rate-limit table");
+assert.match(backend, /CREATE TABLE IF NOT EXISTS rate_limits/, "the worker must create the rate-limit table lazily when the migration is missing");
+assert.match(backend, /async function rateLimit\(env, bucket, key, limit, windowSeconds\)/, "server-side rate limiting must be implemented");
+assert.match(backend, /rateLimit\(env,"card-resolve:"\+kind,kind==="login"\?cardId:rateLimitKey\(request\),kind==="login"\?12:40,600\)/, "card scans must be rate limited per card for login codes and per IP otherwise");
+assert.match(backend, /rateLimit\(env,"store-redeem",user\.student_id,20,600\)/, "store redemption must be rate limited per student");
+assert.match(backend, /rateLimit\(env,"mission-claim",user\.student_id,10,600\)/, "mission claims must be rate limited per student");
+assert.match(backend, /requestId=clean\(b\.request_id,80\)/, "store redemption must accept an idempotency key");
+assert.match(backend, /redemptionId="rdm-"\+\(await hashToken\("redeem:"\+user\.student_id\+":"\+requestId\)\)\.slice\(0,32\)/, "the redemption id must be derived from the request id to prevent double deduction");
+assert.match(backend, /if\(existing\)return json\(\{ok:true,duplicate:true/, "a repeated redemption request must return the existing order");
+assert.match(backend, /rule-mission-side/, "a mission-side rule must seed into the existing points engine");
+assert.match(backend, /eventType:"mission_side",eventKey:"mission:"\+missionId\+":"\+today\+":"\+user\.student_id/, "mission claims must use the existing award engine with a daily key");
+assert.match(backend, /collection='student_missions'/, "mission claims must reuse the existing academy_records store");
+assert.doesNotMatch(backend, /CREATE TABLE IF NOT EXISTS student_missions/, "missions must not add a duplicate table");
+assert.match(backend, /image_url/, "store items must expose the optional product image");
+assert.match(app, /"cards","بطاقات الطلاب"/, "staff navigation must expose the student cards screen");
+assert.match(app, /function cardQrSheet\(links,actions\)/, "cards must render a shared three-QR sheet");
+assert.match(app, /function cardQrFigure\(kind,links\)/, "each QR kind must render as a labelled figure");
+assert.match(app, /function readScanHash\(\)/, "the app must parse #scan= links");
+assert.match(app, /async function processPendingScan\(\)/, "scanned cards must route after login or immediately when signed in");
+assert.match(app, /safeStore\.setSession\("ihsan_scan_notice"/, "an anonymous login scan must show a sign-in notice");
+assert.match(app, /class="notice scan-notice"/, "the sign-in screen must display the scan notice");
+assert.match(app, /const missionStory=\(missions\?\.story/, "the world page must render mission story milestones");
+assert.match(app, /data-mission-claim=/, "the world page must let students claim completed daily missions");
+assert.match(app, /document\.body\.dataset\.print="cards"/, "bulk card printing must use the dedicated print mode");
+assert.match(app, /document\.body\.dataset\.print="card"/, "single card printing must use the dedicated print mode");
+assert.match(style, /\.card-qr-grid\{/, "the three QR codes must have a responsive grid");
+assert.match(style, /\.student-card-print\{/, "bulk cards must have a print-friendly card style");
+assert.match(style, /body\[data-print="cards"\]/, "bulk card print mode must have dedicated print rules");
+assert.match(style, /\.mission-story,\.mission-side\{/, "mission cards must have dedicated styling");
+assert.match(style, /@media print\{[\s\S]*body\[data-print="card"\]/, "single card printing must hide the surrounding app shell");
+assert.match(qrScript, /global\.IhsanQR = \{ matrix/, "the dependency-free QR encoder must expose the IhsanQR global");
+assert.ok(index.includes("/qr.js?v=" + releaseVersion), "the QR encoder must be loaded with the current asset version");
+assert.ok(serviceWorker.includes("/qr.js?v="), "the QR encoder must be cached by the service worker");
 
 console.log("Security regression guardrails passed.");
