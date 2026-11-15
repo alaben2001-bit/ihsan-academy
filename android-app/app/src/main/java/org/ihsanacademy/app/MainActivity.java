@@ -16,7 +16,7 @@ import android.content.Intent;
 import android.net.Uri;
 
 public final class MainActivity extends Activity {
-    private static final String HOME = "https://ihsan-academy.pages.dev/";
+    private static final String HOME = "https://a-ihsan.pages.dev/";
     private static final String OFFLINE_HTML =
         "<!doctype html><html lang='ar' dir='rtl'><meta charset='utf-8'>" +
         "<meta name='viewport' content='width=device-width,initial-scale=1'>" +
@@ -50,7 +50,7 @@ public final class MainActivity extends Activity {
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri uri = request.getUrl();
                 String host = uri.getHost();
-                if (host != null && (host.equals("ihsan-academy.pages.dev") || host.endsWith(".ihsan-academy.pages.dev"))) return false;
+                if (host != null && (host.equals("a-ihsan.pages.dev") || host.endsWith(".a-ihsan.pages.dev"))) return false;
                 if ("https".equals(uri.getScheme())) {
                     try { startActivity(new Intent(Intent.ACTION_VIEW, uri)); } catch (Exception ignored) {}
                     return true;

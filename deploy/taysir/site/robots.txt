@@ -1,0 +1,5 @@
+# بوابة التيسير — موقع عام مفتوح دون حساب؛ الفهرسة مرحب بها.
+User-agent: *
+Allow: /
+
+Sitemap: https://a-taysir.pages.dev/sitemap.xml

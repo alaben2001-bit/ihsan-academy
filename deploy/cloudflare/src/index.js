@@ -636,7 +636,8 @@ const LEARNING_SCHEMA_STATEMENTS = [
     ('rule-test-completed','test_completed','إكمال اختبار','تُمنح عند إكمال اختبار ونشره في السجل.',10,5,3,1,1,40),
     ('rule-daily-challenge','daily_challenge','تحدي اليوم','تُمنح عند استلام تحدي اليوم.',5,5,1,1,1,50),
     ('rule-quran-reading','quran_reading','قراءة وتدبّر','تُمنح عند تسجيل ورد قراءة يومي مرة واحدة.',5,2,1,1,1,55),
-    ('rule-mission-side','mission_side','مهمة يومية','تُمنح عند استلام مهمة يومية مكتملة من عالم الطالب، مرة واحدة يوميًا.',5,2,1,1,1,60)`,
+    ('rule-mission-side','mission_side','مهمة يومية','تُمنح عند استلام مهمة يومية مكتملة من عالم الطالب، مرة واحدة يوميًا.',5,2,1,1,1,60),
+    ('rule-level-promote','level_promote','ترقية المستوى','تُمنح عند ترقية الطالب إلى المستوى التالي بقرار الشيخ (يدويًا مع سبب موثّق).',25,10,NULL,1,1,65)`,
   `CREATE TABLE IF NOT EXISTS point_events (
     id TEXT PRIMARY KEY,
     student_id TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
@@ -1154,7 +1155,7 @@ const QURAN_THABIT_PLANS = {
   "8": { thumns: 8, thabit: 1.0, label: "8 أثمان أسبوعياً", months: 8 },
   "12": { thumns: 12, thabit: 1.5, label: "12 ثمناً أسبوعياً", months: 8 }
 };
-const QURAN_THABIT_REFERENCE_STATUS = "proposal (8-month program, pending Sheikh approval)";
+const QURAN_THABIT_REFERENCE_STATUS = "adopted (8-month program, approved by Sheikh)";
 const QURAN_PLANS = { plan_a: "الخطة الأولى · المكثفة", plan_b: "الخطة الثانية · المتوسطة", plan_c: "الخطة الثالثة · المتدرجة" };
 const QURAN_WARD = { 1: "حزب واحد", 2: "حزبان", 4: "أربعة أحزاب" };
 const QURAN_KIND_LABELS = { hifz: "الحفظ الجديد", thabit: "التثبيت", ward: "الورد" };
@@ -2924,7 +2925,8 @@ export default {
         const attempts=await records(env,"test_attempts");
         return json(all.map(t=>{
           const latest=attempts.filter(a=>a.student_id===user.student_id&&a.test_id===t.id).sort((a,b)=>String(b.submitted_at).localeCompare(String(a.submitted_at)))[0];
-          return {...t,questions:(t.questions||[]).map(q=>({id:q.id,prompt:q.prompt,choices:q.choices})),my_attempt:latest?{score:latest.score,total:latest.total,submitted_at:latest.submitted_at}:null};
+          const attemptAnswers=latest&&Array.isArray(latest.answers)?new Map(latest.answers.map(a=>[String(a.question_id),Number(a.selected_index)])):null;
+          return {...t,questions:(t.questions||[]).map(q=>({id:q.id,prompt:q.prompt,choices:q.choices,...(latest?{correct_index:q.correct_index,explanation:clean(q.explanation,500)}:{})})),my_attempt:latest?{score:latest.score,total:latest.total,submitted_at:latest.submitted_at,answers:attemptAnswers?Object.fromEntries(attemptAnswers):null}:null};
         }));
       }
       if(user.role==="teacher")return json(all.filter(t=>!!t.group_id));
@@ -2964,7 +2966,7 @@ export default {
       const answerMap=new Map(submitted.map(a=>[String(a.question_id),Number(a.selected_index)]));
       let score=0;
       for(const q of (test.questions||[])){if(answerMap.get(String(q.id))===q.correct_index)score++;}
-      const attempt={id:uuid(),test_id:test.id,title:test.title,student_id:user.student_id,group_id:user.group_id,score,total:(test.questions||[]).length,day:academyDate(),submitted_at:nowIso()};
+      const attempt={id:uuid(),test_id:test.id,title:test.title,student_id:user.student_id,group_id:user.group_id,score,total:(test.questions||[]).length,day:academyDate(),submitted_at:nowIso(),answers: submitted.map(a => ({ question_id: String(a.question_id), selected_index: Number(a.selected_index) }))};
       await saveRecord(env,"test_attempts",attempt);
       await awardPointsForEvent(env,{studentId:user.student_id,groupId:user.group_id,eventType:"test_completed",eventKey:"test:"+attempt.id,date:attempt.day,reason:"إكمال اختبار: "+test.title,sourceCollection:"test_attempts",sourceId:attempt.id,awardedBy:user.id});
       await log(env,user.id,"test_submit",{test_id:test.id,score,total:attempt.total});
@@ -4566,7 +4568,7 @@ export default {
       return json(rows.results||[]);
     }
     if(path==="/api/penalties"&&method==="POST"){
-      if(user.role!=="admin")return fail(403,"الخصم (جزاء) من صلاحية المدير العام فقط");
+      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"الخصم (جزاء) من صلاحية الطاقم");
       const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
       const resolved=await resolvePointStudent(env,user,clean(b.student_id,80));
       if(resolved.error)return resolved.error;
@@ -4579,6 +4581,43 @@ export default {
       const inserted=await insertPointEvent(env,{student_id:s.id,group_id:s.group_id,rule_id:null,event_type:"penalty",kind:"store",points:-amount,reason,awarded_date:academyDate(),awarded_by:user.id,event_key:"penalty:"+uuid()});
       await log(env,user.id,"points_penalty",{student_id:s.id,amount,reason,event_id:inserted.id});
       return json({ok:true,deducted:amount,totals:await pointsTotals(env,s.id)},201);
+    }
+    // -----------------------------------------------------------------------
+    // ترقية المستوى: سجل في academy_records (collection='student_levels') بلا جدول جديد.
+    // المستوى يبدأ عند 1 ويزداد بقرار الشيخ (لا تلقائيًا بالنقاط)، وكل ترقية تُمنح
+    // بمحرك النقاط الموجود (rule-level-promote) مع منع التكرار لكل مستوى.
+    // -----------------------------------------------------------------------
+    if(path==="/api/students/level"&&method==="GET"){
+      const studentId=clean(url.searchParams.get("student_id"),80);
+      if(!studentId)return fail(400,"حدّد الطالب");
+      const s=await env.DB.prepare("SELECT id,group_id FROM students WHERE id=? AND active=1").bind(studentId).first();
+      if(!s)return fail(404,"لا يوجد طالب بهذا المعرف");
+      if(user.role==="student"){if(user.student_id!==studentId)return fail(403,"هذا الطالب خارج صلاحيتك")}
+      else if(!["admin","teacher","director","supervisor"].includes(user.role)||!await canManageGroup(env,user,s.group_id))return fail(403,"هذا الطالب خارج صلاحيتك");
+      const rec=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='student_levels' AND id=?").bind(s.id).first();
+      let level=1,reason="",date="";try{const payload=JSON.parse(rec?.payload_json||"{}");level=Number(payload.level)||1;reason=String(payload.reason||"");date=String(payload.date||"")}catch{}
+      return json({level,last_reason:reason,last_date:date});
+    }
+    if(path==="/api/students/level"&&method==="POST"){
+      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"الترقية من صلاحية الطاقم");
+      const parsed=await parseBody(request,2000);if(parsed.error)return parsed.error;const b=parsed.value;
+      const studentId=clean(b.student_id,80);
+      if(!studentId)return fail(400,"حدّد الطالب");
+      const s=await env.DB.prepare("SELECT id,group_id FROM students WHERE id=? AND active=1").bind(studentId).first();
+      if(!s)return fail(404,"لا يوجد طالب بهذا المعرف");
+      if(!await canManageGroup(env,user,s.group_id))return fail(403,"هذا الطالب خارج صلاحيتك");
+      const reason=clean(b.reason,500);
+      if(reason.length<3)return fail(400,"اكتب سبب الترقية (3 أحرف على الأقل)");
+      const rec=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='student_levels' AND id=?").bind(s.id).first();
+      let current=1;try{current=Number(JSON.parse(rec?.payload_json||"{}")?.level)||1}catch{}
+      if(!Number.isFinite(current)||current<1||current>100)current=1;
+      const target=current+1;
+      const now=nowIso();
+      const payload=JSON.stringify({level:target,promoted_by:user.id,reason,date:academyDate()});
+      await env.DB.prepare("INSERT INTO academy_records (collection,id,owner_user_id,group_id,student_id,payload_json,updated_at) VALUES ('student_levels',?,?,?,?,?,?) ON CONFLICT(collection,id) DO UPDATE SET payload_json=excluded.payload_json,group_id=excluded.group_id,student_id=excluded.student_id,updated_at=excluded.updated_at").bind(s.id,user.id,s.group_id,s.id,payload,now).run();
+      const awards=await awardPointsForEvent(env,{studentId:s.id,groupId:s.group_id,eventType:"level_promote",eventKey:"level:"+s.id+":"+target,date:academyDate(),reason:"ترقية إلى المستوى "+target+": "+reason,sourceCollection:"student_levels",sourceId:s.id,awardedBy:user.id});
+      await log(env,user.id,"level_promote",{student_id:s.id,level:target,reason});
+      return json({ok:true,level:target,awards:awards.filter(a=>a.status==="awarded")},201);
     }
     // -----------------------------------------------------------------------
     // بطاقات الطلاب: إنشاء/عرض/إعادة إصدار/إلغاء/طباعة جماعية.

@@ -356,7 +356,7 @@ function renderTopActions(){
  const installed=ihsanIsInstalled();
  const entryView=!S.user||S.mode==="hub";
  let actions=!S.user?'<button class="btn secondary academy-about-trigger" id="academy-about-open" type="button" aria-label="التعريف بالأكاديمية ورؤيتها">عن الأكاديمية</button> ':"";
- actions+='<button class="btn secondary" id="settings-open" type="button" aria-label="إعدادات الأكاديمية">الإعدادات</button> ';
+ if(S.user)actions+='<button class="btn secondary" id="settings-open" type="button" aria-label="إعدادات الأكاديمية">الإعدادات</button> ';
  if(entryView)actions+='<button class="btn secondary install-app-button" id="install-app" type="button" '+(installed?'disabled aria-label="التطبيق مثبت بالفعل"':'aria-label="تثبيت أكاديمية الإحسان على الهاتف"')+'>'+(installed?'التطبيق مثبت':'تثبيت الأكاديمية')+'</button>';
  if(S.user)actions+=' <button class="btn secondary" id="logout" type="button">خروج</button>';
  const topActions=$("#top-actions");if(topActions)topActions.innerHTML=actions;
@@ -611,7 +611,7 @@ const prayers=[
 {title:"استوداع وأمل",text:"حفظك الله أينما كنت، وفتح لك أبواب الخير، وجعل علمك نافعًا وعملك صالحًا، ورزقك الإخلاص والقبول.",kind:"دعاء بصياغة الأكاديمية"}
 ];
 const prayer=prayers[Math.floor(Math.random()*prayers.length)];
-ihsanPrayerDialog({title:prayer.title,text:prayer.text,source:prayer.source||(prayer.kind?prayer.kind+"؛ ليس نصًا منسوبًا إلى السنة":""),icon:"☾",primary:"تسجيل الخروج",secondary:"البقاء في الأكاديمية",onPrimary:async()=>{try{await api("/logout",{method:"POST",body:"{}"})}catch{}try{history.replaceState({ihsanMode:"auth"},"",location.pathname+"#login")}catch{}document.body.classList.remove("app-authenticated");offlineSessionActive=false;S.token="";S.user=null;S.mode="hub";S.tab="home";safeStore.remove(offlineUserKey());clearSessionToken();auth(false)}})}
+ihsanPrayerDialog({title:prayer.title,text:prayer.text,source:prayer.source||(prayer.kind?prayer.kind+"؛ ليس نصًا منسوبًا إلى السنة":""),icon:"☾",primary:"تسجيل الخروج",secondary:"البقاء في الأكاديمية",onPrimary:async()=>{try{await api("/logout",{method:"POST",body:"{}"})}catch{}try{history.replaceState({ihsanMode:"auth"},"",location.pathname+"#login")}catch{}document.body.classList.remove("app-authenticated");offlineSessionActive=false;S.token="";S.user=null;S.mode="hub";S.tab="home";safeStore.removeSession("ihsan_last_mode");safeStore.removeSession("ihsan_last_tab");safeStore.remove(offlineUserKey());clearSessionToken();auth(false)}})}
 async function load(){const r=await Promise.allSettled([api("/groups"),api("/students")]);S.groups=r[0].status==="fulfilled"?r[0].value:[];S.students=r[1].status==="fulfilled"?r[1].value:[];if(["admin","director"].includes(S.user.role))try{S.teachers=await api("/teachers")}catch{S.teachers=[]}if(S.user.role==="admin"){const extra=await Promise.allSettled([api("/admin/staff"),api("/public/quran-schools")]);S.staff=extra[0].status==="fulfilled"?extra[0].value:[];S.schools=extra[1].status==="fulfilled"?extra[1].value:[]}}
 function adminFocusIsFull(){return safeStore.get("ihsan_admin_focus")!=="daily"}
 function items(){
@@ -758,7 +758,12 @@ function start(){
  if(isVisitor||isPendingStudent){S.mode="school";S.tab="home";safeStore.setSession("ihsan_last_mode","school");safeStore.setSession("ihsan_last_tab","home");load().then(async()=>{shell();await page()});return}
  if(savedMode==="ihsan"){safeStore.setSession("ihsan_last_mode","hub");safeStore.removeSession("ihsan_last_tab");S.tab="home";S.mode="hub";moduleChooser(false);return}
  if(savedMode==="school"){
-  S.mode=savedMode;S.tab=savedTab||(S.user?.role==="student"?"world":"home");if(["backup","audit","school-managers","posts","teachers"].includes(S.tab))S.tab=S.user?.role==="admin"?"groups":"home";if(S.tab==="system-check"&&S.user?.role!=="admin")S.tab="home";
+  S.mode=savedMode;
+  const wanted=savedTab||(S.user?.role==="student"?"world":"home");
+  let allowed=new Set();
+  try{allowed=new Set(items().flatMap(pair=>Array.isArray(pair)?[pair[0]]:[]))}catch{}
+  S.tab=allowed.size&&allowed.has(wanted)?wanted:(S.user?.role==="student"?"world":"home");
+  if(["backup","audit","school-managers","posts","teachers"].includes(S.tab))S.tab=S.user?.role==="admin"?"groups":"home";if(S.tab==="system-check"&&S.user?.role!=="admin")S.tab="home";
   load().then(async()=>{shell();await page();await processPendingScan()});
   return;
  }
@@ -951,6 +956,8 @@ window.addEventListener("popstate",async e=>{if(!S.user)return;const st=e.state|
 async function page(){const v=$("#view");try{window.IhsanScanner&&window.IhsanScanner.stop()}catch{}
 if(S.mode==="ihsan"){S.mode="hub";moduleChooser(false);return}
 if((S.user?.role==="visitor"||(S.user?.role==="student"&&!S.user?.group_id))&&S.tab!=="home")S.tab="home";
+const allowedTabs=items().map(x=>x[0]);
+if(!allowedTabs.includes(S.tab))S.tab=S.user?.role==="student"&&allowedTabs.includes("world")?"world":(allowedTabs[0]||"home");
 v.innerHTML='<div class="loading">جار تحميل البيانات…</div>';try{if(S.tab==="system-check"&&S.user.role==="admin")return systemCheckPage(v);if(S.tab==="join-requests"&&["admin","teacher","director"].includes(S.user.role))return await joinRequestsPage(v);if(S.tab==="sheikh-check"&&S.user.role==="teacher")return sheikhCheckPage(v);if(S.tab==="world")return await worldPage(v);if(S.tab==="card")return await cardPage(v);if(S.tab==="cards")return await staffCardsPage(v);if(S.tab==="scan"&&["admin","teacher","director","supervisor"].includes(S.user.role))return await scanPage(v);if(S.tab==="guide")return await guidePage(v);if(S.tab==="home" && S.user.role==="student" && !S.user.group_id) return pendingStudentHome(v);
  if(S.tab==="home")return await home(v);if(S.tab==="teams")return await teamsPage(v);if(S.tab==="groups")return groups(v);if(S.tab==="tasks")return await tasksPage(v);if(S.tab==="hadith")return await contentPage(v);if(S.tab==="competitions")return await competitionsPage(v);if(S.tab==="points")return await pointsPage(v);if(S.tab==="teachers")return teachers(v);if(S.tab==="students")return students(v);if(S.tab==="attendance")return attendance(v);if(S.tab==="assignments")return await assignmentsPage(v);if(S.tab==="gradebook")return await gradebookPage(v);if(S.tab==="messages")return await messagesPage(v);if(S.tab==="reports")return reportsPage(v);if(S.tab==="leaderboard")return leaderboardPage(v);if(S.tab==="profile")return studentProfile(v,S.user.student_id);if(S.tab==="quran")return quran(v);if(S.tab==="effort")return effortPage(v);if(S.tab==="effort-ranking")return effortRankingPage(v);if(S.tab==="roster-bulk")return bulkRosterPage(v);if(S.tab==="quran-achievement")return quranAchievementPage(v);if(S.tab==="roadmap")return roadmapPage(v);if(S.tab==="hierarchy")return hierarchyPage(v);if(S.tab==="tests")return testsPage(v);
  if(S.tab==="notifications")return notificationsPage(v);v.innerHTML=head("القسم غير متاح","هذا القسم لم يعد متاحًا. اختر قسمًا من القائمة.")+'<button class="btn" id="back-home">العودة إلى الرئيسية</button>';$("#back-home").onclick=()=>go("home");return}catch(e){v.innerHTML='<div class="panel"><h2>تعذّر تحميل البيانات</h2><p class="notice error">'+esc(e.message)+'</p><button class="btn" id="retry">إعادة المحاولة</button></div>';$("#retry").onclick=page}}
@@ -1061,6 +1068,16 @@ async function pointsPage(v){
  html+=isStudent?storeStudentMarkup(store,summary):storeStaffMarkup(store,S.user.role==="admin");
  html+='<section class="card"><h3>طلبات الصرف</h3><div class="list">'+(redemptionRows||'<p class="muted">لا توجد طلبات صرف بعد.</p>')+'</div></section>';
  if(canManage)html+='<section class="card"><h3>منح نقاط يدوي</h3><form id="points-award-form" class="form-grid"><label class="field">نقاط الإنجاز<input name="achievement_points" type="number" min="0" max="1000" value="0"></label><label class="field">رصيد المتجر<input name="store_points" type="number" min="0" max="1000" value="0"></label><label class="field">سبب المنح (إلزامي)<input name="reason" required minlength="3" maxlength="500"></label><button class="btn" type="submit">منح النقاط</button></form></section>';
+ if(canManage){
+  const qp=(t)=>'<button class="btn secondary" type="button" data-quick-reason="'+t+'">'+t+'</button>';
+  html+='<section class="card sheikh-panel" id="sheikh-panel"><h3>لوحة الشيخ — إجراءات بعد مسح البطاقة</h3><p class="muted small">ترقية المستوى، خصم جزاء، ورد سريع للمكافآت الشائعة.</p>';
+  html+='<div class="stats"><div class="stat"><small>المستوى الحالي</small><strong id="sheikh-level">…</strong></div></div>';
+  html+='<label class="field">سبب الترقية (إلزامي)<input id="promote-reason" maxlength="500" placeholder="مثال: أتم حفظ السورة بإتقان"></label>';
+  html+='<div class="student-actions"><button class="btn" id="promote-level" type="button">ترقية الطالب إلى المستوى التالي</button></div>';
+  html+='<div class="student-actions" id="quick-reasons">'+qp("ورد قراءة يومي منتظم")+qp("إتقان حفظ وتثبيت")+qp("حضور الحلقة")+qp("مراجعة ممتازة")+'</div>';
+  html+='<form id="penalty-form" class="form-grid" style="margin-top:10px"><label class="field">خصم جزاء (من رصيد المتجر)<input name="store_points" type="number" min="1" max="1000" required></label><label class="field">سبب الجزاء (5 أحرف على الأقل)<input name="reason" required minlength="5" maxlength="500" placeholder="مثال: غياب متكرر دون عذر"></label><button class="btn danger" type="submit">خصم الجزاء</button></form>';
+  html+='</section>';
+ }
  html+='<section class="card"><h3>آخر الحركات</h3>'+(canManage?'<label class="field">سبب العكس قبل الضغط على «عكس»<input id="points-reverse-reason" maxlength="500" placeholder="مثال: تصحيح خطأ في تسجيل الحضور"></label>':"")+'<div class="list">'+(eventRows||'<p class="muted">لا توجد حركات نقاط بعد.</p>')+'</div></section>';
  if(S.user.role==="admin"){
   const ruleRows=rules.map(rule=>{
@@ -1088,6 +1105,23 @@ async function pointsPage(v){
   e.preventDefault();const form=e.currentTarget,data=new FormData(form);
   try{await api("/points/award",{method:"POST",body:JSON.stringify({student_id:studentId,achievement_points:Number(data.get("achievement_points")||0),store_points:Number(data.get("store_points")||0),reason:data.get("reason")})});toast("تم منح النقاط");await pointsPage(v)}catch(error){toast(error.message,true)}
  });
+  // لوحة الشيخ: ترقية المستوى، خصم الجزاء، ورد سريع.
+  if(canManage){
+   api("/students/level?student_id="+encodeURIComponent(studentId)).then(lvl=>{const el=$("#sheikh-level");if(el)el.textContent=String(Number(lvl.level)||1)}).catch(()=>{});
+   document.querySelectorAll("[data-quick-reason]").forEach(btn=>btn.addEventListener("click",()=>{
+     const input=$("#points-award-form")?.querySelector('input[name="reason"]');if(input){input.value=btn.dataset.quickReason||"";input.focus();toast("اختر النقاط ثم اضغط «منح النقاط»")}
+   }));
+   $("#promote-level")?.addEventListener("click",async()=>{
+     const reason=($("#promote-reason")?.value||"").trim();
+     if(reason.length<3){toast("اكتب سبب الترقية (3 أحرف على الأقل)",true);$("#promote-reason")?.focus();return}
+     const btn=$("#promote-level");if(btn)btn.disabled=true;
+     try{const r=await api("/students/level",{method:"POST",body:JSON.stringify({student_id:studentId,reason})});const el=$("#sheikh-level");if(el)el.textContent=String(r.level);toast("تمت الترقية إلى المستوى "+r.level);await pointsPage(v)}catch(error){if(btn)btn.disabled=false;toast(error.message,true)}
+   });
+   $("#penalty-form")?.addEventListener("submit",async e=>{
+     e.preventDefault();const form=e.currentTarget,data=new FormData(form);
+     try{await api("/penalties",{method:"POST",body:JSON.stringify({student_id:studentId,store_points:Number(data.get("store_points")||0),reason:data.get("reason")})});toast("تم خصم الجزاء من رصيد المتجر");await pointsPage(v)}catch(error){toast(error.message,true)}
+   });
+  }
  const storeForm=$("#store-item-form");
  function resetStoreForm(){
   if(!storeForm)return;
@@ -3331,7 +3365,7 @@ async function backupPage(v){
  $("#restore-file")?.addEventListener("change",async e=>{const file=e.currentTarget.files?.[0],info=$("#restore-preview"),submit=$("#restore-submit");restoreBackup=null;submit.disabled=true;info.classList.remove("hidden","error");if(!file){info.textContent="اختر ملفًا لمعاينة محتوياته.";return}if(file.size>16*1024*1024){info.textContent="حجم الملف أكبر من 16 ميغابايت.";info.classList.add("error");return}try{const data=JSON.parse(await file.text());if(!["ihsan-academy-full-backup-v2","ihsan-academy-full-backup-v3"].includes(data.format)||!data.data){throw Error("هذه ليست نسخة كاملة v3 أو v2؛ لن يتم إرسال الملف.")}restoreBackup=data;const d=data.data;const n=k=>Array.isArray(d[k])?d[k].length:0;info.textContent="النسخة صالحة مبدئيًا — الحسابات: "+(d.users?.length||0)+"، الأفواج: "+(d.groups?.length||0)+"، الطلاب: "+(d.students?.length||0)+"، السجلات: "+(d.academy_records?.length||0)+"، المدارس: "+(d.quran_schools?.length||0)+"، التدقيق: "+(d.audit_log?.length||0)+"، حركات النقاط: "+n("point_events")+"، سجل القرآن: "+n("quran_daily")+"، المحطات: "+n("quran_stations")+"، الاستدراكات: "+n("quran_makeups")+". فحص العلاقات يتم على الخادم قبل الحفظ.";submit.disabled=false}catch(err){info.textContent=err.message||"تعذر قراءة ملف النسخة.";info.classList.add("error")}});
  $("#restore-submit")?.addEventListener("click",async e=>{e.preventDefault();const b=e.currentTarget;if(!restoreBackup)return toast("اختر نسخة كاملة صالحة أولًا.",true);if($("#restore-confirm")?.value.trim()!=="استعادة")return toast("اكتب كلمة «استعادة» لتأكيد العملية.",true);if(!$("#restore-approve")?.checked)return toast("ضع علامة الموافقة قبل الدمج.",true);if(!confirm("سيُدمج الملف في قاعدة البيانات. السجلات ذات المعرّفات المطابقة ستُحدّث من النسخة، ولن تُحذف بقية السجلات. المتابعة؟"))return;b.disabled=true;b.textContent="جار التحقق والدمج…";try{const result=await api("/admin/backup/restore",{method:"POST",body:JSON.stringify({...restoreBackup,confirm_restore:"RESTORE-IHSAN-ACADEMY"})});toast("تم الدمج: "+(result.restored?.students||0)+" سجل طالب و"+(result.restored?.records||0)+" سجلًا تطبيقيًا.");await backupPage(v)}catch(err){toast(err.message||"تعذّرت الاستعادة",true);b.disabled=false;b.textContent="دمج النسخة في قاعدة البيانات"}});
 }
-function questionEditor(n){return '<div class="question-builder" data-question><h4>السؤال '+n+'</h4><label class="field">نص السؤال<textarea data-q-prompt required maxlength="500" placeholder="اكتب السؤال هنا"></textarea></label><div class="form-grid">'+[0,1,2,3].map(i=>'<label class="field">الخيار '+(i+1)+'<input data-q-choice="'+i+'" required maxlength="250" placeholder="نص الخيار"></label>').join("")+'</div><label class="field">الإجابة الصحيحة<select data-q-correct><option value="0">الخيار الأول</option><option value="1">الخيار الثاني</option><option value="2">الخيار الثالث</option><option value="3">الخيار الرابع</option></select></label></div>'}
+function questionEditor(n){return '<div class="question-builder" data-question><h4>السؤال '+n+'</h4><label class="field">نص السؤال<textarea data-q-prompt required maxlength="500" placeholder="اكتب السؤال هنا"></textarea></label><div class="form-grid">'+[0,1,2,3].map(i=>'<label class="field">الخيار '+(i+1)+'<input data-q-choice="'+i+'" required maxlength="250" placeholder="نص الخيار"></label>').join("")+'</div><label class="field">الإجابة الصحيحة<select data-q-correct><option value="0">الخيار الأول</option><option value="1">الخيار الثاني</option><option value="2">الخيار الثالث</option><option value="3">الخيار الرابع</option></select></label><label class="field">شرح الإجابة (اختياري — يظهر للطالب بعد التسليم)<textarea data-q-explanation maxlength="500" placeholder="لماذا هذه الإجابة صحيحة؟ مثال أو دليل"></textarea></label></div>'}
 async function hierarchyPage(v){
  const isAdmin=S.user.role==="admin";
  if(!isAdmin){v.innerHTML=head("التسلسل الإداري","هذه الصفحة مخصصة للمدير العام.");return}
@@ -3385,6 +3419,24 @@ async function roadmapPage(v){
  v.innerHTML=head("خريطة الإنجاز","مراحل من بيانات المشروع (مرجع).")+
  '<section class="card"><div class="list">'+stages.map(s=>'<div class="list-row"><div style="flex:1;min-width:180px"><strong>'+esc(s.name)+'</strong><small>'+esc(s.detail)+'</small></div><span class="pill '+badgeClass(s.status)+'">'+esc(s.status)+'</span></div>').join("")+'</div></section>';
 }
+// مراجعة الاختبار بعد التسليم: تُظهر اختيار الطالب والإجابة الصحيحة والشرح (إن وُجد).
+function quizReviewMarkup(t){
+ const answers=(t.my_attempt&&t.my_attempt.answers)||{};
+ const rows=(t.questions||[]).map((q,qi)=>{
+  const raw=answers[String(q.id)];
+  const yourIndex=raw===undefined||raw===null?NaN:Number(raw);
+  const correct=Number(q.correct_index);
+  const ok=yourIndex===correct;
+  const choices=(q.choices||[]).map((choice,ci)=>{
+   const isCorrect=ci===correct,isYours=!Number.isNaN(yourIndex)&&ci===yourIndex;
+   const cls="quiz-review-choice"+(isCorrect?" is-correct":"")+(isYours?(isCorrect?" is-yours":" is-wrong"):"");
+   const mark=isCorrect?"✓":(isYours?"✗":"");
+   return '<div class="'+cls+'"><span class="quiz-review-mark" aria-hidden="true">'+mark+'</span><span>'+esc(choice)+'</span>'+(isYours?'<small class="muted">اختيارك</small>':"")+'</div>';
+  }).join("");
+  return '<fieldset class="question-view quiz-review '+(ok?"is-correct":"is-wrong")+'"><legend>'+(qi+1)+'. '+esc(q.prompt)+'<span class="quiz-verdict">'+(ok?"إجابتك صحيحة":"إجابتك خاطئة")+'</span></legend>'+choices+(q.explanation?'<p class="quiz-explanation"><strong>شرح الإجابة:</strong> '+esc(q.explanation)+'</p>':'<p class="quiz-explanation muted small">لم يضف الشيخ شرحًا لهذا السؤال بعد.</p>')+'</fieldset>';
+ }).join("");
+ return '<div class="notice">نتيجتك: '+t.my_attempt.score+' / '+t.my_attempt.total+' · '+Math.round(100*t.my_attempt.score/Math.max(1,t.my_attempt.total))+'% · '+esc(t.my_attempt.submitted_at||"")+'</div><div class="quiz-review-list">'+rows+'</div>';
+}
 async function testsPage(v){
  const isStudent=S.user.role==="student";
  let tests=[];
@@ -3395,7 +3447,7 @@ async function testsPage(v){
   html+='<section class="card"><h3>إنشاء اختبار</h3><form id="test-create-form" class="stack"><label class="field">عنوان الاختبار<input name="title" required maxlength="160"></label><label class="field">وصف مختصر<textarea name="description" maxlength="2000"></textarea></label><label class="field">الفوج المستهدف<select name="group_id" '+(S.user.role==="admin"?"":"required")+'>'+(S.user.role==="admin"?'<option value="">اختبار عام لجميع الطلاب</option>':'<option value="">اختر فوجًا</option>')+groupOpts()+'</select></label><label class="field">آخر موعد للاختبار<input name="due_date" type="date"></label><label class="remember-option"><input name="recurring" type="checkbox" checked> كرّر الاختبار كل 14 يومًا، مع حفظ نتائج كل دورة</label><div id="questions-editor">'+questionEditor(1)+'</div><button type="button" class="btn secondary" id="add-question">إضافة سؤال آخر</button><button class="btn" type="submit">نشر الاختبار</button><p class="muted small">اختر الإجابة الصحيحة لكل سؤال. عند ترك الموعد فارغًا، يُضبط موعد المراجعة بعد 14 يومًا. يمكن إضافة حتى 30 سؤالًا.</p></form></section><div class="divider"></div>';
   html+='<h3>الاختبارات المنشورة</h3><div class="list">'+(activeTests.length?activeTests.map(t=>'<section class="card"><div class="list-row"><div><strong>'+esc(t.title)+'</strong><small>'+(t.group_id?esc((S.groups.find(g=>g.id===t.group_id)||{}).name||"فوج"):"اختبار عام")+' · '+(t.questions||[]).length+' سؤال'+(t.due_date?' · الموعد: '+esc(t.due_date):"")+(t.recurring?' · يتكرر كل '+Number(t.frequency_days||14)+' يومًا':' · اختبار منفرد')+'</small></div><div class="student-actions"><button class="btn secondary" data-test-results="'+esc(t.id)+'">النتائج</button><button class="btn secondary" data-test-archive="'+esc(t.id)+'">أرشفة</button></div></div><div data-results-host="'+esc(t.id)+'"></div></section>').join(""):'<div class="empty">لم تُنشأ اختبارات بعد.</div>')+'</div>'+(archivedTests.length?'<details class="card archived-tests"><summary>الاختبارات المؤرشفة ('+archivedTests.length+')</summary><div class="list">'+archivedTests.map(t=>'<section class="card"><div class="section-head"><div><strong>'+esc(t.title)+'</strong><small class="muted">أُرشف في: '+esc(t.archived_at||"غير محدد")+'</small></div><button class="btn secondary" type="button" data-test-results="'+esc(t.id)+'">النتائج المحفوظة</button></div><div data-results-host="'+esc(t.id)+'"></div></section>').join("")+'</div></details>':"");
  }else{
-  html+='<div class="list">'+(tests.length?tests.map(t=>'<section class="card"><h3>'+esc(t.title)+'</h3><p class="muted small">'+esc(t.description||"")+(t.due_date?' · آخر موعد: '+esc(t.due_date):"")+'</p>'+(t.my_attempt?'<div class="notice">آخر نتيجة: '+t.my_attempt.score+' / '+t.my_attempt.total+' · '+Math.round(100*t.my_attempt.score/Math.max(1,t.my_attempt.total))+'% · '+esc(t.my_attempt.submitted_at||"")+'</div>':"")+'<form class="quiz-form" data-submit-test="'+esc(t.id)+'">'+(t.questions||[]).map((q,qi)=>'<fieldset class="question-view"><legend>'+(qi+1)+'. '+esc(q.prompt)+'</legend>'+(q.choices||[]).map((choice,ci)=>'<label class="quiz-option"><input type="radio" name="q_'+esc(q.id)+'" value="'+ci+'" required> '+esc(choice)+'</label>').join("")+'</fieldset>').join("")+'<button class="btn" type="submit">إرسال الإجابات وتصحيحها</button></form></section>').join(""):'<div class="empty">لا توجد اختبارات منشورة لفوجك حاليًا.</div>')+'</div>';
+  html+='<div class="list">'+(tests.length?tests.map(t=>'<section class="card"><h3>'+esc(t.title)+'</h3><p class="muted small">'+esc(t.description||"")+(t.due_date?' · آخر موعد: '+esc(t.due_date):"")+'</p>'+(t.my_attempt?quizReviewMarkup(t):'<form class="quiz-form" data-submit-test="'+esc(t.id)+'">'+(t.questions||[]).map((q,qi)=>'<fieldset class="question-view"><legend>'+(qi+1)+'. '+esc(q.prompt)+'</legend>'+(q.choices||[]).map((choice,ci)=>'<label class="quiz-option"><input type="radio" name="q_'+esc(q.id)+'" value="'+ci+'" required> '+esc(choice)+'</label>').join("")+'</fieldset>').join("")+'<button class="btn" type="submit">إرسال الإجابات وتصحيحها</button></form>')+'</section>').join(""):'<div class="empty">لا توجد اختبارات منشورة لفوجك حاليًا.</div>')+'</div>';
  }
  let historyRows=[];
  if(isStudent&&S.user.student_id){try{historyRows=await api("/test-history?student_id="+encodeURIComponent(S.user.student_id))}catch{}}
@@ -3403,7 +3455,7 @@ async function testsPage(v){
  v.innerHTML=html;
  if(!isStudent){
   $("#add-question")?.addEventListener("click",()=>{const host=$("#questions-editor");if(host.querySelectorAll("[data-question]").length>=30)return toast("الحد الأقصى 30 سؤالًا",true);host.insertAdjacentHTML("beforeend",questionEditor(host.querySelectorAll("[data-question]").length+1))});
-  $("#test-create-form")?.addEventListener("submit",async e=>{e.preventDefault();const form=e.currentTarget,f=new FormData(form);const questions=[...form.querySelectorAll("[data-question]")].map(q=>({prompt:q.querySelector("[data-q-prompt]").value.trim(),choices:[...q.querySelectorAll("[data-q-choice]")].map(x=>x.value.trim()),correct_index:Number(q.querySelector("[data-q-correct]").value)}));if(questions.some(q=>!q.prompt||q.choices.some(c=>!c))){toast("أكمل نص كل سؤال وخياراته الأربعة",true);return}try{const result=await api("/tests",{method:"POST",body:JSON.stringify({title:f.get("title"),description:f.get("description"),group_id:f.get("group_id"),due_date:f.get("due_date"),recurring:form.elements.recurring.checked,questions})});toast("نُشر الاختبار وحُفظت إجاباته الصحيحة");await load();shell();await page()}catch(x){toast(x.message,true)}});
+  $("#test-create-form")?.addEventListener("submit",async e=>{e.preventDefault();const form=e.currentTarget,f=new FormData(form);const questions=[...form.querySelectorAll("[data-question]")].map(q=>({prompt:q.querySelector("[data-q-prompt]").value.trim(),choices:[...q.querySelectorAll("[data-q-choice]")].map(x=>x.value.trim()),correct_index:Number(q.querySelector("[data-q-correct]").value),explanation:(q.querySelector("[data-q-explanation]")?.value||"").trim()}));if(questions.some(q=>!q.prompt||q.choices.some(c=>!c))){toast("أكمل نص كل سؤال وخياراته الأربعة",true);return}try{const result=await api("/tests",{method:"POST",body:JSON.stringify({title:f.get("title"),description:f.get("description"),group_id:f.get("group_id"),due_date:f.get("due_date"),recurring:form.elements.recurring.checked,questions})});toast("نُشر الاختبار وحُفظت إجاباته الصحيحة");await load();shell();await page()}catch(x){toast(x.message,true)}});
   v.querySelectorAll("[data-test-archive]").forEach(b=>b.onclick=async()=>{const selected=tests.find(t=>t.id===b.dataset.testArchive);const prompt=selected?.recurring?"أرشفة سلسلة هذا الاختبار المتكرر بالكامل؟ ستبقى نتائج الطلاب محفوظة ولن تُنشأ دورات جديدة.":"أرشفة هذا الاختبار؟ سيختفي عن الطلاب وتبقى النتائج وسياق الاختبار محفوظين.";if(!confirm(prompt))return;b.disabled=true;try{await api("/test-delete",{method:"POST",body:JSON.stringify({id:b.dataset.testArchive,action:"archive"})});toast("أُرشف الاختبار مع الحفاظ على نتائجه");await page()}catch(x){toast(x.message,true);b.disabled=false}});
   v.querySelectorAll("[data-test-results]").forEach(b=>b.onclick=async()=>{const host=v.querySelector('[data-results-host="'+b.dataset.testResults+'"]');try{const rows=await api("/test-results?id="+encodeURIComponent(b.dataset.testResults));host.innerHTML='<div class="result-list">'+(rows.length?rows.map(r=>'<div class="list-row"><span>'+esc((S.students.find(st=>st.id===r.student_id)||{}).name||"طالب")+'</span><strong>'+r.score+' / '+r.total+'</strong><small>'+esc(r.submitted_at||"")+'</small></div>').join(""):'<p class="muted">لم يقدّم أي طالب هذا الاختبار بعد.</p>')+'</div>'}catch(x){toast(x.message,true)}});
  }else{

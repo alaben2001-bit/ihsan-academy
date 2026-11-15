@@ -1,5 +1,4 @@
+# أكاديمية الإحسان منصة داخلية للمسجلين المعتمدين، ولا تُفهرس في محركات البحث.
+# المنصة العامة المفتوحة هي «بوابة التيسير» ولها ملف robots خاص بها.
 User-agent: *
-Allow: /
-Disallow: /api/
-
-Sitemap: https://a-ihsan.pages.dev/sitemap.xml
+Disallow: /

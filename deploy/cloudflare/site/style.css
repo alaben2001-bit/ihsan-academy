@@ -3665,3 +3665,19 @@ html:root:root .academy-about-footnote{background:#241006!important;border-color
 .qcal-amount input{width:90px;border:1px solid var(--line);border-radius:9px;padding:8px;background:var(--surface-2);color:var(--ink)}
 @media print{.topbar,.sidebar,.nav-btn,.section-head .student-actions,.qcal-nav,button[data-sch-print]{display:none !important}}
 @media(max-width:560px){.qcal-cell{min-height:54px}.qcal-daynum{font-size:.9rem}}
+
+/* ============ اختبارات: مراجعة بعد التسليم (اختيار الطالب + الإجابة الصحيحة + الشرح) ============ */
+.quiz-review-list{display:flex;flex-direction:column;gap:10px;margin-top:10px}
+.quiz-review{padding:12px 14px}
+.quiz-review.is-correct{border-color:#39a875;box-shadow:inset 3px 0 0 #39a875}
+.quiz-review.is-wrong{border-color:#c96;box-shadow:inset 3px 0 0 #c96}
+.quiz-review legend{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%}
+.quiz-verdict{font-size:.78rem;font-weight:800;border-radius:999px;padding:2px 12px;border:1px solid var(--line)}
+.quiz-review.is-correct .quiz-verdict{background:#d8f5e6;color:#075c3d;border-color:#39a875}
+.quiz-review.is-wrong .quiz-verdict{background:#fdecec;color:#8a2b2b;border-color:#c96}
+.quiz-review-choice{display:flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--line);border-radius:10px;background:var(--surface-2);margin-top:6px}
+.quiz-review-choice small{margin-inline-start:auto}
+.quiz-review-choice.is-correct{border-color:#39a875;background:#d8f5e6;font-weight:700}
+.quiz-review-choice.is-wrong{border-color:#c96;background:#fdecec}
+.quiz-review-mark{font-weight:900;width:1.1em;text-align:center}
+.quiz-explanation{margin:10px 4px 0;padding:8px 10px;border-inline-start:3px solid var(--gold);background:var(--surface);border-radius:8px;line-height:1.8}

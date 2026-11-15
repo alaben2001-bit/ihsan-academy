@@ -80,7 +80,7 @@ assert.match(backend, /__Host-ihsan_csrf=/, "sessions must issue a separate CSRF
 assert.match(backend, /csrfIsValid\(request\)/, "cookie-authenticated mutations must validate CSRF");
 assert.match(backend, /X-CSRF-Token/, "the backend must explicitly allow the CSRF header");
 assert.match(backend, /const requestSessionToken = request => bearerSessionToken\(request\) \|\| cookieSessionToken\(request\)/, "authenticated requests must accept cookie sessions");
-assert.equal((backend.match(/return sessionResponse\(/g)||[]).length, 2, "password and Google login must both issue cookie sessions");
+assert.equal((backend.match(/return sessionResponse\(/g)||[]).length, 3, "password, Google and self-signup must all issue cookie sessions");
 assert.doesNotMatch(backend, /return json\(\{token,user:safeUser/, "raw session tokens must not be returned to the browser");
 assert.doesNotMatch(app, /safeStore\.set\(["']ihsan_token["']/, "the UI must not store reusable bearer tokens");
 assert.match(app, /credentials:"same-origin"/, "API requests must send same-origin cookies");
@@ -449,9 +449,10 @@ assert.match(style, /table th,table td/, "font scaling must include report table
 assert.match(app, /ihsan_last_dashboard_dua_index/, "the dashboard dua must rotate on every refresh");
 assert.match(app, /filter\(index=>index!==previousDuaIndex\)/, "the dashboard dua must avoid immediately repeating the prior dua");
 assert.match(app, /سنن أبي داود \(1522\)، والنسائي \(1303\)؛ صححه الألباني/, "the remembrance dua must show its source and grading");
-assert.match(about, /rel="canonical" href="https:\/\/a-ihsan\.pages\.dev\/about"/, "about page canonical must use the production domain and clean URL");
-assert.match(privacy, /rel="canonical" href="https:\/\/a-ihsan\.pages\.dev\/privacy"/, "privacy page canonical must use the production domain and clean URL");
-assert.match(index, /منصة تعليمية عربية لأكاديمية الإحسان/, "the home page description must accurately summarize the public platform");
+assert.doesNotMatch(about, /rel="canonical"/, "the internal about page must not publish a canonical URL");
+assert.doesNotMatch(privacy, /rel="canonical"/, "the internal privacy page must not publish a canonical URL");
+assert.match(index, /بوابة خاصة بأكاديمية الإحسان للمسجلين المعتمدين/, "the home page must present itself as the internal platform for approved members");
+assert.match(index, /<meta name="robots" content="noindex/, "the internal platform must not be indexable");
 for (const [name, page] of [["about", about], ["privacy", privacy]]) {
   for (const asset of ["fonts.css", "style.css"]) {
     assert.ok(page.includes(`/${asset}?v=${releaseVersion}`), `${name} page ${asset} version must match the release`);
@@ -459,18 +460,20 @@ for (const [name, page] of [["about", about], ["privacy", privacy]]) {
 }
 assert.doesNotMatch(about, /fonts\.googleapis\.com|rel="stylesheet" href="\/ihsan-dark-theme\.css/, "about page must use the self-hosted consolidated stylesheet");
 assert.doesNotMatch(privacy, /fonts\.googleapis\.com|<style>/, "privacy page must use the self-hosted consolidated stylesheet");
-assert.match(index, /<h1 id="public-heading">منصة أكاديمية الإحسان<\/h1>/, "the initial HTML must contain useful public content before the app loads");
+assert.match(index, /<h1 id="public-heading">أكاديمية الإحسان في بناء الإنسان<\/h1>/, "the initial HTML must identify the platform to members before the app loads");
 assert.match(index, /<li>متابعة الحفظ والمراجعة القرآنية\.<\/li>/, "the initial HTML must describe a real platform feature");
-assert.match(index, /لا يتوفر إنشاء حساب ذاتي من هذه الصفحة/, "visitors must know that the login page does not offer self-registration");
+assert.match(index, /إنشاء حساب جديد من هذه الصفحة/, "visitors must see the self-service signup entry point on the login page");
+assert.match(index, /قيد الاعتماد/, "visitors must learn that join requests wait for authorized approval before access");
 assert.match(index, /<a class="skip-link" href="#app">/, "the home page must provide a keyboard skip link");
 assert.match(about, /<a class="skip-link" href="#main-content">/, "the about page must provide a keyboard skip link");
-assert.match(about, /حسابًا مفعّلًا؛ ولا توفر صفحة الدخول تسجيلًا ذاتيًا/, "the about page must explain the account requirement without implying open registration");
+assert.match(about, /حساب طالب يُسند إلى فوج بعد اعتماد الشيخ أو الإدارة/, "the about page must explain the approval-based open signup accurately");
 assert.match(privacy, /PBKDF2-SHA-256/, "the privacy page must describe the implemented password-hashing method");
 assert.match(privacy, /حتى 12 ساعة عادةً، أو حتى 30 يومًا/, "the privacy page must describe the implemented session durations");
 assert.match(privacy, /لا تحدد هذه النسخة مدة احتفاظ زمنية منشورة/, "the privacy page must disclose the missing published retention period");
 assert.doesNotMatch(privacy, /يُحفظ رمز جلسة في تخزين المتصفح|لا تُباع البيانات الشخصية للإعلانات/, "the privacy page must not claim unsupported browser token storage or advertising promises");
-assert.match(robots, /Sitemap: https:\/\/a-ihsan\.pages\.dev\/sitemap\.xml/, "robots.txt must point to the canonical sitemap");
-assert.match(sitemap, /https:\/\/a-ihsan\.pages\.dev\//, "the sitemap must use the primary production domain");
+assert.match(robots, /Disallow: \//, "the internal platform robots.txt must keep crawlers out");
+assert.doesNotMatch(robots, /Allow: \//, "the internal platform robots.txt must not advertise an allow-all crawl");
+assert.doesNotMatch(sitemap, /<url>/, "the internal sitemap must not advertise indexable URLs");
 assert.match(redirects, /\/about\.html\s+\/about\s+301/, "existing static path redirects must remain intact");
 
 // Journey and store guardrails: reuse existing storage and show only real catalog rows.
