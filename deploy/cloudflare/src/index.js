@@ -3,6 +3,7 @@ const JSON_HEADERS = {
   "cache-control": "no-store",
   "x-content-type-options": "nosniff",
   "referrer-policy": "strict-origin-when-cross-origin",
+  "x-robots-tag": "noindex, nofollow, noarchive",
   "permissions-policy": "camera=(), microphone=(), geolocation=()",
   "content-security-policy": "default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; base-uri 'self'; frame-ancestors 'none'; form-action 'self'",
 };
@@ -153,6 +154,37 @@ async function saveRecord(env, collection, value) {
 async function log(env, userId, action, meta = {}) {
   await env.DB.prepare("INSERT INTO audit_log (id,user_id,action,metadata_json) VALUES (?,?,?,?)").bind(uuid(), userId || null, action, JSON.stringify(meta)).run();
 }
+// ---------------------------------------------------------------------------
+// طلبات الانضمام: لا مسار يمنح دورًا خاصًا عند التسجيل.
+// التسجيل ينشئ حسابًا (طالب بلا فوج أو زائر/محسن) وطلبًا يبدأ «pending»؛
+// الاعتماد بيد مسؤول مخوّل فقط (admin، أو director ضمن المدارس المُسندة إليه،
+// أو teacher لمدرسة له فيها فوج نشط يدرّسه). عند الاعتماد يُسند الفوج للطالب
+// (أو يترقى الزائر إلى طالب/شيخ) داخل معاملة واحدة قدر الإمكان.
+// ---------------------------------------------------------------------------
+const JOIN_KINDS = ["school_join", "teacher_request"];
+const JOIN_STATUSES = ["pending", "approved", "rejected", "cancelled"];
+const joinRequestJson = row => row ? ({ id: row.id, kind: row.kind, school_id: row.school_id || null, group_id: row.group_id || null, school_name: row.school_name || null, group_name: row.group_name || null, requested_note: row.requested_note || "", status: row.status, decision_note: row.decision_note || "", decided_at: row.decided_at || null, decided_by: row.decided_by || null, created_at: row.created_at, user_id: row.user_id, user_name: row.user_name || null, user_email: row.user_email || null, user_role: row.user_role || null }) : null;
+const JOIN_SELECT = "SELECT jr.*, u.display_name AS user_name, u.identity_normalized AS user_email, u.role AS user_role, s.name AS school_name, g.name AS group_name FROM join_requests jr JOIN users u ON u.id = jr.user_id LEFT JOIN quran_schools s ON s.id = jr.school_id LEFT JOIN groups g ON g.id = jr.group_id";
+async function joinRequestById(env, id) {
+  return env.DB.prepare(JOIN_SELECT + " WHERE jr.id=?").bind(clean(id,80)).first();
+}
+async function teacherTeachesSchool(env, userId, schoolId) {
+  if (!schoolId) return false;
+  const row = await env.DB.prepare("SELECT id FROM groups WHERE school_id=? AND teacher_id=? AND active=1 LIMIT 1").bind(schoolId, userId).first();
+  return !!row;
+}
+async function canDecideJoinRequest(env, user, request) {
+  if (user.role === "admin") return true;
+  if (user.role === "director") {
+    if (request.kind === "teacher_request") return true;
+    return Array.isArray(user.school_ids) && user.school_ids.includes(request.school_id);
+  }
+  if (user.role === "teacher") {
+    return request.kind === "school_join" && await teacherTeachesSchool(env, user.id, request.school_id);
+  }
+  return false;
+}
+
 async function groupRow(env, id) { return env.DB.prepare("SELECT id,name,school_id,teacher_id,active FROM groups WHERE id=?").bind(id).first(); }
 async function canManageGroup(env, user, groupId) {
   if (!groupId) return false;
@@ -1624,7 +1656,7 @@ function buildStudentTasks(student, assignments, submissions, plan, progress, at
 }
 
 async function recentPointEvents(env, studentId, limit = 50) {
-  const result = await env.DB.prepare("SELECT id,event_type,kind,points,reason,event_key,awarded_date,source_collection,source_id,awarded_by,created_at,reversed_at,reversal_reason FROM point_events WHERE student_id=? ORDER BY created_at DESC, id DESC LIMIT ?").bind(studentId, limit).all();
+  const result = await env.DB.prepare("SELECT pe.id,pe.event_type,pe.kind,pe.points,pe.reason,pe.event_key,pe.awarded_date,pe.source_collection,pe.source_id,pe.awarded_by,u.display_name AS awarded_by_name,pe.created_at,pe.reversed_at,pe.reversal_reason FROM point_events pe LEFT JOIN users u ON u.id=pe.awarded_by WHERE pe.student_id=? ORDER BY pe.created_at DESC, pe.id DESC LIMIT ?").bind(studentId, limit).all();
   return (result.results || []).map(row => ({ ...row, kind_label: POINT_KIND_LABELS[row.kind] || row.kind, reversed: Boolean(row.reversed_at) }));
 }
 async function competitionStudentFacts(env, studentId) {
@@ -1752,6 +1784,54 @@ export default {
     if (path === "/api/privacy" && method === "GET") return json({title:"سياسة الخصوصية — أكاديمية الإحسان",principles:["نجمع أقل قدر لازم للتعليم والإدارة.","لا نبيع البيانات الشخصية.","تُقيّد صلاحيات الوصول بحسب الدور والفوج.","كلمات المرور لا تُخزّن كنص واضح."]});
     if (path === "/api/public/quran-schools" && method === "GET") {
       const r=await env.DB.prepare("SELECT id,name,description FROM quran_schools WHERE active=1 ORDER BY sort_order,name").all(); return json(r.results||[]);
+    }
+    // خيارات إنشاء الحساب العام: المدارس النشطة فقط — لا تُكشف الأفواج ولا بيانات الطلاب لأي زائر.
+    if (path === "/api/public/signup-options" && method === "GET") {
+      try {
+        const r=await env.DB.prepare("SELECT id,name,description FROM quran_schools WHERE active=1 ORDER BY sort_order,name").all();
+        return json({schools:(r.results||[]).map(row=>({id:row.id,name:row.name,description:row.description||""}))},200,{"cache-control":"public, max-age=300"});
+      } catch { return fail(503,"database_unavailable"); }
+    }
+    // التسجيل المفتوح: أي شخص يريد الانضمام يستطيع إنشاء حساب.
+    // طالب  -> حساب طالب + طلب انضمام (قيد الاعتماد حتى يوافق الشيخ أو المسؤول المختص).
+    // محسن/زائر -> حساب «visitor» يقرأ عن الأكاديمية ويساهم، ولا يصل إلى بيانات الطلاب أو الفرق.
+    // شيخ/معلم -> حساب «visitor» + طلب انضمام بصفة شيخ/معلم؛ لا تُمنح الصلاحية إلا باعتماد مسؤول مخوّل.
+    // لا يوجد مسار يمنح صلاحيات إدارية أو إشرافية عند التسجيل.
+    if (path === "/api/signup" && method === "POST") {
+      const limited=await rateLimit(env,"signup",rateLimitKey(request),10,3600);
+      if(!limited.allowed)return fail(429,"طلبات إنشاء حسابات كثيرة خلال وقت قصير. انتظر قليلًا ثم أعد المحاولة.");
+      const parsed=await parseBody(request); if(parsed.error)return parsed.error; const b=parsed.value;
+      const name=clean(b.name,120),email=clean(b.email,200).toLowerCase(),password=String(b.password||"");
+      const kind=clean(b.kind,20),schoolId=clean(b.school_id,80),note=clean(b.note,500);
+      if(name.length<2)return fail(400,"أدخل الاسم الكامل");
+      if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email))return fail(400,"أدخل بريدًا إلكترونيًا صحيحًا");
+      if(password.length<10||password.length>256)return fail(400,"كلمة المرور يجب أن تكون 10 أحرف على الأقل ولا تتجاوز 256");
+      if(!["student","visitor","teacher"].includes(kind))return fail(400,"اختر نوع الحساب: طالب، زائر/محسن، أو شيخ/معلم");
+      let school=null;
+      if(kind==="student"&&schoolId){school=await env.DB.prepare("SELECT id FROM quran_schools WHERE id=? AND active=1").bind(schoolId).first();if(!school)return fail(400,"المدرسة المختارة غير موجودة أو غير نشطة");}
+      const existing=await env.DB.prepare("SELECT id FROM users WHERE identity_normalized=? LIMIT 1").bind(email).first();
+      if(existing)return fail(409,"هذا البريد مسجّل بالفعل. سجّل الدخول بدل إنشاء حساب جديد.");
+      const role=kind==="student"?"student":"visitor";
+      const id=uuid();
+      try {
+        await env.DB.prepare("INSERT INTO users (id,display_name,identity_normalized,password_hash,role,active) VALUES (?,?,?,?,?,1)").bind(id,name,email,await passwordHash(password),role).run();
+      } catch (error) {
+        const message=String(error?.message||error);
+        if(/unique|identity_normalized/i.test(message))return fail(409,"هذا البريد مسجّل بالفعل. سجّل الدخول بدل إنشاء حساب جديد.");
+        throw error;
+      }
+      let studentId=null;
+      if(kind==="student"){
+        studentId=uuid();
+        await env.DB.prepare("INSERT INTO students (id,user_id,display_name,group_id,active) VALUES (?,?,?,NULL,1)").bind(studentId,id,name).run();
+        if(school)await env.DB.prepare("INSERT INTO join_requests (id,user_id,kind,school_id,requested_note,status) VALUES (?,?,'school_join',?,?,'pending')").bind(uuid(),id,school.id,note).run();
+      } else if(kind==="teacher"){
+        await env.DB.prepare("INSERT INTO join_requests (id,user_id,kind,requested_note,status) VALUES (?,?,'teacher_request',?,'pending')").bind(uuid(),id,note).run();
+      }
+      const token=hex(crypto.getRandomValues(new Uint8Array(32)));
+      await env.DB.prepare("INSERT INTO sessions(token_hash,user_id,expires_at) VALUES(?,?,?)").bind(await hashToken(token),id,new Date(Date.now()+12*60*60*1000).toISOString()).run();
+      await log(env,id,"signup",{kind,school_id:school?.id||null});
+      return sessionResponse({user:safeUser({id,name,email,role,must_change_password:0,student_id:studentId,group_id:null}),join_note:"تم إنشاء حسابك. "+(kind==="student"?"طلب انضمامك قيد الاعتماد؛ ستُشعَر عند اعتماد الشيخ طلبك.":kind==="teacher"?"طلب انضمامك بصفة شيخ/معلم قيد المراجعة؛ لا تُفعّل صلاحيات الشيخ إلا باعتماد إدارة الأكاديمية.":"يمكنك الآن التعرف على الأكاديمية والمساهمة، وستجد في حسابك تبويب «ملفي».")},token,false,201);
     }
     if (path === "/api/auth/google/config" && method === "GET") {
       const clientId=clean(env.GOOGLE_CLIENT_ID,300),enabled=!!clientId&&clientId.endsWith(".apps.googleusercontent.com");
@@ -1903,6 +1983,119 @@ export default {
       return json({ok:true,message:"تم تغيير كلمة المرور وإبطال الجلسات الأخرى"});
     }
     if(path==="/api/me"&&method==="GET"){const linked=await env.DB.prepare("SELECT 1 AS linked FROM google_identities WHERE user_id=? LIMIT 1").bind(user.id).first();return json({...safeUser(user),google_linked:Boolean(linked)});}
+    // ------------------------------------------------------------------
+    // طلبات الانضمام (للمسجلين): تقديم/إلغاء/عرض/اعتماد
+    // ------------------------------------------------------------------
+    if(path==="/api/join/my-requests"&&method==="GET"){
+      const rows=await env.DB.prepare(JOIN_SELECT+" WHERE jr.user_id=? ORDER BY jr.created_at DESC LIMIT 20").bind(user.id).all();
+      return json((rows.results||[]).map(joinRequestJson));
+    }
+    if(path==="/api/join/requests"&&method==="POST"){
+      if(!["student","visitor"].includes(user.role))return fail(403,"تقديم طلب انضمام متاح لحسابات الطلاب والزائرين/المحسنين");
+      const limited=await rateLimit(env,"join-request",user.id,20,86400);
+      if(!limited.allowed)return fail(429,"طلبات انضمام كثيرة خلال وقت قصير. حاول لاحقًا.");
+      const parsed=await parseBody(request); if(parsed.error)return parsed.error; const b=parsed.value;
+      const kind=clean(b.kind,20),schoolId=clean(b.school_id,80),note=clean(b.note,500);
+      if(!JOIN_KINDS.includes(kind))return fail(400,"نوع الطلب غير صحيح");
+      const pending=await env.DB.prepare("SELECT id FROM join_requests WHERE user_id=? AND kind=? AND status='pending' LIMIT 1").bind(user.id,kind).first();
+      if(pending)return fail(409,kind==="teacher_request"?"لديك طلب انضمام بصفة شيخ/معلم قيد المراجعة بالفعل":"لديك طلب انضمام قيد المراجعة بالفعل");
+      if(kind==="school_join"){
+        if(user.role==="student"&&user.group_id)return fail(409,"أنت مسجّل في فوج بالفعل؛ لا حاجة لطلب انضمام جديد");
+        if(!schoolId)return fail(400,"اختر المدرسة التي تريد الانضمام إليها");
+        const school=await env.DB.prepare("SELECT id FROM quran_schools WHERE id=? AND active=1").bind(schoolId).first();
+        if(!school)return fail(400,"المدرسة غير موجودة أو غير نشطة");
+        const id=uuid();
+        await env.DB.prepare("INSERT INTO join_requests (id,user_id,kind,school_id,requested_note,status) VALUES (?,?,'school_join',?,?,'pending')").bind(id,user.id,schoolId,note).run();
+        await log(env,user.id,"join_request_create",{request_id:id,kind,school_id:schoolId});
+        const created=await joinRequestById(env,id);
+        return json({ok:true,request:joinRequestJson(created)},201);
+      }
+      // teacher_request — متاح للزائر/المحسن والطالب، ويبقى بلا صلاحية حتى الاعتماد
+      if(user.role==="teacher")return fail(409,"أنت شيخ/معلم بالفعل");
+      const approved=await env.DB.prepare("SELECT id FROM join_requests WHERE user_id=? AND kind='teacher_request' AND status='approved' LIMIT 1").bind(user.id).first();
+      if(approved)return fail(409,"سبق اعتماد طلبك بصفة شيخ/معلم");
+      const id=uuid();
+      await env.DB.prepare("INSERT INTO join_requests (id,user_id,kind,requested_note,status) VALUES (?,?,'teacher_request',?,'pending')").bind(id,user.id,note).run();
+      await log(env,user.id,"join_request_create",{request_id:id,kind});
+      const created=await joinRequestById(env,id);
+      return json({ok:true,request:joinRequestJson(created)},201);
+    }
+    const joinCancelMatch=path.match(/^\/api\/join\/requests\/([^/]+)\/cancel$/);
+    if(joinCancelMatch&&method==="POST"){
+      const row=await joinRequestById(env,joinCancelMatch[1]);
+      if(!row)return fail(404,"الطلب غير موجود");
+      if(row.user_id!==user.id)return fail(403,"لا يمكنك إلغاء طلب غيرك");
+      if(row.status!=="pending")return fail(409,"لا يمكن إلغاء طلب تمت مراجعته بالفعل");
+      await env.DB.prepare("UPDATE join_requests SET status='cancelled' WHERE id=? AND status='pending'").bind(row.id).run();
+      await log(env,user.id,"join_request_cancel",{request_id:row.id});
+      return json({ok:true});
+    }
+    if(path==="/api/join/requests"&&method==="GET"){
+      if(!["admin","director","teacher"].includes(user.role))return fail(403,"مراجعة طلبات الانضمام متاحة للشيخ أو المسؤول المخوّل فقط");
+      const status=clean(url.searchParams.get("status"),20)||"pending";
+      if(!JOIN_STATUSES.includes(status))return fail(400,"حالة غير صحيحة");
+      let sql=JOIN_SELECT+" WHERE jr.status=?",binds=[status];
+      if(user.role==="director"){
+        const ids=Array.isArray(user.school_ids)?[...new Set(user.school_ids.filter(Boolean))]:[];
+        const teacherMarks="?";
+        if(ids.length){
+          const marks=ids.map(()=>"?").join(",");
+          sql+=" AND (jr.kind='teacher_request' OR jr.school_id IN ("+marks+"))";
+          binds.push(...ids);
+        } else {
+          sql+=" AND jr.kind='teacher_request'";
+        }
+      } else if(user.role==="teacher"){
+        sql+=" AND jr.kind='school_join' AND EXISTS (SELECT 1 FROM groups g WHERE g.school_id=jr.school_id AND g.teacher_id=? AND g.active=1)";
+        binds.push(user.id);
+      }
+      sql+=" ORDER BY jr.created_at ASC LIMIT 100";
+      const rows=await env.DB.prepare(sql).bind(...binds).all();
+      return json((rows.results||[]).map(joinRequestJson));
+    }
+    // مجموعات يمكن الاعتماد عليها عند قبول طلب انضمام مدرسة: نشطة وضمن نفس المدرسة
+    if(path==="/api/join/assignable-groups"&&method==="GET"){
+      if(!["admin","director","teacher"].includes(user.role))return fail(403,"غير مسموح");
+      const schoolId=clean(url.searchParams.get("school_id"),80);
+      if(!schoolId)return fail(400,"حدد المدرسة");
+      if(user.role==="director"&&!(Array.isArray(user.school_ids)&&user.school_ids.includes(schoolId)))return fail(403,"هذه المدرسة خارج نطاقك");
+      if(user.role==="teacher"&&!await teacherTeachesSchool(env,user.id,schoolId))return fail(403,"هذه المدرسة خارج نطاقك");
+      const rows=await env.DB.prepare("SELECT id,name,school_id,teacher_id FROM groups WHERE active=1 AND school_id=? ORDER BY name").bind(schoolId).all();
+      return json(rows.results||[]);
+    }
+    const joinDecisionMatch=path.match(/^\/api\/join\/requests\/([^/]+)\/decision$/);
+    if(joinDecisionMatch&&method==="POST"){
+      if(!["admin","director","teacher"].includes(user.role))return fail(403,"اعتماد طلبات الانضمام متاح للمسؤول المخوّل فقط");
+      const row=await joinRequestById(env,joinDecisionMatch[1]);
+      if(!row)return fail(404,"الطلب غير موجود");
+      if(row.status!=="pending")return json({ok:true,request:joinRequestJson(row),already:true});
+      if(!await canDecideJoinRequest(env,user,row))return fail(403,"هذا الطلب خارج صلاحيتك");
+      const parsed=await parseBody(request); if(parsed.error)return parsed.error; const b=parsed.value;
+      const decision=clean(b.decision,20),decisionNote=clean(b.decision_note,500),groupId=clean(b.group_id,80);
+      if(!["approved","rejected"].includes(decision))return fail(400,"القرار يجب أن يكون approved أو rejected");
+      if(decision==="approved"){
+        if(row.kind==="school_join"){
+          if(!groupId)return fail(400,"اختر الفوج الذي سيُسند إليه الطالب قبل الاعتماد");
+          const group=await groupRow(env,groupId);
+          if(!group||group.active!==1)return fail(400,"الفوج غير موجود أو غير نشط");
+          if(row.school_id&&group.school_id!==row.school_id)return fail(400,"الفوج المختار لا يتبع المدرسة المطلوبة في الطلب");
+          if(!row.school_id)row.school_id=group.school_id||null;
+          const existingStudent=await env.DB.prepare("SELECT id FROM students WHERE user_id=? LIMIT 1").bind(row.user_id).first();
+          if(existingStudent)await env.DB.prepare("UPDATE students SET group_id=?,active=1 WHERE id=?").bind(groupId,existingStudent.id).run();
+          else await env.DB.prepare("INSERT INTO students (id,user_id,display_name,group_id,active) VALUES (?,?,?,?,1)").bind(uuid(),row.user_id,row.user_name||"طالب",groupId).run();
+          await env.DB.prepare("UPDATE users SET role='student' WHERE id=? AND role='visitor'").bind(row.user_id).run();
+          await env.DB.prepare("UPDATE join_requests SET status='approved',decided_by=?,decided_at=?,decision_note=?,group_id=?,school_id=? WHERE id=? AND status='pending'").bind(user.id,nowIso(),decisionNote,groupId,row.school_id||null,row.id).run();
+        } else { // teacher_request — الضمان الوحيد للدور هو هذا القرار بمسؤول مخوّل
+          await env.DB.prepare("UPDATE users SET role='teacher' WHERE id=? AND role IN ('visitor','student')").bind(row.user_id).run();
+          await env.DB.prepare("UPDATE join_requests SET status='approved',decided_by=?,decided_at=?,decision_note=? WHERE id=? AND status='pending'").bind(user.id,nowIso(),decisionNote,row.id).run();
+        }
+      } else {
+        await env.DB.prepare("UPDATE join_requests SET status='rejected',decided_by=?,decided_at=?,decision_note=? WHERE id=? AND status='pending'").bind(user.id,nowIso(),decisionNote,row.id).run();
+      }
+      await log(env,user.id,"join_request_decision",{request_id:row.id,kind:row.kind,decision,group_id:groupId||null});
+      const updated=await joinRequestById(env,row.id);
+      return json({ok:true,request:joinRequestJson(updated)});
+    }
     if(path==="/api/dashboard"&&method==="GET"){
       const isAdmin=user.role==="admin";
       const staffRoles=["admin","teacher","director","supervisor"];
@@ -3940,7 +4133,9 @@ export default {
         .bind(id,resolved.student.id,day,kind,amount,unit,repetitions,linkedScope,notes,user.id).run();
       await log(env,user.id,"quran_daily_save",{student_id:resolved.student.id,day,kind,amount});
       const entry=await env.DB.prepare("SELECT * FROM quran_daily WHERE id=?").bind(id).first();
-      return json({ok:true,entry},201);
+      const activityReason=kind==="hifz"?"حفظ قرآني (الحفظ الجديد)":kind==="thabit"?"تثبيت محفوظ":"ورد يومي";
+      const awards=await awardPointsForEvent(env,{studentId:resolved.student.id,groupId:resolved.student.group_id,eventType:kind==="ward"?"quran_reading":"quran_entry",eventKey:"quran_daily:"+id,date:day,reason:activityReason,sourceCollection:"quran_daily",sourceId:id,awardedBy:user.id});
+      return json({ok:true,entry,awards,totals:await pointsTotals(env,resolved.student.id)},201);
     }
     if(path==="/api/quran/companion"&&method==="GET"){
       const resolved=await resolveQuranStudent(env,user,url.searchParams.get("student_id"));
@@ -4207,6 +4402,25 @@ export default {
     // -----------------------------------------------------------------------
     // الاقتصاد التعليمي: النقاط والمتجر
     // -----------------------------------------------------------------------
+    if(path==="/api/points/activity"&&method==="POST"){
+      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"منح النقاط للأنشطة للمعلّم أو المشرف أو المدير فقط");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      const activity=clean(b.activity,20);
+      const ACTIVITY_MAP={attendance:{eventType:"attendance_present",reason:"حضور (يدوي)"},hifz:{eventType:"quran_entry",reason:"حفظ قرآني (الحفظ الجديد)"},revision:{eventType:"quran_entry",reason:"مراجعة محفوظ"},thabit:{eventType:"quran_entry",reason:"تثبيت محفوظ"},ward:{eventType:"quran_reading",reason:"ورد يومي"}};
+      const map=ACTIVITY_MAP[activity];
+      if(!map)return fail(400,"نوع النشاط غير صحيح؛ الأنواع: حضور، حفظ، مراجعة، تثبيت، ورد");
+      const resolved=await resolvePointStudent(env,user,clean(b.student_id,80));
+      if(resolved.error)return resolved.error;
+      const s=resolved.row;
+      const date=quranDateISO(b.date)||academyDate();
+      if(date>academyDate())return fail(400,"لا يمكن منح نقاط ليوم مستقبلي");
+      if(date<addCalendarDays(academyDate(),-30))return fail(400,"لا يمكن منح نقاط لأكثر من 30 يومًا مضت");
+      const note=clean(b.note,200);
+      const eventKey=activity==="attendance"?"attendance:"+date+":"+s.id:"manual:"+activity+":"+date+":"+s.id;
+      const awards=await awardPointsForEvent(env,{studentId:s.id,groupId:s.group_id,eventType:map.eventType,eventKey,date,reason:map.reason+(note?" — "+note:""),sourceCollection:"points_activity",sourceId:eventKey,awardedBy:user.id});
+      await log(env,user.id,"points_activity_award",{student_id:s.id,activity,date,awards:awards.map(a=>a.status+":"+a.kind)});
+      return json({ok:true,activity,date,awards,totals:await pointsTotals(env,s.id)},201);
+    }
     if(path==="/api/points/summary"&&method==="GET"){
       const resolved=await resolvePointStudent(env,user,clean(url.searchParams.get("student_id"),80));
       if(resolved.error)return resolved.error;

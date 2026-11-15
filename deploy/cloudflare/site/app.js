@@ -1,4 +1,4 @@
-/* Arabic anti-self-XSS notice for the academy's own developer console. */
+﻿/* Arabic anti-self-XSS notice for the academy's own developer console. */
 console.warn("تنبيه أمني من أكاديمية الإحسان:\nقد يتيح استخدام وحدة التحكم (Console) للمهاجمين انتحال هويتك وسرقة معلوماتك عبر هجوم يُعرف باسم Self-XSS.\nلا تُدخل أو تلصق أي شيفرة لا تفهمها، ولا تنفّذ تعليمات يرسلها إليك مجهول.");
 let ihsanInstallPrompt=null;
 let ihsanGoogleNonce="";
@@ -47,7 +47,7 @@ async function initGoogleSignIn(){
    try{
     const remember=$("#auth-form input[name=remember]")?.checked===true;
     const data=await api("/auth/google",{method:"POST",body:JSON.stringify({credential:res.credential,nonce:ihsanGoogleNonce,remember})});
-    S.token="";clearSessionToken();S.user=data.user;safeStore.set("ihsan_last_identity",String(data.user?.email||""));if(S.user?.must_change_password){renderTopActions();showPasswordChange(true)}else{await start()}
+    S.token="";clearSessionToken();S.user=data.user;S.user=await api("/me");if(S.user?.must_change_password){renderTopActions();showPasswordChange(true)}else{await start()}
    }catch(err){setNote(err.message||"تعذر الدخول باستخدام Google.",true);if(error){error.textContent=err.message||"تعذر الدخول باستخدام Google.";error.classList.remove("hidden")}if(submit)submit.disabled=false}
   }});
   host.innerHTML="";window.google.accounts.id.renderButton(host,{type:"standard",theme:"outline",size:"large",shape:"rectangular",text:"signin_with",locale:"ar",width:320});
@@ -502,7 +502,7 @@ function showPasswordChange(forced=false){
  $("#force-logout")?.addEventListener("click",async()=>{closeDialog();await logout()});
  dialog.addEventListener("cancel",e=>{if(forced)e.preventDefault()});
  dialog.addEventListener("click",e=>{if(e.target===dialog&&!forced)closeDialog()});
- form.onsubmit=async e=>{e.preventDefault();const f=new FormData(form),error=$("#password-error"),button=form.querySelector('button[type="submit"]');error.classList.add("hidden");if(String(f.get("new_password")||"").length<10){error.textContent="كلمة المرور الجديدة يجب أن تكون 10 أحرف على الأقل.";error.classList.remove("hidden");return}if(f.get("new_password")!==f.get("confirm_password")){error.textContent="كلمتا المرور الجديدتان غير متطابقتين.";error.classList.remove("hidden");return}button.disabled=true;try{await api("/me/password",{method:"POST",body:JSON.stringify({current_password:f.get("current_password"),new_password:f.get("new_password")})});S.user=await api("/me");if("PasswordCredential" in window&&navigator.credentials&&navigator.credentials.store&&S.user?.email){try{await navigator.credentials.store(new PasswordCredential({id:String(S.user.email),password:String(f.get("new_password")),name:S.user?.name||String(S.user.email)}))}catch{}}toast("تم تغيير كلمة المرور");dialog.close();dialog.remove();if(forced)await start()}catch(x){error.textContent=x.message;error.classList.remove("hidden")}finally{if(button.isConnected)button.disabled=false}}
+ form.onsubmit=async e=>{e.preventDefault();const f=new FormData(form),error=$("#password-error"),button=form.querySelector('button[type="submit"]');error.classList.add("hidden");if(String(f.get("new_password")||"").length<10){error.textContent="كلمة المرور الجديدة يجب أن تكون 10 أحرف على الأقل.";error.classList.remove("hidden");return}if(f.get("new_password")!==f.get("confirm_password")){error.textContent="كلمتا المرور الجديدتان غير متطابقتين.";error.classList.remove("hidden");return}button.disabled=true;try{await api("/me/password",{method:"POST",body:JSON.stringify({current_password:f.get("current_password"),new_password:f.get("new_password")})});S.user=await api("/me");toast("تم تغيير كلمة المرور");dialog.close();dialog.remove();if(forced)await start()}catch(x){error.textContent=x.message;error.classList.remove("hidden")}finally{if(button.isConnected)button.disabled=false}}
  if(typeof dialog.showModal==="function")dialog.showModal();else dialog.setAttribute("open","");
 }
 
@@ -523,13 +523,44 @@ const authBenefits=[
 
 
 const scanNotice=(()=>{try{const text=safeStore.getSession("ihsan_scan_notice");if(text)safeStore.removeSession("ihsan_scan_notice");return String(text||"")}catch{return ""}})();
-app.innerHTML='<div class="auth-layout"><section class="welcome"><div><span class="eyebrow">بِسْمِ اللهِ الرَّحْمَنِ الرَّحِيمِ</span><h1>أكاديمية الإحسان في بناء الإنسان</h1><p class="welcome-description">مساحة علمية تجمع معرفة الله تعالى، وسيرة الرسول ﷺ، والقرآن والسنة، والأدب والعمل الصالح.</p></div><div class="welcome-bottom"><div class="verse knowledge-verse" id="knowledge-verse" dir="rtl" aria-live="polite" aria-atomic="true"><span class="knowledge-verse-text"></span><small class="knowledge-verse-source"></small></div><button type="button" class="btn academy-about-welcome" id="about-open-welcome">التعريف بالأكاديمية</button></div></section><section class="panel stack">'+(setup?'<div class="notice">أول دخول: أنشئ حساب المدير مرة واحدة.</div>':'')+'<div><h2>'+(setup?"إعداد الأكاديمية":"تسجيل الدخول")+'</h2><p class="muted small">'+(setup?"احتفظ برمز الإعداد لنفسك فقط.":"")+'</p></div>'+(scanNotice?'<div class="notice scan-notice" role="status">'+esc(scanNotice)+'</div>':"")+'<form id="auth-form" class="stack">'+(setup?'<label class="field">رمز الإعداد<input name="code" type="password" required autocomplete="off"></label><label class="field">الاسم الكامل<input name="name" required maxlength="120"></label><label class="field">البريد الإلكتروني<input name="email" type="email" required></label><label class="field">كلمة مرور المدير (14 حرفًا على الأقل)<input name="password" type="password" minlength="14" required autocomplete="new-password"></label>':'<label class="field">الاسم واللقب<input name="username" id="login-identity" type="text" value="'+esc(safeStore.get("ihsan_last_identity"))+'" required autocomplete="username"></label><label class="field">كلمة المرور<span class="password-input-wrap"><input name="password" id="login-password" type="password" required autocomplete="current-password"><button type="button" class="password-visibility" id="toggle-login-password" aria-label="إظهار كلمة المرور" aria-pressed="false">إظهار</button></span></label><label class="remember-option"><input name="remember" type="checkbox" checked> تذكّر دخولي على هذا الجهاز لمدة تصل إلى 30 يومًا. أزل العلامة على الجهاز المشترك.</label>')+'<div id="auth-error" class="notice error hidden"></div><button class="btn" type="submit">'+(setup?"إنشاء حساب المدير":"تسجيل الدخول")+'</button></form>'+(!setup?'<div class="login-divider"><span>أو</span></div><section class="google-login-section" aria-label="تسجيل الدخول باستخدام Google"><div id="google-signin"></div><p id="google-login-note" class="muted small">جارٍ التحقق من إعدادات الدخول بجوجل…</p></section>':'')+'</section></div>';
+const authTabs=setup?'':'<div class="auth-tabs" role="tablist" aria-label="تسجيل الدخول أو إنشاء حساب"><button type="button" class="auth-tab is-active" id="tab-login" role="tab" aria-selected="true">تسجيل الدخول</button><button type="button" class="auth-tab" id="tab-signup" role="tab" aria-selected="false">إنشاء حساب</button></div>';
+const loginPane='<div id="login-pane" role="tabpanel">'+'<form id="auth-form" class="stack" autocomplete="off">'+(setup?'<label class="field">رمز الإعداد<input name="code" type="password" required autocomplete="off"></label><label class="field">الاسم الكامل<input name="name" required maxlength="120"></label><label class="field">البريد الإلكتروني<input name="email" type="email" required></label><label class="field">كلمة مرور المدير (14 حرفًا على الأقل)<input name="password" type="password" minlength="14" required autocomplete="new-password"></label>':'<label class="field">الاسم واللقب أو البريد الإلكتروني<input name="username" id="login-identity" type="text" required autocomplete="off" spellcheck="false" autocapitalize="off"></label><label class="field">كلمة المرور<span class="password-input-wrap"><input name="password" id="login-password" type="password" required autocomplete="off"><button type="button" class="password-visibility" id="toggle-login-password" aria-label="إظهار كلمة المرور" aria-pressed="false">إظهار</button></span></label>')+'<div id="auth-error" class="notice error hidden"></div><button class="btn" type="submit">'+(setup?"إنشاء حساب المدير":"تسجيل الدخول")+'</button></form>'+(!setup?'<div class="login-divider"><span>أو</span></div><section class="google-login-section" aria-label="تسجيل الدخول باستخدام Google"><div id="google-signin"></div><p id="google-login-note" class="muted small">جارٍ التحقق من إعدادات الدخول بجوجل…</p></section><p class="muted small auth-taysir-link">تريد التعرّف على الأكاديمية قبل التسجيل؟ <a href="'+esc(TAYSIR_URL)+'" rel="noopener" target="_blank">بوابة التيسير</a> متاحة للجميع دون حساب.</p>':'')+'</div>';
+const signupPane=setup?'':'<div id="signup-pane" role="tabpanel" hidden><form id="signup-form" class="stack" autocomplete="off">'
+ +'<div class="signup-kind" role="radiogroup" aria-label="نوع الحساب">'
+ +'<label class="signup-kind-option"><input type="radio" name="kind" value="student" checked><span class="signup-kind-card"><strong>طالب</strong><small>أنشئ حسابك ثم اطلب الانضمام إلى المدرسة؛ يبقى طلبك قيد الاعتماد حتى يوافق الشيخ أو الإدارة</small></span></label>'
+ +'<label class="signup-kind-option"><input type="radio" name="kind" value="visitor"><span class="signup-kind-card"><strong>زائر / محسن</strong><small>تعرّف على الأكاديمية وساهم في دعمها دون الوصول إلى بيانات الطلاب</small></span></label>'
+ +'<label class="signup-kind-option"><input type="radio" name="kind" value="teacher"><span class="signup-kind-card"><strong>شيخ / معلم</strong><small>طلب الانضمام بصفة شيخ أو معلم؛ لا تُفعّل الصلاحية إلا باعتماد الإدارة</small></span></label>'
+ +'</div>'
+ +'<label class="field">الاسم الكامل<input name="name" required maxlength="120" autocomplete="off"></label>'
+ +'<label class="field">البريد الإلكتروني<input name="email" type="email" required maxlength="200" autocomplete="off" spellcheck="false" autocapitalize="off"></label>'
+ +'<label class="field">كلمة المرور (10 أحرف على الأقل)<input name="password" type="password" minlength="10" maxlength="256" required autocomplete="new-password"></label>'
+ +'<label class="field" id="signup-school-field">المدرسة التي تريد الانضمام إليها<select id="signup-school" name="school_id"><option value="">جار تحميل المدارس…</option></select><small class="muted">يُسند طلبك إلى هذه المدرسة ويبقى قيد الاعتماد حتى يوافق الشيخ أو الإدارة.</small></label>'
+ +'<label class="field" id="signup-note-field">ملاحظة للإدارة (اختياري)<input name="note" maxlength="500" placeholder="مثال: أحفظ عدة أجزاء من القرآن"></label>'
+ +'<div id="signup-error" class="notice error hidden"></div>'
+ +'<button class="btn" type="submit">إنشاء الحساب</button>'
+ +'</form>'
+ +'<p class="muted small signup-assurance">إنشاء الحساب لا يمنحك أي صلاحيات خاصة: طالب ← يُسند إلى فوج بعد اعتماد طلبك من الشيخ أو الإدارة · شيخ/معلم ← تُفعّل الصلاحية باعتماد الإدارة فقط · زائر/محسن ← تتعرف على الأكاديمية وتساهم دون الوصول إلى بيانات الطلاب.</p></div>';
+app.innerHTML='<div class="auth-layout"><section class="welcome"><div><span class="eyebrow">بِسْمِ اللهِ الرَّحْمَنِ الرَّحِيمِ</span><h1>أكاديمية الإحسان في بناء الإنسان</h1><p class="welcome-description">مساحة علمية تجمع معرفة الله تعالى، وسيرة الرسول ﷺ، والقرآن والسنة، والأدب والعمل الصالح.</p></div><div class="welcome-bottom"><div class="verse knowledge-verse" id="knowledge-verse" dir="rtl" aria-live="polite" aria-atomic="true"><span class="knowledge-verse-text"></span><small class="knowledge-verse-source"></small></div><button type="button" class="btn academy-about-welcome" id="about-open-welcome">التعريف بالأكاديمية</button></div></section><section class="panel stack">'+(setup?'<div class="notice">أول دخول: أنشئ حساب المدير مرة واحدة.</div>':'')+'<div><h2 id="auth-title">'+(setup?"إعداد الأكاديمية":"تسجيل الدخول")+'</h2><p class="muted small">'+(setup?"احتفظ برمز الإعداد لنفسك فقط.":"خاص بالمسجلين المعتمدين؛ المنصة العامة للتعريف «بوابة التيسير» متاحة عبر الرابط أدناه.")+'</p></div>'+(scanNotice?'<div class="notice scan-notice" role="status">'+esc(scanNotice)+'</div>':"")+authTabs+loginPane+signupPane+'</section></div>';
 $("#toggle-login-password")?.addEventListener("click",()=>{const input=$("#login-password"),button=$("#toggle-login-password");if(!input||!button)return;const reveal=input.type==="password";input.type=reveal?"text":"password";button.textContent=reveal?"إخفاء":"إظهار";button.setAttribute("aria-label",reveal?"إخفاء كلمة المرور":"إظهار كلمة المرور");button.setAttribute("aria-pressed",String(reveal));input.focus()});
- $("#auth-form").setAttribute("autocomplete","on");
- $("#auth-form").onsubmit=async e=>{e.preventDefault();const f=new FormData(e.currentTarget),b=e.currentTarget.querySelector("button"),err=$("#auth-error");b.disabled=true;err.classList.add("hidden");try{if(setup){await api("/admin/bootstrap",{method:"POST",headers:{"x-bootstrap-secret":String(f.get("code"))},body:JSON.stringify({name:f.get("name"),email:f.get("email"),password:f.get("password")})});toast("تم إنشاء المدير. سجّل الدخول.");auth(false)}else{const d=await api("/login",{method:"POST",body:JSON.stringify({identity:f.get("username"),password:f.get("password"),remember:f.get("remember")==="on"})});S.token="";clearSessionToken();S.user=d.user;safeStore.set("ihsan_last_identity",String(f.get("username")||""));if(S.user?.must_change_password){renderTopActions();showPasswordChange(true)}else{if("PasswordCredential" in window&&navigator.credentials&&navigator.credentials.store){try{await navigator.credentials.store(new PasswordCredential({id:String(f.get("username")),password:String(f.get("password")),name:d.user?.name||String(f.get("username"))}))}catch{}}await start()}}}catch(x){err.textContent=x.message;err.classList.remove("hidden")}finally{b.disabled=false}}
+ // لا تُحفظ هوية الدخول ولا كلمة المرور على هذا الجهاز؛ يعيد المستخدم إدخالها عند كل عودة.
+ $("#auth-form").setAttribute("autocomplete","off");
+ $("#auth-form").onsubmit=async e=>{e.preventDefault();const f=new FormData(e.currentTarget),b=e.currentTarget.querySelector("button"),err=$("#auth-error");b.disabled=true;err.classList.add("hidden");try{if(setup){await api("/admin/bootstrap",{method:"POST",headers:{"x-bootstrap-secret":String(f.get("code"))},body:JSON.stringify({name:f.get("name"),email:f.get("email"),password:f.get("password")})});toast("تم إنشاء المدير. سجّل الدخول.");auth(false)}else{const d=await api("/login",{method:"POST",body:JSON.stringify({identity:f.get("username"),password:f.get("password"),remember:f.get("remember")==="on"})});S.token="";clearSessionToken();S.user=d.user;if(S.user?.must_change_password){renderTopActions();showPasswordChange(true)}else{await start()}}}catch(x){err.textContent=x.message;err.classList.remove("hidden")}finally{b.disabled=false}}
+ if(!setup){
+  let signupSchoolsPromise=null;
+  const loadSchools=()=>{if(!signupSchoolsPromise){signupSchoolsPromise=api("/public/signup-options").then(d=>{const select=$("#signup-school");if(!select)return d;const schools=(d&&d.schools)||[];select.innerHTML=schools.length?'<option value="">اختر المدرسة…</option>'+schools.map(s=>'<option value="'+esc(s.id)+'">'+esc(s.name)+'</option>').join(""):'<option value="">لا توجد مدارس نشطة حاليًا</option>';return d}).catch(error=>{signupSchoolsPromise=null;const select=$("#signup-school");if(select)select.innerHTML='<option value="">تعذر تحميل المدارس — أعد فتح التبويب للمحاولة</option>';throw error})}return signupSchoolsPromise};
+  const syncSignupKind=()=>{const kind=($('#signup-form input[name="kind"]:checked')||{}).value||"student";$("#signup-school-field")?.classList.toggle("hidden",kind!=="student");const noteField=$("#signup-note-field");if(noteField)noteField.querySelector("input").placeholder=kind==="teacher"?"مثال: حافظ لكتاب الله وخبرة في تدريس الصغار":kind==="visitor"?"مثال: متبرع يريد المساهمة في دعم المدرسة":"مثال: أحفظ عدة أجزاء من القرآن";if(kind==="student")loadSchools().catch(()=>{})};
+  const setAuthTab=tab=>{const isSignup=tab==="signup";$("#login-pane")&&($("#login-pane").hidden=isSignup);$("#signup-pane")&&($("#signup-pane").hidden=!isSignup);$("#tab-login")?.classList.toggle("is-active",!isSignup);$("#tab-signup")?.classList.toggle("is-active",isSignup);$("#tab-login")?.setAttribute("aria-selected",String(!isSignup));$("#tab-signup")?.setAttribute("aria-selected",String(isSignup));$("#auth-title")&&($("#auth-title").textContent=isSignup?"إنشاء حساب جديد":"تسجيل الدخول");if(isSignup)syncSignupKind()};
+  $("#tab-login")?.addEventListener("click",()=>setAuthTab("login"));
+  $("#tab-signup")?.addEventListener("click",()=>setAuthTab("signup"));
+  document.querySelectorAll('#signup-form input[name="kind"]').forEach(radio=>radio.addEventListener("change",syncSignupKind));
+  const signupForm=$("#signup-form");
+  if(signupForm)signupForm.onsubmit=async e=>{e.preventDefault();const f=new FormData(e.currentTarget),b=e.currentTarget.querySelector("button[type=submit]"),err=$("#signup-error");b.disabled=true;err.classList.add("hidden");const kind=String(f.get("kind")||"student");try{const d=await api("/signup",{method:"POST",body:JSON.stringify({name:f.get("name"),email:f.get("email"),password:f.get("password"),kind,school_id:kind==="student"?String(f.get("school_id")||""):"",note:f.get("note")||""})});S.token="";clearSessionToken();S.user=d.user;toast(d.join_note||"تم إنشاء حسابك");renderTopActions();await start()}catch(x){err.textContent=x.message;err.classList.remove("hidden");b.disabled=false}};
+  try{const match=/#signup=(student|visitor|teacher)/.exec(location.hash||"");if(match){const wanted=match[1];const radio=document.querySelector('#signup-form input[name="kind"][value="'+wanted+'"]');if(radio){radio.checked=true;setAuthTab("signup")}}}catch{}
+ }
  rotateKnowledgeVerses();
  $("#about-open-welcome")?.addEventListener("click",showAcademyAbout);
  if(!setup)initGoogleSignIn();
+ $("#show-signup")?.addEventListener("click", showSignup);
 }
 function isOfflineNetworkError(error){
  const message=String(error?.message||error||"");
@@ -556,7 +587,7 @@ async function boot(){
    S.token="";clearSessionToken();
    const pending=pendingScan();
    if(pending&&pending.kind==="login"){
-    try{const r=await api("/cards/resolve",{method:"POST",body:JSON.stringify({kind:"login",card_id:pending.cardId,secret:pending.secret})});if(r.student?.username)safeStore.set("ihsan_last_identity",r.student.username);safeStore.setSession("ihsan_scan_notice","بطاقة "+String(r.student?.name||"الطالب")+" — أدخل كلمة المرور للمتابعة.")}catch{}
+    try{const r=await api("/cards/resolve",{method:"POST",body:JSON.stringify({kind:"login",card_id:pending.cardId,secret:pending.secret})});safeStore.setSession("ihsan_scan_notice","بطاقة "+String(r.student?.name||"الطالب")+" — أدخل كلمة المرور للمتابعة.")}catch{}
     clearPendingScan();
    }
    auth(st.needs_admin&&st.setup_enabled)
@@ -569,6 +600,7 @@ async function boot(){
 }
 
 async function logout(){
+try{window.IhsanScanner&&window.IhsanScanner.stop()}catch{}
 const prayers=[
 {title:"وداع اليوم بدعاء من القرآن",text:"رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ",source:"سورة البقرة، الآية 201"},
 {title:"دعاء قرآني للثبات",text:"رَبَّنَا لَا تُزِغْ قُلُوبَنَا بَعْدَ إِذْ هَدَيْتَنَا وَهَبْ لَنَا مِنْ لَدُنْكَ رَحْمَةً إِنَّكَ أَنْتَ الْوَهَّابُ",source:"سورة آل عمران، الآية 8"},
@@ -587,20 +619,24 @@ function items(){
  const staff=["admin","director","teacher","supervisor"].includes(S.user.role);
  if(S.user.role==="admin"){
   const full=adminFocusIsFull();
-  const daily=[["home","الرئيسية"],["students","الطلاب"],["cards","بطاقات الطلاب"],["teams","الفرق"],["effort-ranking","الترتيب الأسبوعي/الشهري"],["points","النقاط والمتجر"],["notifications","التنبيهات"],["messages","الرسائل"]];
+  const daily=[["home","الرئيسية"],["students","الطلاب"],["cards","بطاقات الطلاب"],["scan","المسح والمتابعة", "join-requests","طلبات الانضمام"],["join-requests","طلبات الانضمام"],["teams","الفرق"],["effort-ranking","الترتيب الأسبوعي/الشهري"],["points","النقاط والمتجر"],["notifications","التنبيهات"],["messages","الرسائل"]];
   if(!full)return daily;
-  return [["home","الرئيسية"],["groups","الأفواج"],["students","الطلاب"],["cards","بطاقات الطلاب"],["teams","الفرق"],["effort-ranking","الترتيب الأسبوعي/الشهري"],["points","النقاط والمتجر"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"],["hadith","الحديث والمتون"],["competitions","المسابقات"],["system-check","فحص النظام"],["hierarchy","التسلسل الإداري"],["roadmap","خريطة الإنجاز"]];
+  return [["home","الرئيسية"],["groups","الأفواج"],["students","الطلاب"],["cards","بطاقات الطلاب"],["scan","المسح والمتابعة", "join-requests","طلبات الانضمام"],["join-requests","طلبات الانضمام"],["teams","الفرق"],["effort-ranking","الترتيب الأسبوعي/الشهري"],["points","النقاط والمتجر"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"],["hadith","الحديث والمتون"],["competitions","المسابقات"],["system-check","فحص النظام"],["hierarchy","التسلسل الإداري"],["roadmap","خريطة الإنجاز"]];
  }
- if(S.user.role==="director")return [["home","الرئيسية"],["groups","الأفواج والمعلمون والفرق"],["students","طلاب المدرسة"],["cards","بطاقات الطلاب"],["roster-bulk","إضافة أسماء الطلبة"],["attendance","الحضور"],["quran","الحفظ والمراجعة"],["effort-ranking","الترتيب الأسبوعي/الشهري"],["points","النقاط والمتجر"],["effort","تسجيل المتابعة اليومية"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"],["hadith","الحديث والمتون"],["competitions","المسابقات"]];
- if(S.user.role==="supervisor")return [["home","الرئيسية"],["students","طلاب فريقي"],["cards","بطاقات الطلاب"],["teams","فرقي الطلابية"],["attendance","الحضور"],["quran","متابعة الحفظ والمراجعة"],["effort-ranking","الترتيب الأسبوعي/الشهري"],["points","النقاط والمتجر"],["effort","تسجيل المتابعة اليومية"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"],["hadith","الحديث والمتون"],["competitions","المسابقات"]];
- if(S.user.role==="teacher")return [["home","الرئيسية"],["students","طلبتي"],["cards","بطاقات الطلاب"],["roster-bulk","إضافة أسماء الطلبة"],["groups","أفواجي"],["teams","فرقي الطلابية"],["attendance","الحضور"],["quran","متابعة الحفظ والمراجعة"],["effort-ranking","الترتيب الأسبوعي/الشهري"],["points","النقاط والمتجر"],["effort","تسجيل المتابعة اليومية"],["reports","التقارير"],["sheikh-check","فحص واجهة الشيخ"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"],["hadith","الحديث والمتون"],["competitions","المسابقات"]];
+ if(S.user.role==="director")return [["home","الرئيسية"],["groups","الأفواج والمعلمون والفرق"],["students","طلاب المدرسة"],["cards","بطاقات الطلاب"],["scan","المسح والمتابعة", "join-requests","طلبات الانضمام"],["join-requests","طلبات الانضمام"],["roster-bulk","إضافة أسماء الطلبة"],["attendance","الحضور"],["quran","الحفظ والمراجعة"],["effort-ranking","الترتيب الأسبوعي/الشهري"],["points","النقاط والمتجر"],["effort","تسجيل المتابعة اليومية"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"],["hadith","الحديث والمتون"],["competitions","المسابقات"]];
+ if(S.user.role==="supervisor")return [["home","الرئيسية"],["students","طلاب فريقي"],["cards","بطاقات الطلاب"],["scan","المسح والمتابعة", "join-requests","طلبات الانضمام"],["teams","فرقي الطلابية"],["attendance","الحضور"],["quran","متابعة الحفظ والمراجعة"],["effort-ranking","الترتيب الأسبوعي/الشهري"],["points","النقاط والمتجر"],["effort","تسجيل المتابعة اليومية"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"],["hadith","الحديث والمتون"],["competitions","المسابقات"]];
+ if(S.user.role==="teacher")return [["home","الرئيسية"],["students","طلبتي"],["cards","بطاقات الطلاب"],["scan","المسح والمتابعة", "join-requests","طلبات الانضمام"],["join-requests","طلبات الانضمام"],["roster-bulk","إضافة أسماء الطلبة"],["groups","أفواجي"],["teams","فرقي الطلابية"],["attendance","الحضور"],["quran","متابعة الحفظ والمراجعة"],["effort-ranking","الترتيب الأسبوعي/الشهري"],["points","النقاط والمتجر"],["effort","تسجيل المتابعة اليومية"],["reports","التقارير"],["sheikh-check","فحص واجهة الشيخ"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"],["hadith","الحديث والمتون"],["competitions","المسابقات"]];
+ if(S.user.role==="visitor")return [["home","الرئيسية"]];
+ if(S.user.role==="student"&&!S.user.group_id)return [["home","الرئيسية"]];
  return [["world","عالمي"],["home","الرئيسية"],["profile","ملفي"],["tasks","مهامي"],["quran","تقدمي في القرآن"],["card","بطاقتي"],["points","النقاط والمتجر"],["leaderboard","الترتيب العام"],["guide","دليل الرحلة"],["teams","فرقتي وطلبات النقل"],["hadith","الحديث والمتون"],["competitions","المسابقات"],["assignments","واجباتي"],["gradebook","تقدمي ودرجاتي"],["attendance","حضوري"],["tests","اختباراتي"],["notifications","التنبيهات"],["messages","الرسائل"]];
 }
 
 
 
 function honorificDisplayName(name,role){const clean=String(name||"").replace(/^فضيلة الشيخ[،\s]*/,"").replace(/[،]?\s*حفظه الله ونفع به$/,"").trim();if(["admin","director","teacher"].includes(role))return "فضيلة الشيخ "+clean+"، حفظه الله ونفع به";return clean||"مستخدم"}
-const ROLE_LABELS={admin:"فضيلة الشيخ · مدير الأكاديمية",director:"فضيلة الشيخ · مدير المدرسة",teacher:"فضيلة الشيخ",supervisor:"مشرف الفرقة الطلابية",student:"الطالب"};
+const ROLE_LABELS={admin:"فضيلة الشيخ · مدير الأكاديمية",director:"فضيلة الشيخ · مدير المدرسة",teacher:"فضيلة الشيخ",supervisor:"مشرف الفرقة الطلابية",student:"الطالب",visitor:"زائر / محسن"};
+// بوابة التيسير العامة (خارج الأكاديمية) — حدّث الرابط إذا نُشرت التيسير على نطاق آخر.
+const TAYSIR_URL="https://a-taysir.pages.dev";
 const IHSAN_PREVIEW_ONLY=true;
 const IHSAN_PREVIEW_SECTIONS=[
  {id:"allah",title:"معرفة الله تعالى"},
@@ -640,7 +676,9 @@ const NAV_ICON_PATHS={
  card:'<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 10h18"/><path d="M7 15h4"/>',
  guide:'<circle cx="12" cy="12" r="9"/><path d="m15.5 8.5-2 5-5 2 2-5z"/>',
  hadith:'<path d="M4 4.5A2.5 2.5 0 0 1 6.5 2H20v18H6.5A2.5 2.5 0 0 1 4 17.5z"/><path d="M4 17.5A2.5 2.5 0 0 1 6.5 15H20"/><path d="m11 6 1.5 1.5L15 5"/>',
- competitions:'<path d="M8 3h8v5a4 4 0 0 1-8 0z"/><path d="M8 5H5v2a3 3 0 0 0 3 3M16 5h3v2a3 3 0 0 1-3 3"/><path d="M12 12v5M9 21h6M10 17h4"/>'
+ competitions:'<path d="M8 3h8v5a4 4 0 0 1-8 0z"/><path d="M8 5H5v2a3 3 0 0 0 3 3M16 5h3v2a3 3 0 0 1-3 3"/><path d="M12 12v5M9 21h6M10 17h4"/>',
+ scan:'<rect x="4" y="4" width="6" height="6" rx="1.2"/><rect x="14" y="4" width="6" height="6" rx="1.2"/><rect x="4" y="14" width="6" height="6" rx="1.2"/><path d="M14 14h2.5v2.5M20 14v.01M14 20v.01M17.5 17.5H20V20"/>',
+ 'join-requests':'<rect x="4" y="4" width="16" height="16" rx="2"/><path d="m9.5 12.2 1.8 1.8 3.7-4"/>'
 };
 function navIcon(id){return '<svg viewBox="0 0 24 24" class="nav-icon" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round">'+(NAV_ICON_PATHS[id]||'<circle cx="12" cy="12" r="8"/>')+'</svg>'}
 function navigationGroups(){
@@ -650,28 +688,37 @@ function navigationGroups(){
  if(S.user.role==="admin"){
   const full=adminFocusIsFull();
   if(!full)return [
-   makeGroup("الرئيسية والطلاب",["home","students","cards"]),
+   makeGroup("الرئيسية والطلاب",["home","students","cards","scan","join-requests", "join-requests","طلبات الانضمام"]),
    makeGroup("الأفواج والفرق",["groups","teams"]),
    effortGroup(),
    makeGroup("النقاط والمتجر",["points"]),
    makeGroup("التواصل",["notifications","messages"])
   ].filter(g=>g.items.length);
   return [
-   makeGroup("إدارة الأكاديمية",["home","groups","students","cards","teams"]),
+   makeGroup("إدارة الأكاديمية",["home","groups","students","cards","scan","join-requests", "join-requests","طلبات الانضمام","teams"]),
    effortGroup(),
    makeGroup("النقاط والمتجر",["points"]),
    makeGroup("التواصل",["notifications","messages"]),
    makeGroup("أدوات إضافية وتحسينية",["assignments","tests","hadith","competitions","system-check"])
   ].filter(g=>g.items.length);
  }
- if(["teacher","director","supervisor"].includes(S.user.role))return [
-  makeGroup(S.user.role==="director"?"إدارة المدرسة":S.user.role==="supervisor"?"متابعة الفريق":"التدريس والمتابعة",["home","groups","students","cards","teams"]),
+ if(S.user.role==="supervisor")return [
+  makeGroup("متابعة الفريق",["home","students","cards","scan","teams", "join-requests","طلبات الانضمام"]),
   makeGroup("المهام الأساسية اليومية",["attendance","quran"]),
   effortGroup(),
   makeGroup("النقاط والمتجر",["points"]),
   makeGroup("المتابعة والتقويم",["gradebook","reports","notifications","messages"]),
   makeGroup("أدوات إضافية",["assignments","tests","hadith","competitions"])
  ].filter(g=>g.items.length);
+ if(["teacher","director"].includes(S.user.role))return [
+  makeGroup(S.user.role==="director"?"إدارة المدرسة":"التدريس والمتابعة",["home","groups","students","cards","scan","join-requests", "join-requests","طلبات الانضمام","teams"]),
+  makeGroup("المهام الأساسية اليومية",["attendance","quran"]),
+  effortGroup(),
+  makeGroup("النقاط والمتجر",["points"]),
+  makeGroup("المتابعة والتقويم",["gradebook","reports","notifications","messages"]),
+  makeGroup("أدوات إضافية",["assignments","tests","hadith","competitions"])
+ ].filter(g=>g.items.length);
+ if(S.user.role==="visitor"||(S.user.role==="student"&&!S.user.group_id))return [makeGroup("الرئيسية",["home"])];
  return [makeGroup("عالمي",["world","card"]),makeGroup("رحلتي اليومية",["home","profile","tasks","quran","attendance","tests"]),makeGroup("إنجازاتي",["points","leaderboard","gradebook","guide"]),makeGroup("محتوى الأكاديمية",["hadith","competitions","assignments"]),makeGroup("التواصل والفرق",["teams","notifications","messages"])].filter(g=>g.items.length);
 }
 
@@ -706,6 +753,9 @@ function start(){
   load().then(async()=>{shell();await page();await processPendingScan()});
   return;
  }
+ const isVisitor=S.user?.role==="visitor";
+ const isPendingStudent=S.user?.role==="student"&&!S.user?.group_id;
+ if(isVisitor||isPendingStudent){S.mode="school";S.tab="home";safeStore.setSession("ihsan_last_mode","school");safeStore.setSession("ihsan_last_tab","home");load().then(async()=>{shell();await page()});return}
  if(savedMode==="ihsan"){safeStore.setSession("ihsan_last_mode","hub");safeStore.removeSession("ihsan_last_tab");S.tab="home";S.mode="hub";moduleChooser(false);return}
  if(savedMode==="school"){
   S.mode=savedMode;S.tab=savedTab||(S.user?.role==="student"?"world":"home");if(["backup","audit","school-managers","posts","teachers"].includes(S.tab))S.tab=S.user?.role==="admin"?"groups":"home";if(S.tab==="system-check"&&S.user?.role!=="admin")S.tab="home";
@@ -772,7 +822,8 @@ function shell(){
  const displayUserName=honorificDisplayName(S.user.name,S.user.role);
  const banner="";
  const options=items().map(x=>'<option value="'+esc(x[1])+'"></option>').join("");
- app.innerHTML='<div class="layout app-shell"><nav class="sidebar" aria-label="القائمة الرئيسية"><div class="sidebar-brand"><img class="sidebar-brand-logo" src="/icon.svg" alt="" width="48" height="48"><span class="sidebar-brand-copy"><strong>أكاديمية الإحسان</strong><small>في بناء الإنسان</small></span></div><div class="sidebar-navigation">'+navMarkup()+'</div><button class="nav-btn mobile-settings" id="mobile-settings" type="button" aria-label="إعدادات الأكاديمية"><span class="nav-icon-wrap" aria-hidden="true">⚙</span><span class="nav-label">الإعدادات</span></button><button class="nav-btn mobile-logout" id="mobile-logout" type="button" aria-label="تسجيل الخروج"><span class="nav-icon-wrap" aria-hidden="true">↪</span><span class="nav-label">خروج</span></button><div class="sidebar-bottom">' +(S.user.role==="admin"?'<button class="admin-focus-toggle" id="admin-focus-toggle" type="button">' +(adminFocusIsFull()?"العودة إلى مهام الشيخ":"واجهة الإدارة") +'</button>':"") +'<button class="module-switch" id="switch-module" type="button"><span aria-hidden="true">↔</span> '+(S.mode==="school"?"منهج الإحسان (قريبًا)":"الذهاب إلى المدرسة القرآنية")+'</button></div></nav><section class="workspace"><header class="workspace-head"><div class="workspace-heading"><div class="breadcrumbs"><strong id="workspace-title">'+esc(currentTitle)+'</strong></div><p>'+esc(role)+'</p></div><label class="workspace-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg><input id="nav-search" type="search" list="nav-search-options" placeholder="ابحث عن صفحة…" aria-label="ابحث عن صفحة في القائمة"><datalist id="nav-search-options">'+options+'</datalist></label><div class="workspace-wallet" id="workspace-wallet" aria-live="polite"></div><button class="workspace-user" id="identity-open" type="button" aria-haspopup="dialog" aria-label="حسابي: '+esc(displayUserName)+' — '+esc(role)+'"><span class="workspace-status" aria-hidden="true"></span><span class="workspace-user-copy"><strong>'+esc(displayUserName)+'</strong><small>'+esc(role)+'</small></span><span class="workspace-user-caret" aria-hidden="true">⌄</span></button></header><div class="content-area">'+banner+'<section id="view" class="content"><div class="loading">جار التحميل…</div></section></div></section></div>';
+ const showModuleSwitch=!(S.user?.role==="visitor"||(S.user?.role==="student"&&!S.user?.group_id));
+ app.innerHTML='<div class="layout app-shell"><nav class="sidebar" aria-label="القائمة الرئيسية"><div class="sidebar-brand"><img class="sidebar-brand-logo" src="/icon.svg" alt="" width="48" height="48"><span class="sidebar-brand-copy"><strong>أكاديمية الإحسان</strong><small>في بناء الإنسان</small></span></div><div class="sidebar-navigation">'+navMarkup()+'</div><button class="nav-btn mobile-settings" id="mobile-settings" type="button" aria-label="إعدادات الأكاديمية"><span class="nav-icon-wrap" aria-hidden="true">⚙</span><span class="nav-label">الإعدادات</span></button><button class="nav-btn mobile-logout" id="mobile-logout" type="button" aria-label="تسجيل الخروج"><span class="nav-icon-wrap" aria-hidden="true">↪</span><span class="nav-label">خروج</span></button><div class="sidebar-bottom">' +(S.user.role==="admin"?'<button class="admin-focus-toggle" id="admin-focus-toggle" type="button">' +(adminFocusIsFull()?"العودة إلى مهام الشيخ":"واجهة الإدارة") +'</button>':"") +(showModuleSwitch?'<button class="module-switch" id="switch-module" type="button"><span aria-hidden="true">↔</span> '+(S.mode==="school"?"منهج الإحسان (قريبًا)":"الذهاب إلى المدرسة القرآنية")+'</button>':"")+'</div></nav><section class="workspace"><header class="workspace-head"><div class="workspace-heading"><div class="breadcrumbs"><strong id="workspace-title">'+esc(currentTitle)+'</strong></div><p>'+esc(role)+'</p></div><label class="workspace-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg><input id="nav-search" type="search" list="nav-search-options" placeholder="ابحث عن صفحة…" aria-label="ابحث عن صفحة في القائمة"><datalist id="nav-search-options">'+options+'</datalist></label><div class="workspace-wallet" id="workspace-wallet" aria-live="polite"></div><button class="workspace-user" id="identity-open" type="button" aria-haspopup="dialog" aria-label="حسابي: '+esc(displayUserName)+' — '+esc(role)+'"><span class="workspace-status" aria-hidden="true"></span><span class="workspace-user-copy"><strong>'+esc(displayUserName)+'</strong><small>'+esc(role)+'</small></span><span class="workspace-user-caret" aria-hidden="true">⌄</span></button></header><div class="content-area">'+banner+'<section id="view" class="content"><div class="loading">جار التحميل…</div></section></div></section></div>';
  const actionBar=$("#top-actions"),innerHeader=document.querySelector(".workspace-head");if(actionBar&&innerHeader)innerHeader.appendChild(actionBar);
  document.querySelectorAll(".nav-btn[data-tab]").forEach(b=>b.onclick=()=>go(b.dataset.tab));$("#mobile-settings")?.addEventListener("click",showSettings);$("#mobile-logout")?.addEventListener("click",logout);
  $("#switch-module")?.addEventListener("click",switchModule);
@@ -807,9 +858,10 @@ function identitySheet(){
  const name=honorificDisplayName(S.user.name,S.user.role);
  const initial=esc((S.user.name||"إ").trim().slice(0,1));
  const isAdmin=S.user.role==="admin",full=adminFocusIsFull();
+ const showSwitch=!(S.user?.role==="visitor"||(S.user?.role==="student"&&!S.user?.group_id));
  const dialog=document.createElement("dialog");
  dialog.id="identity-sheet";dialog.dir="rtl";dialog.className="identity-sheet";
- dialog.innerHTML='<div class="identity-sheet-head"><span class="identity-sheet-avatar" aria-hidden="true">'+initial+'</span><div><strong>'+esc(name)+'</strong><small>'+esc(role)+'</small></div><button type="button" class="settings-close" id="identity-sheet-close" aria-label="إغلاق">×</button></div><div class="identity-sheet-body"><p class="identity-sheet-note">هذه هويتك داخل الأكاديمية. تظهر لك الأقسام حسب دورك وصلاحياتك.</p><div class="identity-sheet-actions"><button type="button" class="btn secondary" id="identity-switch-module">'+(S.mode==="school"?"منهج الإحسان (قريبًا)":"الانتقال إلى المدرسة القرآنية")+'</button>'+(isAdmin?'<button type="button" class="btn secondary" id="identity-admin-focus">'+(full?"العودة إلى مهام الشيخ اليومية":"عرض كل أدوات الإدارة")+'</button>':"")+'<button type="button" class="btn secondary" id="identity-settings">الإعدادات</button><button type="button" class="btn danger" id="identity-logout">تسجيل الخروج</button></div><p class="identity-sheet-role">'+(isAdmin?(full?"وضع العرض الحالي: كل أدوات الإدارة ظاهرة.":"وضع العرض الحالي: المهام اليومية فقط. افتح كل الأدوات من الزر أعلاه."):"صلاحيتك الحالية: "+esc(role)+".")+'</p></div>';
+ dialog.innerHTML='<div class="identity-sheet-head"><span class="identity-sheet-avatar" aria-hidden="true">'+initial+'</span><div><strong>'+esc(name)+'</strong><small>'+esc(role)+'</small></div><button type="button" class="settings-close" id="identity-sheet-close" aria-label="إغلاق">×</button></div><div class="identity-sheet-body"><p class="identity-sheet-note">هذه هويتك داخل الأكاديمية. تظهر لك الأقسام حسب دورك وصلاحياتك.</p><div class="identity-sheet-actions">'+(showSwitch?'<button type="button" class="btn secondary" id="identity-switch-module">'+(S.mode==="school"?"منهج الإحسان (قريبًا)":"الانتقال إلى المدرسة القرآنية")+'</button>':"")+(isAdmin?'<button type="button" class="btn secondary" id="identity-admin-focus">'+(full?"العودة إلى مهام الشيخ اليومية":"عرض كل أدوات الإدارة")+'</button>':"")+'<button type="button" class="btn secondary" id="identity-settings">الإعدادات</button><button type="button" class="btn danger" id="identity-logout">تسجيل الخروج</button></div><p class="identity-sheet-role">'+(isAdmin?(full?"وضع العرض الحالي: كل أدوات الإدارة ظاهرة.":"وضع العرض الحالي: المهام اليومية فقط. افتح كل الأدوات من الزر أعلاه."):"صلاحيتك الحالية: "+esc(role)+".")+'</p></div>';
  document.body.append(dialog);
  const close=()=>{try{if(dialog.open)dialog.close()}catch{}dialog.remove()};
  $("#identity-sheet-close")?.addEventListener("click",close);
@@ -896,7 +948,12 @@ const groupOpts=()=>S.groups.map(g=>'<option value="'+esc(g.id)+'">'+esc(g.name)
 const assignedGroups=()=>{const role=S.user?.role;if(role==="admin")return S.groups.slice();if(role==="director"){const ids=(S.user.school_ids||[]).map(String);return S.groups.filter(g=>ids.includes(String(g.school_id||"")));}if(role==="teacher")return S.groups.filter(g=>String(g.teacher_id||"")===String(S.user.id));if(role==="supervisor")return S.groups.filter(g=>(S.user.group_ids||[]).map(String).includes(String(g.id)));return S.groups.slice()};
 function go(id){if(S.user?.role==="admin"&&id==="groups")safeStore.set("ihsan_admin_focus","full");safeStore.setSession("ihsan_last_mode",S.mode);safeStore.setSession("ihsan_last_tab",id);try{history.pushState({ihsanMode:S.mode,ihsanTab:id},"",location.pathname+"#"+encodeURIComponent(id))}catch{}S.tab=id;shell();page()}
 window.addEventListener("popstate",async e=>{if(!S.user)return;const st=e.state||{};if(st.ihsanMode==="hub"){S.mode="hub";moduleChooser(false);return;}if(st.ihsanMode==="ihsan"){S.mode="hub";moduleChooser(false);openIhsanTeaser();return;}if(st.ihsanMode==="school"){S.mode="school";S.tab=st.ihsanTab||"home";await load();shell();await page();if(st.ihsanSubView==="student-profile")await studentProfile($("#view"),st.studentId);return;}S.mode="hub";moduleChooser(false);});
-async function page(){const v=$("#view");if(S.mode==="ihsan"){S.mode="hub";moduleChooser(false);return}v.innerHTML='<div class="loading">جار تحميل البيانات…</div>';try{if(S.tab==="system-check"&&S.user.role==="admin")return systemCheckPage(v);if(S.tab==="sheikh-check"&&S.user.role==="teacher")return sheikhCheckPage(v);if(S.tab==="world")return await worldPage(v);if(S.tab==="card")return await cardPage(v);if(S.tab==="cards")return await staffCardsPage(v);if(S.tab==="guide")return await guidePage(v);if(S.tab==="home")return await home(v);if(S.tab==="teams")return await teamsPage(v);if(S.tab==="groups")return groups(v);if(S.tab==="tasks")return await tasksPage(v);if(S.tab==="hadith")return await contentPage(v);if(S.tab==="competitions")return await competitionsPage(v);if(S.tab==="points")return await pointsPage(v);if(S.tab==="teachers")return teachers(v);if(S.tab==="students")return students(v);if(S.tab==="attendance")return attendance(v);if(S.tab==="assignments")return await assignmentsPage(v);if(S.tab==="gradebook")return await gradebookPage(v);if(S.tab==="messages")return await messagesPage(v);if(S.tab==="reports")return reportsPage(v);if(S.tab==="leaderboard")return leaderboardPage(v);if(S.tab==="profile")return studentProfile(v,S.user.student_id);if(S.tab==="quran")return quran(v);if(S.tab==="effort")return effortPage(v);if(S.tab==="effort-ranking")return effortRankingPage(v);if(S.tab==="roster-bulk")return bulkRosterPage(v);if(S.tab==="quran-achievement")return quranAchievementPage(v);if(S.tab==="roadmap")return roadmapPage(v);if(S.tab==="hierarchy")return hierarchyPage(v);if(S.tab==="tests")return testsPage(v);if(S.tab==="notifications")return notificationsPage(v);v.innerHTML=head("القسم غير متاح","هذا القسم لم يعد متاحًا. اختر قسمًا من القائمة.")+'<button class="btn" id="back-home">العودة إلى الرئيسية</button>';$("#back-home").onclick=()=>go("home");return}catch(e){v.innerHTML='<div class="panel"><h2>تعذّر تحميل البيانات</h2><p class="notice error">'+esc(e.message)+'</p><button class="btn" id="retry">إعادة المحاولة</button></div>';$("#retry").onclick=page}}
+async function page(){const v=$("#view");try{window.IhsanScanner&&window.IhsanScanner.stop()}catch{}
+if(S.mode==="ihsan"){S.mode="hub";moduleChooser(false);return}
+if((S.user?.role==="visitor"||(S.user?.role==="student"&&!S.user?.group_id))&&S.tab!=="home")S.tab="home";
+v.innerHTML='<div class="loading">جار تحميل البيانات…</div>';try{if(S.tab==="system-check"&&S.user.role==="admin")return systemCheckPage(v);if(S.tab==="join-requests"&&["admin","teacher","director"].includes(S.user.role))return await joinRequestsPage(v);if(S.tab==="sheikh-check"&&S.user.role==="teacher")return sheikhCheckPage(v);if(S.tab==="world")return await worldPage(v);if(S.tab==="card")return await cardPage(v);if(S.tab==="cards")return await staffCardsPage(v);if(S.tab==="scan"&&["admin","teacher","director","supervisor"].includes(S.user.role))return await scanPage(v);if(S.tab==="guide")return await guidePage(v);if(S.tab==="home" && S.user.role==="student" && !S.user.group_id) return await studentJoinRequestPage(v);
+ if(S.tab==="home")return await home(v);if(S.tab==="teams")return await teamsPage(v);if(S.tab==="groups")return groups(v);if(S.tab==="tasks")return await tasksPage(v);if(S.tab==="hadith")return await contentPage(v);if(S.tab==="competitions")return await competitionsPage(v);if(S.tab==="points")return await pointsPage(v);if(S.tab==="teachers")return teachers(v);if(S.tab==="students")return students(v);if(S.tab==="attendance")return attendance(v);if(S.tab==="assignments")return await assignmentsPage(v);if(S.tab==="gradebook")return await gradebookPage(v);if(S.tab==="messages")return await messagesPage(v);if(S.tab==="reports")return reportsPage(v);if(S.tab==="leaderboard")return leaderboardPage(v);if(S.tab==="profile")return studentProfile(v,S.user.student_id);if(S.tab==="quran")return quran(v);if(S.tab==="effort")return effortPage(v);if(S.tab==="effort-ranking")return effortRankingPage(v);if(S.tab==="roster-bulk")return bulkRosterPage(v);if(S.tab==="quran-achievement")return quranAchievementPage(v);if(S.tab==="roadmap")return roadmapPage(v);if(S.tab==="hierarchy")return hierarchyPage(v);if(S.tab==="tests")return testsPage(v);
+ if(S.tab==="notifications")return notificationsPage(v);v.innerHTML=head("القسم غير متاح","هذا القسم لم يعد متاحًا. اختر قسمًا من القائمة.")+'<button class="btn" id="back-home">العودة إلى الرئيسية</button>';$("#back-home").onclick=()=>go("home");return}catch(e){v.innerHTML='<div class="panel"><h2>تعذّر تحميل البيانات</h2><p class="notice error">'+esc(e.message)+'</p><button class="btn" id="retry">إعادة المحاولة</button></div>';$("#retry").onclick=page}}
 function pointsStatusLabel(status){const labels={pending:"قيد المراجعة",approved:"معتمد",rejected:"مرفوض",fulfilled:"منفذ",cancelled:"ملغى"};return labels[status]||status}
 function pointsDate(value){const text=String(value||"");return text?esc(text.replace("T"," ").slice(0,16)):"—"}
 const STORE_SUGGESTIONS=[
@@ -996,7 +1053,7 @@ async function pointsPage(v){
   const buttons=canDecide?'<div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn secondary" type="button" data-decision="approved" data-redemption="'+esc(r.id)+'">اعتماد</button><button class="btn" type="button" data-decision="fulfilled" data-redemption="'+esc(r.id)+'">تنفيذ</button><button class="btn danger" type="button" data-decision="rejected" data-redemption="'+esc(r.id)+'">رفض</button></div>':"";
   return '<div class="list-row"><div><strong>'+esc(r.item_name)+' — '+Number(r.cost)+'</strong><small>'+esc(r.display_name||"")+' · '+pointsDate(r.requested_at)+' · '+esc(pointsStatusLabel(r.status))+(r.decision_note?' · '+esc(r.decision_note):"")+'</small>'+noteInput+'</div>'+buttons+'</div>';
  }).join("");
- const eventRows=(summary.recent||[]).map(e=>'<div class="list-row"><div><strong>'+esc(e.reason||e.event_type)+'</strong><small>'+esc(e.kind_label)+' · '+pointsDate(e.created_at)+(e.reversed?' · معكوسة: '+esc(e.reversal_reason||""):"")+'</small></div><div style="display:flex;gap:8px;align-items:center"><span class="pill">'+(Number(e.points)>0?"+":"")+Number(e.points)+'</span>'+(canManage&&!e.reversed&&e.event_type!=="store_redemption"?'<button class="btn secondary" type="button" data-reverse="'+esc(e.id)+'">عكس</button>':"")+'</div></div>').join("");
+ const eventRows=(summary.recent||[]).map(e=>'<div class="list-row"><div><strong>'+esc(e.reason||e.event_type)+'</strong><small>'+esc(e.kind_label)+' · '+pointsDate(e.created_at)+(e.awarded_by_name?' · بواسطة '+esc(e.awarded_by_name):"")+(e.reversed?' · معكوسة: '+esc(e.reversal_reason||""):"")+'</small></div><div style="display:flex;gap:8px;align-items:center"><span class="pill">'+(Number(e.points)>0?"+":"")+Number(e.points)+'</span>'+(canManage&&!e.reversed&&e.event_type!=="store_redemption"?'<button class="btn secondary" type="button" data-reverse="'+esc(e.id)+'">عكس</button>':"")+'</div></div>').join("");
  let html=head("النقاط والمتجر",isStudent?"رصيدك وسجل حركاتك وطلبات الصرف.":"متابعة نقاط الطالب وإدارة المتجر وقواعد المنح.");
  if(!isStudent)html+='<div class="card"><label class="field">اختر الطالب<select id="points-student-select">'+students.map(st=>'<option value="'+esc(st.id)+'"'+(st.id===studentId?" selected":"")+'>'+esc(st.name||st.display_name||"طالب")+'</option>').join("")+'</select></label><p class="muted small">الفوج: '+esc(summary.student.group_name||"—")+'</p></div>';
  html+='<div class="stats"><div class="stat"><small>نقاط الإنجاز</small><strong>'+Number(summary.totals.achievement)+'</strong></div><div class="stat"><small>رصيد المتجر</small><strong>'+Number(summary.totals.store)+'</strong></div><div class="stat"><small>طلبات قيد المراجعة</small><strong>'+Number(summary.pending_redemptions)+'</strong></div></div>';
@@ -1787,6 +1844,180 @@ async function staffCardsPage(v){
  await loadCards();
 }
 
+// ---- برنامج الثمانية أشهر: خطط الحفظ الثلاث + التثبيت بحسب المحفوظ + الورد المستقل ----
+function quranEightMonthMarkup(pathData){
+ const plans=pathData?.thabit_plans||{};
+ const cats=pathData?.categories||{};
+ const ward=pathData?.ward_options||{};
+ const planCards=Object.entries(plans).map(([id,p])=>'<article class="quran-eight-plan"><span class="quran-eight-num">'+esc(String(p.thumns))+'</span><strong>'+esc(p.label||id)+'</strong><small>ضمن برنامج الثمانية أشهر · بالقدر الأسبوعي من الأثمان · خمسة أيام في الأسبوع مع يوم استراحة</small></article>').join("");
+ const catRows=Object.entries(cats).map(([id,c])=>'<tr><th>'+esc(c.label||id)+'</th><td>'+esc(c.thabitLabel||"")+' يوميًا</td><td>'+Number(c.workDays||5)+' أيام أسبوعيًا</td></tr>').join("");
+ const wardChips=Object.entries(ward).map(([id,label])=>'<span class="world-chip"><b>الورد</b> '+esc(label)+'</span>').join("");
+ return '<section class="card quran-plans-eight"><div class="section-head"><div><span class="eyebrow">برنامج الثمانية أشهر</span><h3>خطط الحفظ الثلاث</h3><p>ثلاثة مقادير أسبوعية ضمن برنامج الثمانية أشهر؛ يعتمد الشيخ ما يناسب وقتك وقدرتك. أرقام التثبيت مقترحة بانتظار اعتماده، ولا تتغير خطتك تلقائيًا.</p></div></div>'
+  +'<div class="quran-eight-grid">'+planCards+'</div>'
+  +'<h4>التثبيت بحسب مقدار المحفوظ</h4><div class="table-wrap"><table><thead><tr><th>مقدار المحفوظ</th><th>التثبيت اليومي</th><th>أيام العمل</th></tr></thead><tbody>'+catRows+'</tbody></table></div>'
+  +'<h4>الورد اليومي (مستقل عن الحفظ والتثبيت)</h4><div class="quran-path-chips">'+wardChips+'</div><p class="muted small">الورد قراءة يومية مستقلة لا تُغني عن الحفظ الجديد ولا عن التثبيت، ولا يُحسب إنجازه بدلًا عنهما. تُسجّل الثلاثة مفصولة في حسابك، ولا تُخلط نقاطها بعضها ببعض.</p></section>';
+}
+
+// ---- واجهة الشيخ: المسح والمتابعة (QR حقيقي أو اختيار يدوي) ----
+async function scanPage(v){
+  if(!["admin","teacher","director","supervisor"].includes(S.user.role)){v.innerHTML=head("المسح والمتابعة","هذه الصفحة متاحة للشيخ أو المشرف أو المدير فقط.");return}
+  if(!S.groups.length||!S.students.length)await load();
+  const groups=assignedGroups();
+  const students=S.students.filter(st=>groups.some(g=>String(g.id)===String(st.group_id))).slice().sort((a,b)=>compareStudentNames(a.name,b.name));
+  v.innerHTML=head("المسح والمتابعة","امسح بطاقة الطالب بكاميرا الهاتف أو حدّده من القائمة، ثم سجّل الحضور والإنجاز والنقاط في مكان واحد. كل عملية تُربط بالطالب والشيخ والتاريخ ونوع النشاط، ولا تُمنح نقاط مكررة.")
+   +'<div class="scan-layout">'
+   +'<section class="card scan-camera-card"><div class="section-head"><div><span class="eyebrow">الطريقة الأولى</span><h3>المسح ببطاقة QR</h3><p>وجّه كاميرا الهاتف أو الحاسوب نحو رمز الطالب على بطاقته. يطلب المتصفح إذن الكاميرا، ولا تغادر أي صورة جهازك؛ الفك يتم محليًا.</p></div></div>'
+   +'<div class="scan-video-wrap"><video id="scan-video" playsinline muted aria-label="بث الكاميرا لمسح بطاقة الطالب"></video><div class="scan-frame" aria-hidden="true"></div></div>'
+   +'<div id="scan-status" class="notice" role="status">الكاميرا متوقفة. اضغط «تشغيل الكاميرا» للمسح.</div>'
+   +'<div class="student-actions"><button class="btn" type="button" id="scan-start">تشغيل الكاميرا</button><button class="btn secondary" type="button" id="scan-stop">إيقاف الكاميرا</button></div></section>'
+   +'<section class="card scan-manual-card"><div class="section-head"><div><span class="eyebrow">الطريقة الثانية</span><h3>الاختيار اليدوي</h3><p>بديل يعمل دائمًا: ابحث باسم الطالب ثم اختره من القائمة.</p></div></div>'
+   +'<label class="field">ابحث باسم الطالب<input id="scan-search" type="search" placeholder="اكتب جزءًا من الاسم…" autocomplete="off"></label>'
+   +'<div id="scan-student-list" class="scan-student-list" role="listbox" aria-label="قائمة الطلاب"></div></section>'
+   +'</div><div id="scan-panel"></div>';
+  const status=v.querySelector("#scan-status"),video=v.querySelector("#scan-video"),listEl=v.querySelector("#scan-student-list");
+  const setStatus=(msg,kind)=>{status.textContent=msg;status.classList.toggle("error",kind==="error")};
+  const stopped=()=>setStatus("الكاميرا متوقفة. اضغط «تشغيل الكاميرا» للمسح.","");
+  const selectStudent=id=>{try{window.IhsanScanner&&window.IhsanScanner.stop()}catch{};S.scanStudentId=id;stopped();renderScanPanel(v,id)};
+  const renderList=()=>{
+    const q=String(v.querySelector("#scan-search").value||"").trim().toLocaleLowerCase("ar");
+    const matches=students.filter(st=>!q||String(st.name||"").toLocaleLowerCase("ar").includes(q));
+    listEl.innerHTML=matches.length?matches.slice(0,80).map(st=>'<button type="button" class="scan-student-item'+(S.scanStudentId===st.id?" is-selected":"")+'" role="option" aria-selected="'+(S.scanStudentId===st.id?"true":"false")+'" data-scan-pick="'+esc(st.id)+'"><strong>'+esc(studentDisplayName(st.name))+'</strong><small>'+esc((groups.find(g=>String(g.id)===String(st.group_id))||{}).name||"")+'</small></button>').join(""):'<div class="empty">لا توجد نتائج مطابقة.</div>';
+    listEl.querySelectorAll("[data-scan-pick]").forEach(btn=>btn.onclick=()=>{renderListSelection(btn.dataset.scanPick)});
+  };
+  const renderListSelection=id=>{S.scanStudentId=id;selectStudent(id)};
+  v.querySelector("#scan-search").addEventListener("input",renderList);
+  let scanning=false;
+  v.querySelector("#scan-start").addEventListener("click",async()=>{
+    if(scanning)return;
+    if(!window.IhsanScanner){setStatus("تعذر تحميل الماسح. حدّث الصفحة وحاول مجددًا.","error");return}
+    scanning=true;setStatus("جار تشغيل الكاميرا…","");
+    const ok=await window.IhsanScanner.start(video,async raw=>{
+      scanning=false;try{window.IhsanScanner.stop()}catch{};
+      await handleScannedText(v,raw);
+    },err=>{scanning=false;setStatus((err&&err.message)||"تعذر تشغيل الكاميرا","error")});
+    if(ok)setStatus("وجّه الكاميرا نحو بطاقة الطالب…","");else scanning=false;
+  });
+  v.querySelector("#scan-stop").addEventListener("click",()=>{scanning=false;try{window.IhsanScanner.stop()}catch{};stopped()});
+  renderList();
+  if(S.scanStudentId&&students.some(st=>st.id===S.scanStudentId))renderScanPanel(v,S.scanStudentId);
+}
+
+async function handleScannedText(v,raw){
+  const match=String(raw||"").match(/scan=([^#\s"']+)/);
+  const payload=match?match[1]:String(raw||"").trim();
+  const parts=payload.split(".");
+  const kind=parts[0];
+  if(parts.length<3||!["add_points","profile","login"].includes(kind)){toast("هذا الرمز ليس بطاقة طالب صالحة أو أنه غير مكتمل",true);return}
+  const cardId=parts[1],secret=parts.slice(2).join(".");
+  try{
+    const result=await api("/cards/resolve",{method:"POST",body:JSON.stringify({kind,card_id:cardId,secret})});
+    const student=result&&result.student;
+    if(!student||!student.id)throw new Error("تعذر قراءة بيانات البطاقة");
+    S.scanStudentId=student.id;
+    const kindLabel={add_points:"رمز إضافة النقاط",profile:"رمز الملف الشخصي",login:"رمز الدخول"}[kind]||"بطاقة";
+    toast("تم مسح البطاقة ("+kindLabel+") — "+(student.name||"طالب"));
+    renderScanPanel(v,student.id);
+  }catch(error){toast(error.message||"تعذر استخدام البطاقة",true)}
+}
+
+async function renderScanPanel(v,studentId){
+  const host=v.querySelector("#scan-panel");
+  if(!host)return;
+  host.innerHTML='<div class="loading">جار تحميل بيانات الطالب…</div>';
+  let summary,pathData,today,events;
+  const res=await Promise.allSettled([
+    api("/points/summary?student_id="+encodeURIComponent(studentId)),
+    api("/quran/path?student_id="+encodeURIComponent(studentId)),
+    api("/quran/today?student_id="+encodeURIComponent(studentId)),
+    api("/points/history?student_id="+encodeURIComponent(studentId)+"&limit=8")
+  ]);
+  if(res[0].status!=="fulfilled"){host.innerHTML='<div class="notice error">'+esc(res[0].reason?.message||"تعذر تحميل بيانات الطالب")+'</div>';return}
+  summary=res[0].value;
+  pathData=res[1].status==="fulfilled"?res[1].value:{enrolled:false};
+  today=res[2].status==="fulfilled"?res[2].value:{enrolled:false,logs:{}};
+  events=res[3].status==="fulfilled"?res[3].value:[];
+  const s=summary.student||{},t=summary.totals||{};
+  const info=(pathData&&pathData.path)||null;
+  const logs=(today&&today.logs)||{};
+  const todayIso=localDateISO();
+  const planChips=info
+    ?'<div class="quran-path-chips"><span class="world-chip"><b>الفئة</b> '+esc(info.hifz_category_label||"—")+'</span><span class="world-chip"><b>الحفظ</b> '+esc(info.hifz_amount||"—")+" "+esc(info.hifz_unit||"")+'</span><span class="world-chip"><b>التثبيت</b> '+esc(info.thabit_label||"—")+'</span><span class="world-chip"><b>الورد</b> '+esc(info.ward_label||"—")+'</span>'+(info.rest_day!==null&&info.rest_day!==undefined?'<span class="world-chip"><b>الاستدراك</b> '+esc(QURAN_WEEKDAYS[Number(info.rest_day)]||"")+'</span>':"")+(today.is_rest_day?'<span class="pill">اليوم يوم استدراك</span>':"")+'</div>'
+    :'<div class="notice">لم يشترك هذا الطالب في مسار القرآن بعد؛ يبدأ من «عالمي» داخل حسابه.</div>';
+  const thabitUnitFor=a=>({0.125:"ثمن حزب",0.25:"ربع حزب",0.375:"ثلاثة أثمان حزب",0.5:"نصف حزب",1:"حزب"}[String(Number(a))]||"حزب");
+  const wardUnitFor=a=>({1:"حزب",2:"حزبان",4:"أربعة أحزاب"}[String(Number(a))]||"حزب");
+  const quranQuick=(kind,label,defAmount,units,defReps,defUnit)=>{
+    if(!info)return "";
+    const logged=logs[kind];
+    if(logged)return '<div class="scan-quran-row is-done"><div><strong>'+esc(label)+'</strong><small>تم اليوم: '+esc(quranFmtAmount(logged.amount,logged.unit))+(Number(logged.repetitions)?" · "+Number(logged.repetitions)+" تكرارًا":"")+'</small></div><span class="pill">مُسجَّل</span></div>';
+    return '<form class="scan-quran-row" data-scan-quran="'+kind+'"><div class="scan-quran-head"><strong>'+esc(label)+'</strong><button class="btn secondary sm" type="submit">تسجيل الإنجاز</button></div><div class="scan-quran-fields"><label class="field">المقدار<input type="number" step="0.01" min="0" max="1000" name="amount" required value="'+esc(String(defAmount??""))+'"></label><label class="field">الوحدة<select name="unit">'+units.map(u=>'<option '+(u===defUnit?"selected":"")+'>'+u+'</option>').join("")+'</select></label>'+(kind==="hifz"?'':'<label class="field">التكرار<input type="number" min="0" max="100" name="repetitions" value="'+Number(defReps||0)+'"></label>')+'</div><label class="field">ملاحظات<input name="notes" maxlength="600" placeholder="اختياري — مثل موضع يحتاج تثبيتًا"></label></form>';
+  };
+  const activityButtons=[["attendance","حضور"],["hifz","حفظ جديد"],["revision","مراجعة"],["thabit","تثبيت"],["ward","الورد"]].map(([a,l])=>'<button type="button" class="btn secondary" data-scan-activity="'+a+'">'+esc(l)+'</button>').join("");
+  const attButtons=[["present","حاضر"],["late","متأخر"],["absent","غائب"],["excused","بعذر"]].map(([st,l])=>'<button type="button" class="btn secondary" data-scan-att="'+st+'">'+esc(l)+'</button>').join("");
+  const studentRow=(S.students||[]).find(st=>String(st.id)===String(studentId));
+  const recipientUserId=studentRow?.user_id||"";
+  const assignTaskMarkup=recipientUserId
+    ?'<h4>تعيين مهمة للطالب</h4><form id="scan-assign-task" class="form-grid"><label class="field full">عنوان المهمة<input name="title" required minlength="3" maxlength="160" placeholder="مثال: مراجعة المتشابهات بين سورتي الرحمن والقارعة"></label><label class="field full">التفاصيل والمطلوب<textarea name="content" required minlength="3" maxlength="8000" rows="2" placeholder="المطلوب من الطالب إنجازه، والموعد، وكيفية التسليم"></textarea></label><button class="btn" type="submit">أرسل المهمة إلى الطالب</button></form>'
+    :'<h4>تعيين مهمة للطالب</h4><div class="notice">هذا الطالب بلا حساب داخل المنصة؛ أنشئ حسابه أولًا من صفحة الطلاب ثم عُد لتعيين المهمة.</div>';
+  const eventRows=(events||[]).map(e=>'<div class="list-row"><div><strong>'+esc(e.reason||e.event_type)+'</strong><small>'+esc(e.kind_label||e.kind)+' · '+esc(pointsDate(e.created_at))+(e.awarded_by_name?' · بواسطة '+esc(e.awarded_by_name):"")+(e.reversed?' · معكوسة':"")+'</small></div><span class="pill">'+(Number(e.points)>0?"+":"")+Number(e.points)+'</span></div>').join("");
+  host.innerHTML='<section class="card scan-panel-card"><div class="section-head"><div><span class="eyebrow">متابعة الطالب · '+esc(todayIso)+'</span><h3>'+esc(studentDisplayName(s.name||"طالب"))+'</h3><p>'+esc(s.group_name||"")+'</p></div><div class="student-actions"><button class="btn secondary" type="button" id="scan-open-profile">الملف الكامل</button><button class="btn secondary" type="button" id="scan-open-plans">خطط الطلاب واعتمادها</button></div></div>'
+   +'<div class="stats"><div class="stat"><small>رصيد الإنجاز</small><strong>'+Number(t.achievement||0)+'</strong></div><div class="stat"><small>رصيد المتجر</small><strong>'+Number(t.store||0)+'</strong></div></div>'
+   +'<h4>خطته المعتمدة</h4>'+planChips
+   +'<h4>تسجيل الحضور اليوم</h4><div class="student-actions" id="scan-attendance-buttons">'+attButtons+'</div>'
+   +'<h4>تسجيل إنجاز اليوم (حفظ / تثبيت / ورد)</h4><div class="scan-quran-grid">'+quranQuick("hifz","الحفظ الجديد","",Array.from(new Set([info&&info.hifz_unit,"صفحة","سطر","آية","وجه"].filter(Boolean))),0,info?(info.hifz_unit||"صفحة"):"صفحة")+quranQuick("thabit","التثبيت",info?info.thabit_amount:"",["حزب","نصف حزب","ثلاثة أثمان حزب","ربع حزب","ثمن حزب"],15,info?thabitUnitFor(info.thabit_amount):"ربع حزب")+quranQuick("ward","الورد اليومي",info?info.ward_ahzab:"",["حزب","حزبان","أربعة أحزاب"],0,info?wardUnitFor(info.ward_ahzab):"حزب")+'</div>'
+   +'<h4>منح نقاط النشاط</h4><p class="muted small">وفق نظام النقاط المعتمد؛ تُمنع النقاط المكررة في اليوم نفسه تلقائيًا.</p><div class="student-actions" id="scan-activity-buttons">'+activityButtons+'</div><div id="scan-activity-result" class="muted small" aria-live="polite"></div>'
+   +'<h4>منح نقاط يدوية (استثنائي)</h4><form id="scan-manual-award" class="form-grid"><label class="field">نقاط الإنجاز<input type="number" name="achievement_points" min="0" max="1000" value="0"></label><label class="field">رصيد المتجر<input type="number" name="store_points" min="0" max="1000" value="0"></label><label class="field full">سبب المنح (مطلوب)<input name="reason" required minlength="3" maxlength="500" placeholder="مثال: إتقان تثبيت محفوظ الأسبوع"></label><button class="btn" type="submit">منح النقاط</button></form>'
+   +assignTaskMarkup
+   +'<h4>آخر العمليات على حساب الطالب</h4><div class="list">'+(eventRows||'<div class="empty">لا توجد عمليات بعد.</div>')+'</div>'
+   +'</section>';
+  const refresh=()=>renderScanPanel(v,studentId);
+  host.querySelector("#scan-open-profile").onclick=()=>studentProfile(v,studentId);
+  host.querySelector("#scan-open-plans").onclick=()=>{safeStore.setSession("ihsan_quran_staff_tab","plans");go("quran")};
+  host.querySelectorAll("[data-scan-att]").forEach(btn=>btn.onclick=async()=>{
+    btn.disabled=true;
+    try{await api("/attendance",{method:"POST",body:JSON.stringify({group_id:s.group_id,date:todayIso,items:[{student_id:studentId,status:btn.dataset.scanAtt}]})});
+      const label={present:"حاضر",absent:"غائب",late:"متأخر",excused:"بعذر"}[btn.dataset.scanAtt]||btn.dataset.scanAtt;
+      toast("تم تسجيل حضور «"+label+"» — تُمنح نقاط الحضور تلقائيًا عند «حاضر»");await refresh()}
+    catch(error){btn.disabled=false;toast(error.message,true)}
+  });
+  host.querySelectorAll("[data-scan-quran]").forEach(form=>form.onsubmit=async event=>{
+    event.preventDefault();
+    const kind=form.dataset.scanQuran,button=form.querySelector('button[type="submit"]'),data=new FormData(form);
+    button.disabled=true;
+    try{const result=await api("/quran/daily",{method:"POST",body:JSON.stringify({student_id:studentId,kind,amount:Number(data.get("amount")),unit:data.get("unit"),repetitions:Number(data.get("repetitions")||0),notes:data.get("notes")||""})});
+      const awarded=(result.awards||[]).filter(a=>a.status==="awarded").reduce((n,a)=>n+Number(a.points||0),0);
+      toast("تم تسجيل "+({hifz:"الحفظ الجديد",thabit:"التثبيت",ward:"الورد"}[kind]||"الإنجاز")+(awarded?" — أُضيفت "+awarded+" نقطة":""));await refresh()}
+    catch(error){button.disabled=false;toast(error.message,true)}
+  });
+  host.querySelectorAll("[data-scan-activity]").forEach(btn=>btn.onclick=async()=>{
+    const activity=btn.dataset.scanActivity,resultHost=host.querySelector("#scan-activity-result");
+    btn.disabled=true;
+    try{const result=await api("/points/activity",{method:"POST",body:JSON.stringify({student_id:studentId,activity,date:todayIso})});
+      const parts=(result.awards||[]).map(a=>a.status==="awarded"?"+"+a.points+" "+(a.kind==="achievement"?"إنجاز":"متجر"):a.status==="duplicate"?"مكررة اليوم (لم تُمنح مرتين)":"بلغ الحد اليومي");
+      if(resultHost)resultHost.textContent="النتيجة: "+parts.join(" · ");
+      toast("تم — "+parts.join(" · "));await refresh()}
+    catch(error){btn.disabled=false;if(resultHost)resultHost.textContent="تعذر المنح: "+error.message;toast(error.message,true)}
+  });
+  const assignForm=host.querySelector("#scan-assign-task");
+  if(assignForm)assignForm.addEventListener("submit",async event=>{
+    event.preventDefault();
+    const button=assignForm.querySelector('button[type="submit"]'),data=new FormData(assignForm);
+    button.disabled=true;
+    try{await api("/messages",{method:"POST",body:JSON.stringify({recipient_user_id:recipientUserId,title:String(data.get("title")||"").trim(),content:String(data.get("content")||"").trim()})});
+      toast("وصلت المهمة إلى الطالب في رسائله");assignForm.reset()}
+    catch(error){toast(error.message,true)}finally{button.disabled=false}
+  });
+  const manualForm=host.querySelector("#scan-manual-award");
+  if(manualForm)manualForm.addEventListener("submit",async event=>{
+    event.preventDefault();
+    const button=manualForm.querySelector('button[type="submit"]'),data=new FormData(manualForm);
+    button.disabled=true;
+    const requestId=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():String(Date.now())+"-"+Math.random().toString(36).slice(2);
+    try{await api("/points/award",{method:"POST",body:JSON.stringify({student_id:studentId,achievement_points:Number(data.get("achievement_points")||0),store_points:Number(data.get("store_points")||0),reason:String(data.get("reason")||"").trim(),request_id:requestId})});
+      toast("تم منح النقاط وتحديث الرصيد");await refresh()}
+    catch(error){button.disabled=false;toast(error.message,true)}
+  });
+}
+
 async function guidePage(v){
  let rules=[];
  try{rules=await api("/points/rules")}catch(error){rules=[]}
@@ -1815,7 +2046,107 @@ async function guidePage(v){
  v.querySelectorAll("[data-guide-go]").forEach(btn=>btn.onclick=()=>go(btn.dataset.guideGo));
 }
 
-async function home(v){const d=await api("/dashboard");let html="";
+// ---- طلبات الانضمام: لوحة الاعتماد للشيخ/المسؤول المخوّل ----
+async function joinRequestsPage(v){
+ if(!["admin","teacher","director"].includes(S.user.role)){v.innerHTML=head("طلبات الانضمام","هذه الصفحة متاحة للشيخ أو للمسؤول المخوّل فقط.");return}
+ let status="pending";
+ const canReviewKind=r=>S.user.role!=="teacher"||r.kind==="school_join";
+ const groupsCache={};
+ const groupsFor=async schoolId=>{if(!schoolId)return [];if(!groupsCache[schoolId]){try{groupsCache[schoolId]=await api("/join/assignable-groups?school_id="+encodeURIComponent(schoolId))}catch{groupsCache[schoolId]=[]}}return groupsCache[schoolId]};
+ const render=async()=>{
+  let requests=[];
+  try{requests=await api("/join/requests?status="+encodeURIComponent(status))}catch(error){v.innerHTML=head("طلبات الانضمام","تعذر تحميل الطلبات.")+'<div class="notice error">'+esc(error.message)+'</div>';return}
+  const schoolReqs=requests.filter(r=>r.kind==="school_join"),teacherReqs=requests.filter(r=>r.kind==="teacher_request");
+  const schoolGroups={};for(const r of schoolReqs)if(r.school_id&&!(r.school_id in schoolGroups))schoolGroups[r.school_id]=await groupsFor(r.school_id);
+  const kindLabel={school_join:"انضمام طالب إلى المدرسة",teacher_request:"انضمام بصفة شيخ/معلم"};
+  const statusLabel={pending:"قيد الاعتماد",approved:"معتمد",rejected:"مرفوض",cancelled:"ملغى"};
+  const rowHtml=(r)=>{
+   const decided=r.status!=="pending";
+   const title='<strong>'+esc(r.user_name||"—")+'</strong><small>'+esc(r.user_email||"")+' · '+esc(kindLabel[r.kind]||r.kind)+(r.school_name?' · '+esc(r.school_name):"")+' · '+esc(pointsDate(r.created_at))+'</small>'+(r.requested_note?'<small>ملاحظة: '+esc(r.requested_note)+'</small>':"")+(decided?'<small>القرار: '+esc(statusLabel[r.status]||r.status)+(r.decision_note?' — '+esc(r.decision_note):"")+'</small>':"");
+   if(decided)return '<div class="list-row"><div>'+title+'</div><span class="pill">'+esc(statusLabel[r.status]||r.status)+'</span></div>';
+   if(!canReviewKind(r))return '<div class="list-row"><div>'+title+'</div><div class="muted small">الاعتماد من اختصاص المدير أو الإدارة فقط</div></div>';
+   let controls='';
+   if(r.kind==="school_join"){
+    const options=(schoolGroups[r.school_id]||[]).map(g=>'<option value="'+esc(g.id)+'">'+esc(g.name)+'</option>').join("");
+    controls='<label class="field">الفوج<select data-join-group="'+esc(r.id)+'"><option value="">اختر الفوج…</option>'+options+'</select></label>';
+   }
+   controls+='<label class="field">ملاحظة القرار (اختياري)<input data-join-note="'+esc(r.id)+'" maxlength="500" placeholder="'+(r.kind==="teacher_request"?"مثال: اعتماد طلبك بصفة شيخ بعد التحقق":"مثال: اعتمادك في فوج الشيخ جابر")+'"></label>';
+   controls+='<div class="student-actions"><button class="btn" type="button" data-join-approve="'+esc(r.id)+'" data-join-kind="'+esc(r.kind)+'">اعتماد</button><button class="btn danger" type="button" data-join-reject="'+esc(r.id)+'">رفض</button></div>';
+   return '<div class="list-row join-request-row"><div>'+title+'</div><div class="join-request-controls">'+controls+'</div></div>';
+  };
+  let html=head("طلبات الانضمام","راجع طلبات الطلاب الجدد والراغبين في التدريس. لا يُعتمد أي طلب إلا بموافقة صريحة منك، وإسناد الفوج إلزامي عند اعتماد طالب.")
+   +'<div class="quran-staff-switch">'+[["pending","قيد الاعتماد"],["approved","المعتمدة"],["rejected","المرفوضة"],["cancelled","الملغاة"]].map(([id,label])=>'<button type="button" class="btn secondary '+(status===id?"is-active":"")+'" data-join-status="'+id+'">'+label+'</button>').join("")+'</div>';
+  html+='<section class="card"><h3>طلبات الطلاب ('+schoolReqs.length+')</h3><div class="list">'+(schoolReqs.length?schoolReqs.map(rowHtml).join(""):'<div class="empty">لا توجد طلبات طلاب في هذه الحالة.</div>')+'</div></section>';
+  html+='<section class="card"><h3>طلبات المشايخ والمعلمين ('+teacherReqs.length+')</h3><div class="list">'+(teacherReqs.length?teacherReqs.map(rowHtml).join(""):'<div class="empty">لا توجد طلبات مشاعل أو معلمين في هذه الحالة.</div>')+'</div></section>';
+  v.innerHTML=html;
+  v.querySelectorAll("[data-join-status]").forEach(btn=>btn.onclick=()=>{status=btn.dataset.joinStatus;render()});
+  const decide=async(id,decision)=>{
+   const row=requests.find(r=>r.id===id);if(!row)return;
+   const body={decision,decision_note:(v.querySelector('[data-join-note="'+CSS.escape(id)+'"]')?.value||"").trim()};
+   if(decision==="approved"&&row.kind==="school_join"){
+    const groupId=v.querySelector('[data-join-group="'+CSS.escape(id)+'"]')?.value||"";
+    if(!groupId){toast("اختر الفوج الذي سيُسند إليه الطالب قبل الاعتماد",true);return}
+    body.group_id=groupId;
+   }
+   try{await api("/join/requests/"+encodeURIComponent(id)+"/decision",{method:"POST",body:JSON.stringify(body)});toast(decision==="approved"?"تم الاعتماد":"تم الرفض");await render()}catch(error){toast(error.message,true)}
+  };
+  v.querySelectorAll("[data-join-approve]").forEach(btn=>btn.onclick=()=>decide(btn.dataset.joinApprove,"approved"));
+  v.querySelectorAll("[data-join-reject]").forEach(btn=>btn.onclick=()=>decide(btn.dataset.joinReject,"rejected"));
+ };
+ await render();
+}
+
+// ---- طلب الانضمام الظاهر للطالب غير المُسند وللزائر/المحسن ----
+function myJoinRequestsHtml(requests){
+ const kindLabel={school_join:"انضمام طالب",teacher_request:"بصفة شيخ/معلم"};
+ const statusLabel={pending:"قيد الاعتماد",approved:"معتمد",rejected:"مرفوض",cancelled:"ملغى"};
+ if(!requests.length)return '<div class="empty">لا توجد طلبات بعد.</div>';
+ return '<div class="list">'+requests.map(r=>'<div class="list-row"><div><strong>'+esc(kindLabel[r.kind]||r.kind)+(r.school_name?' · '+esc(r.school_name):"")+'</strong><small>'+esc(pointsDate(r.created_at))+(r.requested_note?' · '+esc(r.requested_note):"")+(r.decision_note?' · رد الإدارة: '+esc(r.decision_note):"")+'</small></div><div class="student-actions"><span class="pill">'+esc(statusLabel[r.status]||r.status)+'</span>'+(r.status==="pending"?'<button class="btn danger sm" type="button" data-join-cancel="'+esc(r.id)+'">إلغاء الطلب</button>':"")+'</div></div>').join("")+'</div>';
+}
+async function wireJoinCancels(v,onDone){
+ v.querySelectorAll("[data-join-cancel]").forEach(btn=>btn.onclick=async()=>{btn.disabled=true;try{await api("/join/requests/"+encodeURIComponent(btn.dataset.joinCancel)+"/cancel",{method:"POST",body:"{}"});toast("أُلغي الطلب");if(onDone)await onDone()}catch(error){btn.disabled=false;toast(error.message,true)}});
+}
+async function joinSectionHtml(opts){
+ // opts: {showTeacher:boolean}
+ let requests=[];try{requests=await api("/join/my-requests")}catch{requests=[]}
+ const pendingSchool=requests.find(r=>r.kind==="school_join"&&r.status==="pending");
+ const pendingTeacher=requests.find(r=>r.kind==="teacher_request"&&r.status==="pending");
+ let html='<section class="card"><div class="section-head"><div><span class="eyebrow">الانضمام</span><h3>طلب الانضمام إلى المدرسة أو كمعلم</h3><p>يُعتمد طلبك من الشيخ أو من الإدارة المختصة، ولا تتغير صلاحياتك قبل الاعتماد.</p></div></div>'+myJoinRequestsHtml(requests);
+ if(!pendingSchool){
+  let schools=[];try{const d=await api("/public/signup-options");schools=(d&&d.schools)||[]}catch{}
+  html+='<form id="join-school-form" class="form-grid"><label class="field">المدرسة<select name="school_id" required><option value="">اختر المدرسة…</option>'+schools.map(s=>'<option value="'+esc(s.id)+'">'+esc(s.name)+'</option>').join("")+'</select></label><label class="field">ملاحظة (اختياري)<input name="note" maxlength="500" placeholder="مثال: أحفظ ثلاثة أجزاء"></label><div class="wide"><button class="btn" type="submit">قدّم طلب انضمام كطالب</button></div></form>';
+ }
+ if(opts.showTeacher&&!pendingTeacher){html+='<form id="join-teacher-form" class="form-grid"><label class="field wide">ملاحظة لطلب الانضمام بصفة شيخ/معلم (اختياري)<input name="note" maxlength="500" placeholder="مثال: حافظ لكتاب الله، وخبرة في تعليم الناشئة"></label><div class="wide"><button class="btn secondary" type="submit">طلب الانضمام بصفة شيخ/معلم</button></div></form>'}
+ html+='</section>';
+ return {html,requests};
+}
+async function wireJoinForms(v,onDone){
+ const submitForm=(formId,kind)=>{const form=v.querySelector(formId);if(!form)return;form.addEventListener("submit",async event=>{event.preventDefault();const button=form.querySelector('button[type="submit"]'),data=new FormData(form);button.disabled=true;try{await api("/join/requests",{method:"POST",body:JSON.stringify({kind,school_id:String(data.get("school_id")||""),note:String(data.get("note")||"")})});toast("أُضيف طلبك وهو قيد الاعتماد");if(onDone)await onDone()}catch(error){button.disabled=false;toast(error.message,true)}})};
+ submitForm("#join-school-form","school_join");
+ submitForm("#join-teacher-form","teacher_request");
+ await wireJoinCancels(v,onDone);
+}
+async function visitorHome(v){
+ const section=await joinSectionHtml({showTeacher:true});
+ let html=head("مرحبًا بك في أكاديمية الإحسان","حساب زائر/محسن: تستطيع التعرف على الأكاديمية والمساهمة في دعمها، ولا تملك الوصول إلى بيانات الطلاب أو الأفواج.")
+ +'<section class="card"><h3>عن الأكاديمية</h3><p>مساحة علمية قرآنية تجمع حفظ القرآن ومراجعته وفهمه، وتعلّم الحديث والسيرة والآداب، وصحبة الصالحين؛ تُدار اليوم عبر «مدرسة الرحمان القرآنية»، ولدَيها فوجان ولله الحمد.</p><div class="student-actions"><a class="btn secondary" href="'+esc(TAYSIR_URL)+'" rel="noopener" target="_blank">بوابة التيسير — التعريف العام بالأكاديمية</a></div></section>'
+ +'<section class="card"><h3>كيف تساهم في دعم الأكاديمية؟</h3><ul class="visitor-ways"><li><strong>دعم مالي أو عيني:</strong> المصاحف، الجوائز، كفالة طالب علم أو حلقة — بالاتفاق مع إدارة المدرسة.</li><li><strong>تطوع بوقتك وعلمك:</strong> دروس، تعليم تجويد، تصحيح لوحات، إدارة فعاليات.</li><li><strong>نشر الخير:</strong> تعريف الناس ببرامج المدرسة عبر بوابة التيسير وموادها.</li></ul><p class="muted small">للمساهمة الفعلية يُفضَّل التواصل مع إدارة المدرسة من خلال الإدارة، أو إنشاء حساب وطلب دورك المناسب من الزر أدناه.</p></section>'
+ +section.html;
+ v.innerHTML=html;
+ await wireJoinForms(v,()=>visitorHome(v));
+}
+async function pendingStudentHome(v){
+ const section=await joinSectionHtml({showTeacher:false});
+ let html=head("طلب انضمامك إلى المدرسة","أنت مسجّل بلا فوج بعد؛ يبقى طلبك قيد الاعتماد حتى يوافق الشيخ أو الإدارة المختصة، ثم تُسند إلى فوجك.")
+ +'<section class="card"><h3>لماذا لا أرى مهامي بعد؟</h3><p>حفاظًا على خصوصية الطلاب لا تُفتح أي بيانات أو مهام قبل اعتماد طلبك وإسنادك إلى فوج. فور الاعتماد ستظهر لك مهامك وخطتك وتقدّمك في حسابك مباشرة.</p></section>'
+ +section.html;
+ v.innerHTML=html;
+ await wireJoinForms(v,()=>pendingStudentHome(v));
+}
+async function home(v){
+if(S.user?.role==="visitor")return visitorHome(v);
+if(S.user?.role==="student"&&!S.user?.group_id)return pendingStudentHome(v);
+const d=await api("/dashboard");let html="";
 if(S.user.role!=="student"){
   const studentLabel=S.user.role==="director"?"طلاب المدرسة":"الطلاب";
   const visibleGroups=["teacher","director","supervisor"].includes(S.user.role)?assignedGroups():S.groups;
@@ -2296,7 +2627,7 @@ async function quran(v){
   const makeups=result[7].status==="fulfilled"?result[7].value:[];
   const tab=safeStore.getSession("ihsan_quran_tab")||"daily";
   let body="";
-  if(tab==="plan")body=quranPlanMarkup(levels,plan,S.user.student_id,true)+quranProgressSummary(rows)+quranPeriodReportMarkup(rows)+quranLogList(rows);
+  if(tab==="plan")body=quranEightMonthMarkup(pathData)+quranPlanMarkup(levels,plan,S.user.student_id,true)+quranProgressSummary(rows)+quranPeriodReportMarkup(rows)+quranLogList(rows);
   else if(tab==="companion")body=quranCompanionMarkup(companion);
   else if(tab==="stations")body=quranStationsMarkup(stations,makeups);
   else body=quranDailyMarkup(pathData,todayData,summary,stations);
@@ -2998,6 +3329,28 @@ async function notificationsPage(v){
  v.innerHTML=html;
  $("#notice-form")?.addEventListener("submit",async e=>{e.preventDefault();const f=new FormData(e.currentTarget);try{await api("/notifications",{method:"POST",body:JSON.stringify({title:f.get("title"),content:f.get("content"),group_id:f.get("group_id")})});toast("نُشر التنبيه");await page()}catch(x){toast(x.message,true)}});
 }
+
+async function showSignup(){
+  let schools=[];
+  try{schools=await api("/public/quran-schools")}catch{schools=[]}
+  const schoolOptions=schools.map(x=>'<option value="'+esc(x.id)+'">'+esc(x.name)+'</option>').join("");
+  app.innerHTML='<div class="auth-layout"><section class="welcome"><div><span class="eyebrow">أكاديمية الإحسان</span><h1>إنشاء حساب</h1></div></section><section class="panel stack"><h2>إنشاء حساب جديد</h2><p class="muted small">أنشئ حسابك ثم اطلب الانضمام إلى المدرسة أو الفوج.</p><form id="signup-form" class="stack"><label class="field">اسمك ولقبك<input name="name" required maxlength="120" autocomplete="off"></label><label class="field">البريد الإلكتروني<input name="username" type="email" required autocomplete="off"></label><label class="field">كلمة المرور<input name="password" type="password" required minlength="10" autocomplete="new-password"></label><label class="field">نوع الحساب<select name="kind"><option value="student">طالب</option><option value="teacher">شيخ / معلم</option><option value="visitor">زائر / محسن</option></select></label><label class="field" id="signup-school-field">المدرسة القرآنية<select name="school_id"><option value="">-- اختيار --</option>'+schoolOptions+'</select></label><label class="field">ملاحظة<textarea name="note" maxlength="500" rows="2"></textarea></label><div id="signup-error" class="notice error hidden"></div><button class="btn" type="submit">إنشاء الحساب</button><button type="button" class="btn secondary" id="back-login">العودة لتسجيل الدخول</button></form></section></div>';
+  const form=$("#signup-form");
+  const kindSelect=form.querySelector('select[name="kind"]');
+  const schoolField=$("#signup-school-field");
+  const syncSchool=()=>{schoolField.style.display=kindSelect.value==="student"?"":"none"};
+  kindSelect.addEventListener("change",syncSchool);syncSchool();
+  $("#back-login").addEventListener("click",()=>auth(false));
+  form.onsubmit=async e=>{
+    e.preventDefault();const f=new FormData(form),btn=form.querySelector('button[type="submit"]'),err=$("#signup-error");
+    btn.disabled=true;err.classList.add("hidden");
+    try{
+      const d=await api("/signup",{method:"POST",body:JSON.stringify({name:f.get("name"),email:f.get("username"),password:f.get("password"),kind:f.get("kind"),school_id:f.get("school_id"),note:f.get("note")})});
+      S.user=d.user;toast(d.join_note||"تم إنشاء الحساب");await start();
+    }catch(x){err.textContent=x.message;err.classList.remove("hidden")}finally{btn.disabled=false}
+  };
+}
+
 
 boot();
 // Deploy trigger: keep the student entry/exit prayer dialogs in the latest Pages build.

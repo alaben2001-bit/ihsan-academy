@@ -3581,3 +3581,50 @@ html:root:root .academy-about-footnote{background:#241006!important;border-color
  .mission-side{transition:none}
  .mission-side:hover:not(:disabled){transform:none}
 }
+
+/* ============ SCAN — المسح والمتابعة (الشيخ) ============ */
+.scan-layout{display:grid;grid-template-columns:1.1fr 1fr;gap:16px;align-items:start}
+.scan-video-wrap{position:relative;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:#0b1f17;aspect-ratio:4/3;margin:10px 0}
+.scan-video-wrap video{width:100%;height:100%;object-fit:cover;display:block}
+.scan-frame{position:absolute;inset:16%;border:3px solid var(--gold);border-radius:18px;box-shadow:0 0 0 9999px rgba(0,0,0,.38);pointer-events:none}
+.scan-student-list{display:flex;flex-direction:column;gap:6px;max-height:360px;overflow:auto;margin-top:4px}
+.scan-student-item{display:flex;flex-direction:column;align-items:flex-start;gap:2px;text-align:start;padding:10px 12px;border:1px solid var(--line);background:var(--surface-2);border-radius:12px;cursor:pointer;color:inherit;font:inherit;transition:border-color .15s ease,transform .15s ease}
+.scan-student-item:hover{border-color:var(--gold);transform:translateY(-1px)}
+.scan-student-item.is-selected{outline:2px solid var(--gold);border-color:var(--gold)}
+.scan-student-item small{color:var(--muted)}
+#scan-status.error{border-color:#c96;background:#fdecec;color:#8a2b2b}
+.scan-panel-card h4{margin:16px 0 8px}
+.scan-quran-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(235px,1fr));gap:10px}
+.scan-quran-row{display:flex;flex-direction:column;gap:8px;padding:12px;border:1px solid var(--line);border-radius:14px;background:var(--surface-2)}
+.scan-quran-row.is-done{flex-direction:row;justify-content:space-between;align-items:center}
+.scan-quran-row small{color:var(--muted)}
+.scan-quran-head{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.scan-quran-fields{display:grid;grid-template-columns:repeat(auto-fit,minmax(85px,1fr));gap:8px}
+@media(max-width:900px){.scan-layout{grid-template-columns:1fr}}
+@media(max-width:560px){.scan-video-wrap{aspect-ratio:3/4}.scan-quran-grid{grid-template-columns:1fr}}
+
+/* ============ QURAN 8-MONTH PLANS — خطط الثمانية أشهر ============ */
+.quran-eight-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0}
+.quran-eight-plan{display:flex;flex-direction:column;gap:6px;padding:14px 12px;border:1px solid var(--line);border-radius:14px;background:linear-gradient(150deg,var(--surface-2),var(--surface));text-align:center}
+.quran-eight-num{font-size:2rem;font-weight:850;color:var(--gold);line-height:1}
+.quran-plans-eight h4{margin:16px 0 8px}
+
+/* V72: auth open-signup */
+.auth-tabs{display:flex;gap:6px;background:var(--mint);border:1px solid var(--line);border-radius:14px;padding:5px;margin:4px 0 2px}
+.auth-tab{flex:1;border:0;background:transparent;border-radius:10px;padding:10px 12px;font-weight:700;color:var(--green)}
+.auth-tab.is-active{background:#fff;box-shadow:0 1px 6px #153e2c22}
+.signup-kind{display:grid;gap:8px}
+.signup-kind-option{display:block;cursor:pointer}
+.signup-kind-option input{position:absolute;opacity:0;width:1px;height:1px}
+.signup-kind-card{display:grid;gap:2px;border:1.5px solid var(--line);border-radius:14px;padding:11px 13px;background:#fcfefc;transition:border-color .15s,box-shadow .15s}
+.signup-kind-card strong{color:var(--ink)}
+.signup-kind-card small{color:var(--muted);font-weight:400;line-height:1.7}
+.signup-kind-option input:checked+.signup-kind-card{border-color:var(--green);box-shadow:0 0 0 3px #174b3b22;background:#fff}
+.signup-kind-option input:focus-visible+.signup-kind-card{outline:2px solid var(--green);outline-offset:2px}
+.signup-assurance{border-top:1px dashed var(--line);padding-top:10px;line-height:2}
+.auth-taysir-link{margin-top:2px;line-height:1.9}
+.visitor-ways{margin:0;padding-inline-start:18px;line-height:2.1}
+.join-request-row{align-items:flex-start}
+.join-request-controls{display:grid;gap:8px;min-width:min(280px,100%)}
+.btn.sm{padding:6px 10px;font-size:12px}
+@media(max-width:640px){.join-request-controls{min-width:100%;width:100%}}
