@@ -59,8 +59,11 @@ async function main() {
   if (student && !student.user_id) {
     await call("/api/students/" + encodeURIComponent(student.id) + "/account", { method: "POST", token: adminToken, body: { username: "perm-student", password: "StudentPass#2026Strong", must_change_password: false } });
   }
-  const studentLogin = await login("perm-student", "StudentPass#2026Strong");
-  check("student login", studentLogin.status === 200 && studentLogin.token, "status=" + studentLogin.status);
+  const firstStudentLogin = await login("perm-student", "StudentPass#2026Strong");
+  check("student login", firstStudentLogin.status === 200 && firstStudentLogin.token, "status=" + firstStudentLogin.status);
+  if (firstStudentLogin.token) await call("/api/me/password", { method: "POST", token: firstStudentLogin.token, body: { current_password: "StudentPass#2026Strong", new_password: "StudentPass#2026StrongX" } });
+  const studentLogin = await login("perm-student", "StudentPass#2026StrongX");
+  check("student password changed", studentLogin.status === 200 && studentLogin.token, "status=" + studentLogin.status);
   const studentToken = studentLogin.token;
 
   // teacher account
@@ -104,6 +107,34 @@ async function main() {
   } else {
     check("teacher login (skipped)", true, "no token");
   }
+
+  // Role matrix: penalties (admin-only)
+  const penaltyByStudent = await call("/api/penalties", { method: "POST", token: studentToken, body: { student_id: student.id, points: 1, reason: "test" } });
+  check("student penalties create -> 403", penaltyByStudent.status === 403, "status=" + penaltyByStudent.status);
+  const penaltyByTeacher = teacherToken ? await call("/api/penalties", { method: "POST", token: teacherToken, body: { student_id: student.id, points: 1, reason: "test" } }) : { status: 403 };
+  check("teacher penalties create -> 403", penaltyByTeacher.status === 403, "status=" + penaltyByTeacher.status);
+
+  // Role matrix: store items create (admin-only)
+  const storeByStudent = await call("/api/store/items", { method: "POST", token: studentToken, body: { name: "x", cost: 1 } });
+  check("student store create -> 403", storeByStudent.status === 403, "status=" + storeByStudent.status);
+  const storeByTeacher = teacherToken ? await call("/api/store/items", { method: "POST", token: teacherToken, body: { name: "x", cost: 1 } }) : { status: 403 };
+  check("teacher store create -> 403", storeByTeacher.status === 403, "status=" + storeByTeacher.status);
+
+  // Role matrix: cards bulk (admin/staff only)
+  const cardsBulkByStudent = await call("/api/student-cards/bulk", { method: "POST", token: studentToken, body: { group_id: groupId } });
+  check("student cards bulk -> 403", cardsBulkByStudent.status === 403, "status=" + cardsBulkByStudent.status);
+
+  // Role matrix: missions (student-only)
+  const missionsByAdmin = await call("/api/missions", { token: adminToken });
+  check("admin missions -> 403", missionsByAdmin.status === 403, "status=" + missionsByAdmin.status);
+  const missionsByStudent = await call("/api/missions", { token: studentToken });
+  check("student missions -> 200", missionsByStudent.status === 200, "status=" + missionsByStudent.status);
+
+  // Role matrix: admin-only endpoints
+  const backupByStudent = await call("/api/admin/backup/full-export", { token: studentToken });
+  check("student backup export -> 403", backupByStudent.status === 403, "status=" + backupByStudent.status);
+  const chiefsByStudent = await call("/api/admin/chief-supervisors", { token: studentToken });
+  check("student chiefs list -> 403", chiefsByStudent.status === 403, "status=" + chiefsByStudent.status);
 
   console.log("\nTOTAL FAILURES: " + failures);
   process.exit(failures > 0 ? 1 : 0);
