@@ -61,3 +61,19 @@
 - `/api/admin/backup/full-export` كان يُرجع 500 بسبب متغير غير مُعرّف (`googleIdentities` missing from Promise.all destructure). أُصلح في `src/index.js`. Verified 200 locally.
 - `weekStart = academyDate(-6)` كان يمرّر رقمًا بدل تاريخ؛ أُصلح إلى `addCalendarDays(academyDate(), -6)`، وأُعيدت كتابة `quranStreak` بـ`addCalendarDays`.
 - `security-check.mjs` كان يتحقق من نص قديم لتفويض صفحة القرآن؛ حُدِّث إلى `await quranRosterPage($("#quran-staff-body"))`.
+
+## V71 — بطاقات الطلاب / مهام / rate-limit / صرفة متساوية (2026-11-15، محلي)
+
+- **cards-missions**: 51/51 (D1 محلية `.wrangler-cards`، ترحيلات 0001–0008).
+  - بطاقة = معرّف الطالب (بطاقة واحدة)، 3 رموز (add_points 90d, profile 365d, login 365d).
+  - QR دخول مجهول: name+username+requires_password، بلا جلسة.
+  - profile/add_points تتطلب جلسة ونطاق فوج؛ add_points مرفوض للطالب.
+  - reissue/rev (requires reason ≥3)/bulk/print.
+  - missions: 5 story + 4 side; claim via awardPointsForEvent (achievement>0); daily dedupe.
+  - redeem idempotent by request_id; stock deducted once.
+  - rate-limit: login 12/600s per-card, store 20/600s, mission 10/600s → 429 with retry_after.
+- **npm run check**: pass (node --check all + security-check).
+- **security-check**: "Security regression guardrails passed."
+- **backup**: 55/55 (أضيف image_url export/restore assertion).
+- **points**: 62/62, **quran**: 44/44, **competitions**: 124/124, **mobile**: 44/44 — إعادة تشغيل على نفس DB بعد V71: pass.
+- **UI (متصفح)**: غير مختبر (لا متصفح متصل) — خطوات اختبار في docs/PROJECT-AUDIT-2026-11-15.md §2 (cards/missions/print/scan notice).

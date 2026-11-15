@@ -110,3 +110,19 @@
 
 - Legacy app (root server/, android-app/) is historical (V65), not the deployed app.
 - APK out of scope (decision).
+
+## 2026-11-15 — ترتيب هيكل المدرسة وخارطة الطريق + خصم الجزاءات + صور متجر + تقرير التدقيق (V68–V70، غير منشورة)
+
+- **V68 — هيكل المدرسة وخارطة الطريق (لوحة المدير)**: تبويب `hierarchy` (هيكلي: المدير، المشرفون، المعلّمون، الفرق، كبير مشرفين، شاغر/مشغول) وتبويب `roadmap` (11 مرحلة). نسخة الأصول `20261114-3`، Service Worker `v147`. 44/44 smoke.
+- **V69 — خصم جزاءات (admin-only)**: `POST /api/penalties` يخصم من رصيد المتجر فقط (`kind='store'`، `points=-N`)، يطلب سببًا ≥5 أحرف، لا يتجاوز الرصيد، ويُسجّل `points_penalty`. `GET /api/penalties?student_id=`. 62/62 points.
+- **V70 — صور متجر** (additive): عمود nullable `store_items.image_url` (migration `0007_store_images.sql` + `ALTER TABLE` وقت التشغيل)، helper `storeItemImage`، حقل `image_url` في admin، CSS `.store-item-image`. 55/55 backup.
+- **تقرير التدقيق** `docs/AUDIT-REPORT-2026-11-15.md`: تدقيق مستقل + ملحق + توصية AI (GitHub Copilot Agent + GitHub Actions) + مصفوفة accomplished/remaining.
+
+## 2026-11-15 — بطاقات الطلاب بثلاثة رموز QR + عالم المهام + rate limiting + صرفة متساوية (V71، غير منشورة)
+
+- **بطاقات الطلاب (V71)**: سجلات في `academy_records` collection `student_cards`، **معرّف البطاقة = معرّف الطالب** (بطاقة واحدة). 3 رموز مستقلة: `add_points` (90 يومًا)، `profile` (365 يومًا)، `login` (365 يومًا، مجهول). `/api/cards/resolve` قبل بوابة الدخول؛ QR الدخول يعيد name+username+`requires_password:true` فقط (لا جلسة). أكواد profile/add_points تتطلب جلسة ونطاق فوج. إصدار/إبطال/طباعة (single + bulk) مع تدقيق. `site/qr.js` مشفّر QR مستقل (byte mode، EC level M، versions 1–10، mask 0، SVG) — تحقّق jsQR 8/8.
+- **عالم المهام (V71)**: 5 معالم story (من وقائع حقيقية، بلا نقاط)، 4 مهام جانبية يومية مستلمة عبر `awardPointsForEvent` (event_type=`mission_side`) مع dedupe يومي. السجلات في `student_missions`. قاعدة جديدة `rule-mission-side` (5 achievement / 2 store، حد 1/يوم) قابلة للتعديل.
+- **Rate limiting (V71)**: جدول D1 `rate_limits` (migration `0008`) + lazy schema + graceful allow-if-missing. Buckets: `card-resolve:<kind>` (12 login / 40 others per 600s per بطاقة للدخول)، `store-redeem` (20/600s)، `mission-claim` (10/600s).
+- **صرفة متجر متساوية (V71)**: معرّف صرفة حتمي `"rdm-"+sha256("redeem:"+student_id+":"+request_id).slice(0,32)`؛ طلب مكرر يعيد الصرف الموجود دون خصم مخزون مزدوج.
+- **واجهة (V71)**: تبويب `cards` (staff)، `staffCardsPage`، `cardQrSheet`/QR figures، `readScanHash`/`processPendingScan`، `scanNotice` في `auth()`، `worldPage` missions UI، print datasets `data-print="card"/"cards"`. CSS: `.card-qr*`, `.mission-*`, `.scan-notice`, reduced-motion، `@media print` for `body[data-print]`.
+- **أصول**: نسخة `20261115-1` في index/about/privacy، `/qr.js` في index + SW `v148-20261115-1`. `public/` مُعاد توليده. 51/51 cards-missions. `npm run check` PASS.

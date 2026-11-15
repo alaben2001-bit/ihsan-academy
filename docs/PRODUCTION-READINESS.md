@@ -37,3 +37,13 @@
 - «مسار القرآن (حفظ/تثبيت/ورد/رفيق/محطات/استدراك) والاقتصاد والعالم والبطاقة والدليل ونظام المسابقات (تصنيفات/شروط/دورة حياة/تحكيم بشري/جوائز مرة واحدة) نُشرت وتعمل محليًا؛ التحقق على D1 الإنتاجية وOAuth وoffline معلّق.»
 - «رحلة الطالب (8 أسئلة، توصية، اعتماد شيخ) والمتجر الصادق (مكافآت حقيقية فقط) ومراجعة الخطط جاهزة ومختبرة محليًا 93/93، ولم تُنشر بعد.»
 - «هوية المستخدم ودوره وتبديل الوحدة وأدوات الإدارة ظاهرة على الهاتف، وإضافة الفوج أسرع، ومختبرة HTTP 21/21 محليًا؛ لم تُنشر بعد، والتحقق البصري النهائي على هاتف حقيقي معلّق.»
+
+## V71 — بطاقات الطلاب / مهام / rate-limit / صرفة متساوية (2026-11-15، محلي، غير منشورة)
+
+- **بطاقات الطلاب**: backend 51/51 (cards CRUD, anonymous login QR, scope, reissue, revoke, bulk, print, rate-limit). UI (cardQrSheet, print datasets, scan notice) **غير متصفح-مختبرة**.
+- **مهام**: 5 story + 4 side; claim via awardPointsForEvent; daily dedupe. UI worldPage missions **غير متصفح-مختبرة**.
+- **rate-limit**: card-resolve per-card login 12/600s; store-redeem 20/600s; mission-claim 10/600s (جدول rate_limits, migration 0008).
+- **صرفة متجر متساوية**: idempotent by request_id; stock deducted once.
+- **صور متجر**: image_url (backend + restore + UI field) — UI غير متصفح-مختبرة.
+- **npm run check**: pass. **security-check**: pass.
+- **غير منشورة**: بانتظار commit + موافقة نشر.
