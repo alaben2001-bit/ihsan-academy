@@ -19,6 +19,7 @@
     }
   ],
   "vars": {
-    "APP_ENV": "production"
+    "APP_ENV": "production",
+    "GOOGLE_CLIENT_ID": "641495662203-4binlb6m78b7p1rqtb68rlc4pqv3d8oo.apps.googleusercontent.com"
   }
 }
