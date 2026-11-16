@@ -4653,10 +4653,12 @@ export default {
       if(user.role==="student")return fail(403,"غير مسموح");
       const parsed=await parseBody(request,4000);if(parsed.error)return parsed.error;const b=parsed.value;
       const groupId=clean(b.group_id,80);
+      const offset=Math.max(0,Math.min(100000,Math.floor(Number(b.offset)||0)));
+      const limit=Math.max(1,Math.min(200,Math.floor(Number(b.limit)||200)));
       if(!groupId||!await canManageGroup(env,user,groupId))return fail(403,"اختر فوجًا ضمن صلاحيتك");
       const group=await groupRow(env,groupId);
       if(!group||group.active!==1)return fail(404,"الفوج غير موجود أو غير نشط");
-      const rows=await env.DB.prepare("SELECT id,display_name AS name FROM students WHERE group_id=? AND active=1 ORDER BY display_name LIMIT 200").bind(groupId).all();
+      const rows=await env.DB.prepare("SELECT id,display_name AS name FROM students WHERE group_id=? AND active=1 ORDER BY display_name LIMIT ? OFFSET ?").bind(groupId,limit,offset).all();
       const cards=[];
       for(const row of rows.results||[]){
         let card=await cardRecord(env,row.id);
@@ -4668,7 +4670,7 @@ export default {
         cards.push({student:{id:row.id,name:row.name,group_id:groupId,group_name:group.name},card:cardPublic(card),links:cardLinks(card,url.origin)});
       }
       await log(env,user.id,"student_cards_bulk",{group_id:groupId,count:cards.length});
-      return json({group:{id:group.id,name:group.name},count:cards.length,cards});
+      return json({group:{id:group.id,name:group.name},count:cards.length,cards,next_offset:(rows.results||[]).length===limit?offset+cards.length:null,has_more:(rows.results||[]).length===limit});
     }
     const cardReissueMatch=path.match(/^\/api\/student-cards\/([^/]+)\/reissue$/);
     if(cardReissueMatch&&method==="POST"){
