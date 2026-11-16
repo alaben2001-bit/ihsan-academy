@@ -50,6 +50,8 @@ jobs:
         run: npm run prepare:assets
       - name: Apply local D1 migrations
         run: npx wrangler d1 migrations apply ihsan-academy-students --local
+      - name: Plant the second (test-only) school for isolation checks
+        run: npx wrangler d1 execute ihsan-academy-students --local --command "INSERT OR IGNORE INTO quran_schools (id, name, description, active, sort_order) VALUES ('qs-shuayb', 'مدرسة اختبار العزل الثاني', 'مدرسة محلية للاختبار في CI فقط', 1, 99)"
       - name: Start wrangler dev
         run: |
           npx wrangler dev --port 8788 --var BOOTSTRAP_SECRET:test-bootstrap-secret-1234 > /tmp/wrangler.log 2>&1 &
@@ -73,6 +75,8 @@ jobs:
         run: node scripts/mobile-smoke-test.mjs
       - name: Run student cards, QR scans, missions and idempotent store tests
         run: node scripts/cards-missions-test.mjs
+      - name: Run self-signup join-request journey tests
+        run: node scripts/signup-journey-test.mjs
       - name: Stop wrangler dev
         if: always()
         run: pkill -f "wrangler dev" || true

@@ -2736,7 +2736,7 @@ export default {
       if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"غير مسموح");const s=await env.DB.prepare("SELECT id,user_id,group_id FROM students WHERE id=? AND active=1").bind(studentMatch[1]).first();if(!s)return fail(404,"الطالب غير موجود");if(!await canManageGroup(env,user,s.group_id))return fail(403,"لا تملك صلاحية هذا الطالب");
       await env.DB.prepare("UPDATE students SET active=0 WHERE id=?").bind(s.id).run();if(s.user_id)await env.DB.prepare("UPDATE users SET active=0 WHERE id=?").bind(s.user_id).run();await log(env,user.id,"student_deactivate",{student_id:s.id});return json({ok:true});
     }
-    const effortCategories=["mandatory_classes","asr","adhkar","wird","bring","quran_classes"];
+    const effortCategories=["mandatory_classes","asr","adhkar","wird","thabit","bring","quran_classes"];
     if(path==="/api/students/roster-bulk"&&method==="POST"){
       if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"غير مسموح");
       const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
@@ -2798,7 +2798,7 @@ export default {
         records(env,"quran_progress"," AND group_id=?",[groupId])
       ]);
       const inPeriod=r=>String(r.date||"")>=fromDate&&String(r.date||"")<=today;
-      const metrics=["attendance","mandatory_classes","asr","adhkar","wird","bring","quran_classes","memorization","revision"];
+      const metrics=["attendance","mandatory_classes","asr","adhkar","wird","thabit","bring","quran_classes","memorization","revision"];
       const stats=(studentsRows.results||[]).map(student=>{
         const values={};
         const att=attendanceRows.filter(r=>r.student_id===student.id&&inPeriod(r)&&r.status!=="excused");

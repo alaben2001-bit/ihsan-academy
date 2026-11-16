@@ -26,3 +26,9 @@ coverage/
 .dev.vars.*
 !.dev.vars.example
 /deploy/cloudflare/.wrangler-cards/
+
+# Local command output logs
+/deploy/cloudflare/*-output.txt
+/deploy/cloudflare/wrangler-*.log
+/deploy/cloudflare/dev-serve.log
+
