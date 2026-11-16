@@ -15,6 +15,7 @@
     "test:competitions:local": "node scripts/competitions-test.mjs",
     "test:mobile:local": "node scripts/mobile-smoke-test.mjs",
     "test:cards:local": "node scripts/cards-missions-test.mjs",
+    "test:cards:print": "node scripts/cards-print-layout-test.mjs",
     "test:signup:local": "node scripts/signup-journey-test.mjs"
   },
   "devDependencies": {
