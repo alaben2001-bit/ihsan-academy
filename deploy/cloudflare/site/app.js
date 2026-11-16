@@ -1876,8 +1876,15 @@ async function staffCardsPage(v){
    if(!selectedGroups.length)throw new Error("لا يوجد فوج ضمن صلاحيتك");
    const datasets=[];
    for(const group of selectedGroups){
-    const data=await api("/student-cards/bulk",{method:"POST",body:JSON.stringify({group_id:group.id})});
-    datasets.push(...(data.cards||[]));
+    let offset=0;
+    while(true){
+     const data=await api("/student-cards/bulk",{method:"POST",body:JSON.stringify({group_id:group.id,offset,limit:200})});
+     datasets.push(...(data.cards||[]));
+     if(!data.has_more)break;
+     const next=Number(data.next_offset);
+     if(!Number.isInteger(next)||next<=offset)throw new Error("تعذر إكمال تحميل بطاقات الفوج بأمان");
+     offset=next;
+    }
    }
    const count=$("#cards-count");if(count)count.textContent=datasets.length+" بطاقة · "+selectedGroups.length+" فوج";
    host.innerHTML='<div class="cards-sheet-grid">'+datasets.map(row=>
