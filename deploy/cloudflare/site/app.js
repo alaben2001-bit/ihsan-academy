@@ -1884,7 +1884,7 @@ async function staffCardsPage(v){
     '<section class="student-card-print-item" data-card-item="'+esc(row.student.id)+'">'+staffStudentPassMarkup(row)+'<div class="student-card-print-actions"><button class="btn secondary" type="button" data-card-print-one="'+esc(row.student.id)+'">طباعة هذه البطاقة</button><button class="btn secondary" type="button" data-card-reissue="'+esc(row.student.id)+'">إعادة إصدار الرموز</button><button class="btn danger" type="button" data-card-revoke="'+esc(row.student.id)+'">إلغاء الرموز</button></div></section>'
    ).join("")+'</div>';
    host.querySelectorAll("[data-card-print-one]").forEach(btn=>btn.onclick=()=>{
-    document.body.dataset.print="card-one";document.body.dataset.printStudent=btn.dataset.cardPrintOne;window.print();
+    document.body.dataset.print="card-one";document.body.dataset.printStudent=btn.dataset.cardPrintOne;host.querySelectorAll(".student-card-print-item").forEach(item=>item.classList.toggle("is-print-target",item.dataset.cardItem===btn.dataset.cardPrintOne));window.print();
    });
    host.querySelectorAll("[data-card-reissue]").forEach(btn=>btn.onclick=async()=>{
     btn.disabled=true;
@@ -1902,7 +1902,7 @@ async function staffCardsPage(v){
  };
  $("#cards-group")?.addEventListener("change",e=>{S.cardsGroupId=e.target.value;loadCards()});
  $("#cards-print")?.addEventListener("click",()=>{document.body.dataset.print="cards";window.print()});
- window.addEventListener("afterprint",()=>{delete document.body.dataset.print;delete document.body.dataset.printStudent});
+ window.addEventListener("afterprint",()=>{delete document.body.dataset.print;delete document.body.dataset.printStudent;document.querySelectorAll(".student-card-print-item.is-print-target").forEach(item=>item.classList.remove("is-print-target"))});
  await loadCards();
 }
 
