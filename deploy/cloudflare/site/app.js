@@ -2241,7 +2241,7 @@ async function renderScanPanel(v,studentId){
   const eventRows=(events||[]).map(e=>'<div class="list-row"><div><strong>'+esc(e.reason||e.event_type)+'</strong><small>'+esc(e.kind_label||e.kind)+' · '+esc(pointsDate(e.created_at))+(e.awarded_by_name?' · بواسطة '+esc(e.awarded_by_name):"")+(e.reversed?' · معكوسة':"")+'</small></div><span class="pill">'+(Number(e.points)>0?"+":"")+Number(e.points)+'</span></div>').join("");
   const isSheikh=S.user.role==="admin";
   host.innerHTML='<section class="card scan-panel-card"><div class="section-head"><div><span class="eyebrow">متابعة الطالب · '+esc(todayIso)+'</span><h3>'+esc(studentDisplayName(s.name||"طالب"))+'</h3><p>'+esc(s.group_name||"")+'</p></div><div class="student-actions"><button class="btn secondary" type="button" id="scan-open-profile">الملف الكامل</button><button class="btn secondary" type="button" id="scan-open-plans">خطط الطلاب واعتمادها</button></div></div>'
-   +'<div class="stats"><div class="stat"><small>رصيد الإنجاز</small><strong>'+Number(t.achievement||0)+'</strong></div><div class="stat"><small>رصيد المتجر</small><strong>'+Number(t.store||0)+'</strong></div></div>'
+   +'<div class="stats"><div class="stat"><small>رصيد النقاط الموحد</small><strong>'+Number(t.balance??t.achievement??0)+'</strong></div></div>'
    +'<h4>خطته المعتمدة</h4>'+planChips
    +'<h4>تسجيل الحضور اليوم</h4><div class="student-actions" id="scan-attendance-buttons">'+attButtons+'</div>'
    +'<h4>تسجيل إنجاز اليوم (حفظ / تثبيت / ورد)</h4><div class="scan-quran-grid">'+quranQuick("hifz","الحفظ الجديد","",Array.from(new Set([info&&info.hifz_unit,"صفحة","سطر","آية","وجه"].filter(Boolean))),0,info?(info.hifz_unit||"صفحة"):"صفحة")+quranQuick("thabit","التثبيت",info?info.thabit_amount:"",["حزب","نصف حزب","ثلاثة أثمان حزب","ربع حزب","ثمن حزب"],15,info?thabitUnitFor(info.thabit_amount):"ربع حزب")+quranQuick("ward","الورد اليومي",info?info.ward_ahzab:"",["حزب","حزبان","أربعة أحزاب"],0,info?wardUnitFor(info.ward_ahzab):"حزب")+'</div>'
@@ -2256,7 +2256,7 @@ async function renderScanPanel(v,studentId){
     btn.disabled=true;
     try{await api("/attendance",{method:"POST",body:JSON.stringify({group_id:s.group_id,date:todayIso,items:[{student_id:studentId,status:btn.dataset.scanAtt}]})});
       const label={present:"حاضر",absent:"غائب",late:"متأخر",excused:"بعذر"}[btn.dataset.scanAtt]||btn.dataset.scanAtt;
-      toast("تم تسجيل حضور «"+label+"» — تُمنح نقاط الحضور تلقائيًا عند «حاضر»");await refresh()}
+      toast("تم تسجيل الحضور: "+label);await refresh()}
     catch(error){btn.disabled=false;toast(error.message,true)}
   });
   host.querySelectorAll("[data-scan-quran]").forEach(form=>form.onsubmit=async event=>{
@@ -2264,7 +2264,7 @@ async function renderScanPanel(v,studentId){
     const kind=form.dataset.scanQuran,button=form.querySelector('button[type="submit"]'),data=new FormData(form);
     button.disabled=true;
     try{const result=await api("/quran/daily",{method:"POST",body:JSON.stringify({student_id:studentId,kind,amount:Number(data.get("amount")),unit:data.get("unit"),repetitions:Number(data.get("repetitions")||0),notes:data.get("notes")||""})});
-      const awarded=(result.awards||[]).filter(a=>a.status==="awarded").reduce((n,a)=>n+Number(a.points||0),0);
+      const awarded=(result.awards||[]).find(a=>a.status==="awarded"&&a.kind==="achievement")?.points||0;
       toast("تم تسجيل "+({hifz:"الحفظ الجديد",thabit:"التثبيت",ward:"الورد"}[kind]||"الإنجاز")+(awarded?" — أُضيفت "+awarded+" نقطة":""));await refresh()}
     catch(error){button.disabled=false;toast(error.message,true)}
   });
@@ -2272,7 +2272,7 @@ async function renderScanPanel(v,studentId){
     const activity=btn.dataset.scanActivity,resultHost=host.querySelector("#scan-activity-result");
     btn.disabled=true;
     try{const result=await api("/points/activity",{method:"POST",body:JSON.stringify({student_id:studentId,activity,date:todayIso})});
-      const parts=(result.awards||[]).map(a=>a.status==="awarded"?"+"+a.points+" "+(a.kind==="achievement"?"إنجاز":"متجر"):a.status==="duplicate"?"مكررة اليوم (لم تُمنح مرتين)":"بلغ الحد اليومي");
+      const first=(result.awards||[]).find(a=>a.kind==="achievement")||result.awards?.[0];const parts=first?[first.status==="awarded"?"+"+first.points+" نقطة":first.status==="duplicate"?"مكررة اليوم (لم تُمنح مرتين)":"بلغ الحد اليومي"]:["لا توجد قاعدة نقاط نشطة لهذا النشاط"];
       if(resultHost)resultHost.textContent="النتيجة: "+parts.join(" · ");
       toast("تم — "+parts.join(" · "));await refresh()}
     catch(error){btn.disabled=false;if(resultHost)resultHost.textContent="تعذر المنح: "+error.message;toast(error.message,true)}
