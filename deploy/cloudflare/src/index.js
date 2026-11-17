@@ -351,7 +351,8 @@ async function awardPointsForEvent(env, options) {
   const results = [];
   for (const kind of POINT_KINDS) {
     const override = kind === "achievement" ? options.achievementPoints : options.storePoints;
-    const amount = Number(override !== undefined && override !== null ? override : (kind === "achievement" ? rule.achievement_points : rule.store_points));
+    const baseAmount = Number(override !== undefined && override !== null ? override : (kind === "achievement" ? rule.achievement_points : rule.store_points));
+    const amount = Number(rule.bonus_percent)>0 ? Math.round(baseAmount*(1+Number(rule.bonus_percent)/100)) : baseAmount;
     if (!Number.isFinite(amount) || amount <= 0) continue;
     if (rule.max_per_day !== null && rule.max_per_day !== undefined) {
       const used = await env.DB.prepare("SELECT COUNT(*) AS n FROM point_events WHERE student_id=? AND event_type=? AND kind=? AND awarded_date=? AND reversed_at IS NULL").bind(studentId, eventType, kind, date).first();
