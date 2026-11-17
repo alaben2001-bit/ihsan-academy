@@ -4552,8 +4552,10 @@ export default {
       const rule=ruleId?await env.DB.prepare("SELECT * FROM point_rules WHERE id=?").bind(ruleId).first():null;
       if(ruleId&&!rule)return fail(404,"قاعدة النقاط غير موجودة");
       if(!rule&&reason.length<3)return fail(400,"اكتب سبب منح النقاط (3 أحرف على الأقل)");
-      const points=rule?Math.max(Number(rule.achievement_points)||0,Number(rule.store_points)||0):Number(b.points??b.achievement_points??b.store_points??0);
-      if(!Number.isInteger(points)||points<=0||points>MAX_MANUAL_POINTS)return fail(400,"النقاط الممنوحة يجب أن تكون عددًا صحيحًا بين 1 و1000");
+      const basePoints=Number(b.base_points??b.points??Math.max(Number(rule?.achievement_points)||0,Number(rule?.store_points)||0));
+      const bonusPercent=Number(rule?.bonus_percent||0);
+      const points=bonusPercent>0?Math.round(basePoints*(1+bonusPercent/100)):basePoints;
+      if(!Number.isInteger(points)||points<=0||points>MAX_MANUAL_POINTS)return fail(400,"النقاط الممنوحة بعد المكافأة يجب أن تكون عددًا صحيحًا بين 1 و1000");
       const requestId=clean(b.request_id,80);
       const eventKey="manual:"+(/^[a-zA-Z0-9_-]{6,80}$/.test(requestId)?requestId:uuid());
       const date=academyDate(),events=[];
@@ -4600,7 +4602,13 @@ export default {
       if(reason.length<3)return fail(400,"اكتب سبب الإجراء");
       let state=await env.DB.prepare("SELECT * FROM student_ethics WHERE student_id=?").bind(studentId).first();
       let warnings=Number(state?.warnings||0),status=state?.multiplier_status||"active";
-      if(action==="warning"){
+      if(action==="award"){
+        if(status==="forfeited")return fail(409,"حُرم الطالب من مكافأة الأخلاق نهائيًا");
+        const amount=status==="suspended"?100:300,eventKey="ethics-award:"+studentId+":"+academyDate();
+        for(const kind of POINT_KINDS)await insertPointEvent(env,{student_id:studentId,group_id:student.group_id,event_type:"ethics_reward",kind,points:amount,reason:"مكافأة الأخلاق: "+reason,event_key:eventKey,awarded_date:academyDate(),awarded_by:user.id});
+        await log(env,user.id,"student_ethics_award",{student_id:studentId,amount,status});
+        return json({ok:true,points:amount,multiplier_status:status,totals:await pointsTotals(env,studentId)});
+      }else if(action==="warning"){
         if(status==="forfeited")return fail(409,"حُرم الطالب من المضاعفة نهائيًا");
         const deduction=Number(b.deduction_points||0);
         if(warnings>=3&&(!Number.isInteger(deduction)||deduction<1||deduction>1000))return fail(400,"بعد التنبيه الثالث يجب تحديد خصم النقاط");
