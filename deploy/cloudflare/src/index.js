@@ -4577,7 +4577,7 @@ export default {
       const rule=ruleId?await env.DB.prepare("SELECT * FROM point_rules WHERE id=?").bind(ruleId).first():null;
       if(ruleId&&!rule)return fail(404,"قاعدة النقاط غير موجودة");
       if(!rule&&reason.length<3)return fail(400,"اكتب سبب منح النقاط (3 أحرف على الأقل)");
-      const basePoints=Number(b.base_points??b.points??Math.max(Number(rule?.achievement_points)||0,Number(rule?.store_points)||0));
+      const basePoints=Number(b.base_points??b.points??Math.max(Number(b.achievement_points)||0,Number(b.store_points)||0,Number(rule?.achievement_points)||0,Number(rule?.store_points)||0));
       const bonusPercent=Number(rule?.bonus_percent||0);
       const points=bonusPercent>0?Math.round(basePoints*(1+bonusPercent/100)):basePoints;
       if(!Number.isInteger(points)||points<=0||points>MAX_MANUAL_POINTS)return fail(400,"النقاط الممنوحة بعد المكافأة يجب أن تكون عددًا صحيحًا بين 1 و1000");
