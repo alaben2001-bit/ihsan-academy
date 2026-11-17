@@ -2209,13 +2209,19 @@ async function renderScanPanel(v,studentId){
     api("/points/summary?student_id="+encodeURIComponent(studentId)),
     api("/quran/path?student_id="+encodeURIComponent(studentId)),
     api("/quran/today?student_id="+encodeURIComponent(studentId)),
-    api("/points/history?student_id="+encodeURIComponent(studentId)+"&limit=8")
+    api("/points/history?student_id="+encodeURIComponent(studentId)+"&limit=8"),
+    S.user.role==="admin"?api("/points/ethics?student_id="+encodeURIComponent(studentId)):Promise.resolve(null),
+    S.user.role==="admin"?api("/points/streak?student_id="+encodeURIComponent(studentId)):Promise.resolve([]),
+    S.user.role==="admin"?api("/points/referrals?student_id="+encodeURIComponent(studentId)):Promise.resolve([])
   ]);
   if(res[0].status!=="fulfilled"){host.innerHTML='<div class="notice error">'+esc(res[0].reason?.message||"تعذر تحميل بيانات الطالب")+'</div>';return}
   summary=res[0].value;
   pathData=res[1].status==="fulfilled"?res[1].value:{enrolled:false};
   today=res[2].status==="fulfilled"?res[2].value:{enrolled:false,logs:{}};
   events=res[3].status==="fulfilled"?res[3].value:[];
+  const ethics=res[4]?.status==="fulfilled"?res[4].value:null;
+  const streaks=res[5]?.status==="fulfilled"?res[5].value:[];
+  const referrals=res[6]?.status==="fulfilled"?res[6].value:[];
   const s=summary.student||{},t=summary.totals||{};
   const info=(pathData&&pathData.path)||null;
   const logs=(today&&today.logs)||{};
@@ -2240,12 +2246,20 @@ async function renderScanPanel(v,studentId){
     :'<h4>تعيين مهمة للطالب</h4><div class="notice">هذا الطالب بلا حساب داخل المنصة؛ أنشئ حسابه أولًا من صفحة الطلاب ثم عُد لتعيين المهمة.</div>';
   const eventRows=(events||[]).map(e=>'<div class="list-row"><div><strong>'+esc(e.reason||e.event_type)+'</strong><small>'+esc(e.kind_label||e.kind)+' · '+esc(pointsDate(e.created_at))+(e.awarded_by_name?' · بواسطة '+esc(e.awarded_by_name):"")+(e.reversed?' · معكوسة':"")+'</small></div><span class="pill">'+(Number(e.points)>0?"+":"")+Number(e.points)+'</span></div>').join("");
   const isSheikh=S.user.role==="admin";
+  const referralOptions=(S.students||[]).filter(st=>String(st.id)!==String(studentId)).map(st=>'<option value="'+esc(st.id)+'">'+esc(st.name||st.display_name||"طالب")+'</option>').join("");
+  const streakRows=(streaks||[]).map(x=>'<div class="list-row"><strong>'+esc({hifz:"الحفظ",fajr:"الفجر",shuruq:"الشروق"}[x.activity]||x.activity)+'</strong><span class="pill">'+Number(x.current_days)+' يوم · آخر تسجيل '+esc(x.last_date||"—")+'</span></div>').join("");
+  const referralRows=(referrals||[]).filter(x=>x.status==="pending").map(x=>'<div class="list-row"><div><strong>'+esc(x.invited_name||"الزميل")+'</strong><small>دُعي بواسطة '+esc(x.inviter_name||"")+' · '+pointsDate(x.created_at)+'</small></div><button class="btn secondary" type="button" data-referral-confirm="'+esc(x.id)+'">اعتماد بعد أسبوع</button></div>').join("");
+  const adminPointTools=isSheikh
+    ?'<section class="card"><h4>الاستمرارية</h4><p class="muted small">سجّل اليوم بعد التحقق؛ المكافأة +50% عند 5 و10 و20 و30 يومًا متتالية، ولا تتكرر المحطة.</p><div class="list">'+(streakRows||'<p class="muted">لم تبدأ سلسلة بعد.</p>')+'</div><form id="scan-streak-form" class="form-grid"><label class="field">المسار<select name="activity"><option value="hifz">الحفظ</option><option value="fajr">الفجر</option><option value="shuruq">الشروق</option></select></label><label class="field">نقاط الإنجاز الأساسية<input name="base_points" type="number" min="1" max="1000" value="30" required></label><button class="btn" type="submit">اعتماد يوم الاستمرارية</button></form>'
+    +'<h4>الأخلاق والتنبيهات</h4><p class="muted small">التنبيهات المعتمدة تُسجّل بسببها. بعد ثلاثة تنبيهات يتوقف امتياز المضاعفة؛ والحرمان النهائي لا يُعاد.</p><div class="notice">التنبيهات: '+Number(ethics?.warnings||0)+' · حالة المضاعفة: '+esc({active:"مفعّلة",suspended:"موقوفة بعد 3 تنبيهات",forfeited:"حرمان نهائي"}[ethics?.multiplier_status||"active"])+'</div><form id="scan-ethics-form" class="form-grid"><label class="field">الإجراء<select name="action"><option value="warning">تسجيل تنبيه</option><option value="award">منح مكافأة الأخلاق</option><option value="forfeit">حرمان نهائي من المضاعفة</option><option value="restore">إعادة الامتياز (إن لم يكن نهائيًا)</option></select></label><label class="field">خصم النقاط بعد التنبيه الثالث<input name="deduction_points" type="number" min="1" max="1000" placeholder="اختياري قبل التنبيه الرابع"></label><label class="field full">السبب (إلزامي)<input name="reason" required minlength="3" maxlength="500"></label><button class="btn danger" type="submit">اعتماد الإجراء</button></form>'
+    +'<h4>إحضار زميل</h4><form id="scan-referral-form" class="form-grid"><label class="field">الزميل الجديد<select name="invited_student_id" required><option value="">اختر الطالب</option>'+referralOptions+'</select></label><button class="btn" type="submit">تسجيل الإحالة</button></form><div class="list">'+(referralRows||'<p class="muted">لا توجد إحالات معلّقة.</p>')+'</div></section>'
+    :'<div class="notice">اعتماد النقاط والمكافآت والتنبيهات والاستمرارية من صلاحية الشيخ وحده.</div>';
   host.innerHTML='<section class="card scan-panel-card"><div class="section-head"><div><span class="eyebrow">متابعة الطالب · '+esc(todayIso)+'</span><h3>'+esc(studentDisplayName(s.name||"طالب"))+'</h3><p>'+esc(s.group_name||"")+'</p></div><div class="student-actions"><button class="btn secondary" type="button" id="scan-open-profile">الملف الكامل</button><button class="btn secondary" type="button" id="scan-open-plans">خطط الطلاب واعتمادها</button></div></div>'
    +'<div class="stats"><div class="stat"><small>رصيد النقاط الموحد</small><strong>'+Number(t.balance??t.achievement??0)+'</strong></div></div>'
    +'<h4>خطته المعتمدة</h4>'+planChips
    +'<h4>تسجيل الحضور اليوم</h4><div class="student-actions" id="scan-attendance-buttons">'+attButtons+'</div>'
    +'<h4>تسجيل إنجاز اليوم (حفظ / تثبيت / ورد)</h4><div class="scan-quran-grid">'+quranQuick("hifz","الحفظ الجديد","",Array.from(new Set([info&&info.hifz_unit,"صفحة","سطر","آية","وجه"].filter(Boolean))),0,info?(info.hifz_unit||"صفحة"):"صفحة")+quranQuick("thabit","التثبيت",info?info.thabit_amount:"",["حزب","نصف حزب","ثلاثة أثمان حزب","ربع حزب","ثمن حزب"],15,info?thabitUnitFor(info.thabit_amount):"ربع حزب")+quranQuick("ward","الورد اليومي",info?info.ward_ahzab:"",["حزب","حزبان","أربعة أحزاب"],0,info?wardUnitFor(info.ward_ahzab):"حزب")+'</div>'
-   +(isSheikh?'<h4>منح النقاط — الشيخ وحده</h4><p class="muted small">اختر النشاط بعد التحقق من إنجازه، ثم اعتمد نقاطه بنفسك.</p><div class="student-actions" id="scan-activity-buttons">'+activityButtons+'</div><div id="scan-activity-result" class="muted small" aria-live="polite"></div><form id="scan-manual-award" class="form-grid"><label class="field">عدد النقاط<input type="number" name="points" min="1" max="1000" value="10" required></label><label class="field full">سبب المنح<input name="reason" required minlength="3" maxlength="500" placeholder="مثال: حفظ ثمن دون أخطاء"></label><button class="btn" type="submit">اعتماد النقاط</button></form>':'<div class="notice">اعتماد النقاط من صلاحية الشيخ وحده.</div>')
+   +(isSheikh?'<h4>منح النقاط — الشيخ وحده</h4><p class="muted small">اختر النشاط بعد التحقق من إنجازه، ثم اعتمد نقاطه بنفسك.</p><div class="student-actions" id="scan-activity-buttons">'+activityButtons+'</div><div id="scan-activity-result" class="muted small" aria-live="polite"></div><form id="scan-manual-award" class="form-grid"><label class="field">عدد النقاط<input type="number" name="points" min="1" max="1000" value="10" required></label><label class="field full">سبب المنح<input name="reason" required minlength="3" maxlength="500" placeholder="مثال: حفظ ثمن دون أخطاء"></label><button class="btn" type="submit">اعتماد النقاط</button></form>':'<div class="notice">اعتماد النقاط من صلاحية الشيخ وحده.</div>')+adminPointTools
    +assignTaskMarkup
    +'<h4>آخر العمليات على حساب الطالب</h4><div class="list">'+(eventRows||'<div class="empty">لا توجد عمليات بعد.</div>')+'</div>'
    +'</section>';
@@ -2281,6 +2295,13 @@ async function renderScanPanel(v,studentId){
       toast("تم — "+parts.join(" · "));await refresh()}
     catch(error){btn.disabled=false;if(resultHost)resultHost.textContent="تعذر المنح: "+error.message;toast(error.message,true)}
   });
+  const streakForm=host.querySelector("#scan-streak-form");
+  if(streakForm)streakForm.onsubmit=async event=>{event.preventDefault();const data=new FormData(streakForm),button=streakForm.querySelector("button");button.disabled=true;try{const result=await api("/points/streak",{method:"POST",body:JSON.stringify({student_id:studentId,activity:data.get("activity"),base_points:Number(data.get("base_points")),date:todayIso})});toast(result.bonus?"مكافأة الاستمرارية: +"+result.bonus+" نقطة":"سُجّل اليوم · السلسلة "+result.days+" أيام");await refresh()}catch(error){toast(error.message,true);button.disabled=false}};
+  const ethicsForm=host.querySelector("#scan-ethics-form");
+  if(ethicsForm)ethicsForm.onsubmit=async event=>{event.preventDefault();const data=new FormData(ethicsForm),button=ethicsForm.querySelector("button");button.disabled=true;try{await api("/points/ethics",{method:"POST",body:JSON.stringify({student_id:studentId,action:data.get("action"),reason:data.get("reason"),deduction_points:Number(data.get("deduction_points")||0)})});toast("تم اعتماد سجل الأخلاق");await refresh()}catch(error){toast(error.message,true);button.disabled=false}};
+  const referralForm=host.querySelector("#scan-referral-form");
+  if(referralForm)referralForm.onsubmit=async event=>{event.preventDefault();const data=new FormData(referralForm),button=referralForm.querySelector("button");button.disabled=true;try{await api("/points/referrals",{method:"POST",body:JSON.stringify({inviter_student_id:studentId,invited_student_id:data.get("invited_student_id")})});toast("سُجلت الإحالة؛ تُعتمد مكافأتها بعد أسبوع من الثبات");await refresh()}catch(error){toast(error.message,true);button.disabled=false}};
+  host.querySelectorAll("[data-referral-confirm]").forEach(button=>button.onclick=async()=>{button.disabled=true;try{const result=await api("/points/referrals/"+encodeURIComponent(button.dataset.referralConfirm)+"/confirm",{method:"POST",body:"{}"});toast("اعتمدت مكافأة الإحالة: "+result.points+" نقطة");await refresh()}catch(error){toast(error.message,true);button.disabled=false}});
   const assignForm=host.querySelector("#scan-assign-task");
   if(assignForm)assignForm.addEventListener("submit",async event=>{
     event.preventDefault();
