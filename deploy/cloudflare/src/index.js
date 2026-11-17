@@ -695,15 +695,15 @@ const LEARNING_SCHEMA_STATEMENTS = [
   `CREATE INDEX IF NOT EXISTS idx_store_redemptions_student ON store_redemptions(student_id, requested_at)`,
   `CREATE INDEX IF NOT EXISTS idx_store_redemptions_group ON store_redemptions(group_id, requested_at)`,
   `CREATE INDEX IF NOT EXISTS idx_store_redemptions_status ON store_redemptions(status, requested_at)`,
-  `INSERT OR IGNORE INTO point_rules (id,event_type,name,description,achievement_points,store_points,max_per_day,auto_award,active,sort_order,bonus_percent) VALUES
-    ('rule-fajr','fajr','صلاة الفجر','تُعتمد بعد التحقق من الحضور.',30,30,1,1,1,5,0),
-    ('rule-shuruq','shuruq','صلاة الشروق','تُعتمد بعد التحقق من الحضور.',20,20,1,1,1,6,0),
-    ('rule-maghrib','maghrib','صلاة المغرب','تُعتمد بعد التحقق من الحضور.',10,10,1,1,1,7,0),
-    ('rule-hifz-no-errors','hifz_no_errors','حفظ ثمن دون أخطاء','ثلاثون نقطة بدل نقاط الحفظ الأساسية.',30,30,1,1,1,8,0),
-    ('rule-hifz-tajweed','hifz_tajweed','حفظ ثمن بالتجويد','خمس وعشرون نقطة بدل نقاط الحفظ الأساسية.',25,25,1,1,1,9,0),
-    ('rule-poetry','poetry','أربعة أبيات','كل أربعة أبيات بخمسة نقاط.',5,5,1,1,1,10,0),
-    ('rule-support-others','support_others','دعم الآخرين','زيادة ثلاثين بالمئة على الإنجاز المعتمد.',1,1,1,1,1,11,30),
-    ('rule-quran-reading-new','quran_reading','قراءة حزب','عشر نقاط للحزب المقروء.',10,10,1,1,1,12,0)`,
+  `INSERT OR IGNORE INTO point_rules (id,event_type,name,description,achievement_points,store_points,max_per_day,auto_award,active,sort_order) VALUES
+    ('rule-fajr','fajr','صلاة الفجر','تُعتمد بعد التحقق من الحضور.',30,30,1,1,1,5),
+    ('rule-shuruq','shuruq','صلاة الشروق','تُعتمد بعد التحقق من الحضور.',20,20,1,1,1,6),
+    ('rule-maghrib','maghrib','صلاة المغرب','تُعتمد بعد التحقق من الحضور.',10,10,1,1,1,7),
+    ('rule-hifz-no-errors','hifz_no_errors','حفظ ثمن دون أخطاء','ثلاثون نقطة بدل نقاط الحفظ الأساسية.',30,30,1,1,1,8),
+    ('rule-hifz-tajweed','hifz_tajweed','حفظ ثمن بالتجويد','خمس وعشرون نقطة بدل نقاط الحفظ الأساسية.',25,25,1,1,1,9),
+    ('rule-poetry','poetry','أربعة أبيات','كل أربعة أبيات بخمسة نقاط.',5,5,1,1,1,10),
+    ('rule-support-others','support_others','دعم الآخرين','زيادة ثلاثين بالمئة على الإنجاز المعتمد.',1,1,1,1,1,11),
+    ('rule-quran-reading-new','quran_reading','قراءة حزب','عشر نقاط للحزب المقروء.',10,10,1,1,1,12)`,
   `UPDATE point_rules SET active=0,auto_award=0 WHERE event_type IN ('attendance_present','quran_entry')`,
   `CREATE TABLE IF NOT EXISTS student_point_streaks (
     student_id TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
@@ -743,6 +743,7 @@ async function ensureLearningSchema(env) {
     for (const statement of LEARNING_SCHEMA_STATEMENTS) await env.DB.prepare(statement).run();
     try { await env.DB.prepare("ALTER TABLE store_items ADD COLUMN image_url TEXT").run(); } catch {}
     try { await env.DB.prepare("ALTER TABLE point_rules ADD COLUMN bonus_percent INTEGER NOT NULL DEFAULT 0 CHECK (bonus_percent >= 0 AND bonus_percent <= 300)").run(); } catch {}
+    await env.DB.prepare("UPDATE point_rules SET bonus_percent=30 WHERE event_type='support_others'").run();
     return true;
   })().catch(error => { learningSchemaReady = null; throw error; });
   return learningSchemaReady;
