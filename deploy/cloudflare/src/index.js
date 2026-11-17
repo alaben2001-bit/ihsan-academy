@@ -291,8 +291,8 @@ const MAX_MANUAL_POINTS = 1000;
 
 async function pointsTotals(env, studentId) {
   const row = await env.DB.prepare(
-    "SELECT COALESCE(SUM(CASE WHEN kind='achievement' THEN points WHEN kind='store' AND event_type='store_redemption' THEN points ELSE 0 END),0) AS balance FROM point_events WHERE student_id=? AND reversed_at IS NULL"
-  ).bind(studentId).first();
+    "WITH grouped AS (SELECT event_key,MAX(CASE WHEN kind='achievement' THEN points END) AS achievement_points,MAX(CASE WHEN kind='store' AND event_type<>'store_redemption' THEN points END) AS store_points FROM point_events WHERE student_id=? AND reversed_at IS NULL AND event_type<>'store_redemption' GROUP BY event_key), redeemed AS (SELECT COALESCE(SUM(points),0) AS spent FROM point_events WHERE student_id=? AND reversed_at IS NULL AND event_type='store_redemption' AND kind='store') SELECT COALESCE(SUM(MAX(COALESCE(achievement_points,-100000),COALESCE(store_points,-100000))),0)+(SELECT spent FROM redeemed) AS balance FROM grouped"
+  ).bind(studentId,studentId).first();
   const balance=Number(row?.balance||0); return { achievement: balance, store: balance, balance };
 }
 
@@ -1699,7 +1699,7 @@ function buildStudentTasks(student, assignments, submissions, plan, progress, at
 }
 
 async function recentPointEvents(env, studentId, limit = 50) {
-  const result = await env.DB.prepare("SELECT pe.id,pe.event_type,pe.kind,pe.points,pe.reason,pe.event_key,pe.awarded_date,pe.source_collection,pe.source_id,pe.awarded_by,u.display_name AS awarded_by_name,pe.created_at,pe.reversed_at,pe.reversal_reason FROM point_events pe LEFT JOIN users u ON u.id=pe.awarded_by WHERE pe.student_id=? AND (pe.kind='achievement' OR pe.event_type='store_redemption') ORDER BY pe.created_at DESC, pe.id DESC LIMIT ?").bind(studentId, limit).all();
+  const result = await env.DB.prepare("SELECT pe.id,pe.event_type,pe.kind,pe.points,pe.reason,pe.event_key,pe.awarded_date,pe.source_collection,pe.source_id,pe.awarded_by,u.display_name AS awarded_by_name,pe.created_at,pe.reversed_at,pe.reversal_reason FROM point_events pe LEFT JOIN users u ON u.id=pe.awarded_by WHERE pe.student_id=? AND (pe.kind='achievement' OR pe.event_type='store_redemption' OR (pe.kind='store' AND NOT EXISTS (SELECT 1 FROM point_events pa WHERE pa.student_id=pe.student_id AND pa.event_key=pe.event_key AND pa.kind='achievement'))) ORDER BY pe.created_at DESC, pe.id DESC LIMIT ?").bind(studentId, limit).all();
   return (result.results || []).map(row => ({ ...row, kind_label: POINT_KIND_LABELS[row.kind] || row.kind, reversed: Boolean(row.reversed_at) }));
 }
 async function competitionStudentFacts(env, studentId) {
