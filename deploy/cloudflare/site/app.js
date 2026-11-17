@@ -564,7 +564,7 @@ $("#toggle-login-password")?.addEventListener("click",()=>{const input=$("#login
   $("#tab-signup")?.addEventListener("click",()=>setAuthTab("signup"));
   document.querySelectorAll('#signup-form input[name="kind"]').forEach(radio=>radio.addEventListener("change",syncSignupKind));
   const signupForm=$("#signup-form");
-  if(signupForm)signupForm.onsubmit=async e=>{e.preventDefault();const f=new FormData(e.currentTarget),b=e.currentTarget.querySelector("button[type=submit]"),err=$("#signup-error");b.disabled=true;err.classList.add("hidden");const kind=String(f.get("kind")||"student");try{const d=await api("/signup",{method:"POST",body:JSON.stringify({name:f.get("name"),email:f.get("email"),password:f.get("password"),kind,school_id:kind==="student"?String(f.get("school_id")||""):"",note:f.get("note")||""})});S.token="";clearSessionToken();S.user=d.user;toast(d.join_note||"تم إنشاء حسابك");renderTopActions();await start()}catch(x){err.textContent=x.message;err.classList.remove("hidden");b.disabled=false}};
+  if(signupForm)signupForm.onsubmit=async e=>{e.preventDefault();const f=new FormData(e.currentTarget),b=e.currentTarget.querySelector("button[type=submit]"),err=$("#signup-error");b.disabled=true;err.classList.add("hidden");const kind=String(f.get("kind")||"student");try{const d=await api("/signup",{method:"POST",body:JSON.stringify({name:f.get("name"),email:f.get("email"),password:f.get("password"),kind,school_id:kind==="student"?String(f.get("school_id")||""):"",note:f.get("note")||""})});S.token="";clearSessionToken();S.user=d.user;toast(d.join_note||"تم إنشاء حسابك");renderTopActions();await start()}catch(x){const msg=String(x?.message||"");const validation=/^(أدخل|هذا البريد|كلمة المرور|اختر|المدرسة|هذا الحساب|هذا الطلب|تم )/.test(msg);err.textContent=validation?msg:"تعذّر إنشاء الحساب حاليًا بسبب قيد تقني مؤقت؛ يجري تجهيز التسجيل الأولي. حاول بعد قليل أو تواصل مع إدارة الأكاديمية.";err.classList.remove("hidden");err.title=msg;b.disabled=false}};
   try{const match=/#signup=(student|visitor|teacher)/.exec(location.hash||"");if(match){const wanted=match[1];const radio=document.querySelector('#signup-form input[name="kind"][value="'+wanted+'"]');if(radio){radio.checked=true;setAuthTab("signup")}}}catch{}
  }
  rotateKnowledgeVerses();
@@ -3313,8 +3313,9 @@ async function systemCheckPage(v){
  if(S.user.role!=="admin"){v.innerHTML=head("فحص النظام","هذه الصفحة متاحة للمدير فقط.")+'<div class="notice error">لا تملك صلاحية فحص بيانات النظام.</div>';return}
  v.innerHTML=head("فحص النظام","قراءة تشخيصية لا تعدّل بيانات الطلاب أو الأفواج.")+'<div class="loading">جار فحص سلامة البيانات…</div>';
  try{
-  const result=await api("/admin/system-check"),c=result.counts||{};
+  const result=await api("/admin/system-check"),c=result.counts||{},sc=result.schema||{};
   const checks=[
+   {title:"ترحيل التسجيل 0009 (join_requests + دور visitor)",value:Number(sc.join_requests_table||0)&&Number(sc.visitor_role_allowed||0)?"مكتمل":"ناقص",ok:Number(sc.join_requests_table||0)===1&&Number(sc.visitor_role_allowed||0)===1,good:"ترحيل 0009 مطبّق على قاعدة البيانات",bad:"الترحيل 0009 غير مطبّق؛ التسجيل الذاتي يرجع 500 والنشر الحيّ يعمل ناقصًا"},
    {title:"حساب المدير",value:Number(c.active_admins||0),ok:Number(c.active_admins||0)>0,good:"يوجد مدير نشط",bad:"لا يوجد مدير نشط"},
    {title:"حسابات الطلاب",value:Number(c.active_students||0),ok:Number(c.students_without_login||0)===0,good:"كل ملفات الطلاب مرتبطة بحسابات دخول",bad:Number(c.students_without_login||0)+" ملف طالب بلا حساب دخول"},
    {title:"ارتباط الطلاب بالأفواج",value:Number(c.students_without_active_group||0),ok:Number(c.students_without_active_group||0)===0,good:"كل الطلاب مرتبطون بأفواج نشطة",bad:Number(c.students_without_active_group||0)+" طالب بلا فوج نشط"},
@@ -3322,7 +3323,7 @@ async function systemCheckPage(v){
    {title:"إعداد المدير الأول",value:result.bootstrap_setup_enabled?"مفعّل":"مغلق",ok:!result.bootstrap_setup_enabled,good:"مسار الإعداد الأولي مغلق",bad:"تحقق من إغلاق الإعداد الأولي"}
   ];
   const roles=Array.isArray(result.roles)?result.roles:[];
-  const roleLabel={admin:"المدير",director:"مدير المدرسة",teacher:"المعلم",supervisor:"المشرف",student:"الطالب"};
+  const roleLabel={admin:"المدير",director:"مدير المدرسة",teacher:"المعلم",supervisor:"المشرف",student:"الطالب",visitor:"زائر/محسن"};
   v.innerHTML=head("فحص النظام","آخر فحص: "+esc(result.checked_at||"غير متاح"))+
    '<section class="card"><div class="section-head"><div><h3>البيانات الأساسية</h3><p>تتصل الصفحة بقاعدة البيانات الفعلية، وتعرض أعدادًا فقط دون أسماء أو كلمات مرور.</p></div><button class="btn secondary" id="system-check-refresh" type="button">إعادة الفحص</button></div><div class="stats system-check-stats"><div class="stat"><small>حسابات نشطة</small><strong>'+Number(c.active_users||0)+'</strong></div><div class="stat"><small>ملفات الطلاب النشطة</small><strong>'+Number(c.active_students||0)+'</strong></div><div class="stat"><small>السجلات التعليمية</small><strong>'+Number(c.saved_records||0)+'</strong></div><div class="stat"><small>جلسات منتهية</small><strong>'+Number(c.expired_sessions||0)+'</strong></div></div><p class="muted small">التخزين: '+esc(result.storage||"غير معروف")+'</p></section>'+
    '<section class="card"><h3>مؤشرات سلامة النظام</h3><div class="system-check-list">'+checks.map(x=>'<article class="system-check-item '+(x.ok?"is-ok":"is-warning")+'"><span class="system-check-mark" aria-hidden="true">'+(x.ok?"✓":"!")+'</span><div><strong>'+esc(x.title)+'</strong><small>'+esc(x.ok?x.good:x.bad)+'</small></div><span class="system-check-value">'+esc(x.value)+'</span></article>').join("")+'</div></section>'+
