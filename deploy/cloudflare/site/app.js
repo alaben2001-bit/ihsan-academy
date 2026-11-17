@@ -897,7 +897,7 @@ async function refreshWallet(){
  try{
   const [summary,reading]=await Promise.all([api("/points/summary"),api("/points/reading")]);
   const achievement=Number(summary.totals?.achievement||0),store=Number(summary.totals?.store||0),streak=Number(reading?.streak||0);
-  host.innerHTML='<button type="button" class="wallet-chip" data-wallet-go="points" title="نقاط الإنجاز ورصيد المتجر"><span aria-hidden="true">★</span><strong>'+achievement+'</strong><small>إنجاز</small></button><button type="button" class="wallet-chip" data-wallet-go="points" title="رصيد المتجر"><span aria-hidden="true">◈</span><strong>'+store+'</strong><small>متجر</small></button><button type="button" class="wallet-chip wallet-chip-streak" data-wallet-go="world" title="سلسلة ورد القراءة"><span aria-hidden="true">🔥</span><strong>'+streak+'</strong><small>يوم</small></button>';
+  host.innerHTML='<button type="button" class="wallet-chip" data-wallet-go="points" title="رصيد النقاط"><span aria-hidden="true">★</span><strong>'+store+'</strong><small>نقطة</small></button><button type="button" class="wallet-chip wallet-chip-streak" data-wallet-go="world" title="سلسلة ورد القراءة"><span aria-hidden="true">🔥</span><strong>'+streak+'</strong><small>يوم</small></button>';
   host.querySelectorAll("[data-wallet-go]").forEach(btn=>btn.onclick=()=>go(btn.dataset.walletGo));
  }catch{host.innerHTML=""}
 }
@@ -1003,7 +1003,7 @@ function storeItemFacts(item,balance){
  return parts.join(" · ");
 }
 function storeTermsMarkup(){
- return '<details class="store-terms"><summary>شروط الصرف قبل أن تطلب</summary><ul><li>طلبك يُراجع من الشيخ أو الإدارة قبل التنفيذ، ولا يُسلَّم تلقائيًا.</li><li>يُحجز مبلغ المكافأة من رصيد المتجر فور الطلب، ويُعاد تلقائيًا إذا رُفض الطلب.</li><li>بعد تنفيذ الطلب لا يمكن إلغاؤه؛ تأكد من اختيارك.</li><li>نقاط الإنجاز مؤشر تراكمي لا تُصرف ولا تُحوَّل؛ رصيد المتجر وحده يُستخدم.</li><li>لا نعرض مكافأة نفدت كميتها أو بلغت حدّها؛ ونُحدّث المتاح فور الطلب.</li></ul></details>';
+ return '<details class="store-terms"><summary>شروط الصرف قبل أن تطلب</summary><ul><li>طلبك يُراجع من الشيخ أو الإدارة قبل التنفيذ، ولا يُسلَّم تلقائيًا.</li><li>يُحجز مبلغ المكافأة من رصيد المتجر فور الطلب، ويُعاد تلقائيًا إذا رُفض الطلب.</li><li>بعد تنفيذ الطلب لا يمكن إلغاؤه؛ تأكد من اختيارك.</li><li>رصيدك هو مجموع نقاطك، وتستخدم النقاط نفسها لطلب المكافآت من المتجر.</li><li>لا نعرض مكافأة نفدت كميتها أو بلغت حدّها؛ ونُحدّث المتاح فور الطلب.</li></ul></details>';
 }
 function storeStudentMarkup(store,summary){
  const reco=store?.recommendations||null;
@@ -1080,7 +1080,7 @@ async function pointsPage(v){
  html+='<div class="notice">نقاط الإنجاز مؤشر تراكمي لا يُصرف. رصيد المتجر وحده يُستخدم في طلبات الصرف، وكل حركة مسجلة ولا تُحذف؛ التصحيح بعكس موثّق بسبب.</div>';
  html+=isStudent?storeStudentMarkup(store,summary):storeStaffMarkup(store,S.user.role==="admin");
  html+='<section class="card"><h3>طلبات الصرف</h3><div class="list">'+(redemptionRows||'<p class="muted">لا توجد طلبات صرف بعد.</p>')+'</div></section>';
- if(canManage)html+='<section class="card"><h3>منح نقاط يدوي</h3><form id="points-award-form" class="form-grid"><label class="field">نقاط الإنجاز<input name="achievement_points" type="number" min="0" max="1000" value="0"></label><label class="field">رصيد المتجر<input name="store_points" type="number" min="0" max="1000" value="0"></label><label class="field">سبب المنح (إلزامي)<input name="reason" required minlength="3" maxlength="500"></label><button class="btn" type="submit">منح النقاط</button></form></section>';
+ if(S.user.role==="admin")html+='<section class="card"><h3>منح النقاط — الشيخ فقط</h3><form id="points-award-form" class="form-grid"><label class="field">عدد النقاط<input name="points" type="number" min="1" max="1000" required value="10"></label><label class="field">سبب المنح (إلزامي)<input name="reason" required minlength="3" maxlength="500"></label><button class="btn" type="submit">اعتماد النقاط</button></form></section>';
  if(canManage){
   const qp=(t)=>'<button class="btn secondary" type="button" data-quick-reason="'+t+'">'+t+'</button>';
   html+='<section class="card sheikh-panel" id="sheikh-panel"><h3>لوحة الشيخ — إجراءات بعد مسح البطاقة</h3><p class="muted small">ترقية المستوى، خصم جزاء، ورد سريع للمكافآت الشائعة.</p>';
@@ -1116,7 +1116,7 @@ async function pointsPage(v){
  });
  $("#points-award-form")?.addEventListener("submit",async e=>{
   e.preventDefault();const form=e.currentTarget,data=new FormData(form);
-  try{await api("/points/award",{method:"POST",body:JSON.stringify({student_id:studentId,achievement_points:Number(data.get("achievement_points")||0),store_points:Number(data.get("store_points")||0),reason:data.get("reason")})});toast("تم منح النقاط");await pointsPage(v)}catch(error){toast(error.message,true)}
+  try{await api("/points/award",{method:"POST",body:JSON.stringify({student_id:studentId,points:Number(data.get("points")||0),reason:data.get("reason")})});toast("تم منح النقاط");await pointsPage(v)}catch(error){toast(error.message,true)}
  });
   // لوحة الشيخ: ترقية المستوى، خصم الجزاء، ورد سريع.
   if(canManage){
@@ -2239,13 +2239,13 @@ async function renderScanPanel(v,studentId){
     ?'<h4>تعيين مهمة للطالب</h4><form id="scan-assign-task" class="form-grid"><label class="field full">عنوان المهمة<input name="title" required minlength="3" maxlength="160" placeholder="مثال: مراجعة المتشابهات بين سورتي الرحمن والقارعة"></label><label class="field full">التفاصيل والمطلوب<textarea name="content" required minlength="3" maxlength="8000" rows="2" placeholder="المطلوب من الطالب إنجازه، والموعد، وكيفية التسليم"></textarea></label><button class="btn" type="submit">أرسل المهمة إلى الطالب</button></form>'
     :'<h4>تعيين مهمة للطالب</h4><div class="notice">هذا الطالب بلا حساب داخل المنصة؛ أنشئ حسابه أولًا من صفحة الطلاب ثم عُد لتعيين المهمة.</div>';
   const eventRows=(events||[]).map(e=>'<div class="list-row"><div><strong>'+esc(e.reason||e.event_type)+'</strong><small>'+esc(e.kind_label||e.kind)+' · '+esc(pointsDate(e.created_at))+(e.awarded_by_name?' · بواسطة '+esc(e.awarded_by_name):"")+(e.reversed?' · معكوسة':"")+'</small></div><span class="pill">'+(Number(e.points)>0?"+":"")+Number(e.points)+'</span></div>').join("");
+  const isSheikh=S.user.role==="admin";
   host.innerHTML='<section class="card scan-panel-card"><div class="section-head"><div><span class="eyebrow">متابعة الطالب · '+esc(todayIso)+'</span><h3>'+esc(studentDisplayName(s.name||"طالب"))+'</h3><p>'+esc(s.group_name||"")+'</p></div><div class="student-actions"><button class="btn secondary" type="button" id="scan-open-profile">الملف الكامل</button><button class="btn secondary" type="button" id="scan-open-plans">خطط الطلاب واعتمادها</button></div></div>'
    +'<div class="stats"><div class="stat"><small>رصيد الإنجاز</small><strong>'+Number(t.achievement||0)+'</strong></div><div class="stat"><small>رصيد المتجر</small><strong>'+Number(t.store||0)+'</strong></div></div>'
    +'<h4>خطته المعتمدة</h4>'+planChips
    +'<h4>تسجيل الحضور اليوم</h4><div class="student-actions" id="scan-attendance-buttons">'+attButtons+'</div>'
    +'<h4>تسجيل إنجاز اليوم (حفظ / تثبيت / ورد)</h4><div class="scan-quran-grid">'+quranQuick("hifz","الحفظ الجديد","",Array.from(new Set([info&&info.hifz_unit,"صفحة","سطر","آية","وجه"].filter(Boolean))),0,info?(info.hifz_unit||"صفحة"):"صفحة")+quranQuick("thabit","التثبيت",info?info.thabit_amount:"",["حزب","نصف حزب","ثلاثة أثمان حزب","ربع حزب","ثمن حزب"],15,info?thabitUnitFor(info.thabit_amount):"ربع حزب")+quranQuick("ward","الورد اليومي",info?info.ward_ahzab:"",["حزب","حزبان","أربعة أحزاب"],0,info?wardUnitFor(info.ward_ahzab):"حزب")+'</div>'
-   +'<h4>منح نقاط النشاط</h4><p class="muted small">وفق نظام النقاط المعتمد؛ تُمنع النقاط المكررة في اليوم نفسه تلقائيًا.</p><div class="student-actions" id="scan-activity-buttons">'+activityButtons+'</div><div id="scan-activity-result" class="muted small" aria-live="polite"></div>'
-   +'<h4>منح نقاط يدوية (استثنائي)</h4><form id="scan-manual-award" class="form-grid"><label class="field">نقاط الإنجاز<input type="number" name="achievement_points" min="0" max="1000" value="0"></label><label class="field">رصيد المتجر<input type="number" name="store_points" min="0" max="1000" value="0"></label><label class="field full">سبب المنح (مطلوب)<input name="reason" required minlength="3" maxlength="500" placeholder="مثال: إتقان تثبيت محفوظ الأسبوع"></label><button class="btn" type="submit">منح النقاط</button></form>'
+   +(isSheikh?'<h4>منح النقاط — الشيخ وحده</h4><p class="muted small">اختر النشاط بعد التحقق من إنجازه، ثم اعتمد نقاطه بنفسك.</p><div class="student-actions" id="scan-activity-buttons">'+activityButtons+'</div><div id="scan-activity-result" class="muted small" aria-live="polite"></div><form id="scan-manual-award" class="form-grid"><label class="field">عدد النقاط<input type="number" name="points" min="1" max="1000" value="10" required></label><label class="field full">سبب المنح<input name="reason" required minlength="3" maxlength="500" placeholder="مثال: حفظ ثمن دون أخطاء"></label><button class="btn" type="submit">اعتماد النقاط</button></form>':'<div class="notice">اعتماد النقاط من صلاحية الشيخ وحده.</div>')
    +assignTaskMarkup
    +'<h4>آخر العمليات على حساب الطالب</h4><div class="list">'+(eventRows||'<div class="empty">لا توجد عمليات بعد.</div>')+'</div>'
    +'</section>';
@@ -2292,7 +2292,7 @@ async function renderScanPanel(v,studentId){
     const button=manualForm.querySelector('button[type="submit"]'),data=new FormData(manualForm);
     button.disabled=true;
     const requestId=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():String(Date.now())+"-"+Math.random().toString(36).slice(2);
-    try{await api("/points/award",{method:"POST",body:JSON.stringify({student_id:studentId,achievement_points:Number(data.get("achievement_points")||0),store_points:Number(data.get("store_points")||0),reason:String(data.get("reason")||"").trim(),request_id:requestId})});
+    try{await api("/points/award",{method:"POST",body:JSON.stringify({student_id:studentId,points:Number(data.get("points")||0),reason:String(data.get("reason")||"").trim(),request_id:requestId})});
       toast("تم منح النقاط وتحديث الرصيد");await refresh()}
     catch(error){button.disabled=false;toast(error.message,true)}
   });
@@ -2301,7 +2301,7 @@ async function renderScanPanel(v,studentId){
 async function guidePage(v){
  let rules=[];
  try{rules=await api("/points/rules")}catch(error){rules=[]}
- const ruleRows=rules.map(rule=>'<tr><td><strong>'+esc(rule.name)+'</strong><br><small class="muted">'+esc(rule.description||rule.event_type)+'</small></td><td>'+Number(rule.achievement_points||0)+'</td><td>'+Number(rule.store_points||0)+'</td><td>'+(rule.max_per_day?"مرة كل يوم":"—")+'</td></tr>').join("");
+ const ruleRows=rules.map(rule=>'<tr><td><strong>'+esc(rule.name)+'</strong><br><small class="muted">'+esc(rule.description||rule.event_type)+'</small></td><td>'+Number(rule.achievement_points||rule.store_points||0)+'</td><td>'+(rule.max_per_day?"مرة كل يوم":"—")+'</td></tr>').join("");
  const readingRule=rules.find(rule=>rule.event_type==="quran_reading");
  const readingPoints=Number(readingRule?.achievement_points||5),readingStore=Number(readingRule?.store_points||2);
  const stageRows=WORLD_STAGES.map((item,index)=>'<tr><td><strong>'+esc(item.name)+'</strong><br><small class="muted">'+esc(item.title)+'</small></td><td>'+Number(item.min)+'</td><td>'+esc(item.line)+'</td></tr>').join("");
