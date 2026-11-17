@@ -4591,6 +4591,19 @@ export default {
       await log(env,user.id,"points_manual_award",{student_id:s.id,points,rule_id:rule?.id||null,event_key:eventKey});
       return json({ok:true,events,totals:await pointsTotals(env,s.id)},201);
     }
+    if(path==="/api/points/streak"&&method==="GET"){
+      const studentId=user.role==="student"?user.student_id:clean(url.searchParams.get("student_id"),80);
+      if(!studentId)return fail(400,"حدّد الطالب");
+      if(user.role!=="admin"&&!(user.role==="student"&&user.student_id===studentId))return fail(403,"عرض الاستمرارية متاح للشيخ والطالب نفسه");
+      const rows=await env.DB.prepare("SELECT activity,current_days,last_date,awarded_milestones,updated_at FROM student_point_streaks WHERE student_id=? ORDER BY activity").bind(studentId).all();
+      return json((rows.results||[]).map(row=>({...row,awarded_milestones:(()=>{try{return JSON.parse(row.awarded_milestones||"[]")}catch{return []}})()})));
+    }
+    if(path==="/api/points/referrals"&&method==="GET"){
+      if(user.role!=="admin")return fail(403,"قائمة الإحالات للشيخ وحده");
+      const studentId=clean(url.searchParams.get("student_id"),80);
+      const rows=await env.DB.prepare("SELECT r.*,a.display_name AS inviter_name,b.display_name AS invited_name FROM student_referrals r JOIN students a ON a.id=r.inviter_student_id JOIN students b ON b.id=r.invited_student_id WHERE (?='' OR r.inviter_student_id=?) ORDER BY r.created_at DESC LIMIT 100").bind(studentId,studentId).all();
+      return json(rows.results||[]);
+    }
     if(path==="/api/points/streak"&&method==="POST"){
       if(user.role!=="admin")return fail(403,"اعتماد الاستمرارية ومكافآتها للشيخ وحده");
       const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
