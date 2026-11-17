@@ -4698,9 +4698,9 @@ export default {
       if(row.reversed_at)return fail(409,"هذه الحركة معكوسة بالفعل");
       const s=await env.DB.prepare("SELECT id,group_id FROM students WHERE id=?").bind(row.student_id).first();
       if(!s||!await canManageGroup(env,user,s.group_id))return fail(403,"هذه الحركة خارج صلاحيتك");
-      const result=await env.DB.prepare("UPDATE point_events SET reversed_at=?,reversed_by=?,reversal_reason=? WHERE id=? AND reversed_at IS NULL").bind(nowIso(),user.id,reason,eventId).run();
+      const result=await env.DB.prepare("UPDATE point_events SET reversed_at=?,reversed_by=?,reversal_reason=? WHERE student_id=? AND event_key=? AND event_type=? AND reversed_at IS NULL AND event_type<>'store_redemption'").bind(nowIso(),user.id,reason,row.student_id,row.event_key,row.event_type).run();
       if(!Number(result?.meta?.changes||0))return fail(409,"تعذّر عكس الحركة؛ ربما عُكست للتو");
-      await log(env,user.id,"points_event_reverse",{event_id:eventId,student_id:row.student_id,points:row.points,kind:row.kind,reason});
+      await log(env,user.id,"points_event_reverse",{event_id:eventId,student_id:row.student_id,paired_events:Number(result.meta.changes),reason});
       return json({ok:true,totals:await pointsTotals(env,row.student_id)});
     }
     if(path==="/api/penalties"&&method==="GET"){
