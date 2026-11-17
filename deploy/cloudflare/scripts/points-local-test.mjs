@@ -103,16 +103,16 @@ async function main() {
   const noReason = await call("/api/points/award", { method: "POST", token: admin, body: { student_id: student.id, achievement_points: 5, store_points: 5 } });
   check("manual award without reason is rejected", noReason.status === 400, JSON.stringify(noReason.data));
 
-  const awardBody = { student_id: student.id, achievement_points: 50, store_points: 30, reason: "اختبار المنح اليدوي", request_id: "test-award-001" };
+  const awardBody = { student_id: student.id, achievement_points: 30, store_points: 30, reason: "اختبار المنح اليدوي", request_id: "test-award-001" };
   const award1 = await call("/api/points/award", { method: "POST", token: admin, body: awardBody });
-  check("manual award succeeds", award1.status === 201 && award1.data?.totals?.achievement === 50 && award1.data?.totals?.store === 30, JSON.stringify(award1.data));
+  check("manual award succeeds", award1.status === 201 && award1.data?.totals?.achievement === 30 && award1.data?.totals?.store === 30, JSON.stringify(award1.data));
 
   const award2 = await call("/api/points/award", { method: "POST", token: admin, body: awardBody });
   const duplicateEvents = (award2.data?.events || []).every(event => event.status === "duplicate");
-  check("repeated request_id does not double-award", award2.status === 201 && duplicateEvents && award2.data?.totals?.achievement === 50 && award2.data?.totals?.store === 30, JSON.stringify(award2.data));
+  check("repeated request_id does not double-award", award2.status === 201 && duplicateEvents && award2.data?.totals?.achievement === 30 && award2.data?.totals?.store === 30, JSON.stringify(award2.data));
 
   const summaryAfterAward = await call("/api/points/summary?student_id=" + encodeURIComponent(student.id), { token: admin });
-  check("summary reports 50 achievement / 30 store", summaryAfterAward.data?.totals?.achievement === 50 && summaryAfterAward.data?.totals?.store === 30, JSON.stringify(summaryAfterAward.data?.totals));
+  check("summary reports one unified 30-point balance", summaryAfterAward.data?.totals?.achievement === 30 && summaryAfterAward.data?.totals?.store === 30, JSON.stringify(summaryAfterAward.data?.totals));
 
   // -------------------------------------------------------------------------
   // 4) Store item, student redemption, rejection refunds balance
