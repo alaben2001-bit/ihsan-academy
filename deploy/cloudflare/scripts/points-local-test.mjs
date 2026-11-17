@@ -197,7 +197,7 @@ async function main() {
   check("reversal without reason is rejected", reverseNoReason.status === 400, JSON.stringify(reverseNoReason.data));
 
   const reverse = await call("/api/points/events/" + encodeURIComponent(manualEvent.id) + "/reverse", { method: "POST", token: admin, body: { reason: "تصحيح اختبار محلي" } });
-  check("reversal removes 50 achievement and keeps the record", reverse.status === 200 && reverse.data?.totals?.achievement === 25 && reverse.data?.totals?.store === 25, JSON.stringify(reverse.data));
+  check("reversal removes the paired 30-point award and keeps the record", reverse.status === 200 && reverse.data?.totals?.achievement === 25 && reverse.data?.totals?.store === 25, JSON.stringify(reverse.data));
 
   const reverseAgain = await call("/api/points/events/" + encodeURIComponent(manualEvent.id) + "/reverse", { method: "POST", token: admin, body: { reason: "تكرار" } });
   check("second reversal is rejected", reverseAgain.status === 409, JSON.stringify(reverseAgain.data));
@@ -210,7 +210,7 @@ async function main() {
   // 8) Approve / fulfil keeps the debit
   // -------------------------------------------------------------------------
   const redeem3 = await call("/api/store/redeem", { method: "POST", token: studentToken, body: { item_id: itemId } });
-  check("student can redeem again after a rejected request", redeem3.status === 201 && redeem3.data?.balance === 31, JSON.stringify(redeem3.data));
+  check("student can redeem again after a rejected request", redeem3.status === 201 && redeem3.data?.balance === 5, JSON.stringify(redeem3.data));
   const redemption3 = redeem3.data?.redemption?.id;
 
   const approve = await call("/api/store/redemptions/" + encodeURIComponent(redemption3) + "/decision", { method: "POST", token: admin, body: { decision: "approved", note: "اختبار الاعتماد" } });
@@ -218,7 +218,7 @@ async function main() {
 
   const fulfill = await call("/api/store/redemptions/" + encodeURIComponent(redemption3) + "/decision", { method: "POST", token: admin, body: { decision: "fulfilled", note: "اختبار التنفيذ" } });
   const afterFulfil = await call("/api/points/summary?student_id=" + encodeURIComponent(student.id), { token: admin });
-  check("fulfilled redemption keeps the store debit", fulfill.status === 200 && afterFulfil.data?.totals?.store === 31, JSON.stringify({ fulfil: fulfill.data, totals: afterFulfil.data?.totals }));
+  check("fulfilled redemption keeps the store debit", fulfill.status === 200 && afterFulfil.data?.totals?.store === 5, JSON.stringify({ fulfil: fulfill.data, totals: afterFulfil.data?.totals }));
 
   const fulfilAgain = await call("/api/store/redemptions/" + encodeURIComponent(redemption3) + "/decision", { method: "POST", token: admin, body: { decision: "approved" } });
   check("fulfilled redemption is final", fulfilAgain.status === 409, JSON.stringify(fulfilAgain.data));
