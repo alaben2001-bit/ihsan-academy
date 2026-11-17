@@ -285,7 +285,7 @@ async function parseBody(request, maxBytes = 32000) {
 // نقاط الإنجاز مؤشر تراكمي، ورصيد المتجر هو ما يُصرف فقط.
 // ---------------------------------------------------------------------------
 const POINT_KINDS = ["achievement", "store"];
-const POINT_KIND_LABELS = { achievement: "نقاط الإنجاز", store: "رصيد المتجر" };
+const POINT_KIND_LABELS = { achievement: "رصيد النقاط", store: "حركة نقاط" };
 const MAX_RULE_POINTS = 100000;
 const MAX_MANUAL_POINTS = 1000;
 
