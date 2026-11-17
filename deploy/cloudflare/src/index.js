@@ -291,9 +291,9 @@ const MAX_MANUAL_POINTS = 1000;
 
 async function pointsTotals(env, studentId) {
   const row = await env.DB.prepare(
-    "SELECT COALESCE(SUM(CASE WHEN kind='achievement' THEN points END),0) AS achievement, COALESCE(SUM(CASE WHEN kind='store' THEN points END),0) AS store FROM point_events WHERE student_id=? AND reversed_at IS NULL"
+    "SELECT COALESCE(SUM(CASE WHEN kind='store' THEN points END),0) AS balance FROM point_events WHERE student_id=? AND reversed_at IS NULL"
   ).bind(studentId).first();
-  return { achievement: Number(row?.achievement || 0), store: Number(row?.store || 0) };
+  const balance=Number(row?.balance||0); return { achievement: balance, store: balance, balance };
 }
 
 function storeItemAvailability(item, balance) {
@@ -1660,7 +1660,7 @@ function buildStudentTasks(student, assignments, submissions, plan, progress, at
 }
 
 async function recentPointEvents(env, studentId, limit = 50) {
-  const result = await env.DB.prepare("SELECT pe.id,pe.event_type,pe.kind,pe.points,pe.reason,pe.event_key,pe.awarded_date,pe.source_collection,pe.source_id,pe.awarded_by,u.display_name AS awarded_by_name,pe.created_at,pe.reversed_at,pe.reversal_reason FROM point_events pe LEFT JOIN users u ON u.id=pe.awarded_by WHERE pe.student_id=? ORDER BY pe.created_at DESC, pe.id DESC LIMIT ?").bind(studentId, limit).all();
+  const result = await env.DB.prepare("SELECT pe.id,pe.event_type,pe.kind,pe.points,pe.reason,pe.event_key,pe.awarded_date,pe.source_collection,pe.source_id,pe.awarded_by,u.display_name AS awarded_by_name,pe.created_at,pe.reversed_at,pe.reversal_reason FROM point_events pe LEFT JOIN users u ON u.id=pe.awarded_by WHERE pe.student_id=? AND pe.kind='store' ORDER BY pe.created_at DESC, pe.id DESC LIMIT ?").bind(studentId, limit).all();
   return (result.results || []).map(row => ({ ...row, kind_label: POINT_KIND_LABELS[row.kind] || row.kind, reversed: Boolean(row.reversed_at) }));
 }
 async function competitionStudentFacts(env, studentId) {
@@ -1940,7 +1940,7 @@ export default {
       const scanner=await currentUser(request,env);
       if(!scanner)return fail(401,"سجّل الدخول أولًا ثم أعد مسح البطاقة.");
       if(!await canAccessStudentCard(env,scanner,student))return fail(403,"هذه البطاقة خارج صلاحيتك");
-      if(kind==="add_points"&&scanner.role==="student")return fail(403,"رمز إضافة النقاط يُستخدم من الشيخ أو المشرف");
+      if(kind==="add_points"&&scanner.role!=="admin")return fail(403,"إضافة النقاط متاحة للشيخ وحده");
       const totals=await pointsTotals(env,student.id);
       await log(env,scanner.id,"student_card_scan_"+kind,{card_id:card.id,student_id:student.id});
       return json({ok:true,kind,student:{id:student.id,name:student.name,group_id:student.group_id,group_name:student.group_name||""},totals,next:kind==="add_points"?"points":"profile"});
@@ -4416,7 +4416,7 @@ export default {
     // الاقتصاد التعليمي: النقاط والمتجر
     // -----------------------------------------------------------------------
     if(path==="/api/points/activity"&&method==="POST"){
-      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"منح النقاط للأنشطة للمعلّم أو المشرف أو المدير فقط");
+      if(user.role!=="admin")return fail(403,"منح النقاط للشيخ وحده");
       const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
       const activity=clean(b.activity,20);
       const ACTIVITY_MAP={attendance:{eventType:"attendance_present",reason:"حضور (يدوي)"},hifz:{eventType:"quran_entry",reason:"حفظ قرآني (الحفظ الجديد)"},revision:{eventType:"quran_entry",reason:"مراجعة محفوظ"},thabit:{eventType:"quran_entry",reason:"تثبيت محفوظ"},ward:{eventType:"quran_reading",reason:"ورد يومي"}};
@@ -4515,7 +4515,7 @@ export default {
       return json({ok:true,rule},existing?200:201);
     }
     if(path==="/api/points/award"&&method==="POST"){
-      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"منح النقاط للمعلم أو الإدارة");
+      if(user.role!=="admin")return fail(403,"منح النقاط للشيخ وحده");
       const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
       const resolved=await resolvePointStudent(env,user,clean(b.student_id,80));
       if(resolved.error)return resolved.error;
@@ -4524,25 +4524,21 @@ export default {
       const rule=ruleId?await env.DB.prepare("SELECT * FROM point_rules WHERE id=?").bind(ruleId).first():null;
       if(ruleId&&!rule)return fail(404,"قاعدة النقاط غير موجودة");
       if(!rule&&reason.length<3)return fail(400,"اكتب سبب منح النقاط (3 أحرف على الأقل)");
-      const achievement=rule?Number(rule.achievement_points):Number(b.achievement_points??0);
-      const store=rule?Number(rule.store_points):Number(b.store_points??0);
-      if(!Number.isInteger(achievement)||achievement<0||achievement>MAX_MANUAL_POINTS||!Number.isInteger(store)||store<0||store>MAX_MANUAL_POINTS)return fail(400,"المنح اليدوي بين 0 و1000 لكل نوع");
-      if(achievement===0&&store===0)return fail(400,"حدّد نقاط إنجاز أو رصيد متجر أكبر من صفر");
+      const points=rule?Math.max(Number(rule.achievement_points)||0,Number(rule.store_points)||0):Number(b.points??b.achievement_points??b.store_points??0);
+      if(!Number.isInteger(points)||points<=0||points>MAX_MANUAL_POINTS)return fail(400,"النقاط الممنوحة يجب أن تكون عددًا صحيحًا بين 1 و1000");
       const requestId=clean(b.request_id,80);
       const eventKey="manual:"+(/^[a-zA-Z0-9_-]{6,80}$/.test(requestId)?requestId:uuid());
       const date=academyDate(),events=[];
       for(const kind of POINT_KINDS){
-        const amount=kind==="achievement"?achievement:store;
-        if(amount<=0)continue;
-        const inserted=await insertPointEvent(env,{student_id:s.id,group_id:s.group_id,rule_id:rule?.id||null,event_type:"manual",kind,points:amount,reason:reason||rule.name,event_key:eventKey,awarded_date:date,awarded_by:user.id});
-        events.push({kind,points:amount,status:inserted.inserted?"awarded":"duplicate",id:inserted.id});
+        const inserted=await insertPointEvent(env,{student_id:s.id,group_id:s.group_id,rule_id:rule?.id||null,event_type:"manual",kind,points,reason:reason||rule.name,event_key:eventKey,awarded_date:date,awarded_by:user.id});
+        events.push({kind,points,status:inserted.inserted?"awarded":"duplicate",id:inserted.id});
       }
-      await log(env,user.id,"points_manual_award",{student_id:s.id,achievement,store,rule_id:rule?.id||null,event_key:eventKey});
+      await log(env,user.id,"points_manual_award",{student_id:s.id,points,rule_id:rule?.id||null,event_key:eventKey});
       return json({ok:true,events,totals:await pointsTotals(env,s.id)},201);
     }
     const pointEventReverseMatch=path.match(/^\/api\/points\/events\/([^/]+)\/reverse$/);
     if(pointEventReverseMatch&&method==="POST"){
-      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"عكس النقاط للمعلم أو الإدارة");
+      if(user.role!=="admin")return fail(403,"عكس النقاط للشيخ وحده");
       const parsed=await parseBody(request);if(parsed.error)return parsed.error;
       const reason=clean(parsed.value.reason,500);
       if(reason.length<3)return fail(400,"اكتب سبب عكس الحركة");
@@ -4568,7 +4564,7 @@ export default {
       return json(rows.results||[]);
     }
     if(path==="/api/penalties"&&method==="POST"){
-      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"الخصم (جزاء) من صلاحية الطاقم");
+      if(user.role!=="admin")return fail(403,"خصم النقاط من صلاحية الشيخ وحده");
       const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
       const resolved=await resolvePointStudent(env,user,clean(b.student_id,80));
       if(resolved.error)return resolved.error;
@@ -4599,7 +4595,7 @@ export default {
       return json({level,last_reason:reason,last_date:date});
     }
     if(path==="/api/students/level"&&method==="POST"){
-      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"الترقية من صلاحية الطاقم");
+      if(user.role!=="admin")return fail(403,"الترقية من صلاحية الشيخ وحده");
       const parsed=await parseBody(request,2000);if(parsed.error)return parsed.error;const b=parsed.value;
       const studentId=clean(b.student_id,80);
       if(!studentId)return fail(400,"حدّد الطالب");
