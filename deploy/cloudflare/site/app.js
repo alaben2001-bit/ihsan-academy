@@ -1081,7 +1081,7 @@ async function pointsPage(v){
  html+=isStudent?storeStudentMarkup(store,summary):storeStaffMarkup(store,S.user.role==="admin");
  html+='<section class="card"><h3>طلبات الصرف</h3><div class="list">'+(redemptionRows||'<p class="muted">لا توجد طلبات صرف بعد.</p>')+'</div></section>';
  if(S.user.role==="admin")html+='<section class="card"><h3>منح النقاط — الشيخ فقط</h3><form id="points-award-form" class="form-grid"><label class="field">عدد النقاط<input name="points" type="number" min="1" max="1000" required value="10"></label><label class="field">سبب المنح (إلزامي)<input name="reason" required minlength="3" maxlength="500"></label><button class="btn" type="submit">اعتماد النقاط</button></form></section>';
- if(canManage){
+ if(S.user.role==="admin"){
   const qp=(t)=>'<button class="btn secondary" type="button" data-quick-reason="'+t+'">'+t+'</button>';
   html+='<section class="card sheikh-panel" id="sheikh-panel"><h3>لوحة الشيخ — إجراءات بعد مسح البطاقة</h3><p class="muted small">ترقية المستوى، خصم جزاء، ورد سريع للمكافآت الشائعة.</p>';
   html+='<div class="stats"><div class="stat"><small>المستوى الحالي</small><strong id="sheikh-level">…</strong></div></div>';
