@@ -148,16 +148,16 @@ async function main() {
   const attendance1 = await call("/api/attendance", { method: "POST", token: admin, body: attendanceBody });
   check("attendance save succeeds", attendance1.status === 200, JSON.stringify(attendance1.data));
   const afterAttendance = await call("/api/points/summary?student_id=" + encodeURIComponent(student.id), { token: admin });
-  check("attendance auto-awards 5 achievement / 2 store", afterAttendance.data?.totals?.achievement === 55 && afterAttendance.data?.totals?.store === 32, JSON.stringify(afterAttendance.data?.totals));
+  check("generic attendance rule is disabled until the Sheikh enables a named activity", afterAttendance.data?.totals?.achievement === 30 && afterAttendance.data?.totals?.store === 30, JSON.stringify(afterAttendance.data?.totals));
 
   const attendance2 = await call("/api/attendance", { method: "POST", token: admin, body: attendanceBody });
   const afterAttendance2 = await call("/api/points/summary?student_id=" + encodeURIComponent(student.id), { token: admin });
-  check("re-saving the same attendance does not double-award", attendance2.status === 200 && afterAttendance2.data?.totals?.achievement === 55 && afterAttendance2.data?.totals?.store === 32, JSON.stringify(afterAttendance2.data?.totals));
+  check("re-saving attendance does not create points under the disabled generic rule", attendance2.status === 200 && afterAttendance2.data?.totals?.achievement === 30 && afterAttendance2.data?.totals?.store === 30, JSON.stringify(afterAttendance2.data?.totals));
 
   const quran = await call("/api/quran/progress", { method: "POST", token: admin, body: { student_id: student.id, date: today, activity: "memorization", memorized: "سورة الملك 1-5" } });
   check("Quran progress save succeeds", quran.status === 201, JSON.stringify(quran.data));
   const afterQuran = await call("/api/points/summary?student_id=" + encodeURIComponent(student.id), { token: admin });
-  check("Quran entry auto-awards 10 achievement / 5 store", afterQuran.data?.totals?.achievement === 65 && afterQuran.data?.totals?.store === 37, JSON.stringify(afterQuran.data?.totals));
+  check("generic Quran progress does not award points without a named approved activity", afterQuran.data?.totals?.achievement === 30 && afterQuran.data?.totals?.store === 30, JSON.stringify(afterQuran.data?.totals));
 
   const assignment = await call("/api/assignments", { method: "POST", token: admin, body: { title: "واجب اختبار النقاط", description: "أجب بإيجاز", group_id: groupId, points_total: 100 } });
   check("create assignment", assignment.status === 201 && assignment.data?.id, JSON.stringify(assignment.data));
@@ -169,7 +169,7 @@ async function main() {
   const review = await call("/api/assignment-review", { method: "POST", token: admin, body: { assignment_id: assignmentId, student_id: student.id, grade: 90, feedback: "إتقان" } });
   check("assignment review succeeds", review.status === 200, JSON.stringify(review.data));
   const afterReview = await call("/api/points/summary?student_id=" + encodeURIComponent(student.id), { token: admin });
-  check("excellent assignment auto-awards 20 achievement / 10 store", afterReview.data?.totals?.achievement === 85 && afterReview.data?.totals?.store === 47, JSON.stringify(afterReview.data?.totals));
+  check("excellent assignment awards one unified 20-point reward", afterReview.data?.totals?.achievement === 50 && afterReview.data?.totals?.store === 50, JSON.stringify(afterReview.data?.totals));
 
   // -------------------------------------------------------------------------
   // 6) Rule editing is honoured by later automatic awards
@@ -184,20 +184,20 @@ async function main() {
   const yesterday = academyDate(-1);
   const attendance3 = await call("/api/attendance", { method: "POST", token: admin, body: { group_id: groupId, date: yesterday, items: [{ student_id: student.id, status: "present" }] } });
   const afterRuleChange = await call("/api/points/summary?student_id=" + encodeURIComponent(student.id), { token: admin });
-  check("updated rule applies to a new day (5 achievement / 4 store)", attendance3.status === 200 && afterRuleChange.data?.totals?.achievement === 90 && afterRuleChange.data?.totals?.store === 51, JSON.stringify(afterRuleChange.data?.totals));
+  check("updated rule applies to a new day as one 5-point award", attendance3.status === 200 && afterRuleChange.data?.totals?.achievement === 55 && afterRuleChange.data?.totals?.store === 55, JSON.stringify(afterRuleChange.data?.totals));
 
   // -------------------------------------------------------------------------
   // 7) Reversal is documented, not destructive
   // -------------------------------------------------------------------------
   const history = await call("/api/points/history?student_id=" + encodeURIComponent(student.id) + "&limit=200", { token: admin });
-  const manualEvent = (history.data || []).find(event => event.event_type === "manual" && event.kind === "achievement" && event.points === 50);
+  const manualEvent = (history.data || []).find(event => event.event_type === "manual" && event.kind === "achievement" && event.points === 30);
   check("manual event appears in history", Boolean(manualEvent), JSON.stringify(history.data?.slice?.(0, 3)));
 
   const reverseNoReason = await call("/api/points/events/" + encodeURIComponent(manualEvent.id) + "/reverse", { method: "POST", token: admin, body: {} });
   check("reversal without reason is rejected", reverseNoReason.status === 400, JSON.stringify(reverseNoReason.data));
 
   const reverse = await call("/api/points/events/" + encodeURIComponent(manualEvent.id) + "/reverse", { method: "POST", token: admin, body: { reason: "تصحيح اختبار محلي" } });
-  check("reversal removes 50 achievement and keeps the record", reverse.status === 200 && reverse.data?.totals?.achievement === 40, JSON.stringify(reverse.data));
+  check("reversal removes 50 achievement and keeps the record", reverse.status === 200 && reverse.data?.totals?.achievement === 25 && reverse.data?.totals?.store === 25, JSON.stringify(reverse.data));
 
   const reverseAgain = await call("/api/points/events/" + encodeURIComponent(manualEvent.id) + "/reverse", { method: "POST", token: admin, body: { reason: "تكرار" } });
   check("second reversal is rejected", reverseAgain.status === 409, JSON.stringify(reverseAgain.data));
