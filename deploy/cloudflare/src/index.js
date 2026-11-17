@@ -694,7 +694,34 @@ const LEARNING_SCHEMA_STATEMENTS = [
   )`,
   `CREATE INDEX IF NOT EXISTS idx_store_redemptions_student ON store_redemptions(student_id, requested_at)`,
   `CREATE INDEX IF NOT EXISTS idx_store_redemptions_group ON store_redemptions(group_id, requested_at)`,
-  `CREATE INDEX IF NOT EXISTS idx_store_redemptions_status ON store_redemptions(status, requested_at)`
+  `CREATE INDEX IF NOT EXISTS idx_store_redemptions_status ON store_redemptions(status, requested_at)`,
+  `CREATE TABLE IF NOT EXISTS student_point_streaks (
+    student_id TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    activity TEXT NOT NULL CHECK(activity IN ('hifz','fajr','shuruq')),
+    current_days INTEGER NOT NULL DEFAULT 0,
+    last_date TEXT,
+    awarded_milestones TEXT NOT NULL DEFAULT '[]',
+    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    PRIMARY KEY(student_id,activity)
+  )`,
+  `CREATE TABLE IF NOT EXISTS student_ethics (
+    student_id TEXT PRIMARY KEY REFERENCES students(id) ON DELETE CASCADE,
+    warnings INTEGER NOT NULL DEFAULT 0 CHECK(warnings >= 0),
+    multiplier_status TEXT NOT NULL DEFAULT 'active' CHECK(multiplier_status IN ('active','suspended','forfeited')),
+    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    updated_by TEXT REFERENCES users(id) ON DELETE SET NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS student_referrals (
+    id TEXT PRIMARY KEY,
+    inviter_student_id TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    invited_student_id TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','confirmed','rejected')),
+    created_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+    created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    confirmed_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+    confirmed_at TEXT,
+    UNIQUE(inviter_student_id,invited_student_id)
+  )`
 ];
 let learningSchemaReady = null;
 async function ensureLearningSchema(env) {
@@ -705,6 +732,7 @@ async function ensureLearningSchema(env) {
     // appear even when the economy tables were created by an earlier release.
     for (const statement of LEARNING_SCHEMA_STATEMENTS) await env.DB.prepare(statement).run();
     try { await env.DB.prepare("ALTER TABLE store_items ADD COLUMN image_url TEXT").run(); } catch {}
+    try { await env.DB.prepare("ALTER TABLE point_rules ADD COLUMN bonus_percent INTEGER NOT NULL DEFAULT 0 CHECK (bonus_percent >= 0 AND bonus_percent <= 300)").run(); } catch {}
     return true;
   })().catch(error => { learningSchemaReady = null; throw error; });
   return learningSchemaReady;
@@ -4536,7 +4564,81 @@ export default {
       await log(env,user.id,"points_manual_award",{student_id:s.id,points,rule_id:rule?.id||null,event_key:eventKey});
       return json({ok:true,events,totals:await pointsTotals(env,s.id)},201);
     }
-    const pointEventReverseMatch=path.match(/^\/api\/points\/events\/([^/]+)\/reverse$/);
+    if(path==="/api/points/streak"&&method==="POST"){
+      if(user.role!=="admin")return fail(403,"اعتماد الاستمرارية ومكافآتها للشيخ وحده");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      const studentId=clean(b.student_id,80),activity=clean(b.activity,20),date=quranDateISO(b.date)||academyDate();
+      if(!["hifz","fajr","shuruq"].includes(activity))return fail(400,"المسار يجب أن يكون الحفظ أو الفجر أو الشروق");
+      if(date>academyDate())return fail(400,"لا يمكن تسجيل استمرارية مستقبلية");
+      const student=await env.DB.prepare("SELECT id,group_id FROM students WHERE id=? AND active=1").bind(studentId).first();if(!student)return fail(404,"الطالب غير موجود");
+      const base=Number(b.base_points);if(!Number.isInteger(base)||base<1||base>1000)return fail(400,"أدخل نقاط الإنجاز الأساسية الصحيحة");
+      const old=await env.DB.prepare("SELECT * FROM student_point_streaks WHERE student_id=? AND activity=?").bind(studentId,activity).first();
+      if(old&&old.last_date===date)return fail(409,"سُجل هذا اليوم في سلسلة الاستمرارية بالفعل");
+      let days=old&&old.last_date===addCalendarDays(date,-1)?Number(old.current_days)+1:1;
+      let milestones=[];try{milestones=JSON.parse(old?.awarded_milestones||"[]")}catch{}
+      const due=[5,10,20,30].includes(days)&&!milestones.includes(days);
+      const now=nowIso();
+      if(due)milestones.push(days);
+      await env.DB.prepare("INSERT INTO student_point_streaks(student_id,activity,current_days,last_date,awarded_milestones,updated_at) VALUES(?,?,?,?,?,?) ON CONFLICT(student_id,activity) DO UPDATE SET current_days=excluded.current_days,last_date=excluded.last_date,awarded_milestones=excluded.awarded_milestones,updated_at=excluded.updated_at").bind(studentId,activity,days,date,JSON.stringify(milestones),now).run();
+      let bonus=0;
+      if(due){bonus=Math.round(base*.5);for(const kind of POINT_KINDS)await insertPointEvent(env,{student_id:studentId,group_id:student.group_id,rule_id:null,event_type:"streak_bonus",kind,points:bonus,reason:"مكافأة استمرارية "+days+" يومًا — "+activity,event_key:"streak:"+studentId+":"+activity+":"+days,awarded_date:date,awarded_by:user.id});}
+      await log(env,user.id,"points_streak_record",{student_id:studentId,activity,date,days,bonus});
+      return json({ok:true,days,milestone:due?days:null,bonus,totals:await pointsTotals(env,studentId)});
+    }
+    if(path==="/api/points/ethics"&&method==="GET"){
+      const studentId=user.role==="student"?user.student_id:clean(url.searchParams.get("student_id"),80);
+      if(!studentId)return fail(400,"حدّد الطالب");
+      if(user.role!=="admin"&&!(user.role==="student"&&user.student_id===studentId))return fail(403,"عرض سجل الأخلاق متاح للشيخ والطالب نفسه");
+      const state=await env.DB.prepare("SELECT warnings,multiplier_status,updated_at FROM student_ethics WHERE student_id=?").bind(studentId).first();
+      return json({student_id:studentId,warnings:Number(state?.warnings||0),multiplier_status:state?.multiplier_status||"active",ethics_points:state?.multiplier_status==="forfeited"?0:state?.multiplier_status==="suspended"?100:300});
+    }
+    if(path==="/api/points/ethics"&&method==="POST"){
+      if(user.role!=="admin")return fail(403,"سجل الأخلاق والتنبيهات للشيخ وحده");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      const studentId=clean(b.student_id,80),action=clean(b.action,20),reason=clean(b.reason,500);
+      const student=await env.DB.prepare("SELECT id,group_id FROM students WHERE id=? AND active=1").bind(studentId).first();if(!student)return fail(404,"الطالب غير موجود");
+      if(reason.length<3)return fail(400,"اكتب سبب الإجراء");
+      let state=await env.DB.prepare("SELECT * FROM student_ethics WHERE student_id=?").bind(studentId).first();
+      let warnings=Number(state?.warnings||0),status=state?.multiplier_status||"active";
+      if(action==="warning"){
+        if(status==="forfeited")return fail(409,"حُرم الطالب من المضاعفة نهائيًا");
+        const deduction=Number(b.deduction_points||0);
+        if(warnings>=3&&(!Number.isInteger(deduction)||deduction<1||deduction>1000))return fail(400,"بعد التنبيه الثالث يجب تحديد خصم النقاط");
+        warnings++;if(warnings>=3)status="suspended";
+        if(warnings>3){const eventKey="ethics-penalty:"+studentId+":"+warnings;for(const kind of POINT_KINDS)await insertPointEvent(env,{student_id:studentId,group_id:student.group_id,event_type:"penalty",kind,points:-deduction,reason:"جزاء أخلاقي: "+reason,event_key:eventKey,awarded_date:academyDate(),awarded_by:user.id});}
+      }else if(action==="forfeit"){status="forfeited";}else if(action==="restore"){if(status==="forfeited")return fail(409,"الحرمان النهائي لا يُعاد");status="active";}else return fail(400,"الإجراء غير معروف");
+      await env.DB.prepare("INSERT INTO student_ethics(student_id,warnings,multiplier_status,updated_at,updated_by) VALUES(?,?,?,?,?) ON CONFLICT(student_id) DO UPDATE SET warnings=excluded.warnings,multiplier_status=excluded.multiplier_status,updated_at=excluded.updated_at,updated_by=excluded.updated_by").bind(studentId,warnings,status,nowIso(),user.id).run();
+      await log(env,user.id,"student_ethics_"+action,{student_id:studentId,warnings,status,reason});
+      return json({ok:true,warnings,multiplier_status:status,ethics_points:status==="forfeited"?0:status==="suspended"?100:300,totals:await pointsTotals(env,studentId)});
+    }
+    if(path==="/api/points/referrals"&&method==="POST"){
+      if(user.role!=="admin")return fail(403,"اعتماد الزملاء الجدد للشيخ وحده");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      const inviter=clean(b.inviter_student_id,80),invited=clean(b.invited_student_id,80);
+      if(!inviter||!invited||inviter===invited)return fail(400,"اختر طالبين مختلفين");
+      const pair=await env.DB.prepare("SELECT id,group_id FROM students WHERE id IN (?,?) AND active=1").bind(inviter,invited).all();
+      if((pair.results||[]).length!==2)return fail(404,"أحد الطالبين غير موجود");
+      const id=uuid();const result=await env.DB.prepare("INSERT OR IGNORE INTO student_referrals(id,inviter_student_id,invited_student_id,status,created_by) VALUES(?,?,?,'pending',?)").bind(id,inviter,invited,user.id).run();
+      if(!Number(result?.meta?.changes||0))return fail(409,"سُجلت هذه الإحالة من قبل");
+      await log(env,user.id,"student_referral_create",{inviter_student_id:inviter,invited_student_id:invited});
+      return json({ok:true,id,status:"pending",eligible_after_days:7},201);
+    }
+    const referralConfirm=path.match(/^\/api\/points\/referrals\/([^/]+)\/confirm$/);
+    if(referralConfirm&&method==="POST"){
+      if(user.role!=="admin")return fail(403,"اعتماد مكافأة الإحالة للشيخ وحده");
+      const id=clean(referralConfirm[1],80),ref=await env.DB.prepare("SELECT * FROM student_referrals WHERE id=?").bind(id).first();
+      if(!ref)return fail(404,"الإحالة غير موجودة");
+      if(ref.status!=="pending")return fail(409,"الإحالة عولجت من قبل");
+      const elapsed=await env.DB.prepare("SELECT (julianday('now')-julianday(created_at)) AS days FROM student_referrals WHERE id=?").bind(id).first();
+      if(Number(elapsed?.days||0)<7)return fail(409,"لم يكتمل أسبوع الثبات بعد");
+      const inviter=await env.DB.prepare("SELECT id,group_id FROM students WHERE id=? AND active=1").bind(ref.inviter_student_id).first();
+      if(!inviter)return fail(404,"الطالب الداعي غير موجود");
+      for(const kind of POINT_KINDS)await insertPointEvent(env,{student_id:inviter.id,group_id:inviter.group_id,event_type:"referral_week",kind,points:20,reason:"إحضار زميل ثبت أسبوعًا",event_key:"referral:"+id,awarded_date:academyDate(),awarded_by:user.id});
+      await env.DB.prepare("UPDATE student_referrals SET status='confirmed',confirmed_by=?,confirmed_at=? WHERE id=? AND status='pending'").bind(user.id,nowIso(),id).run();
+      await log(env,user.id,"student_referral_confirm",{referral_id:id,student_id:inviter.id});
+      return json({ok:true,points:20,totals:await pointsTotals(env,inviter.id)});
+    }
+        const pointEventReverseMatch=path.match(/^\/api\/points\/events\/([^/]+)\/reverse$/);
     if(pointEventReverseMatch&&method==="POST"){
       if(user.role!=="admin")return fail(403,"عكس النقاط للشيخ وحده");
       const parsed=await parseBody(request);if(parsed.error)return parsed.error;
