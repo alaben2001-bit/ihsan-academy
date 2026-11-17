@@ -2271,7 +2271,11 @@ async function renderScanPanel(v,studentId){
   host.querySelectorAll("[data-scan-activity]").forEach(btn=>btn.onclick=async()=>{
     const activity=btn.dataset.scanActivity,resultHost=host.querySelector("#scan-activity-result");
     btn.disabled=true;
-    try{const result=await api("/points/activity",{method:"POST",body:JSON.stringify({student_id:studentId,activity,date:todayIso})});
+    try{
+      const payload={student_id:studentId,activity,date:todayIso};
+      if(activity==="support"){const base=Number(window.prompt("كم نقطة للإنجاز الذي قدّم فيه الطالب دعمًا؟"));if(!Number.isInteger(base)||base<1||base>1000)throw new Error("أدخل عدد نقاط صحيحًا بين 1 و1000");payload.base_points=base;}
+      if(activity==="poetry")payload.request_id=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():String(Date.now())+"-"+Math.random().toString(36).slice(2);
+      const result=await api("/points/activity",{method:"POST",body:JSON.stringify(payload)});
       const first=(result.awards||[]).find(a=>a.kind==="achievement")||result.awards?.[0];const parts=first?[first.status==="awarded"?"+"+first.points+" نقطة":first.status==="duplicate"?"مكررة اليوم (لم تُمنح مرتين)":"بلغ الحد اليومي"]:["لا توجد قاعدة نقاط نشطة لهذا النشاط"];
       if(resultHost)resultHost.textContent="النتيجة: "+parts.join(" · ");
       toast("تم — "+parts.join(" · "));await refresh()}
