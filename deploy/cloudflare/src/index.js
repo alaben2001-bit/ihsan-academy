@@ -702,8 +702,8 @@ const LEARNING_SCHEMA_STATEMENTS = [
     ('rule-hifz-no-errors','hifz_no_errors','حفظ ثمن دون أخطاء','ثلاثون نقطة بدل نقاط الحفظ الأساسية.',30,30,1,1,1,8),
     ('rule-hifz-tajweed','hifz_tajweed','حفظ ثمن بالتجويد','خمس وعشرون نقطة بدل نقاط الحفظ الأساسية.',25,25,1,1,1,9),
     ('rule-poetry','poetry','أربعة أبيات','كل أربعة أبيات بخمسة نقاط.',5,5,1,1,1,10),
-    ('rule-support-others','support_others','دعم الآخرين','زيادة ثلاثين بالمئة على الإنجاز المعتمد.',1,1,1,1,1,11),
-    ('rule-quran-reading-new','quran_reading','قراءة حزب','عشر نقاط للحزب المقروء.',10,10,1,1,1,12)`,
+    ('rule-support-others','support_others','دعم الآخرين','زيادة ثلاثين بالمئة على الإنجاز المعتمد.',1,1,1,1,1,11)`,
+  `UPDATE point_rules SET name='قراءة حزب',description='عشر نقاط للحزب المقروء.',achievement_points=10,store_points=10,max_per_day=1,auto_award=1,active=1 WHERE event_type='quran_reading'`,
   `UPDATE point_rules SET active=0,auto_award=0 WHERE event_type IN ('attendance_present','quran_entry')`,
   `CREATE TABLE IF NOT EXISTS student_point_streaks (
     student_id TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
@@ -4472,8 +4472,16 @@ export default {
       if(date>academyDate())return fail(400,"لا يمكن منح نقاط ليوم مستقبلي");
       if(date<addCalendarDays(academyDate(),-30))return fail(400,"لا يمكن منح نقاط لأكثر من 30 يومًا مضت");
       const note=clean(b.note,200);
-      const eventKey=activity==="attendance"?"attendance:"+date+":"+s.id:"manual:"+activity+":"+date+":"+s.id;
-      const awards=await awardPointsForEvent(env,{studentId:s.id,groupId:s.group_id,eventType:map.eventType,eventKey,date,reason:map.reason+(note?" — "+note:""),sourceCollection:"points_activity",sourceId:eventKey,awardedBy:user.id});
+      if((activity==="hifz_no_errors"||activity==="hifz_tajweed")){
+        const prior=await env.DB.prepare("SELECT id FROM point_events WHERE student_id=? AND awarded_date=? AND event_type IN ('hifz_no_errors','hifz_tajweed') AND reversed_at IS NULL LIMIT 1").bind(s.id,date).first();
+        if(prior)return fail(409,"تم اعتماد حفظ الثمن اليوم؛ 30 و25 بديلان لا يجتمعان");
+      }
+      const requestId=activity==="poetry"?clean(b.request_id,80):"";
+      if(activity==="poetry"&&!requestId)return fail(400,"يلزم معرّف مستقل لكل مجموعة من أربعة أبيات");
+      const eventKey=activity==="poetry"?"poetry:"+date+":"+s.id+":"+requestId:activity==="attendance"?"attendance:"+date+":"+s.id:"manual:"+activity+":"+date+":"+s.id;
+      const basePoints=activity==="support"?Number(b.base_points):undefined;
+      if(activity==="support"&&(!Number.isInteger(basePoints)||basePoints<1||basePoints>1000))return fail(400,"أدخل نقاط الإنجاز الأصلي ليحسب النظام زيادة 30%");
+      const awards=await awardPointsForEvent(env,{studentId:s.id,groupId:s.group_id,eventType:map.eventType,eventKey,date,reason:map.reason+(note?" — "+note:""),sourceCollection:"points_activity",sourceId:eventKey,awardedBy:user.id,achievementPoints:basePoints,storePoints:basePoints});
       await log(env,user.id,"points_activity_award",{student_id:s.id,activity,date,awards:awards.map(a=>a.status+":"+a.kind)});
       return json({ok:true,activity,date,awards,totals:await pointsTotals(env,s.id)},201);
     }
