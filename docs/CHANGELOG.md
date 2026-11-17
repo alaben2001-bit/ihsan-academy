@@ -147,3 +147,13 @@
 - **صرفة متجر متساوية (V71)**: معرّف صرفة حتمي `"rdm-"+sha256("redeem:"+student_id+":"+request_id).slice(0,32)`؛ طلب مكرر يعيد الصرف الموجود دون خصم مخزون مزدوج.
 - **واجهة (V71)**: تبويب `cards` (staff)، `staffCardsPage`، `cardQrSheet`/QR figures، `readScanHash`/`processPendingScan`، `scanNotice` في `auth()`، `worldPage` missions UI، print datasets `data-print="card"/"cards"`. CSS: `.card-qr*`, `.mission-*`, `.scan-notice`, reduced-motion، `@media print` for `body[data-print]`.
 - **أصول**: نسخة `20261115-1` في index/about/privacy، `/qr.js` في index + SW `v148-20261115-1`. `public/` مُعاد توليده. 51/51 cards-missions. `npm run check` PASS.
+
+
+## 2026-11-17 — V72b: استعادة هوية الزمردي، إصلاح CI المعطّل، ومسبارات المخطط الإنتاجي
+
+- **أُزيلت طبقة RUBY NOIRE** (~250 قاعدة CSS بأحمر/ياقوتي كانت تفرض ألوانها بـ!important) وأثبتُ هوية Emerald Noir (#2ee6a1 على أسود + ذهب شامباني)؛ عالجت مشكلة النص غير المقروء (var(--green) كان #ef526c) في مسار القرآن وترقية المستوى ولوحة الشيخ.
+- **CI كان معطلًا منذ efc6e2b**: «first:» في اسم خطوة أعطى YAML غير صالح → كل تشغيلات «Cloudflare free migration checks» كانت تفشل بصفر jobs منذ 2026-11-14. أُصلح والتحقق بـ js-yaml + تشغيل أخضر (validate + integration مع كل مجموعات الاختبار). أُضيفت خطوة زرع مدرسة qs-shuayb للاختبار في CI + تشغيل signup-journey-test.
+- **الإنتاج ينشر تلقائيًا من هذا الفرع على Cloudflare Pages**: /api/health 200، robots.txt = noindex (منصة داخلية)، about/privacy بدون canonical.
+- **ترحيل 0009 غير مطبّق على D1 الإنتاجية** (مثبت بالاستبعاد الحيّ: /api/login يرجع 401 صحيحًا و/api/signup يرجع 500) ⇒ التسجيل الذاتي وطلبات الانضمام معطلتان في الإنتاج حتى تطبيق الترحيل (نسخة احتياطية ثم `npx wrangler d1 migrations apply ihsan-academy-students --remote`). باقي الوظائف لا تتأثر.
+- أُضيفت مسبارات مخطط للإنتاج إلى /api/admin/system-check (join_requests_table / users_table / visitor_role_allowed) + بطاقة تشخيص في صفحة فحص النظام للمدير + حارس ودي في واجهة التسجيل عند 5xx.
+- التحقق من الصفر على قاعدة محلية نظيفة (ترحيل 0001-0009): journey 93/93، points 62/62، quran 44/44، backup 55/55، role 0 failures، competitions 124/124، mobile 44/44، cards 51/51، signup-journey 62/62. التحقق الميداني على جهاز حقيقي ما زال مطلوبًا.
