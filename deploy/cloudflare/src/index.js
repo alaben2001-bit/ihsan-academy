@@ -695,6 +695,16 @@ const LEARNING_SCHEMA_STATEMENTS = [
   `CREATE INDEX IF NOT EXISTS idx_store_redemptions_student ON store_redemptions(student_id, requested_at)`,
   `CREATE INDEX IF NOT EXISTS idx_store_redemptions_group ON store_redemptions(group_id, requested_at)`,
   `CREATE INDEX IF NOT EXISTS idx_store_redemptions_status ON store_redemptions(status, requested_at)`,
+  `INSERT OR IGNORE INTO point_rules (id,event_type,name,description,achievement_points,store_points,max_per_day,auto_award,active,sort_order,bonus_percent) VALUES
+    ('rule-fajr','fajr','صلاة الفجر','تُعتمد بعد التحقق من الحضور.',30,30,1,1,1,5,0),
+    ('rule-shuruq','shuruq','صلاة الشروق','تُعتمد بعد التحقق من الحضور.',20,20,1,1,1,6,0),
+    ('rule-maghrib','maghrib','صلاة المغرب','تُعتمد بعد التحقق من الحضور.',10,10,1,1,1,7,0),
+    ('rule-hifz-no-errors','hifz_no_errors','حفظ ثمن دون أخطاء','ثلاثون نقطة بدل نقاط الحفظ الأساسية.',30,30,1,1,1,8,0),
+    ('rule-hifz-tajweed','hifz_tajweed','حفظ ثمن بالتجويد','خمس وعشرون نقطة بدل نقاط الحفظ الأساسية.',25,25,1,1,1,9,0),
+    ('rule-poetry','poetry','أربعة أبيات','كل أربعة أبيات بخمسة نقاط.',5,5,1,1,1,10,0),
+    ('rule-support-others','support_others','دعم الآخرين','زيادة ثلاثين بالمئة على الإنجاز المعتمد.',1,1,1,1,1,11,30),
+    ('rule-quran-reading-new','quran_reading','قراءة حزب','عشر نقاط للحزب المقروء.',10,10,1,1,1,12,0)`,
+  `UPDATE point_rules SET active=0,auto_award=0 WHERE event_type IN ('attendance_present','quran_entry')`,
   `CREATE TABLE IF NOT EXISTS student_point_streaks (
     student_id TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
     activity TEXT NOT NULL CHECK(activity IN ('hifz','fajr','shuruq')),
@@ -4447,7 +4457,11 @@ export default {
       if(user.role!=="admin")return fail(403,"منح النقاط للشيخ وحده");
       const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
       const activity=clean(b.activity,20);
-      const ACTIVITY_MAP={attendance:{eventType:"attendance_present",reason:"حضور (يدوي)"},hifz:{eventType:"quran_entry",reason:"حفظ قرآني (الحفظ الجديد)"},revision:{eventType:"quran_entry",reason:"مراجعة محفوظ"},thabit:{eventType:"quran_entry",reason:"تثبيت محفوظ"},ward:{eventType:"quran_reading",reason:"ورد يومي"}};
+      const ACTIVITY_MAP={
+        fajr:{eventType:"fajr",reason:"صلاة الفجر"},shuruq:{eventType:"shuruq",reason:"صلاة الشروق"},maghrib:{eventType:"maghrib",reason:"صلاة المغرب"},
+        hizb:{eventType:"quran_reading",reason:"قراءة حزب"},hifz_no_errors:{eventType:"hifz_no_errors",reason:"حفظ ثمن دون أخطاء"},hifz_tajweed:{eventType:"hifz_tajweed",reason:"حفظ ثمن بالتجويد"},
+        poetry:{eventType:"poetry",reason:"حفظ أربعة أبيات"},support:{eventType:"support_others",reason:"دعم الآخرين"},attendance:{eventType:"attendance_present",reason:"حضور"}
+      };
       const map=ACTIVITY_MAP[activity];
       if(!map)return fail(400,"نوع النشاط غير صحيح؛ الأنواع: حضور، حفظ، مراجعة، تثبيت، ورد");
       const resolved=await resolvePointStudent(env,user,clean(b.student_id,80));
@@ -4517,6 +4531,8 @@ export default {
       const eventType=clean(b.event_type,60).toLowerCase();
       const name=clean(b.name,120),description=clean(b.description,600);
       const achievement=Number(b.achievement_points??0),store=Number(b.store_points??0);
+      const bonusPercent=Number(b.bonus_percent??0);
+      if(!Number.isInteger(bonusPercent)||bonusPercent<0||bonusPercent>300)return fail(400,"نسبة الزيادة يجب أن تكون بين 0 و300");
       const rawMax=b.max_per_day,maxPerDay=rawMax===""||rawMax===null||rawMax===undefined?null:Number(rawMax);
       if(!/^[a-z0-9_]{3,60}$/.test(eventType))return fail(400,"نوع الحدث يجب أن يكون بأحرف لاتينية صغيرة وأرقام وشرطة سفلية");
       if(!name)return fail(400,"أدخل اسم قاعدة النقاط");
@@ -4532,12 +4548,12 @@ export default {
       const now=nowIso();
       let rule;
       if(existing){
-        await env.DB.prepare("UPDATE point_rules SET event_type=?,name=?,description=?,achievement_points=?,store_points=?,max_per_day=?,auto_award=?,active=?,sort_order=?,updated_at=? WHERE id=?").bind(eventType,name,description,achievement,store,maxPerDay,autoAward,active,sortOrder,now,existing.id).run();
-        rule={...existing,event_type:eventType,name,description,achievement_points:achievement,store_points:store,max_per_day:maxPerDay,auto_award:autoAward,active,sort_order:sortOrder,updated_at:now};
+        await env.DB.prepare("UPDATE point_rules SET event_type=?,name=?,description=?,achievement_points=?,store_points=?,max_per_day=?,auto_award=?,active=?,sort_order=?,bonus_percent=?,updated_at=? WHERE id=?").bind(eventType,name,description,achievement,store,maxPerDay,autoAward,active,sortOrder,bonusPercent,now,existing.id).run();
+        rule={...existing,event_type:eventType,name,description,achievement_points:achievement,store_points:store,max_per_day:maxPerDay,auto_award:autoAward,active,sort_order:sortOrder,bonus_percent:bonusPercent,updated_at:now};
       }else{
         const id=requestedId||uuid();
-        await env.DB.prepare("INSERT INTO point_rules (id,event_type,name,description,achievement_points,store_points,max_per_day,auto_award,active,sort_order,created_by,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)").bind(id,eventType,name,description,achievement,store,maxPerDay,autoAward,active,sortOrder,user.id,now,now).run();
-        rule={id,event_type:eventType,name,description,achievement_points:achievement,store_points:store,max_per_day:maxPerDay,auto_award:autoAward,active,sort_order:sortOrder,created_at:now,updated_at:now};
+        await env.DB.prepare("INSERT INTO point_rules (id,event_type,name,description,achievement_points,store_points,max_per_day,auto_award,active,sort_order,bonus_percent,created_by,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)").bind(id,eventType,name,description,achievement,store,maxPerDay,autoAward,active,sortOrder,bonusPercent,user.id,now,now).run();
+        rule={id,event_type:eventType,name,description,achievement_points:achievement,store_points:store,max_per_day:maxPerDay,auto_award:autoAward,active,sort_order:sortOrder,bonus_percent:bonusPercent,created_at:now,updated_at:now};
       }
       await log(env,user.id,"point_rule_save",{rule_id:rule.id,event_type:eventType,achievement,store,active});
       return json({ok:true,rule},existing?200:201);
