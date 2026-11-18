@@ -34,7 +34,7 @@ const rulesEnd = server.indexOf('if(path==="/api/points/award"&&method==="POST")
 const rules = server.slice(rulesStart, rulesEnd);
 
 check("Sheikh can configure bonus percentage in rule UI", /data-rule-bonus/.test(ruleUi) && /زيادة %/.test(ruleUi));
-check("rule save sends bonus_percent to API", /bonus_percent:Number\(tr\.querySelector\("\[data-rule-bonus\]"\)\.value\)/.test(ruleUi));
+check("rule save sends bonus_percent to API", /bonus_percent:Number\(tr\.querySelector\("\[data-rule-bonus\]"\)\.value\)/.test(app));
 check("server validates bonus percentage from 0 to 300", /bonusPercent<0\|\|bonusPercent>300/.test(rules));
 check("support activity is Sheikh/admin-only", /if\(user\.role!==\"admin\"\)/.test(activity));
 check("support activity uses the support_others rule", /support:\{eventType:\"support_others\"/.test(activity));
