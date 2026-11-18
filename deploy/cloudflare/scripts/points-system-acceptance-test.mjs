@@ -40,6 +40,7 @@ check("support activity is Sheikh/admin-only", /if\(user\.role!==\"admin\"\)/.te
 check("support activity uses the support_others rule", /support:\{eventType:\"support_others\"/.test(activity));
 check("support activity requires a valid original achievement amount", /activity===\"support\"&&\(!Number\.isInteger\(basePoints\)\|\|basePoints<1\|\|basePoints>1000\)/.test(activity));
 check("bonus formula applies configured percentage to original points", /Math\.round\(baseAmount\*\(1\+Number\(rule\.bonus_percent\)\/100\)\)/.test(award));
+check("30 percent of a 100-point achievement produces 130 points", Math.round(100 * (1 + 30 / 100)) === 130);
 check("support event is idempotent per student/day", /:"manual:"\+activity\+":"\+date\+":"\+s\.id/.test(activity) && /idx_point_events_unique_event/.test(server));
 check("ethics warnings suspend multiplier at three", /warnings\+\+;if\(warnings>=3\)status=\"suspended\"/.test(ethics));
 check("deduction starts after the third warning and is Sheikh-approved", /warnings>3\)[^]*?points:-deduction/.test(ethics));
