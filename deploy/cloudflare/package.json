@@ -7,7 +7,7 @@
     "prepare:assets": "npm run check && node scripts/prepare-assets.mjs",
     "dev": "npm run prepare:assets && wrangler dev",
     "deploy": "npm run prepare:assets && wrangler deploy",
-    "check": "node --check src/index.js && node --check scripts/prepare-assets.mjs && node --check scripts/points-local-test.mjs && node --check scripts/quran-path-test.mjs && node --check scripts/journey-store-test.mjs && node --check scripts/backup-restore-test.mjs && node --check scripts/competitions-test.mjs && node --check scripts/role-permission-test.mjs && node --check scripts/mobile-smoke-test.mjs && node --check scripts/cards-missions-test.mjs && node --check scripts/signup-journey-test.mjs && node --check site/app.js && node --check site/startup.js && node --check site/qr.js && node scripts/security-check.mjs",
+    "check": "node --check src/index.js && node --check scripts/prepare-assets.mjs && node --check scripts/points-local-test.mjs && node --check scripts/quran-path-test.mjs && node --check scripts/journey-store-test.mjs && node --check scripts/backup-restore-test.mjs && node --check scripts/competitions-test.mjs && node --check scripts/role-permission-test.mjs && node --check scripts/mobile-smoke-test.mjs && node --check scripts/cards-missions-test.mjs && node --check scripts/cards-print-layout-test.mjs && node scripts/cards-print-layout-test.mjs && node --check scripts/signup-journey-test.mjs && node --check site/app.js && node --check site/startup.js && node --check site/qr.js && node scripts/security-check.mjs",
     "test:points:local": "node scripts/points-local-test.mjs",
     "test:quran:local": "node scripts/quran-path-test.mjs",
     "test:journey:local": "node scripts/journey-store-test.mjs",
@@ -15,7 +15,8 @@
     "test:competitions:local": "node scripts/competitions-test.mjs",
     "test:mobile:local": "node scripts/mobile-smoke-test.mjs",
     "test:cards:local": "node scripts/cards-missions-test.mjs",
-    "test:signup:local": "node scripts/signup-journey-test.mjs"
+    "test:signup:local": "node scripts/signup-journey-test.mjs",
+    "test:cards:print": "node scripts/cards-print-layout-test.mjs"
   },
   "devDependencies": {
     "jsqr": "^1.4.0",

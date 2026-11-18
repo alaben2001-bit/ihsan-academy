@@ -1838,8 +1838,8 @@ async function cardPage(v){
  const recent=(summary.recent||[]).slice(0,6).map(event=>'<div class="list-row"><div><strong>'+esc(event.reason||event.event_type)+'</strong><small>'+esc(event.kind_label||"")+' · '+worldDate(event.created_at)+'</small></div><span class="pill">'+(Number(event.points)>0?"+":"")+Number(event.points)+'</span></div>').join("");
  const badges=(gam?.badges||[]).map(badge=>'<span class="pass-badge"><span aria-hidden="true">'+esc(badge.icon||"★")+'</span>'+esc(badge.name)+'</span>').join("");
  v.innerHTML='<div class="card-page">'+
-  '<div class="card-page-head"><div><span class="eyebrow">هويتك في الأكاديمية</span><h2>بطاقة الطالب</h2><p>بطاقة شخصية تجمع مستواك ورصيدك وترتيبك في مكان واحد؛ اعرضها أو اطبعها.</p></div><button class="btn secondary" type="button" id="pass-print">طباعة البطاقة</button></div>'+
-  '<section class="printable"><section class="student-pass-wrap"><article class="student-pass" aria-label="بطاقة الطالب"><span class="pass-shine" aria-hidden="true"></span><div class="pass-pattern" aria-hidden="true"></div><div class="pass-head"><span class="pass-brand"><span class="pass-brand-mark" aria-hidden="true">إ</span>أكاديمية الإحسان</span><span class="pass-type">بطاقة طالب</span></div><div class="pass-middle"><span class="pass-chip" aria-hidden="true"><i></i><i></i><i></i></span><span class="pass-level">'+esc(stage.name)+' · المستوى '+stage.index+'</span></div><div class="pass-name">'+esc(student.name||S.user.name||"الطالب")+'</div><div class="pass-serial" dir="ltr">'+esc(serial)+'</div><div class="pass-grid"><div><small>رصيد النقاط</small><strong>'+Number(achievement)+'</strong></div><div><small>رصيد النقاط</small><strong>'+Number(store)+'</strong></div><div><small>ترتيب الفوج</small><strong>'+(me?"#"+Number(me.rank):"—")+'</strong></div><div><small>سلسلة القراءة</small><strong>'+Number(reading?.streak||0)+'</strong></div></div><div class="pass-foot"><span>الفوج: '+esc(student.group_name||"—")+'</span><span>صالحة حتى '+year+'-09</span></div></article></section>'+cardQrSheet(links,'<button class="btn secondary" type="button" id="card-qr-reissue">إعادة إصدار الرموز</button>')+'</section>'+
+  '<div class="card-page-head"><div><span class="eyebrow">هويتك في الأكاديمية</span><h2>بطاقة الطالب</h2><p>بطاقة شخصية تجمع مستواك ورصيدك وترتيبك ورمزك الفريد في مكان واحد؛ اعرضها أو اطبعها.</p></div><div class="student-actions"><button class="btn secondary" type="button" id="card-qr-reissue">إعادة إصدار الرموز</button><button class="btn secondary" type="button" id="pass-print">طباعة البطاقة</button></div></div>'+
+  '<section class="printable"><section class="student-pass-wrap"><article class="student-pass" aria-label="بطاقة الطالب"><span class="pass-shine" aria-hidden="true"></span><div class="pass-pattern" aria-hidden="true"></div><div class="pass-head"><span class="pass-brand"><span class="pass-brand-mark" aria-hidden="true">إ</span>أكاديمية الإحسان</span><span class="pass-type">بطاقة طالب</span></div><div class="pass-middle"><span class="pass-chip" aria-hidden="true"><i></i><i></i><i></i></span><span class="pass-level">'+esc(stage.name)+' · المستوى '+stage.index+'</span><span class="pass-qr" aria-label="رمز الطالب">'+(links.add_points?qrSvg(links.add_points,144):'<span class="card-qr-missing">—</span>')+'</span></div><div class="pass-name">'+esc(student.name||S.user.name||"الطالب")+'</div><div class="pass-serial" dir="ltr">'+esc(serial)+'</div><div class="pass-grid"><div><small>نقاط الإنجاز</small><strong>'+Number(achievement)+'</strong></div><div><small>رصيد المتجر</small><strong>'+Number(store)+'</strong></div><div><small>ترتيب الفوج</small><strong>'+(me?"#"+Number(me.rank):"—")+'</strong></div><div><small>سلسلة القراءة</small><strong>'+Number(reading?.streak||0)+'</strong></div></div><div class="pass-foot"><span>الفوج: '+esc(student.group_name||"—")+'</span><span>صالحة حتى '+year+'-09</span></div></article></section>'+
   '<div class="pass-stats"><div class="stat"><small>أيام القرآن</small><strong>'+Number(gam?.stats?.quran_days||0)+'</strong></div><div class="stat"><small>مرات الحضور</small><strong>'+Number(gam?.stats?.attendance||0)+'</strong></div><div class="stat"><small>الاختبارات</small><strong>'+Number(gam?.stats?.tests||0)+'</strong></div><div class="stat"><small>أيام القراءة</small><strong>'+Number(reading?.total_days||0)+'</strong></div></div>'+
   '<div class="card-page-grid"><section class="card"><div class="section-head"><div><h3>أوسمتك</h3><p>تُفتح تلقائيًا عند تحقق شرطها.</p></div></div><div class="pass-badges">'+(badges||'<p class="muted">لم تُفتح وسام بعد؛ ابدأ بورد اليوم.</p>')+'</div></section><section class="card"><div class="section-head"><div><h3>آخر حركات الرصيد</h3><p>كل حركة مسجّلة ولا تُحذف.</p></div><button class="btn secondary" type="button" data-card-go="points">كل الحركات</button></div><div class="list">'+(recent||'<p class="muted">لا توجد حركات نقاط بعد.</p>')+'</div></section></div>'+
   '</div>';
@@ -1853,24 +1853,51 @@ async function cardPage(v){
  v.querySelectorAll("[data-card-go]").forEach(btn=>btn.onclick=()=>go(btn.dataset.cardGo));
 }
 
+function staffStudentPassMarkup(row){
+ const student=row.student||{},link=row.links?.add_points||"",serial=passSerial(student.id);
+ const qr=link?qrSvg(link,180):"";
+ return '<article class="student-pass student-pass-print" data-card-student="'+esc(student.id)+'" aria-label="بطاقة '+esc(student.name)+'"><span class="pass-shine" aria-hidden="true"></span><div class="pass-pattern" aria-hidden="true"></div><div class="pass-head"><span class="pass-brand"><span class="pass-brand-mark" aria-hidden="true">إ</span>أكاديمية الإحسان</span><span class="pass-type">بطاقة طالب</span></div><div class="pass-middle"><span class="pass-chip" aria-hidden="true"><i></i><i></i><i></i></span><span class="pass-level">هوية الطالب</span><span class="pass-qr" aria-label="رمز الطالب">'+(qr||'<span class="card-qr-missing">—</span>')+'</span></div><div class="pass-name">'+esc(student.name||"الطالب")+'</div><div class="pass-serial" dir="ltr">'+esc(serial)+'</div><div class="pass-foot"><span>الفوج: '+esc(student.group_name||"—")+'</span><span>أكاديمية الإحسان</span></div></article>';
+}
 async function staffCardsPage(v){
  if(!["admin","teacher","director","supervisor"].includes(S.user.role)){v.innerHTML=head("بطاقات الطلاب","هذه الصفحة للشيخ أو المشرف.");return}
  if(!S.groups.length)await load();
  const groups=assignedGroups();
  if(!groups.length){v.innerHTML=head("بطاقات الطلاب","لا يوجد فوج ضمن صلاحيتك.");return}
  if(!S.cardsGroupId||!groups.some(g=>g.id===S.cardsGroupId))S.cardsGroupId=groups[0].id;
- v.innerHTML=head("بطاقات الطلاب","بطاقة لكل طالب بثلاثة رموز QR مستقلة، جاهزة للطباعة أو الحفظ PDF.")+
-  '<div class="card cards-toolbar"><label class="field">اختر الفوج<select id="cards-group">'+groups.map(g=>'<option value="'+esc(g.id)+'"'+(g.id===S.cardsGroupId?" selected":"")+'>'+esc(g.name)+'</option>').join("")+'</select></label><div class="student-actions"><button class="btn" type="button" id="cards-print">طباعة / PDF</button><span class="muted small" id="cards-count"></span></div><p class="muted small">تُنشأ البطاقة عند فتح الفوج أول مرة. إعادة الإصدار تُبطل الرموز السابقة، والإلغاء يوقف الرمز فورًا.</p></div>'+
-  '<div id="cards-sheet" class="cards-sheet"><div class="loading">جار تجهيز البطاقات…</div></div>';
+ const allValue="__all_managed_groups__";
+ v.innerHTML=head("بطاقات الطلاب","معاينة البطاقة كاملة قبل الطباعة. رمز إضافة النقاط داخل التصميم، ولا تُعرض أرصدة الطلاب في بطاقات الإدارة.")+
+  '<div class="card cards-toolbar"><label class="field">نطاق البطاقات<select id="cards-group"><option value="'+allValue+'">جميع الطلاب ضمن صلاحيتي</option>'+groups.map(g=>'<option value="'+esc(g.id)+'"'+(g.id===S.cardsGroupId?" selected":"")+'>'+esc(g.name)+'</option>').join("")+'</select></label><div class="student-actions"><button class="btn secondary" type="button" id="cards-print">طباعة النطاق المحدد</button><span class="muted small" id="cards-count"></span></div><p class="muted small">كل بطاقة تضم رمز QR الخاص بالطالب داخل تصميم البطاقة نفسه. الطباعة الفردية متاحة من بطاقة كل طالب.</p></div>'+
+  '<div id="cards-sheet" class="cards-sheet"><div class="loading">جار تجهيز معاينة البطاقات…</div></div>';
  const loadCards=async()=>{
-  const host=$("#cards-sheet");if(!host)return;host.innerHTML='<div class="loading">جار تجهيز البطاقات…</div>';
+  const host=$("#cards-sheet");if(!host)return;host.innerHTML='<div class="loading">جار تجهيز معاينة البطاقات…</div>';
   try{
-   const data=await api("/student-cards/bulk",{method:"POST",body:JSON.stringify({group_id:S.cardsGroupId})});
-   const count=$("#cards-count");if(count)count.textContent=Number(data.count||0)+" بطاقة في "+String(data.group?.name||"");
-   host.innerHTML='<div class="cards-sheet-grid">'+(data.cards||[]).map(row=>{
-    const linkCount=Object.keys(row.links||{}).length;
-    return '<article class="student-card-print" data-card-student="'+esc(row.student.id)+'"><div class="student-card-print-head"><strong>'+esc(row.student.name)+'</strong><small>'+esc(row.student.group_name||"")+' · '+linkCount+' رموز فعّالة</small></div><div class="card-qr-grid">'+["add_points","profile","login"].map(kind=>cardQrFigure(kind,row.links)).join("")+'</div><div class="student-card-print-actions"><button class="btn secondary" type="button" data-card-reissue="'+esc(row.student.id)+'">إعادة إصدار</button><button class="btn danger" type="button" data-card-revoke="'+esc(row.student.id)+'">إلغاء الرموز</button></div></article>';
-   }).join("")+'</div>';
+   const selected=$("#cards-group")?.value||S.cardsGroupId;
+   const selectedGroups=selected===allValue?groups:groups.filter(g=>g.id===selected);
+   if(!selectedGroups.length)throw new Error("لا يوجد فوج ضمن صلاحيتك");
+   const datasets=[];
+   for(const group of selectedGroups){
+    let offset=0;
+    while(true){
+     const data=await api("/student-cards/bulk",{method:"POST",body:JSON.stringify({group_id:group.id,offset,limit:200})});
+     datasets.push(...(data.cards||[]));
+     if(!data.has_more)break;
+     const next=Number(data.next_offset);
+     if(!Number.isInteger(next)||next<=offset)throw new Error("تعذر إكمال تحميل بطاقات الفوج بأمان");
+     offset=next;
+    }
+   }
+   const count=$("#cards-count");if(count)count.textContent=datasets.length+" بطاقة · "+selectedGroups.length+" فوج";
+   const pages=[];
+   for(let offset=0;offset<datasets.length;offset+=8){
+    const items=datasets.slice(offset,offset+8).map(row=>
+     '<section class="student-card-print-item" data-card-item="'+esc(row.student.id)+'">'+staffStudentPassMarkup(row)+'<div class="student-card-print-actions"><button class="btn secondary" type="button" data-card-print-one="'+esc(row.student.id)+'">طباعة هذه البطاقة</button><button class="btn secondary" type="button" data-card-reissue="'+esc(row.student.id)+'">إعادة إصدار الرموز</button><button class="btn danger" type="button" data-card-revoke="'+esc(row.student.id)+'">إلغاء الرموز</button></div></section>'
+    );
+    pages.push('<section class="cards-print-page"><div class="cards-sheet-grid">'+items.join("")+'</div></section>');
+   }
+   host.innerHTML=pages.join("")||'<div class="notice">لا توجد بطاقات في النطاق المحدد.</div>';
+   host.querySelectorAll("[data-card-print-one]").forEach(btn=>btn.onclick=()=>{
+    document.body.dataset.print="card-one";document.body.dataset.printStudent=btn.dataset.cardPrintOne;host.querySelectorAll(".student-card-print-item").forEach(item=>item.classList.toggle("is-print-target",item.dataset.cardItem===btn.dataset.cardPrintOne));window.print();
+   });
    host.querySelectorAll("[data-card-reissue]").forEach(btn=>btn.onclick=async()=>{
     btn.disabled=true;
     try{await api("/student-cards/"+encodeURIComponent(btn.dataset.cardReissue)+"/reissue",{method:"POST",body:JSON.stringify({})});toast("أُصدرت رموز جديدة، والرموز السابقة لم تعد صالحة");await loadCards()}
@@ -1887,7 +1914,7 @@ async function staffCardsPage(v){
  };
  $("#cards-group")?.addEventListener("change",e=>{S.cardsGroupId=e.target.value;loadCards()});
  $("#cards-print")?.addEventListener("click",()=>{document.body.dataset.print="cards";window.print()});
- window.addEventListener("afterprint",()=>{delete document.body.dataset.print},{once:true});
+ window.addEventListener("afterprint",()=>{delete document.body.dataset.print;delete document.body.dataset.printStudent;document.querySelectorAll(".student-card-print-item.is-print-target").forEach(item=>item.classList.remove("is-print-target"))});
  await loadCards();
 }
 
