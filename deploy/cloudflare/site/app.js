@@ -1867,7 +1867,7 @@ async function staffCardsPage(v){
   try{
    const data=await api("/student-cards/bulk",{method:"POST",body:JSON.stringify({group_id:S.cardsGroupId})});
    const count=$("#cards-count");if(count)count.textContent=Number(data.count||0)+" بطاقة في "+String(data.group?.name||"");
-   host.innerHTML='<div class="cards-sheet-grid">'+(data.cards||[]).map(row=>{
+   const cards=(data.cards||[]).map(row=>{
     const student=row.student||{},serial=String(student.id||"").replace(/[^a-z0-9]/gi,"").slice(-8).toUpperCase()||"—";
     return '<article class="student-card-print" data-card-student="'+esc(student.id||"")+'">'+
      '<header class="student-card-print-brand"><span class="student-card-print-mark">إ</span><span class="student-card-print-brand-copy"><strong>أكاديمية الإحسان</strong><small>منارات العلم وبساتين الإحسان</small></span><b class="student-card-print-type">بطاقة طالب</b></header>'+
@@ -1876,7 +1876,10 @@ async function staffCardsPage(v){
      '<footer class="student-card-print-footer"><span>العلم والعمل والأدب</span><span>صالحة ما دامت رموزها فعّالة</span></footer>'+
      '<div class="student-card-print-actions"><button class="btn secondary" type="button" data-card-reissue="'+esc(student.id||"")+'">إعادة إصدار الرموز</button><button class="btn danger" type="button" data-card-revoke="'+esc(student.id||"")+'">إلغاء الرموز</button></div>'+
     '</article>';
-   }).join("")+'</div>';
+   });
+   const pages=[];
+   for(let offset=0;offset<cards.length;offset+=8)pages.push('<section class="cards-print-page">'+cards.slice(offset,offset+8).join("")+'</section>');
+   host.innerHTML=pages.join("")||'<div class="notice">لا يوجد طلاب نشطون في هذا الفوج.</div>';
    host.querySelectorAll("[data-card-reissue]").forEach(btn=>btn.onclick=async()=>{
     btn.disabled=true;
     try{await api("/student-cards/"+encodeURIComponent(btn.dataset.cardReissue)+"/reissue",{method:"POST",body:JSON.stringify({})});toast("أُصدرت رموز جديدة، والرموز السابقة لم تعد صالحة");await loadCards()}
