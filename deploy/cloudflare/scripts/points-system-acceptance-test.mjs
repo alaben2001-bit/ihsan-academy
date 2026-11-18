@@ -40,7 +40,7 @@ check("support activity is Sheikh/admin-only", /if\(user\.role!==\"admin\"\)/.te
 check("support activity uses the support_others rule", /support:\{eventType:\"support_others\"/.test(activity));
 check("support activity requires a valid original achievement amount", /activity===\"support\"&&\(!Number\.isInteger\(basePoints\)\|\|basePoints<1\|\|basePoints>1000\)/.test(activity));
 check("bonus formula applies configured percentage to original points", /Math\.round\(baseAmount\*\(1\+Number\(rule\.bonus_percent\)\/100\)\)/.test(award));
-check("support event is idempotent per student/day", /activity===\"support\"\?/.test(activity) && /INSERT OR IGNORE INTO point_events/.test(server));
+check("support event is idempotent per student/day", /:"manual:"\+activity\+":"\+date\+":"\+s\.id/.test(activity) && /idx_point_events_unique_event/.test(server));
 check("ethics warnings suspend multiplier at three", /warnings\+\+;if\(warnings>=3\)status=\"suspended\"/.test(ethics));
 check("deduction starts after the third warning and is Sheikh-approved", /warnings>3\)[^]*?points:-deduction/.test(ethics));
 check("permanent multiplier forfeiture exists and cannot be restored", /action===\"forfeit\"/ .test(ethics) && /status===\"forfeited\"\)return fail\(409/.test(ethics));
