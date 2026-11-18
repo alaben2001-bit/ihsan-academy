@@ -1801,42 +1801,11 @@ export default {
     // محسن/زائر -> حساب «visitor» يقرأ عن الأكاديمية ويساهم، ولا يصل إلى بيانات الطلاب أو الفرق.
     // شيخ/معلم -> حساب «visitor» + طلب انضمام بصفة شيخ/معلم؛ لا تُمنح الصلاحية إلا باعتماد مسؤول مخوّل.
     // لا يوجد مسار يمنح صلاحيات إدارية أو إشرافية عند التسجيل.
+    // التسجيل العام لم يعد متاحًا من هذه الصفحة؛ الانضمام العام عبر «بوابة التيسير».
     if (path === "/api/signup" && method === "POST") {
-      const limited=await rateLimit(env,"signup",rateLimitKey(request),10,3600);
-      if(!limited.allowed)return fail(429,"طلبات إنشاء حسابات كثيرة خلال وقت قصير. انتظر قليلًا ثم أعد المحاولة.");
-      const parsed=await parseBody(request); if(parsed.error)return parsed.error; const b=parsed.value;
-      const name=clean(b.name,120),email=clean(b.email,200).toLowerCase(),password=String(b.password||"");
-      const kind=clean(b.kind,20),schoolId=clean(b.school_id,80),note=clean(b.note,500);
-      if(name.length<2)return fail(400,"أدخل الاسم الكامل");
-      if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email))return fail(400,"أدخل بريدًا إلكترونيًا صحيحًا");
-      if(password.length<10||password.length>256)return fail(400,"كلمة المرور يجب أن تكون 10 أحرف على الأقل ولا تتجاوز 256");
-      if(!["student","visitor","teacher"].includes(kind))return fail(400,"اختر نوع الحساب: طالب، زائر/محسن، أو شيخ/معلم");
-      let school=null;
-      if(kind==="student"&&schoolId){school=await env.DB.prepare("SELECT id FROM quran_schools WHERE id=? AND active=1").bind(schoolId).first();if(!school)return fail(400,"المدرسة المختارة غير موجودة أو غير نشطة");}
-      const existing=await env.DB.prepare("SELECT id FROM users WHERE identity_normalized=? LIMIT 1").bind(email).first();
-      if(existing)return fail(409,"هذا البريد مسجّل بالفعل. سجّل الدخول بدل إنشاء حساب جديد.");
-      const role=kind==="student"?"student":"visitor";
-      const id=uuid();
-      try {
-        await env.DB.prepare("INSERT INTO users (id,display_name,identity_normalized,password_hash,role,active) VALUES (?,?,?,?,?,1)").bind(id,name,email,await passwordHash(password),role).run();
-      } catch (error) {
-        const message=String(error?.message||error);
-        if(/unique|identity_normalized/i.test(message))return fail(409,"هذا البريد مسجّل بالفعل. سجّل الدخول بدل إنشاء حساب جديد.");
-        throw error;
-      }
-      let studentId=null;
-      if(kind==="student"){
-        studentId=uuid();
-        await env.DB.prepare("INSERT INTO students (id,user_id,display_name,group_id,active) VALUES (?,?,?,NULL,1)").bind(studentId,id,name).run();
-        if(school)await env.DB.prepare("INSERT INTO join_requests (id,user_id,kind,school_id,requested_note,status) VALUES (?,?,'school_join',?,?,'pending')").bind(uuid(),id,school.id,note).run();
-      } else if(kind==="teacher"){
-        await env.DB.prepare("INSERT INTO join_requests (id,user_id,kind,requested_note,status) VALUES (?,?,'teacher_request',?,'pending')").bind(uuid(),id,note).run();
-      }
-      const token=hex(crypto.getRandomValues(new Uint8Array(32)));
-      await env.DB.prepare("INSERT INTO sessions(token_hash,user_id,expires_at) VALUES(?,?,?)").bind(await hashToken(token),id,new Date(Date.now()+12*60*60*1000).toISOString()).run();
-      await log(env,id,"signup",{kind,school_id:school?.id||null});
-      return sessionResponse({user:safeUser({id,name,email,role,must_change_password:0,student_id:studentId,group_id:null}),join_note:"تم إنشاء حسابك. "+(kind==="student"?"طلب انضمامك قيد الاعتماد؛ ستُشعَر عند اعتماد الشيخ طلبك.":kind==="teacher"?"طلب انضمامك بصفة شيخ/معلم قيد المراجعة؛ لا تُفعّل صلاحيات الشيخ إلا باعتماد إدارة الأكاديمية.":"يمكنك الآن التعرف على الأكاديمية والمساهمة، وستجد في حسابك تبويب «ملفي».")},token,false,201);
+      return fail(410,"التسجيل العام انتقل إلى بوابة التيسير؛ هذه بوابة داخلية للمسجلين المعتمدين.");
     }
+
     if (path === "/api/auth/google/config" && method === "GET") {
       const clientId=clean(env.GOOGLE_CLIENT_ID,300),enabled=!!clientId&&clientId.endsWith(".apps.googleusercontent.com");
       return json({enabled,client_id:enabled?clientId:null});
@@ -2791,12 +2760,14 @@ export default {
       const groupId=clean(url.searchParams.get("group_id"),80),period=url.searchParams.get("period")==="monthly"?"monthly":"weekly",today=academyDate();
       if(!groupId||!await canManageGroup(env,user,groupId))return fail(400,"اختر فوجًا ضمن صلاحيتك");
       const fromDate=period==="monthly"?today.slice(0,7)+"-01":(()=>{const [y,m,d]=today.split("-").map(Number),x=new Date(Date.UTC(y,m-1,d-6));return x.getUTCFullYear()+"-"+String(x.getUTCMonth()+1).padStart(2,"0")+"-"+String(x.getUTCDate()).padStart(2,"0")})();
-      const [studentsRows,effortRows,attendanceRows,quranRows]=await Promise.all([
+      const [studentsRows,effortRows,attendanceRows,quranRows,pointsRows]=await Promise.all([
         env.DB.prepare("SELECT id,display_name AS name FROM students WHERE group_id=? AND active=1 ORDER BY display_name").bind(groupId).all(),
         records(env,"effort_logs"," AND group_id=?",[groupId]),
         records(env,"attendance"," AND group_id=?",[groupId]),
-        records(env,"quran_progress"," AND group_id=?",[groupId])
+        records(env,"quran_progress"," AND group_id=?",[groupId]),
+        env.DB.prepare("SELECT student_id,COALESCE(SUM(points),0) AS achievement FROM point_events WHERE group_id=? AND kind='achievement' AND reversed_at IS NULL GROUP BY student_id").bind(groupId).all()
       ]);
+      const achievementByStudent=new Map((pointsRows.results||[]).map(row=>[row.student_id,Number(row.achievement||0)]));
       const inPeriod=r=>String(r.date||"")>=fromDate&&String(r.date||"")<=today;
       const metrics=["attendance","mandatory_classes","asr","adhkar","wird","thabit","bring","quran_classes","memorization","revision"];
       const stats=(studentsRows.results||[]).map(student=>{
@@ -2806,10 +2777,11 @@ export default {
         for(const cat of effortCategories){const rows=effortRows.filter(r=>r.student_id===student.id&&r.category===cat&&inPeriod(r)&&r.status!=="excused");if(rows.length)values[cat]=rows.filter(r=>r.status==="done").length/rows.length}
         for(const cat of ["memorization","revision"]){const rows=quranRows.filter(r=>r.student_id===student.id&&r.activity===cat&&inPeriod(r));const dates=new Set(rows.filter(r=>cat==="memorization"?String(r.memorized||"").trim():String(r.reviewed||"").trim()).map(r=>r.date));const opportunities=new Set(rows.map(r=>r.date).filter(Boolean));if(opportunities.size)values[cat]=dates.size/opportunities.size}
         const scored=metrics.filter(k=>values[k]!==undefined);
-        const score=scored.length?Math.round(100*scored.reduce((n,k)=>n+values[k],0)/scored.length):null;
-        return {student_id:student.id,name:student.name,score,recorded_metrics:scored.length,metrics:Object.fromEntries(metrics.map(k=>[k,values[k]===undefined?null:Math.round(values[k]*100)]))};
-      }).sort((a,b)=>(b.recorded_metrics>0?1:0)-(a.recorded_metrics>0?1:0)||(b.score??-1)-(a.score??-1)||b.recorded_metrics-a.recorded_metrics||a.name.localeCompare(b.name,"ar"));
-      let rank=0;return json({period,from_date:fromDate,to_date:today,metrics,rows:stats.map(r=>({...r,rank:r.recorded_metrics?++rank:null}))});
+        const metricsAvg=scored.length?Math.round(100*scored.reduce((n,k)=>n+values[k],0)/scored.length):null;
+        const score=Number(achievementByStudent.get(student.id)||0);
+        return {student_id:student.id,name:student.name,score,achievement:score,metrics_average:metricsAvg,recorded_metrics:scored.length,metrics:Object.fromEntries(metrics.map(k=>[k,values[k]===undefined?null:Math.round(values[k]*100)]))};
+      }).sort((a,b)=>(b.achievement??0)-(a.achievement??0)||(b.score??0)-(a.score??0)||(b.recorded_metrics-a.recorded_metrics)||a.name.localeCompare(b.name,"ar"));
+      let rank=0;return json({period,from_date:fromDate,to_date:today,metrics,rows:stats.map(r=>({...r,rank:++rank}))});
     }
     if(path==="/api/attendance"&&method==="GET"){
       const date=clean(url.searchParams.get("date"),10)||academyDate(),groupId=clean(url.searchParams.get("group_id"),80),history=url.searchParams.get("history")==="1",studentId=clean(url.searchParams.get("student_id"),80);
@@ -4599,7 +4571,7 @@ export default {
       return json({level,last_reason:reason,last_date:date});
     }
     if(path==="/api/students/level"&&method==="POST"){
-      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"الترقية من صلاحية الطاقم");
+      if(user.role!=="admin")return fail(403,"الترقية من صلاحية الطاقم");
       const parsed=await parseBody(request,2000);if(parsed.error)return parsed.error;const b=parsed.value;
       const studentId=clean(b.student_id,80);
       if(!studentId)return fail(400,"حدّد الطالب");
@@ -4881,6 +4853,73 @@ export default {
       ]);
       return json({checked_at:nowIso(),storage:"cloudflare-d1",bootstrap_setup_enabled:!!env.BOOTSTRAP_SECRET,counts:counts||{},roles:roles.results||[],collections:collections.results||[],schema:schemaProbe||{}});
     }
+    // =======================================================================
+    // ØªØ±Ø­ÙŠÙ„ 0009 (ÙØªØ­ Ø§Ù„ØªØ³Ø¬ÙŠÙ„ Ù„Ù„Ø¬Ù…ÙŠØ¹ Ø¨Ø¯ÙˆØ± visitor + Ø¬Ø¯ÙˆÙ„ join_requests) ÙŠÙØ·Ø¨ÙŽÙ‘Ù‚
+    // Ù‡Ù†Ø§ Ø¨Ø·Ù„Ø¨ ØµØ±ÙŠØ­ Ù…Ù† Ù…Ø¯ÙŠØ± Ù…Ø®ÙˆÙ‘Ù„ Ø¨Ø¯Ù„ Ø±ÙØ¹ SQL ÙŠØ¯ÙˆÙŠÙ‹Ø§ Ø¥Ù„Ù‰ Ø§Ù„Ø¥Ù†ØªØ§Ø¬.
+    // - Ù†Ø³Ø®Ø© Ø§Ø­ØªÙŠØ§Ø·ÙŠØ© Ø¯Ø§Ø®Ù„ÙŠØ© Ø£ÙˆÙ„Ù‹Ø§ ÙÙŠ academy_records (collection='migration_backup_0009')
+    //   Ø­ØªÙ‰ Ù„Ø§ ØªÙÙÙ‚Ø¯ Ø¨ÙŠØ§Ù†Ø§Øª users/sessions Ø£Ø¨Ø¯Ù‹Ø§ Ù…Ù‡Ù…Ø§ Ø­Ø¯Ø«.
+    // - Ø«Ù… Ù†Ø³Ø® Ø§Ø­ØªÙŠØ§Ø·ÙŠØ© _backup_* Ø¯Ø§Ø®Ù„ Ø§Ù„Ù…Ø¹Ø§Ù…Ù„Ø© ØªÙØ³ØªØ¹Ø§Ø¯ Ù…Ù†Ù‡Ø§ Ø±ÙˆØ§Ø¨Ø· students/sessions/
+    //   audit_log/google_identities Ù„Ø£Ù† DROP TABLE users ÙŠÙØ·Ù„Ù‚ ON DELETE CASCADE/SET NULL.
+    // - env.DB.batch = Ù…Ø¹Ø§Ù…Ù„Ø© ÙˆØ§Ø­Ø¯Ø© Ø°Ø±ÙŠØ©: Ø¥Ù…Ø§ ÙŠÙ†Ø¬Ø­ ÙƒÙ„ Ø´ÙŠØ¡ Ø£Ùˆ Ù„Ø§ ÙŠØªØºÙŠØ± Ø£ÙŠ Ø´ÙŠØ¡.
+    // - idempotent: Ø¥Ù† ÙƒØ§Ù† visitor Ù…Ø³Ù…ÙˆØ­Ù‹Ø§ Ùˆjoin_requests Ù…ÙˆØ¬ÙˆØ¯Ù‹Ø§ ÙŠÙØ±Ø¬Ø¹ already_applied.
+    // =======================================================================
+    if(path==="/api/admin/migrate/0009"&&method==="POST"){
+      if(user.role!=="admin")return fail(403,"forbidden");
+      const parsed=await parseBody(request,2000);if(parsed.error)return parsed.error;const b=parsed.value;
+      if(clean(b.confirm,40)!=="APPLY-0009")return fail(400,"Ø§ÙƒØªØ¨ Ø§Ù„ØªØ£ÙƒÙŠØ¯ APPLY-0009 Ù„ØªØ·Ø¨ÙŠÙ‚ Ø§Ù„ØªØ±Ø­ÙŠÙ„");
+      const probe=await env.DB.prepare("SELECT (SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='join_requests') AS join_requests_table,(SELECT sql LIKE '%visitor%' FROM sqlite_master WHERE type='table' AND name='users') AS visitor_allowed").first();
+      const joinRequestsExists=Number(probe?.join_requests_table||0)===1;
+      const visitorAllowed=Boolean(Number(probe?.visitor_allowed||0)===1);
+      const cols=await env.DB.prepare("PRAGMA table_info(users)").all();
+      const hasMustChange=(cols.results||[]).some(c=>c.name==="must_change_password");
+      if(joinRequestsExists&&visitorAllowed){await log(env,user.id,"migrate_0009_skipped",{reason:"already_applied"});return json({ok:true,applied:false,already_applied:true,message:"Ø§Ù„ØªØ±Ø­ÙŠÙ„ 0009 Ù…ÙØ·Ø¨Ù‘Ù‚ Ø¨Ø§Ù„ÙØ¹Ù„Ø› Ù„Ø§ Ø´ÙŠØ¡ Ù„Ù„ØªØºÙŠÙŠØ±."})}
+      const backupTables=["users","sessions","students","groups","quran_schools","google_identities"];
+      const backup={format:"pre-0009-snapshot",created_at:nowIso(),trigger:"admin-endpoint",tables:{}};
+      try{for(const table of backupTables){const rows=await env.DB.prepare("SELECT * FROM "+table).all();backup.tables[table]=rows.results||[]}}catch(error){console.error("migrate_0009 backup snapshot failed",{message:String(error?.message||error)});return fail(500,"ØªØ¹Ø°Ù‘Ø± Ø¥Ù†Ø´Ø§Ø¡ Ù†Ø³Ø®Ø© Ø§Ø­ØªÙŠØ§Ø·ÙŠØ© Ø¯Ø§Ø®Ù„ÙŠØ©Ø› Ù„Ù… ØªÙØ·Ø¨ÙŽÙ‘Ù‚ Ø£ÙŠ ØªØºÙŠÙŠØ±Ø§Øª Ø¹Ù„Ù‰ Ù‚Ø§Ø¹Ø¯Ø© Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª.")}
+      const backupId="pre-0009-"+Date.now();
+      try{await env.DB.prepare("INSERT INTO academy_records (collection,id,owner_user_id,payload_json,updated_at) VALUES ('migration_backup_0009',?,?,?,?) ON CONFLICT(collection,id) DO UPDATE SET payload_json=excluded.payload_json,owner_user_id=excluded.owner_user_id,updated_at=excluded.updated_at").bind(backupId,user.id,JSON.stringify(backup),nowIso()).run()}catch(error){console.error("migrate_0009 backup store failed",{message:String(error?.message||error)});return fail(500,"ØªØ¹Ø°Ù‘Ø± Ø­ÙØ¸ Ø§Ù„Ù†Ø³Ø®Ø© Ø§Ù„Ø§Ø­ØªÙŠØ§Ø·ÙŠØ© Ø§Ù„Ø¯Ø§Ø®Ù„ÙŠØ©Ø› Ù„Ù… ØªÙØ·Ø¨ÙŽÙ‘Ù‚ Ø£ÙŠ ØªØºÙŠÙŠØ±Ø§Øª.")}
+      const selectList=hasMustChange?"id,display_name,identity_normalized,password_hash,role,active,created_at,must_change_password":"id,display_name,identity_normalized,password_hash,role,active,created_at,0 AS must_change_password";
+      const batch=[
+        "DROP TABLE IF EXISTS _backup_users_0009",
+        "DROP TABLE IF EXISTS _backup_students_0009",
+        "DROP TABLE IF EXISTS _backup_sessions_0009",
+        "DROP TABLE IF EXISTS _backup_audit_0009",
+        "DROP TABLE IF EXISTS _backup_google_identities_0009",
+        "CREATE TABLE _backup_users_0009 AS SELECT * FROM users",
+        "CREATE TABLE _backup_students_0009 AS SELECT id, user_id FROM students",
+        "CREATE TABLE _backup_sessions_0009 AS SELECT * FROM sessions",
+        "CREATE TABLE _backup_audit_0009 AS SELECT id, user_id FROM audit_log",
+        "CREATE TABLE _backup_google_identities_0009 AS SELECT * FROM google_identities",
+        "CREATE TABLE IF NOT EXISTS users__v72 (id TEXT PRIMARY KEY, display_name TEXT NOT NULL, identity_normalized TEXT NOT NULL UNIQUE, password_hash TEXT NOT NULL, role TEXT NOT NULL CHECK (role IN ('admin','director','teacher','supervisor','student','visitor')), active INTEGER NOT NULL DEFAULT 1 CHECK (active IN (0, 1)), created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')), must_change_password INTEGER NOT NULL DEFAULT 0 CHECK (must_change_password IN (0, 1)))",
+        "INSERT INTO users__v72 (id, display_name, identity_normalized, password_hash, role, active, created_at, must_change_password) SELECT "+selectList+" FROM users",
+        "DROP TABLE users",
+        "ALTER TABLE users__v72 RENAME TO users",
+        "CREATE INDEX IF NOT EXISTS idx_users_active_role ON users(active, role)",
+        "CREATE INDEX IF NOT EXISTS idx_users_password_change ON users(must_change_password, active)",
+        "CREATE TABLE IF NOT EXISTS join_requests (id TEXT PRIMARY KEY, user_id TEXT NOT NULL REFERENCES users(id) ON DELETE CASCADE, kind TEXT NOT NULL CHECK (kind IN ('school_join','teacher_request')), school_id TEXT REFERENCES quran_schools(id) ON DELETE SET NULL, group_id TEXT REFERENCES groups(id) ON DELETE SET NULL, requested_note TEXT NOT NULL DEFAULT '', status TEXT NOT NULL DEFAULT 'pending' CHECK (status IN ('pending','approved','rejected','cancelled')), decided_by TEXT REFERENCES users(id) ON DELETE SET NULL, decided_at TEXT, decision_note TEXT NOT NULL DEFAULT '', created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')))",
+        "CREATE INDEX IF NOT EXISTS idx_join_requests_status ON join_requests(status, created_at)",
+        "CREATE INDEX IF NOT EXISTS idx_join_requests_user ON join_requests(user_id, created_at)",
+        "CREATE INDEX IF NOT EXISTS idx_join_requests_school ON join_requests(school_id, status)",
+        "UPDATE students SET user_id = (SELECT user_id FROM _backup_students_0009 WHERE _backup_students_0009.id = students.id) WHERE EXISTS (SELECT 1 FROM _backup_students_0009 WHERE _backup_students_0009.id = students.id)",
+        "INSERT OR IGNORE INTO sessions SELECT * FROM _backup_sessions_0009",
+        "UPDATE audit_log SET user_id = (SELECT user_id FROM _backup_audit_0009 WHERE _backup_audit_0009.id = audit_log.id) WHERE EXISTS (SELECT 1 FROM _backup_audit_0009 WHERE _backup_audit_0009.id = audit_log.id)",
+        "INSERT OR IGNORE INTO google_identities SELECT * FROM _backup_google_identities_0009",
+        "DROP TABLE _backup_users_0009",
+        "DROP TABLE _backup_students_0009",
+        "DROP TABLE _backup_sessions_0009",
+        "DROP TABLE _backup_audit_0009",
+        "DROP TABLE _backup_google_identities_0009"
+      ];
+      try{
+        await env.DB.batch(batch.map(sql=>env.DB.prepare(sql)));
+      }catch(error){
+        console.error("migrate_0009 batch failed",{message:String(error?.message||error),backup:backupId});
+        return fail(500,"ØªØ¹Ø°Ù‘Ø± ØªØ·Ø¨ÙŠÙ‚ Ø§Ù„ØªØ±Ø­ÙŠÙ„ 0009Ø› Ù„Ù… ØªÙØºÙŠÙŽÙ‘Ø± Ø¨Ù†ÙŠØ© Ù‚Ø§Ø¹Ø¯Ø© Ø§Ù„Ø¨ÙŠØ§Ù†Ø§Øª. Ù†Ø³Ø®ØªÙƒ Ø§Ù„Ø§Ø­ØªÙŠØ§Ø·ÙŠØ© Ø§Ù„Ø¯Ø§Ø®Ù„ÙŠØ© Ù…Ø­ÙÙˆØ¸Ø© ("+backupId+").");
+      }
+      await log(env,user.id,"migrate_0009_applied",{backup:backupId,already:false});
+      return json({ok:true,applied:true,backup:backupId,message:"Ø·ÙØ·Ø¨Ù‘Ù‚ Ø§Ù„ØªØ±Ø­ÙŠÙ„ 0009Ø› Ø£ØµØ¨Ø­ Ø¨Ø¥Ù…ÙƒØ§Ù† Ø£ÙŠ Ø´Ø®Øµ Ø¥Ù†Ø´Ø§Ø¡ Ø­Ø³Ø§Ø¨ Ø¹Ù„Ù‰ Ø§Ù„Ø¥Ù†ØªØ§Ø¬ (Ø¯ÙˆØ± visitor + join_requests)."});
+    }
+
     if(path==="/api/admin/audit"&&method==="GET"){
       if(user.role!=="admin")return fail(403,"forbidden");
       const rows=await env.DB.prepare("SELECT a.id,a.user_id,u.display_name AS actor,a.action,a.metadata_json,a.created_at FROM audit_log a LEFT JOIN users u ON u.id=a.user_id ORDER BY a.created_at DESC LIMIT 200").all();

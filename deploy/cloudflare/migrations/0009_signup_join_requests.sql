@@ -4,9 +4,25 @@
 -- 1) توسيع دور users ليشمل 'visitor' مع الحفاظ على كل الأعمدة والبيانات.
 -- 2) جدول join_requests: مسار طالب (school_join) أو شيخ/معلم (teacher_request)،
 --    يبدأ دائمًا «pending» ولا يُقبل إلا باعتماد مسؤول مخوّل (admin / director ضمن النطاق / teacher ضمن فوج يدرّسه).
+-- ملاحظة أمان حرجة: إعادة بناء users بـ DROP + RENAME تُطلق أفعال ON DELETE CASCADE/SET NULL
+-- على students/sessions/audit_log/google_identities. لذلك نحتفظ بنسخ احتياطية داخلية أولًا
+-- في جداول عادية بلا FK، ونعيد الروابط والجلسات بعد إعادة البناء، ثم نحذف النسخ.
 
 PRAGMA defer_foreign_keys = ON;
 
+-- 1) نسخ احتياطية داخلية قبل أي تغيير (تُزال في نهاية الترحيل)
+DROP TABLE IF EXISTS _backup_users_0009;
+DROP TABLE IF EXISTS _backup_students_0009;
+DROP TABLE IF EXISTS _backup_sessions_0009;
+DROP TABLE IF EXISTS _backup_audit_0009;
+DROP TABLE IF EXISTS _backup_google_identities_0009;
+CREATE TABLE _backup_users_0009 AS SELECT * FROM users;
+CREATE TABLE _backup_students_0009 AS SELECT id, user_id FROM students;
+CREATE TABLE _backup_sessions_0009 AS SELECT * FROM sessions;
+CREATE TABLE _backup_audit_0009 AS SELECT id, user_id FROM audit_log;
+CREATE TABLE _backup_google_identities_0009 AS SELECT * FROM google_identities;
+
+-- 2) إعادة بناء users بدور visitor (نفس أعمدة users + visitor في CHECK)
 CREATE TABLE IF NOT EXISTS users__v72 (
   id TEXT PRIMARY KEY,
   display_name TEXT NOT NULL,
@@ -44,5 +60,20 @@ CREATE TABLE IF NOT EXISTS join_requests (
 CREATE INDEX IF NOT EXISTS idx_join_requests_status ON join_requests(status, created_at);
 CREATE INDEX IF NOT EXISTS idx_join_requests_user ON join_requests(user_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_join_requests_school ON join_requests(school_id, status);
+
+-- 3) استعادة كل ما كان مرتبطًا بالحسابات (user_id محفوظة كما كانت)
+UPDATE students SET user_id = (SELECT user_id FROM _backup_students_0009 WHERE _backup_students_0009.id = students.id)
+WHERE EXISTS (SELECT 1 FROM _backup_students_0009 WHERE _backup_students_0009.id = students.id);
+INSERT OR IGNORE INTO sessions SELECT * FROM _backup_sessions_0009;
+UPDATE audit_log SET user_id = (SELECT user_id FROM _backup_audit_0009 WHERE _backup_audit_0009.id = audit_log.id)
+WHERE EXISTS (SELECT 1 FROM _backup_audit_0009 WHERE _backup_audit_0009.id = audit_log.id);
+INSERT OR IGNORE INTO google_identities SELECT * FROM _backup_google_identities_0009;
+
+-- 4) إزالة النسخ الاحتياطية الداخلية (المعطيات الأساسية عادت بالكامل)
+DROP TABLE _backup_users_0009;
+DROP TABLE _backup_students_0009;
+DROP TABLE _backup_sessions_0009;
+DROP TABLE _backup_audit_0009;
+DROP TABLE _backup_google_identities_0009;
 
 PRAGMA defer_foreign_keys = OFF;

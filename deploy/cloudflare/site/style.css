@@ -746,8 +746,8 @@ body{color:#263f36;background:#f6f2f7}
 .theme-choice[aria-pressed="true"]{border:2px solid var(--green);padding:12px;background:var(--mint)}
 .theme-swatch{display:grid;place-items:center;flex:0 0 44px;width:44px;height:44px;border-radius:13px;background:var(--swatch);border:1px solid #0000000c;box-shadow:inset 0 0 0 6px var(--swatch-bg)}
 .theme-swatch i{width:15px;height:15px;border-radius:50%;background:var(--swatch-gold);box-shadow:0 0 0 3px #ffffffa6}
-.theme-swatch-0{--swatch:#174b3b;--swatch-bg:#e8f3ec;--swatch-gold:#d4ad63}
-.theme-swatch-1{--swatch:#24558a;--swatch-bg:#e8f1fb;--swatch-gold:#d7b66c}
+.theme-swatch-0{--swatch:#7a1f2b;--swatch-bg:#fdecef;--swatch-gold:#d4af37}
+.theme-swatch-1{--swatch:#087f5b;--swatch-bg:#ddfaed;--swatch-gold:#f5b942}
 .theme-swatch-2{--swatch:#68456f;--swatch-bg:#f2eaf5;--swatch-gold:#d2b171}
 .theme-swatch-3{--swatch:#77542f;--swatch-bg:#f5ecdf;--swatch-gold:#c2a05e}
 .theme-choice-copy{display:grid;gap:2px;flex:1;min-width:0}
@@ -2428,285 +2428,6 @@ body{background-image:linear-gradient(135deg,rgba(36,91,73,.025),transparent 42%
 @media(max-width:620px){.hub-cards{grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}.hub-card{min-height:112px;padding:13px;border-radius:14px}.hub-card strong{font-size:13px}.hub-card small{font-size:11px}}
 @media(prefers-reduced-motion:reduce){.hub-card{transition:none}.hub-card:hover{transform:none}.hub-target-focus{animation:none}}
 
-/* ---------- 2. EMERALD NOIR THEME ---------- */
-/* ==========================================================
-   Ihsan Academy — Emerald Noir Pro  (v1)
-   تحميل هذا الملف أخيراً بعد كل ملفات CSS الأخرى.
-   ========================================================== */
-
-/* ---------- 1) الألوان والمتغيرات ---------- */
-html:root,html[data-appearance],html[data-appearance="dark"],html[data-appearance="auto"],html[data-appearance="light"]{
-  color-scheme:dark;
-  --ep-bg:#030705;--ep-glow:46,230,161;
-  --ink:#eaf7f0!important;--muted:#9bb8aa!important;
-  --green:#2ee6a1!important;--mint:#0f2b20!important;--gold:#e8c46a!important;
-  --line:#1b3a2c!important;--paper:#030705!important;
-  --surface:#0a1812!important;--surface-2:#0e2219!important;
-  --red:#ff7b7b!important;
-  --shadow:0 18px 50px rgba(0,0,0,.55)!important;
-  --ep-ease:cubic-bezier(.22,.8,.25,1);
-}
-
-/* ---------- 2) الخلفية الحية ---------- */
-html:root:root body{
-  background-color:var(--ep-bg)!important;
-  background-image:
-    radial-gradient(1100px 560px at 88% -8%,rgba(var(--ep-glow),.16),transparent 60%),
-    radial-gradient(900px 520px at 4% 12%,rgba(10,120,80,.20),transparent 58%),
-    linear-gradient(180deg,#040a07,#020504)!important;
-  background-attachment:fixed!important;
-  color:var(--ink)!important;
-  font-feature-settings:"kern","liga";
-}
-html:root:root body::before{
-  content:"";display:block!important;position:fixed;inset:0;z-index:-1;pointer-events:none;opacity:.5;
-  background-image:
-    linear-gradient(rgba(var(--ep-glow),.05) 1px,transparent 1px),
-    linear-gradient(90deg,rgba(var(--ep-glow),.05) 1px,transparent 1px);
-  background-size:46px 46px;
-  -webkit-mask-image:radial-gradient(ellipse at 50% 0%,#000 10%,transparent 72%);
-          mask-image:radial-gradient(ellipse at 50% 0%,#000 10%,transparent 72%);
-}
-html:root:root body::after{
-  content:"";position:fixed;z-index:-1;pointer-events:none;
-  width:62vmax;height:62vmax;inset-inline-start:-22vmax;top:-26vmax;border-radius:50%;
-  background:radial-gradient(circle,rgba(var(--ep-glow),.14),transparent 66%);
-  animation:ep-drift 24s ease-in-out infinite alternate;will-change:transform;
-}
-::selection{background:#2ee6a1;color:#02140c}
-*{scrollbar-width:thin;scrollbar-color:#1f5a41 #040a07}
-::-webkit-scrollbar{width:9px;height:9px}
-::-webkit-scrollbar-track{background:#040a07}
-::-webkit-scrollbar-thumb{background:linear-gradient(#2ee6a1,#0f7a52);border-radius:9px;border:2px solid #040a07}
-
-/* ---------- 3) الشريط العلوي والشعار ---------- */
-html:root:root .topbar{
-  background:rgba(3,10,7,.72)!important;
-  -webkit-backdrop-filter:blur(18px) saturate(1.5);backdrop-filter:blur(18px) saturate(1.5);
-  border-bottom:1px solid rgba(var(--ep-glow),.16)!important;
-  box-shadow:0 10px 40px rgba(0,0,0,.45)!important;
-}
-.topbar::after{
-  content:"";position:absolute;inset-inline:0;bottom:-1px;height:1px;pointer-events:none;
-  background:linear-gradient(90deg,transparent,#2ee6a1,#e8c46a,#2ee6a1,transparent);
-  background-size:200% 100%;animation:ep-line 6s linear infinite;opacity:.8;
-}
-html:root:root .brand,html:root:root .brand strong{color:#f2fff9!important}
-html:root:root .brand strong{font-family:"Reem Kufi","IBM Plex Sans Arabic",sans-serif;letter-spacing:.2px;font-size:17px}
-html:root:root .brand small{color:var(--gold)!important}
-html:root:root .brand-mark,html:root:root .sidebar-brand-mark,html:root:root .account-mark{
-  background:linear-gradient(135deg,#2ee6a1,#0a8f5c)!important;
-  box-shadow:0 0 0 1px rgba(255,255,255,.12) inset,0 8px 26px rgba(var(--ep-glow),.45);
-  animation:ep-pulse 3.6s ease-in-out infinite;
-}
-
-/* ---------- 4) البطاقات واللوحات ---------- */
-html:root:root .panel,html:root:root .hero,html:root:root .settings-section,html:root:root .workspace-head,html:root:root .content-area,html:root:root .calendar-card,
-html:root:root .settings-dialog,html:root:root .dialog-card,html:root:root .modal-card,html:root:root .auth-entry-card,html:root:root .form-card{
-  background:linear-gradient(165deg,rgba(17,43,31,.94),rgba(6,16,11,.96))!important;
-  border:1px solid rgba(var(--ep-glow),.17)!important;
-  border-radius:22px;
-  box-shadow:0 22px 60px rgba(0,0,0,.55),inset 0 1px 0 rgba(255,255,255,.05)!important;
-  color:var(--ink)!important;
-}
-html:root:root .card,html:root:root .stat,html:root:root .module-card,html:root:root .hub-card,html:root:root .dashboard-card,html:root:root .task-card,html:root:root .student-card,html:root:root .group-card,
-html:root:root .path-card,html:root:root .lesson-card,html:root:root .learning-card,html:root:root .knowledge-card,html:root:root .curriculum-card,html:root:root .assignment-card,
-html:root:root .quick-action,html:root:root .stat-card,html:root:root .metric-card,html:root:root .achievement-card,html:root:root .challenge-card,html:root:root .track-card,
-html:root:root .teacher-card,html:root:root .feature-card,html:root:root .info-card,html:root:root .profile-card,html:root:root .message-card,html:root:root .schedule-card,
-html:root:root .test-card,html:root:root .quiz-card,html:root:root .progress-card,html:root:root .notification-card,html:root:root .submission-card,html:root:root .settings-card,
-html:root:root .curriculum-tile,html:root:root .knowledge-tile,html:root:root .daily-nourishment-card{
-  position:relative;
-  background:linear-gradient(160deg,rgba(16,40,29,.92),rgba(7,18,13,.94))!important;
-  border:1px solid rgba(var(--ep-glow),.15)!important;
-  border-radius:18px;
-  box-shadow:0 12px 34px rgba(0,0,0,.5),inset 0 1px 0 rgba(255,255,255,.04)!important;
-  color:var(--ink)!important;
-  transition:transform .35s var(--ep-ease),border-color .35s,box-shadow .35s;
-}
-@media (hover:hover){
-  html:root:root .card:hover,html:root:root .stat:hover,html:root:root .module-card:hover,html:root:root .hub-card:hover,html:root:root .dashboard-card:hover,
-  html:root:root .task-card:hover,html:root:root .student-card:hover,html:root:root .group-card:hover,html:root:root .path-card:hover,html:root:root .lesson-card:hover,
-  html:root:root .learning-card:hover,html:root:root .knowledge-card:hover,html:root:root .curriculum-card:hover,html:root:root .assignment-card:hover,
-  html:root:root .quick-action:hover,html:root:root .stat-card:hover,html:root:root .metric-card:hover,html:root:root .achievement-card:hover,
-  html:root:root .challenge-card:hover,html:root:root .track-card:hover,html:root:root .teacher-card:hover,html:root:root .feature-card:hover,
-  html:root:root .curriculum-tile:hover,html:root:root .knowledge-tile:hover{
-    transform:translateY(-5px);
-    border-color:rgba(var(--ep-glow),.55)!important;
-    box-shadow:0 22px 50px rgba(0,0,0,.6),0 0 0 1px rgba(var(--ep-glow),.2),0 0 38px rgba(var(--ep-glow),.18)!important;
-  }
-}
-/* وهج علوي على البطاقات */
-html:root:root .stat::before,html:root:root .module-card::before,html:root:root .hub-card::before,html:root:root .dashboard-card::before{
-  content:"";position:absolute;inset-inline:18%;top:0;height:2px;border-radius:2px;pointer-events:none;
-  background:linear-gradient(90deg,transparent,#2ee6a1,transparent);opacity:.7;
-}
-
-/* ---------- 5) الواجهة الترحيبية والبطل ---------- */
-html:root:root .welcome{
-  position:relative;overflow:hidden;isolation:isolate;
-  background:
-    radial-gradient(520px 300px at 20% 0%,rgba(var(--ep-glow),.22),transparent 65%),
-    linear-gradient(150deg,#0d2d20,#04100a 70%)!important;
-  border:1px solid rgba(232,196,106,.28);border-radius:28px;
-  box-shadow:0 30px 80px rgba(0,0,0,.65),0 0 60px rgba(var(--ep-glow),.10);
-}
-html:root:root .welcome::before{
-  content:"";position:absolute;inset:-60%;z-index:-1;pointer-events:none;
-  background:conic-gradient(from 0deg,transparent 0 55%,rgba(var(--ep-glow),.22) 72%,transparent 90%);
-  animation:ep-spin 16s linear infinite;
-}
-html:root:root .welcome h1,html:root:root .hero h1{
-  font-family:"Reem Kufi","IBM Plex Sans Arabic",sans-serif;
-  background:linear-gradient(100deg,#ffffff 20%,#7bf3c4 55%,#e8c46a);
-  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;color:transparent;
-}
-html:root:root .welcome p,html:root:root .hero p{color:#b9d6c8!important}
-html:root:root .eyebrow,html:root:root .about-kicker,html:root:root .daily-kicker{color:var(--gold)!important;letter-spacing:.4px}
-html:root:root .verse,html:root:root .knowledge-verse-text{color:#f0d68a!important;text-shadow:0 0 22px rgba(232,196,106,.35)}
-html:root:root .hero{position:relative;overflow:hidden}
-html:root:root .hero::after{
-  content:"";position:absolute;inset-inline-end:-80px;top:-80px;width:260px;height:260px;border-radius:50%;pointer-events:none;
-  background:radial-gradient(circle,rgba(var(--ep-glow),.22),transparent 68%);animation:ep-breathe 5s ease-in-out infinite;
-}
-
-/* ---------- 6) العناوين والأرقام ---------- */
-html:root:root h1,html:root:root h2,html:root:root h3,html:root:root h4,html:root:root .panel h2,html:root:root .section-head h2,html:root:root .card-title,html:root:root .section-title{color:#f1fbf6}
-html:root:root h2,html:root:root .section-head h2{font-family:"Reem Kufi","IBM Plex Sans Arabic",sans-serif}
-html:root:root .muted,html:root:root .text-muted,html:root:root .section-head p,html:root:root .hint,html:root:root .helper-text,html:root:root .field-hint,html:root:root .stat-label{color:var(--muted)!important}
-html:root:root .stat strong,html:root:root .stat-value,html:root:root .hifz-number{
-  color:#2ee6a1!important;font-family:"Reem Kufi","IBM Plex Sans Arabic",sans-serif;
-  text-shadow:0 0 24px rgba(var(--ep-glow),.55);
-}
-
-/* ---------- 7) القائمة الجانبية ---------- */
-html:root:root .sidebar{
-  background:linear-gradient(190deg,#0c2018,#040b08)!important;
-  border:1px solid rgba(var(--ep-glow),.16)!important;border-radius:22px;
-  box-shadow:0 24px 60px rgba(0,0,0,.6)!important;
-}
-html:root:root .nav-btn{
-  position:relative;color:#bcd8ca!important;background:transparent!important;border:1px solid transparent!important;
-  border-radius:13px;transition:background .25s,color .25s,transform .3s var(--ep-ease),box-shadow .25s;
-}
-html:root:root .nav-btn:hover{background:rgba(var(--ep-glow),.09)!important;color:#fff!important;transform:translateX(-4px)}
-html:root:root .nav-btn.active{
-  background:linear-gradient(270deg,rgba(var(--ep-glow),.26),rgba(var(--ep-glow),.04))!important;
-  color:#fff!important;border-color:rgba(var(--ep-glow),.28)!important;
-  box-shadow:inset -3px 0 0 #2ee6a1,0 0 24px rgba(var(--ep-glow),.14)!important;
-}
-html:root:root .nav-section-title,html:root:root .settings-section-title{color:var(--gold)!important}
-
-/* ---------- 8) الأزرار ---------- */
-html:root:root .btn,html:root:root .btn.primary,html:root:root button.primary,html:root:root .btn:not(.secondary):not(.ghost):not(.danger){
-  position:relative;overflow:hidden;isolation:isolate;
-  background:linear-gradient(135deg,#34f0ab,#0fa86c)!important;
-  color:#02140c!important;border:0!important;font-weight:800;border-radius:13px;
-  box-shadow:0 10px 28px rgba(var(--ep-glow),.30),inset 0 1px 0 rgba(255,255,255,.35);
-  transition:transform .3s var(--ep-ease),box-shadow .3s,filter .3s;
-}
-html:root:root .btn::after{
-  content:"";position:absolute;inset:0;z-index:-1;pointer-events:none;transform:translateX(120%) skewX(-18deg);
-  background:linear-gradient(90deg,transparent,rgba(255,255,255,.45),transparent);transition:transform .7s var(--ep-ease);
-}
-html:root:root .btn:hover{transform:translateY(-2px);filter:brightness(1.08);box-shadow:0 16px 38px rgba(var(--ep-glow),.45),inset 0 1px 0 rgba(255,255,255,.4)}
-html:root:root .btn:hover::after{transform:translateX(-120%) skewX(-18deg)}
-html:root:root .btn:active{transform:translateY(0) scale(.98)}
-html:root:root .btn.secondary,html:root:root .btn.ghost,html:root:root .btn-link{
-  background:rgba(var(--ep-glow),.10)!important;color:#7bf3c4!important;
-  border:1px solid rgba(var(--ep-glow),.30)!important;box-shadow:none;
-}
-html:root:root .btn.secondary:hover,html:root:root .btn.ghost:hover{background:rgba(var(--ep-glow),.20)!important;box-shadow:0 0 26px rgba(var(--ep-glow),.2)}
-html:root:root .btn.danger{background:rgba(255,90,90,.12)!important;color:#ff9a9a!important;border:1px solid rgba(255,110,110,.35)!important;box-shadow:none}
-html:root:root .btn:disabled{opacity:.45;filter:grayscale(.4);transform:none;box-shadow:none}
-
-/* ---------- 9) الحقول ---------- */
-html:root:root .field,html:root:root .field span,html:root:root label{color:#cfe6da}
-html:root:root input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]),html:root:root select,html:root:root textarea,html:root:root .form-control,html:root:root .search-input,html:root:root .filter-select{
-  background:#050f0a!important;color:var(--ink)!important;
-  border:1px solid #1f4634!important;border-radius:12px;
-  transition:border-color .25s,box-shadow .25s,background .25s;
-}
-html:root:root input::placeholder,html:root:root textarea::placeholder{color:#6d8c7e!important}
-html:root:root input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]):focus,html:root:root select:focus,html:root:root textarea:focus{
-  outline:none;border-color:#2ee6a1!important;background:#071a11!important;
-  box-shadow:0 0 0 4px rgba(var(--ep-glow),.18),0 0 24px rgba(var(--ep-glow),.14)!important;
-}
-html:root:root input[type=checkbox],html:root:root input[type=radio]{accent-color:#2ee6a1}
-html:root:root option{background:#07130d;color:#eaf7f0}
-
-/* ---------- 10) تنبيهات وشارات وجداول ---------- */
-html:root:root .notice{background:rgba(var(--ep-glow),.10)!important;color:#8ff0c8!important;border:1px solid rgba(var(--ep-glow),.28)}
-html:root:root .notice.error,html:root:root .error{background:rgba(255,90,90,.10)!important;color:#ff9a9a!important;border:1px solid rgba(255,110,110,.3)}
-html:root:root .pill,html:root:root .badge,html:root:root .tag,html:root:root .status-badge{
-  background:rgba(var(--ep-glow),.12)!important;color:#6ff0bb!important;border:1px solid rgba(var(--ep-glow),.28)!important;border-radius:999px;
-}
-html:root:root table{color:var(--ink)}
-html:root:root th{background:#0d2218!important;color:var(--gold)!important;border-bottom:1px solid rgba(var(--ep-glow),.25)!important;font-weight:700}
-html:root:root td{border-bottom:1px solid rgba(var(--ep-glow),.08)!important;color:var(--ink)}
-html:root:root tbody tr{transition:background .2s}
-html:root:root tbody tr:hover td{background:rgba(var(--ep-glow),.07)!important}
-html:root:root .table-wrap,html:root:root .table-responsive,html:root:root .table-container,html:root:root .report-table-wrap{
-  background:#07130d!important;border:1px solid rgba(var(--ep-glow),.16)!important;border-radius:18px;
-}
-html:root:root .list-row,html:root:root .list-item,html:root:root .student-row,html:root:root .schedule-item,html:root:root .system-check-item,html:root:root .leaderboard-self{
-  background:rgba(255,255,255,.025)!important;border:1px solid rgba(var(--ep-glow),.12)!important;color:var(--ink)!important;
-  transition:background .25s,border-color .25s,transform .3s var(--ep-ease);
-}
-@media (hover:hover){html:root:root .list-row:hover,html:root:root .list-item:hover,html:root:root .student-row:hover{background:rgba(var(--ep-glow),.07)!important;border-color:rgba(var(--ep-glow),.4)!important;transform:translateX(-3px)}}
-html:root:root progress{accent-color:#2ee6a1}
-html:root:root .path-meter,html:root:root .curriculum-overall-meter{background:#0a1f16!important;border-radius:99px;box-shadow:inset 0 1px 4px rgba(0,0,0,.6)}
-
-/* ---------- 11) النوافذ والتنبيهات المنبثقة ---------- */
-html:root:root dialog::backdrop,html:root:root .modal-backdrop{background:rgba(1,5,3,.78)!important;-webkit-backdrop-filter:blur(8px);backdrop-filter:blur(8px)}
-html:root:root dialog[open],html:root:root .modal-card,html:root:root .dialog-card{animation:ep-pop .4s var(--ep-ease) both}
-html:root:root .toast{
-  background:linear-gradient(135deg,#0e2a1d,#07150f)!important;color:#eaf7f0!important;
-  border:1px solid rgba(var(--ep-glow),.4)!important;box-shadow:0 18px 44px rgba(0,0,0,.6),0 0 30px rgba(var(--ep-glow),.2)!important;
-  animation:ep-rise .4s var(--ep-ease) both;
-}
-
-/* ---------- 12) التذييل وحالة التحميل ---------- */
-footer{color:var(--muted);border-top:1px solid rgba(var(--ep-glow),.12);background:rgba(2,6,4,.6)}
-footer a{color:#6ff0bb;text-decoration:none;transition:color .2s,text-shadow .2s}
-footer a:hover{color:#fff;text-shadow:0 0 14px rgba(var(--ep-glow),.7)}
-html:root:root .loading{
-  background:linear-gradient(90deg,#4f7566 20%,#2ee6a1 50%,#4f7566 80%);background-size:200% 100%;
-  -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;
-  animation:ep-shimmer 2.2s linear infinite;
-}
-html:root:root a:focus-visible,html:root:root button:focus-visible,html:root:root [tabindex]:focus-visible{outline:2px solid #e8c46a;outline-offset:3px;border-radius:10px}
-
-/* ---------- 13) حركات الدخول المتتابعة ---------- */
-html:root:root .shell>*{animation:ep-rise .55s var(--ep-ease) both}
-html:root:root .stats>*,html:root:root .module-grid>*,html:root:root .hub-cards>*,html:root:root .path-cards>*,html:root:root .quick-actions>*,html:root:root .curriculum-tiles>*,
-html:root:root .daily-nourishment-grid>*,html:root:root .hifz-stat-grid>*,html:root:root .hifz-daily-grid>*{animation:ep-rise .6s var(--ep-ease) both}
-html:root:root .stats>*:nth-child(1),html:root:root .module-grid>*:nth-child(1),html:root:root .hub-cards>*:nth-child(1),html:root:root .path-cards>*:nth-child(1),html:root:root .quick-actions>*:nth-child(1){animation-delay:.05s}
-html:root:root .stats>*:nth-child(2),html:root:root .module-grid>*:nth-child(2),html:root:root .hub-cards>*:nth-child(2),html:root:root .path-cards>*:nth-child(2),html:root:root .quick-actions>*:nth-child(2){animation-delay:.12s}
-html:root:root .stats>*:nth-child(3),html:root:root .module-grid>*:nth-child(3),html:root:root .hub-cards>*:nth-child(3),html:root:root .path-cards>*:nth-child(3),html:root:root .quick-actions>*:nth-child(3){animation-delay:.19s}
-html:root:root .stats>*:nth-child(4),html:root:root .module-grid>*:nth-child(4),html:root:root .hub-cards>*:nth-child(4),html:root:root .path-cards>*:nth-child(4),html:root:root .quick-actions>*:nth-child(4){animation-delay:.26s}
-html:root:root .stats>*:nth-child(5),html:root:root .module-grid>*:nth-child(5),html:root:root .hub-cards>*:nth-child(5),html:root:root .path-cards>*:nth-child(5),html:root:root .quick-actions>*:nth-child(5){animation-delay:.33s}
-html:root:root .stats>*:nth-child(n+6),html:root:root .module-grid>*:nth-child(n+6),html:root:root .hub-cards>*:nth-child(n+6),html:root:root .path-cards>*:nth-child(n+6),html:root:root .quick-actions>*:nth-child(n+6){animation-delay:.4s}
-
-/* ---------- 14) الحركات ---------- */
-@keyframes ep-rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:none}}
-@keyframes ep-pop{from{opacity:0;transform:scale(.94) translateY(10px)}to{opacity:1;transform:none}}
-@keyframes ep-spin{to{transform:rotate(360deg)}}
-@keyframes ep-line{to{background-position:200% 0}}
-@keyframes ep-shimmer{to{background-position:-200% 0}}
-@keyframes ep-breathe{0%,100%{opacity:.55;transform:scale(1)}50%{opacity:1;transform:scale(1.12)}}
-@keyframes ep-pulse{0%,100%{box-shadow:0 0 0 1px rgba(255,255,255,.12) inset,0 8px 26px rgba(46,230,161,.35)}50%{box-shadow:0 0 0 1px rgba(255,255,255,.2) inset,0 8px 38px rgba(46,230,161,.7)}}
-@keyframes ep-drift{from{transform:translate(0,0) scale(1)}to{transform:translate(18vmax,14vmax) scale(1.2)}}
-
-/* ---------- 15) الجوال وتقليل الحركة ---------- */
-@media (max-width:700px){
-  html:root:root body::after{width:90vmax;height:90vmax}
-  html:root:root .welcome{border-radius:22px}
-  html:root:root .panel,html:root:root .hero{border-radius:18px}
-}
-@media (prefers-reduced-motion:reduce){
-  *,*::before,*::after{animation:none!important;transition:none!important}
-}
-
 /* ملاحظات برنامج الحفظ: ألوان الأساس، ويحوّلها الثيم الداكن عند تفعيله */
 .hifz-program-note{color:#173c30 !important;background:#edf6f0 !important;border:1px solid #d5e8dc;border-radius:12px;padding:12px 14px;line-height:1.9}
 .hifz-program-note--info{border-inline-start:4px solid #438b70}
@@ -3486,3 +3207,35 @@ footer a{text-decoration:none}
 .world-journey-stop.is-done span{filter:none}
 .world-journey-stop.is-current{box-shadow:0 0 0 1px rgba(232,196,106,.5),0 0 22px rgba(var(--ep-glow),.24);transform:translateY(-2px)}
 @keyframes world-halo{to{transform:rotate(360deg)}}
+
+/* ============ Professional student ID cards ============ */
+.cards-sheet-grid{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
+.student-card-print{padding:10px;background:transparent;border:0;box-shadow:none;gap:8px}
+.id-card{position:relative;overflow:hidden;border-radius:18px;padding:16px;color:#fff;background:linear-gradient(135deg,#7a1f2b,#4a0f18 65%,#2a0810);border:1px solid rgba(212,175,55,.55);box-shadow:0 10px 26px rgba(0,0,0,.22);break-inside:avoid;page-break-inside:avoid}
+.id-card:after{content:"";position:absolute;width:180px;height:180px;border-radius:50%;border:1px solid rgba(212,175,55,.16);left:-60px;bottom:-90px;pointer-events:none}
+.id-card-top,.id-card-person,.id-card-qrs,.id-card-note{position:relative;z-index:1}
+.id-card-top{display:flex;justify-content:space-between;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,.18)}
+.id-card-brand{display:flex;align-items:center;gap:8px}
+.id-card-mark{display:grid;place-items:center;width:32px;height:32px;border-radius:9px;background:#d4af37;color:#3a0a10;font-weight:800}
+.id-card-brand strong,.id-card-brand small{display:block}
+.id-card-brand strong{font-size:.92rem;color:#fff}
+.id-card-brand small{font-size:.66rem;color:#f0d7b0}
+.id-card-year{font-size:.7rem;color:#e8cf9c;white-space:nowrap}
+.id-card-person{display:flex;align-items:center;gap:12px;margin:12px 0}
+.id-card-avatar{display:grid;place-items:center;width:52px;height:52px;flex:0 0 52px;border-radius:14px;background:rgba(255,255,255,.14);border:1px solid rgba(212,175,55,.45);font-size:1.4rem;font-weight:800}
+.id-card-person strong,.id-card-person small{display:block}
+.id-card-person strong{font-size:1.05rem}
+.id-card-person small{font-size:.68rem;color:#f0d7b0}
+.id-card-qrs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;background:rgba(255,255,255,.96);padding:10px;border-radius:12px}
+.id-card-qr{margin:0;text-align:center;color:#18352d}
+.id-card-qr-code{display:grid;place-items:center;aspect-ratio:1;padding:3px;background:#fff}
+.id-card-qr-code svg{width:100%;height:100%;display:block}
+.id-card-qr figcaption{font-size:.62rem;font-weight:800;line-height:1.4;margin-top:3px;color:#3a0a10}
+.id-card-note{margin-top:10px;font-size:.62rem;color:#f0d7b0;line-height:1.6}
+@media print{
+ body[data-print="cards"] .cards-sheet-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12mm!important}
+ body[data-print="cards"] .student-card-print{padding:0!important;border:0!important;background:transparent!important}
+ body[data-print="cards"] .id-card{-webkit-print-color-adjust:exact;print-color-adjust:exact;box-shadow:none!important}
+}
+/* Readable task/nav labels instead of clipped words */
+.sidebar .nav-btn,.app-authenticated .workspace-head #top-actions .btn{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;line-height:1.5!important;word-break:break-word}
