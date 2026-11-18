@@ -198,7 +198,7 @@ async function main() {
   const scanMatch = addPointsLink.match(/scan=([^#\s]+)/);
   const scanParts = scanMatch ? scanMatch[1].split(".") : [];
   check("shaykh can issue the student card with scan links", card.status < 300 && scanParts.length >= 3, JSON.stringify(card.data));
-  const resolve = scanParts.length >= 3 ? await call("/api/cards/resolve", { method: "POST", token: sheikh, body: { kind: scanParts[0], card_id: scanParts[1], secret: scanParts.slice(2).join(".") } }) : { status: 0, data: null };
+  const resolve = scanParts.length >= 3 ? await call("/api/cards/resolve", { method: "POST", token: admin, body: { kind: scanParts[0], card_id: scanParts[1], secret: scanParts.slice(2).join(".") } }) : { status: 0, data: null };
   check("scanned card resolves to the correct student (scan API path)", resolve.status === 200 && resolve.data?.student?.id === studentRow.id, JSON.stringify(resolve.data));
   const badResolve = scanParts.length >= 3 ? await call("/api/cards/resolve", { method: "POST", token: sheikh, body: { kind: scanParts[0], card_id: scanParts[1], secret: "deadbeef" + scanParts.slice(2).join(".").slice(8) } }) : { status: 0 };
   check("tampered card secret is rejected", badResolve.status >= 400, "");
@@ -215,8 +215,8 @@ async function main() {
   check("shaykh logs the daily ward (independent)", ward.status === 201, JSON.stringify(ward.data));
 
   // نقاط النشاط: التكرار في نفس اليوم يُمنع تلقائيًا
-  const activity1 = await call("/api/points/activity", { method: "POST", token: sheikh, body: { student_id: studentRow.id, activity: "attendance", date: today } });
-  const activity2 = await call("/api/points/activity", { method: "POST", token: sheikh, body: { student_id: studentRow.id, activity: "attendance", date: today } });
+  const activity1 = await call("/api/points/activity", { method: "POST", token: admin, body: { student_id: studentRow.id, activity: "attendance", date: today } });
+  const activity2 = await call("/api/points/activity", { method: "POST", token: admin, body: { student_id: studentRow.id, activity: "attendance", date: today } });
   const awardsOf = r => (r.data?.awards || []).map(a => a.status);
   check("activity points awarded once per day (second call is duplicate/capped)", [201].includes(activity1.status) && awardsOf(activity2).every(s => s !== "awarded"), JSON.stringify({ first: activity1.data, second: activity2.data }));
 

@@ -624,7 +624,7 @@ function serveStatic(res, p) {
   let rel;
   try { rel = p === '/' ? 'index.html' : decodeURIComponent(p).replace(/^\/+/, ''); } catch { return send(res, 400, 'Bad request', 'text/plain'); }
   const fp = path.resolve(ROOT, rel);
-  const ok = fp === path.join(ROOT, 'index.html') || fp === path.join(ROOT, 'offline.html') || fp === path.join(ROOT, 'privacy.html') || fp === path.join(ROOT, 'manifest.json') || fp === path.join(ROOT, 'service-worker.js') || fp === path.join(ROOT, 'robots.txt') || fp === path.join(ROOT, 'sitemap.xml') || fp.startsWith(ASSETS + path.sep);
+  const ok = fp === path.join(ROOT, 'index.html') || fp === path.join(ROOT, 'offline.html') || fp === path.join(ROOT, 'privacy.html') || fp === path.join(ROOT, 'masjid-alrahma-rules.html') || fp === path.join(ROOT, 'manifest.json') || fp === path.join(ROOT, 'service-worker.js') || fp === path.join(ROOT, 'robots.txt') || fp === path.join(ROOT, 'sitemap.xml') || fp.startsWith(ASSETS + path.sep);
   if (!ok || !fs.existsSync(fp) || !fs.statSync(fp).isFile()) return send(res, 404, 'Not found', 'text/plain');
   send(res, 200, fs.readFileSync(fp), MIME[path.extname(fp)] || 'application/octet-stream');
 }

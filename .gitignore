@@ -32,3 +32,8 @@ coverage/
 /deploy/cloudflare/wrangler-*.log
 /deploy/cloudflare/dev-serve.log
 
+
+# Local wrangler state
+.wrangler/
+deploy/taysir/.wrangler/
+

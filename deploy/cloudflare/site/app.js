@@ -892,7 +892,7 @@ async function refreshWallet(){
  try{
   const [summary,reading]=await Promise.all([api("/points/summary"),api("/points/reading")]);
   const achievement=Number(summary.totals?.achievement||0),store=Number(summary.totals?.store||0),streak=Number(reading?.streak||0);
-  host.innerHTML='<button type="button" class="wallet-chip" data-wallet-go="points" title="نقاط الإنجاز ورصيد المتجر"><span aria-hidden="true">★</span><strong>'+achievement+'</strong><small>إنجاز</small></button><button type="button" class="wallet-chip" data-wallet-go="points" title="رصيد المتجر"><span aria-hidden="true">◈</span><strong>'+store+'</strong><small>متجر</small></button><button type="button" class="wallet-chip wallet-chip-streak" data-wallet-go="world" title="سلسلة ورد القراءة"><span aria-hidden="true">🔥</span><strong>'+streak+'</strong><small>يوم</small></button>';
+  host.innerHTML='<button type="button" class="wallet-chip" data-wallet-go="points" title="رصيد النقاط"><span aria-hidden="true">★</span><strong>'+store+'</strong><small>نقطة</small></button><button type="button" class="wallet-chip wallet-chip-streak" data-wallet-go="world" title="سلسلة ورد القراءة"><span aria-hidden="true">🔥</span><strong>'+streak+'</strong><small>يوم</small></button>';
   host.querySelectorAll("[data-wallet-go]").forEach(btn=>btn.onclick=()=>go(btn.dataset.walletGo));
  }catch{host.innerHTML=""}
 }
@@ -971,15 +971,6 @@ v.innerHTML='<div class="loading">جار تحميل البيانات…</div>';t
  if(S.tab==="notifications")return notificationsPage(v);v.innerHTML=head("القسم غير متاح","هذا القسم لم يعد متاحًا. اختر قسمًا من القائمة.")+'<button class="btn" id="back-home">العودة إلى الرئيسية</button>';$("#back-home").onclick=()=>go("home");return}catch(e){v.innerHTML='<div class="panel"><h2>تعذّر تحميل البيانات</h2><p class="notice error">'+esc(e.message)+'</p><button class="btn" id="retry">إعادة المحاولة</button></div>';$("#retry").onclick=page}}
 function pointsStatusLabel(status){const labels={pending:"قيد المراجعة",approved:"معتمد",rejected:"مرفوض",fulfilled:"منفذ",cancelled:"ملغى"};return labels[status]||status}
 function pointsDate(value){const text=String(value||"");return text?esc(text.replace("T"," ").slice(0,16)):"—"}
-const STORE_SUGGESTIONS=[
- {icon:"📖",name:"مصحف جيب واضح الخط",description:"نسخة صغيرة لتكون معك في الطريق.",cost:1200},
- {icon:"📝",name:"دفتر مراجعة",description:"دفتر صغير لتسجيل الأوجه والمراجعة.",cost:600},
- {icon:"🎧",name:"جلسة تسميع فردية",description:"جلسة قصيرة مع الشيخ لتثبيت مقدار محدد.",cost:2000},
- {icon:"🏅",name:"وسام إنجاز مطبوع",description:"وسام يحمل اسم الطالب ومرحلته.",cost:1500},
- {icon:"🎁",name:"حقيبة الأكاديمية",description:"حقيبة عملية تحمل هوية الأكاديمية.",cost:3000},
- {icon:"☕",name:"هدية تحفيزية صغيرة",description:"هدية رمزية تُسلَّم في الأكاديمية.",cost:800}
-];
-
 function storeItemImage(item){
  const url=String(item?.image_url||"").trim();
  if(url) return '<img class="store-item-image" src="'+esc(url)+'" alt="'+esc(item.name||"")+'" loading="lazy" onerror="this.style.display=\'none\'">';
@@ -992,18 +983,18 @@ function storeItemState(item,balance){
  return {stock,max,used,cost,soldOut:stock!==null&&stock<=0,maxed:max!==null&&used>=max,missing:Math.max(0,cost-Number(balance||0))};
 }
 function storeItemFacts(item,balance){
- const state=storeItemState(item,balance),parts=["التكلفة: "+Number(item.cost)+" من رصيد المتجر"];
+ const state=storeItemState(item,balance),parts=["التكلفة: "+Number(item.cost)+" من رصيد النقاط"];
  if(state.stock!==null)parts.push(state.stock>0?"المتبقي: "+state.stock:"نفدت الكمية");
  if(state.max!==null)parts.push("الحد لكل طالب: "+state.max+(state.used?" · استخدمت: "+state.used:""));
  return parts.join(" · ");
 }
 function storeTermsMarkup(){
- return '<details class="store-terms"><summary>شروط الصرف قبل أن تطلب</summary><ul><li>طلبك يُراجع من الشيخ أو الإدارة قبل التنفيذ، ولا يُسلَّم تلقائيًا.</li><li>يُحجز مبلغ المكافأة من رصيد المتجر فور الطلب، ويُعاد تلقائيًا إذا رُفض الطلب.</li><li>بعد تنفيذ الطلب لا يمكن إلغاؤه؛ تأكد من اختيارك.</li><li>نقاط الإنجاز مؤشر تراكمي لا تُصرف ولا تُحوَّل؛ رصيد المتجر وحده يُستخدم.</li><li>لا نعرض مكافأة نفدت كميتها أو بلغت حدّها؛ ونُحدّث المتاح فور الطلب.</li></ul></details>';
+ return '<details class="store-terms"><summary>شروط الصرف قبل أن تطلب</summary><ul><li>طلبك يُراجع من الشيخ أو الإدارة قبل التنفيذ، ولا يُسلَّم تلقائيًا.</li><li>يُحجز مبلغ المكافأة من رصيد النقاط فور الطلب، ويُعاد تلقائيًا إذا رُفض الطلب.</li><li>بعد تنفيذ الطلب لا يمكن إلغاؤه؛ تأكد من اختيارك.</li><li>رصيدك هو مجموع نقاطك، وتستخدم النقاط نفسها لطلب المكافآت من المتجر.</li><li>لا نعرض مكافأة نفدت كميتها أو بلغت حدّها؛ ونُحدّث المتاح فور الطلب.</li></ul></details>';
 }
 function storeStudentMarkup(store,summary){
  const reco=store?.recommendations||null;
  const balance=Number(reco?.balance??store?.balance??summary?.totals?.store??0);
- let html='<section class="card store-student"><div class="section-head"><div><span class="eyebrow">متجر المكافآت</span><h3>مكافآت حقيقية، لا وهم</h3><p>نعرض فقط ما اعتمدته الإدارة ومتوفر فعليًا. رصيد المتجر الحالي: <strong>'+balance+'</strong>.</p></div></div>';
+ let html='<section class="card store-student"><div class="section-head"><div><span class="eyebrow">متجر المكافآت</span><h3>مكافآت حقيقية، لا وهم</h3><p>نعرض فقط ما اعتمدته الإدارة ومتوفر فعليًا. رصيد النقاط الحالي: <strong>'+balance+'</strong>.</p></div></div>';
  if(!reco||reco.empty){
   html+='<div class="store-empty-honest"><strong>المتجر فارغ بصدق.</strong><p>لم تعتمد الإدارة مكافآت حقيقية بعد، ولن نعرض لك منتجات وهمية أو صورًا تجريبية. سيظهر هنا كل ما يُعتمد فعليًا مع تكلفته ومخزونه وشروطه.</p><small>رصيدك محفوظ ولا ينقص بانتظار إضافة المكافآت.</small></div>'+storeTermsMarkup()+'</section>';
   return html;
@@ -1018,7 +1009,7 @@ function storeStudentMarkup(store,summary){
  }
  if(reco.nearest){
   const nearest=reco.nearest;
-  html+='<div class="store-nearest"><div><span class="eyebrow">أقرب مكافأة إلى رصيدك</span><strong>'+esc(nearest.name)+'</strong><small>تفصلك '+Number(nearest.missing||0)+' من رصيد المتجر · التكلفة '+Number(nearest.cost)+'</small></div><div class="store-nearest-meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+Number(nearest.progress||0)+'"><i style="width:'+Number(nearest.progress||0)+'%"></i></div></div>';
+  html+='<div class="store-nearest"><div><span class="eyebrow">أقرب مكافأة إلى رصيدك</span><strong>'+esc(nearest.name)+'</strong><small>تفصلك '+Number(nearest.missing||0)+' من رصيد النقاط · التكلفة '+Number(nearest.cost)+'</small></div><div class="store-nearest-meter" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="'+Number(nearest.progress||0)+'"><i style="width:'+Number(nearest.progress||0)+'%"></i></div></div>';
  }
  const lockedOthers=(reco.locked||[]).filter(item=>String(item.id)!==String(reco.nearest?.id||""));
  if(lockedOthers.length){
@@ -1034,16 +1025,14 @@ function storeStudentMarkup(store,summary){
 function storeStaffMarkup(store,canEdit){
  const items=store?.items||[];
  if(!canEdit){
-  return '<section class="card"><div class="section-head"><div><h3>المتجر</h3><p>عرض فقط؛ إضافة المخزون وتعديله من صلاحية المدير. لا تُنشأ مكافآت نيابة عن الإدارة من هنا.</p></div></div><div class="list">'+(items.length?items.map(item=>'<div class="list-row"><div><strong>'+esc(item.icon||"🎁")+' '+esc(item.name)+'</strong><small>'+esc(item.description||"")+' · '+Number(item.cost)+' من رصيد المتجر + (المخزون: '+(item.stock===null?"بلا حد":Number(item.stock))+')</small></div><span class="pill">'+(Number(item.active)===0?"مخفية":"معروضة")+'</span></div>').join(""):'<p class="muted">لم تُضف مواد إلى المتجر بعد.</p>')+'</div></section>';
+  return '<section class="card"><div class="section-head"><div><h3>المتجر</h3><p>عرض فقط؛ إضافة المخزون وتعديله من صلاحية المدير. لا تُنشأ مكافآت نيابة عن الإدارة من هنا.</p></div></div><div class="list">'+(items.length?items.map(item=>'<div class="list-row"><div><strong>'+esc(item.icon||"🎁")+' '+esc(item.name)+'</strong><small>'+esc(item.description||"")+' · '+Number(item.cost)+' نقطة + (المخزون: '+(item.stock===null?"بلا حد":Number(item.stock))+')</small></div><span class="pill">'+(Number(item.active)===0?"مخفية":"معروضة")+'</span></div>').join(""):'<p class="muted">لم تُضف مواد إلى المتجر بعد.</p>')+'</div></section>';
  }
- const suggestions=STORE_SUGGESTIONS.map((item,index)=>'<button type="button" class="store-suggestion" data-store-suggest="'+index+'"><strong>'+esc(item.icon+" "+item.name)+'</strong><small>'+esc(item.description)+'</small></button>').join("");
  const rows=items.map(item=>{
   const active=Number(item.active)!==0;
-  return '<div class="list-row"><div><strong>'+esc(item.icon||"🎁")+' '+esc(item.name)+(active?"":" · مخفية")+'</strong><small>'+esc(item.description||"")+' · '+Number(item.cost)+' من رصيد المتجر · المخزون: '+(item.stock===null?"بلا حد":Number(item.stock))+' · حد الطالب: '+(item.max_per_student===null?"بلا حد":Number(item.max_per_student))+' · الترتيب: '+Number(item.sort_order||0)+'</small></div><div class="student-actions"><button class="btn secondary" type="button" data-store-edit="'+esc(item.id)+'">تعديل</button><button class="btn secondary" type="button" data-store-toggle="'+esc(item.id)+'">'+(active?"إخفاء":"إظهار")+'</button></div></div>';
+  return '<div class="list-row"><div><strong>'+esc(item.icon||"🎁")+' '+esc(item.name)+(active?"":" · مخفية")+'</strong><small>'+esc(item.description||"")+' · '+Number(item.cost)+' نقطة · المخزون: '+(item.stock===null?"بلا حد":Number(item.stock))+' · حد الطالب: '+(item.max_per_student===null?"بلا حد":Number(item.max_per_student))+' · الترتيب: '+Number(item.sort_order||0)+'</small></div><div class="student-actions"><button class="btn secondary" type="button" data-store-edit="'+esc(item.id)+'">تعديل</button><button class="btn secondary" type="button" data-store-toggle="'+esc(item.id)+'">'+(active?"إخفاء":"إظهار")+'</button></div></div>';
  }).join("");
- return '<section class="card store-admin"><div class="section-head"><div><span class="eyebrow">إدارة المتجر</span><h3>أضف مكافآت حقيقية فقط</h3><p>لا يظهر للطالب إلا ما تحفظه هنا فعليًا مع مخزونه وشروطه. الاقتراحات أدناه قوالب غير محفوظة ولا يراها الطالب.</p></div></div>'+
- '<div class="store-suggestions"><span class="eyebrow">اقتراحات إرشادية غير محفوظة — عدّلها ثم احفظ بعد تأكيد التوفر</span><div class="store-suggestion-grid">'+suggestions+'</div></div>'+
- '<h4 id="store-form-title">إضافة مادة إلى المتجر</h4><form id="store-item-form" class="form-grid"><input type="hidden" name="item_id" value=""><label class="field">اسم المادة<input name="name" required maxlength="160"></label><label class="field">التكلفة (رصيد المتجر)<input name="cost" type="number" min="1" max="100000" required></label><label class="field">المخزون (فارغ = بلا حد)<input name="stock" type="number" min="0"></label><label class="field">حد الطالب (فارغ = بلا حد)<input name="max_per_student" type="number" min="1"></label><label class="field">الرمز<input name="icon" maxlength="8" placeholder="??"><label class="field">رابط الصورة (اختياري)<input name="image_url" maxlength="500" placeholder="https://..."></label></label><label class="field">الترتيب<input name="sort_order" type="number" value="0"></label><label class="field wide">الوصف<textarea name="description" maxlength="2000" rows="2"></textarea></label><label class="field wide"><span><input name="active" type="checkbox" checked> معروضة للطلاب الآن</span></label><div class="student-actions"><button class="btn" type="submit">حفظ المادة</button><button class="btn secondary" type="button" id="store-form-cancel" hidden>إلغاء التعديل</button></div></form>'+
+ return '<section class="card store-admin"><div class="section-head"><div><span class="eyebrow">إدارة المتجر</span><h3>أضف مكافآت حقيقية فقط</h3><p>لا توجد مواد افتراضية. أدخل كتالوج الأكاديمية المعتمد فقط: الاسم والتكلفة والصورة والمخزون وشروط الصرف.</p></div></div>'+
+ '<h4 id="store-form-title">إضافة مادة إلى المتجر</h4><form id="store-item-form" class="form-grid"><input type="hidden" name="item_id" value=""><label class="field">اسم المادة<input name="name" required maxlength="160"></label><label class="field">التكلفة (رصيد النقاط)<input name="cost" type="number" min="1" max="100000" required></label><label class="field">المخزون (فارغ = بلا حد)<input name="stock" type="number" min="0"></label><label class="field">حد الطالب (فارغ = بلا حد)<input name="max_per_student" type="number" min="1"></label><label class="field">الرمز<input name="icon" maxlength="8" placeholder="🎁"></label><label class="field">رابط الصورة (اختياري)<input name="image_url" maxlength="500" placeholder="https://..."></label><label class="field">الترتيب<input name="sort_order" type="number" value="0"></label><label class="field wide">الوصف<textarea name="description" maxlength="2000" rows="2"></textarea></label><label class="field wide"><span><input name="active" type="checkbox" checked> معروضة للطلاب الآن</span></label><div class="student-actions"><button class="btn" type="submit">حفظ المادة</button><button class="btn secondary" type="button" id="store-form-cancel" hidden>إلغاء التعديل</button></div></form>'+
  '<div class="list">'+(rows||'<p class="muted">لم تُضف مواد إلى المتجر بعد.</p>')+'</div></section>';
 }
 
@@ -1068,31 +1057,31 @@ async function pointsPage(v){
   const buttons=canDecide?'<div style="display:flex;gap:6px;flex-wrap:wrap"><button class="btn secondary" type="button" data-decision="approved" data-redemption="'+esc(r.id)+'">اعتماد</button><button class="btn" type="button" data-decision="fulfilled" data-redemption="'+esc(r.id)+'">تنفيذ</button><button class="btn danger" type="button" data-decision="rejected" data-redemption="'+esc(r.id)+'">رفض</button></div>':"";
   return '<div class="list-row"><div><strong>'+esc(r.item_name)+' — '+Number(r.cost)+'</strong><small>'+esc(r.display_name||"")+' · '+pointsDate(r.requested_at)+' · '+esc(pointsStatusLabel(r.status))+(r.decision_note?' · '+esc(r.decision_note):"")+'</small>'+noteInput+'</div>'+buttons+'</div>';
  }).join("");
- const eventRows=(summary.recent||[]).map(e=>'<div class="list-row"><div><strong>'+esc(e.reason||e.event_type)+'</strong><small>'+esc(e.kind_label)+' · '+pointsDate(e.created_at)+(e.awarded_by_name?' · بواسطة '+esc(e.awarded_by_name):"")+(e.reversed?' · معكوسة: '+esc(e.reversal_reason||""):"")+'</small></div><div style="display:flex;gap:8px;align-items:center"><span class="pill">'+(Number(e.points)>0?"+":"")+Number(e.points)+'</span>'+(canManage&&!e.reversed&&e.event_type!=="store_redemption"?'<button class="btn secondary" type="button" data-reverse="'+esc(e.id)+'">عكس</button>':"")+'</div></div>').join("");
+ const eventRows=(summary.recent||[]).map(e=>'<div class="list-row"><div><strong>'+esc(e.reason||e.event_type)+'</strong><small>'+esc(e.kind_label)+' · '+pointsDate(e.created_at)+(e.awarded_by_name?' · بواسطة '+esc(e.awarded_by_name):"")+(e.reversed?' · معكوسة: '+esc(e.reversal_reason||""):"")+'</small></div><div style="display:flex;gap:8px;align-items:center"><span class="pill">'+(Number(e.points)>0?"+":"")+Number(e.points)+'</span>'+(S.user.role==="admin"&&!e.reversed&&e.event_type!=="store_redemption"?'<button class="btn secondary" type="button" data-reverse="'+esc(e.id)+'">عكس</button>':"")+'</div></div>').join("");
  let html=head("النقاط والمتجر",isStudent?"رصيدك وسجل حركاتك وطلبات الصرف.":"متابعة نقاط الطالب وإدارة المتجر وقواعد المنح.");
  if(!isStudent)html+='<div class="card"><label class="field">اختر الطالب<select id="points-student-select">'+students.map(st=>'<option value="'+esc(st.id)+'"'+(st.id===studentId?" selected":"")+'>'+esc(st.name||st.display_name||"طالب")+'</option>').join("")+'</select></label><p class="muted small">الفوج: '+esc(summary.student.group_name||"—")+'</p></div>';
- html+='<div class="stats"><div class="stat"><small>نقاط الإنجاز</small><strong>'+Number(summary.totals.achievement)+'</strong></div><div class="stat"><small>رصيد المتجر</small><strong>'+Number(summary.totals.store)+'</strong></div><div class="stat"><small>طلبات قيد المراجعة</small><strong>'+Number(summary.pending_redemptions)+'</strong></div></div>';
- html+='<div class="notice">نقاط الإنجاز مؤشر تراكمي لا يُصرف. رصيد المتجر وحده يُستخدم في طلبات الصرف، وكل حركة مسجلة ولا تُحذف؛ التصحيح بعكس موثّق بسبب.</div>';
+ html+='<div class="stats"><div class="stat"><small>رصيد النقاط الموحد</small><strong>'+Number(summary.totals.balance??summary.totals.achievement??0)+'</strong></div><div class="stat"><small>طلبات قيد المراجعة</small><strong>'+Number(summary.pending_redemptions)+'</strong></div></div>';
+ html+='<div class="notice">رصيدك واحد: تجمع فيه نقاط إنجازك، وتستخدم الرصيد نفسه لطلب المكافآت. كل حركة مسجلة، والتصحيح بعكس موثّق بسبب.</div>';
  html+=isStudent?storeStudentMarkup(store,summary):storeStaffMarkup(store,S.user.role==="admin");
  html+='<section class="card"><h3>طلبات الصرف</h3><div class="list">'+(redemptionRows||'<p class="muted">لا توجد طلبات صرف بعد.</p>')+'</div></section>';
- if(canManage)html+='<section class="card"><h3>منح نقاط يدوي</h3><form id="points-award-form" class="form-grid"><label class="field">نقاط الإنجاز<input name="achievement_points" type="number" min="0" max="1000" value="0"></label><label class="field">رصيد المتجر<input name="store_points" type="number" min="0" max="1000" value="0"></label><label class="field">سبب المنح (إلزامي)<input name="reason" required minlength="3" maxlength="500"></label><button class="btn" type="submit">منح النقاط</button></form></section>';
- if(canManage){
+ if(S.user.role==="admin")html+='<section class="card"><h3>منح النقاط — الشيخ فقط</h3><form id="points-award-form" class="form-grid"><label class="field">عدد النقاط<input name="points" type="number" min="1" max="1000" required value="10"></label><label class="field">سبب المنح (إلزامي)<input name="reason" required minlength="3" maxlength="500"></label><button class="btn" type="submit">اعتماد النقاط</button></form></section>';
+ if(S.user.role==="admin"){
   const qp=(t)=>'<button class="btn secondary" type="button" data-quick-reason="'+t+'">'+t+'</button>';
   html+='<section class="card sheikh-panel" id="sheikh-panel"><h3>لوحة الشيخ — إجراءات بعد مسح البطاقة</h3><p class="muted small">ترقية المستوى، خصم جزاء، ورد سريع للمكافآت الشائعة.</p>';
   if(S.user.role==="admin")html+='<div class="stats"><div class="stat"><small>المستوى الحالي</small><strong id="sheikh-level">…</strong></div></div>';
   if(S.user.role==="admin")html+='<label class="field">سبب الترقية (إلزامي)<input id="promote-reason" maxlength="500" placeholder="مثال: أتم حفظ السورة بإتقان"></label>';
   if(S.user.role==="admin")html+='<div class="student-actions"><button class="btn" id="promote-level" type="button">ترقية الطالب إلى المستوى التالي</button></div>';
   html+='<div class="student-actions" id="quick-reasons">'+qp("ورد قراءة يومي منتظم")+qp("إتقان حفظ وتثبيت")+qp("حضور الحلقة")+qp("مراجعة ممتازة")+'</div>';
-  html+='<form id="penalty-form" class="form-grid" style="margin-top:10px"><label class="field">خصم جزاء (من رصيد المتجر)<input name="store_points" type="number" min="1" max="1000" required></label><label class="field">سبب الجزاء (5 أحرف على الأقل)<input name="reason" required minlength="5" maxlength="500" placeholder="مثال: غياب متكرر دون عذر"></label><button class="btn danger" type="submit">خصم الجزاء</button></form>';
+  html+='<form id="penalty-form" class="form-grid" style="margin-top:10px"><label class="field">خصم جزاء (من رصيد النقاط)<input name="store_points" type="number" min="1" max="1000" required></label><label class="field">سبب الجزاء (5 أحرف على الأقل)<input name="reason" required minlength="5" maxlength="500" placeholder="مثال: غياب متكرر دون عذر"></label><button class="btn danger" type="submit">خصم الجزاء</button></form>';
   html+='</section>';
  }
  html+='<section class="card"><h3>آخر الحركات</h3>'+(canManage?'<label class="field">سبب العكس قبل الضغط على «عكس»<input id="points-reverse-reason" maxlength="500" placeholder="مثال: تصحيح خطأ في تسجيل الحضور"></label>':"")+'<div class="list">'+(eventRows||'<p class="muted">لا توجد حركات نقاط بعد.</p>')+'</div></section>';
  if(S.user.role==="admin"){
   const ruleRows=rules.map(rule=>{
    const config=encodeURIComponent(JSON.stringify({id:rule.id,event_type:rule.event_type,name:rule.name,description:rule.description||"",sort_order:rule.sort_order||0,auto_award:rule.auto_award}));
-   return '<tr><td><strong>'+esc(rule.name)+'</strong><br><small class="muted">'+esc(rule.event_type)+'</small></td><td><input type="number" min="0" max="100000" value="'+Number(rule.achievement_points)+'" data-rule-achievement style="width:84px"></td><td><input type="number" min="0" max="100000" value="'+Number(rule.store_points)+'" data-rule-store style="width:84px"></td><td><input type="number" min="1" max="1000" value="'+(rule.max_per_day??"")+'" data-rule-max style="width:72px"></td><td><input type="checkbox" '+(Number(rule.active)===1?"checked":"")+' data-rule-active></td><td><button class="btn secondary" type="button" data-rule-config="'+esc(config)+'">حفظ</button></td></tr>';
+   return '<tr><td><strong>'+esc(rule.name)+'</strong><br><small class="muted">'+esc(rule.event_type)+'</small></td><td><input type="number" min="0" max="100000" value="'+Number(rule.achievement_points)+'" data-rule-achievement style="width:84px"></td><td><input type="number" min="0" max="100000" value="'+Number(rule.store_points)+'" data-rule-store style="width:84px"></td><td><input type="number" min="0" max="300" value="'+Number(rule.bonus_percent||0)+'" data-rule-bonus style="width:72px" aria-label="نسبة الزيادة بالمئة"></td><td><input type="number" min="1" max="1000" value="'+(rule.max_per_day??"")+'" data-rule-max style="width:72px"></td><td><input type="checkbox" '+(Number(rule.active)===1?"checked":"")+' data-rule-active></td><td><button class="btn secondary" type="button" data-rule-config="'+esc(config)+'">حفظ</button></td></tr>';
   }).join("");
-  html+='<section class="card"><h3>قواعد النقاط</h3><p class="muted small">القيم هنا هي مصدر المنح التلقائي واليدوي؛ لا تُكتب قيم النقاط في الكود.</p><div class="table-wrap"><table><thead><tr><th>القاعدة</th><th>إنجاز</th><th>متجر</th><th>سقف/يوم</th><th>مفعلة</th><th></th></tr></thead><tbody>'+ruleRows+'</tbody></table></div></section>';
+  html+='<section class="card"><h3>قواعد النقاط</h3><p class="muted small">القيم هنا هي مصدر المنح؛ نسبة الزيادة تُحسب على نقاط الإنجاز الأصلي (مثل دعم الآخرين)، ويعتمدها الشيخ وحده.</p><div class="table-wrap"><table><thead><tr><th>القاعدة</th><th>إنجاز</th><th>متجر</th><th>زيادة %</th><th>سقف/يوم</th><th>مفعلة</th><th></th></tr></thead><tbody>'+ruleRows+'</tbody></table></div></section>';
  }
  v.innerHTML=html;
  $("#points-student-select")?.addEventListener("change",e=>{S.pointsStudentId=e.target.value;pointsPage(v)});
@@ -1111,7 +1100,7 @@ async function pointsPage(v){
  });
  $("#points-award-form")?.addEventListener("submit",async e=>{
   e.preventDefault();const form=e.currentTarget,data=new FormData(form);
-  try{await api("/points/award",{method:"POST",body:JSON.stringify({student_id:studentId,achievement_points:Number(data.get("achievement_points")||0),store_points:Number(data.get("store_points")||0),reason:data.get("reason")})});toast("تم منح النقاط");await pointsPage(v)}catch(error){toast(error.message,true)}
+  try{await api("/points/award",{method:"POST",body:JSON.stringify({student_id:studentId,points:Number(data.get("points")||0),reason:data.get("reason")})});toast("تم منح النقاط");await pointsPage(v)}catch(error){toast(error.message,true)}
  });
   // لوحة الشيخ: ترقية المستوى، خصم الجزاء، ورد سريع.
   if(canManage){
@@ -1127,7 +1116,7 @@ async function pointsPage(v){
    });
    $("#penalty-form")?.addEventListener("submit",async e=>{
      e.preventDefault();const form=e.currentTarget,data=new FormData(form);
-     try{await api("/penalties",{method:"POST",body:JSON.stringify({student_id:studentId,store_points:Number(data.get("store_points")||0),reason:data.get("reason")})});toast("تم خصم الجزاء من رصيد المتجر");await pointsPage(v)}catch(error){toast(error.message,true)}
+     try{await api("/penalties",{method:"POST",body:JSON.stringify({student_id:studentId,store_points:Number(data.get("store_points")||0),reason:data.get("reason")})});toast("تم خصم الجزاء من رصيد النقاط");await pointsPage(v)}catch(error){toast(error.message,true)}
    });
   }
  const storeForm=$("#store-item-form");
@@ -1157,15 +1146,6 @@ async function pointsPage(v){
   const item=(store.items||[]).find(x=>x.id===btn.dataset.storeEdit);
   fillStoreForm(item);
  });
- document.querySelectorAll("[data-store-suggest]").forEach(btn=>btn.onclick=()=>{
-  const suggestion=STORE_SUGGESTIONS[Number(btn.dataset.storeSuggest)];
-  if(!suggestion)return;
-  resetStoreForm();
-  fillStoreForm({...suggestion,id:"",active:1,sort_order:0,stock:null,max_per_student:null});
-  const nameField=storeForm?.querySelector('[name="name"]');
-  nameField?.focus();
-  toast("تعبئة اقتراح إرشادي. عدّل التكلفة والمخزون ثم احفظ بعد تأكيد التوفر.");
- });
  $("#store-item-form")?.addEventListener("submit",async e=>{
   e.preventDefault();const form=e.currentTarget,data=new FormData(form),submit=form.querySelector('button[type="submit"]');
   if(submit)submit.disabled=true;
@@ -1180,7 +1160,7 @@ async function pointsPage(v){
  document.querySelectorAll("[data-rule-config]").forEach(btn=>btn.onclick=async()=>{
   try{
    const config=JSON.parse(decodeURIComponent(btn.dataset.ruleConfig)),tr=btn.closest("tr");
-   await api("/points/rules",{method:"POST",body:JSON.stringify({...config,achievement_points:Number(tr.querySelector("[data-rule-achievement]").value),store_points:Number(tr.querySelector("[data-rule-store]").value),max_per_day:tr.querySelector("[data-rule-max]").value===""?null:Number(tr.querySelector("[data-rule-max]").value),active:tr.querySelector("[data-rule-active]").checked})});
+   await api("/points/rules",{method:"POST",body:JSON.stringify({...config,achievement_points:Number(tr.querySelector("[data-rule-achievement]").value),store_points:Number(tr.querySelector("[data-rule-store]").value),bonus_percent:Number(tr.querySelector("[data-rule-bonus]").value),max_per_day:tr.querySelector("[data-rule-max]").value===""?null:Number(tr.querySelector("[data-rule-max]").value),active:tr.querySelector("[data-rule-active]").checked})});
    toast("تم حفظ قاعدة النقاط");await pointsPage(v);
   }catch(error){toast(error.message,true)}
  });
@@ -1264,7 +1244,7 @@ async function competitionsPage(v){
  const dateText=item=>{const parts=[];if(item.registration_starts_at||item.registration_ends_at)parts.push("التسجيل: "+(item.registration_starts_at?fmtDate(item.registration_starts_at):"?")+" — "+(item.registration_ends_at?fmtDate(item.registration_ends_at):"?"));if(item.starts_at||item.ends_at)parts.push("المسابقة: "+(item.starts_at?fmtDate(item.starts_at):"?")+" — "+(item.ends_at?fmtDate(item.ends_at):"?"));return parts.join(" · ")};
  const conditionsText=item=>{const parts=[];if(item.min_age!==null&&item.min_age!==undefined||item.max_age!==null&&item.max_age!==undefined)parts.push("العمر: "+(item.min_age??"")+"–"+(item.max_age??""));if(item.min_hizb!==null&&item.min_hizb!==undefined||item.max_hizb!==null&&item.max_hizb!==undefined)parts.push("الحفظ: "+(item.min_hizb??"")+"–"+(item.max_hizb??"")+" حزبًا");if(item.riwayat&&item.riwayat.length)parts.push("الروايات: "+item.riwayat.join("، "));if(item.requires_approval)parts.push("يتطلب اعتماد التسجيل");if(item.max_participants)parts.push("الحد الأقصى: "+Number(item.max_participants)+" مشاركًا");return parts.join(" · ")};
  function criterionRow(c){const id=c.id||("criterion_"+Math.random().toString(36).slice(2,7));return '<div class="form-grid" data-criterion-row data-criterion-id="'+esc(id)+'"><label class="field">المعيار<input data-criterion-label maxlength="120" value="'+esc(c.label||"")+'"></label><label class="field">الدرجة القصوى<input data-criterion-max type="number" min="1" max="100" value="'+esc(c.max??50)+'"></label><div class="wide"><button class="btn secondary" type="button" data-remove-row>حذف المعيار</button></div></div>'}
- function awardRow(a){return '<div class="form-grid" data-award-row><label class="field">المرتبة<input data-award-place type="number" min="1" max="100" value="'+esc(a.place??1)+'"></label><label class="field">الوصف<input data-award-label maxlength="80" value="'+esc(a.label||"")+'"></label><label class="field">نقاط الإنجاز<input data-award-achievement type="number" min="0" max="100000" value="'+Number(a.achievement||0)+'"></label><label class="field">رصيد المتجر<input data-award-store type="number" min="0" max="100000" value="'+Number(a.store||0)+'"></label><div class="wide"><button class="btn secondary" type="button" data-remove-row>حذف المكافأة</button></div></div>'}
+ function awardRow(a){return '<div class="form-grid" data-award-row><label class="field">المرتبة<input data-award-place type="number" min="1" max="100" value="'+esc(a.place??1)+'"></label><label class="field">الوصف<input data-award-label maxlength="80" value="'+esc(a.label||"")+'"></label><label class="field">رصيد النقاط<input data-award-achievement type="number" min="0" max="100000" value="'+Number(a.achievement||0)+'"></label><label class="field">رصيد النقاط<input data-award-store type="number" min="0" max="100000" value="'+Number(a.store||0)+'"></label><div class="wide"><button class="btn secondary" type="button" data-remove-row>حذف المكافأة</button></div></div>'}
  function formMarkup(item){
   const kind=item?.kind||"quran_hifz";
   const crit=(item&&item.judging_criteria&&item.judging_criteria.length)?item.judging_criteria:(criteriaDefaults[kind]||criteriaDefaults.other).map(([label,max],i)=>({id:"criterion_"+(i+1),label,max}));
@@ -1551,10 +1531,10 @@ function journeyStoreTeaser(store) {
     return '<div class="journey-store"><span class="eyebrow">المتجر</span><p>لا توجد مكافآت معتمدة بعد. لن نعرض لك منتجات وهمية؛ عندما تعتمد الإدارة مخزونًا حقيقيًا سيظهر هنا.</p></div>';
   }
   if (reco.nearest) {
-    return '<div class="journey-store"><span class="eyebrow">مكافأتك القادمة</span><strong>' + esc(reco.nearest.name) + '</strong><div class="journey-store-meter" aria-hidden="true"><i style="width:' + Number(reco.nearest.progress || 0) + '%"></i></div><small>تفصلك ' + Number(reco.nearest.missing || 0) + ' من رصيد المتجر · رصيدك ' + Number(reco.balance || 0) + '</small></div>';
+    return '<div class="journey-store"><span class="eyebrow">مكافأتك القادمة</span><strong>' + esc(reco.nearest.name) + '</strong><div class="journey-store-meter" aria-hidden="true"><i style="width:' + Number(reco.nearest.progress || 0) + '%"></i></div><small>تفصلك ' + Number(reco.nearest.missing || 0) + ' من رصيد النقاط · رصيدك ' + Number(reco.balance || 0) + '</small></div>';
   }
   const top = (reco.affordable || [])[0];
-  return '<div class="journey-store"><span class="eyebrow">متجرك</span><strong>' + (top ? esc(top.name) + ' متاحة الآن' : 'رصيدك جاهز') + '</strong><small>رصيد المتجر: ' + Number(reco.balance || 0) + '</small></div>';
+  return '<div class="journey-store"><span class="eyebrow">متجرك</span><strong>' + (top ? esc(top.name) + ' متاحة الآن' : 'رصيدك جاهز') + '</strong><small>رصيد النقاط: ' + Number(reco.balance || 0) + '</small></div>';
 }
 function journeyIntroMarkup(data, store) {
   const answered = Number(data.answered || 0), total = Number(data.total || 8);
@@ -1606,7 +1586,7 @@ function journeyReviewMarkup(data, options = {}) {
   return changes +
     '<div class="journey-review"><div class="journey-review-head"><span class="eyebrow">خطتك المقترحة</span><h3>اختر ما يناسبك، ثم ابدأ</h3><p>الخطة ليست عقدًا دائمًا؛ يمكنك تعديلها لاحقًا مع الشيخ. الأرقام المرجعية للتثبيت مقترحة وتنتظر اعتماده.</p></div>' +
     '<div class="journey-plan-grid">' + variantCards + '</div>' +
-    '<div class="journey-commitment"><div class="journey-commitment-main"><span class="eyebrow">الثمن</span><strong>~' + Number(selected.estimated_daily_minutes) + ' دقيقة يوميًا</strong><small>' + Number(selected.estimated_weekly_minutes) + ' دقيقة أسبوعيًا · ' + Number(reco.price?.days_per_week || 5) + ' أيام · راحة ' + esc((restQuestion?.options || []).find(option => String(option.value) === String(selected.rest_day ?? "none"))?.label || "بدون يوم محدد") + '</small></div><div class="journey-breakdown"><span>حفظ ~' + Number(selected.breakdown?.hifz || 0) + ' د</span><span>تثبيت ~' + Number(selected.breakdown?.thabit || 0) + ' د</span><span>ورد ~' + Number(selected.breakdown?.ward || 0) + ' د</span></div><div class="journey-commitment-line"><strong>لا رسوم مالية.</strong> الثمن وقتك وانتباهك، وما تكسبه من رصيد المتجر مكافأة تنظيمية لا ثمنًا للعبادة.</div></div>' +
+    '<div class="journey-commitment"><div class="journey-commitment-main"><span class="eyebrow">الثمن</span><strong>~' + Number(selected.estimated_daily_minutes) + ' دقيقة يوميًا</strong><small>' + Number(selected.estimated_weekly_minutes) + ' دقيقة أسبوعيًا · ' + Number(reco.price?.days_per_week || 5) + ' أيام · راحة ' + esc((restQuestion?.options || []).find(option => String(option.value) === String(selected.rest_day ?? "none"))?.label || "بدون يوم محدد") + '</small></div><div class="journey-breakdown"><span>حفظ ~' + Number(selected.breakdown?.hifz || 0) + ' د</span><span>تثبيت ~' + Number(selected.breakdown?.thabit || 0) + ' د</span><span>ورد ~' + Number(selected.breakdown?.ward || 0) + ' د</span></div><div class="journey-commitment-line"><strong>لا رسوم مالية.</strong> الثمن وقتك وانتباهك، وما تكسبه من رصيد النقاط مكافأة تنظيمية لا ثمنًا للعبادة.</div></div>' +
     warning +
     '<div class="journey-form-row"><label class="field">يوم الاستدراك<select id="journey-rest">' + restOptions + '</select></label><label class="field">ملاحظة للشيخ (اختيارية)<textarea id="journey-note" maxlength="500" rows="2" placeholder="مثال: أحتاج مراجعة الخطة مع الشيخ قبل تثبيتها">' + esc(options.note || "") + '</textarea></label></div>' +
     '<div class="student-actions"><button class="btn" type="button" data-journey-apply ' + (!selected.fits && !ack ? "disabled" : "") + '>ابدأ بهذه الخطة</button><button class="btn secondary" type="button" data-journey-edit>تعديل الإجابات</button></div>' +
@@ -1837,8 +1817,8 @@ async function cardPage(v){
  const recent=(summary.recent||[]).slice(0,6).map(event=>'<div class="list-row"><div><strong>'+esc(event.reason||event.event_type)+'</strong><small>'+esc(event.kind_label||"")+' · '+worldDate(event.created_at)+'</small></div><span class="pill">'+(Number(event.points)>0?"+":"")+Number(event.points)+'</span></div>').join("");
  const badges=(gam?.badges||[]).map(badge=>'<span class="pass-badge"><span aria-hidden="true">'+esc(badge.icon||"★")+'</span>'+esc(badge.name)+'</span>').join("");
  v.innerHTML='<div class="card-page">'+
-  '<div class="card-page-head"><div><span class="eyebrow">هويتك في الأكاديمية</span><h2>بطاقة الطالب</h2><p>بطاقة شخصية تجمع مستواك ورصيدك وترتيبك في مكان واحد؛ اعرضها أو اطبعها.</p></div><button class="btn secondary" type="button" id="pass-print">طباعة البطاقة</button></div>'+
-  '<section class="printable"><section class="student-pass-wrap"><article class="student-pass" aria-label="بطاقة الطالب"><span class="pass-shine" aria-hidden="true"></span><div class="pass-pattern" aria-hidden="true"></div><div class="pass-head"><span class="pass-brand"><span class="pass-brand-mark" aria-hidden="true">إ</span>أكاديمية الإحسان</span><span class="pass-type">بطاقة طالب</span></div><div class="pass-middle"><span class="pass-chip" aria-hidden="true"><i></i><i></i><i></i></span><span class="pass-level">'+esc(stage.name)+' · المستوى '+stage.index+'</span></div><div class="pass-name">'+esc(student.name||S.user.name||"الطالب")+'</div><div class="pass-serial" dir="ltr">'+esc(serial)+'</div><div class="pass-grid"><div><small>نقاط الإنجاز</small><strong>'+Number(achievement)+'</strong></div><div><small>رصيد المتجر</small><strong>'+Number(store)+'</strong></div><div><small>ترتيب الفوج</small><strong>'+(me?"#"+Number(me.rank):"—")+'</strong></div><div><small>سلسلة القراءة</small><strong>'+Number(reading?.streak||0)+'</strong></div></div><div class="pass-foot"><span>الفوج: '+esc(student.group_name||"—")+'</span><span>صالحة حتى '+year+'-09</span></div></article></section>'+cardQrSheet(links,'<button class="btn secondary" type="button" id="card-qr-reissue">إعادة إصدار الرموز</button>')+'</section>'+
+  '<div class="card-page-head"><div><span class="eyebrow">هويتك في الأكاديمية</span><h2>بطاقة الطالب</h2><p>بطاقة شخصية تجمع مستواك ورصيدك وترتيبك ورمزك الفريد في مكان واحد؛ اعرضها أو اطبعها.</p></div><div class="student-actions"><button class="btn secondary" type="button" id="card-qr-reissue">إعادة إصدار الرموز</button><button class="btn secondary" type="button" id="pass-print">طباعة البطاقة</button></div></div>'+
+  '<section class="printable"><section class="student-pass-wrap"><article class="student-pass" aria-label="بطاقة الطالب"><span class="pass-shine" aria-hidden="true"></span><div class="pass-pattern" aria-hidden="true"></div><div class="pass-head"><span class="pass-brand"><span class="pass-brand-mark" aria-hidden="true">إ</span>أكاديمية الإحسان</span><span class="pass-type">بطاقة طالب</span></div><div class="pass-middle"><span class="pass-chip" aria-hidden="true"><i></i><i></i><i></i></span><span class="pass-level">'+esc(stage.name)+' · المستوى '+stage.index+'</span><span class="pass-qr" aria-label="رمز الطالب">'+(links.add_points?qrSvg(links.add_points,144):'<span class="card-qr-missing">—</span>')+'</span></div><div class="pass-name">'+esc(student.name||S.user.name||"الطالب")+'</div><div class="pass-serial" dir="ltr">'+esc(serial)+'</div><div class="pass-grid"><div><small>نقاط الإنجاز</small><strong>'+Number(achievement)+'</strong></div><div><small>رصيد المتجر</small><strong>'+Number(store)+'</strong></div><div><small>ترتيب الفوج</small><strong>'+(me?"#"+Number(me.rank):"—")+'</strong></div><div><small>سلسلة القراءة</small><strong>'+Number(reading?.streak||0)+'</strong></div></div><div class="pass-foot"><span>الفوج: '+esc(student.group_name||"—")+'</span><span>صالحة حتى '+year+'-09</span></div></article></section>'+
   '<div class="pass-stats"><div class="stat"><small>أيام القرآن</small><strong>'+Number(gam?.stats?.quran_days||0)+'</strong></div><div class="stat"><small>مرات الحضور</small><strong>'+Number(gam?.stats?.attendance||0)+'</strong></div><div class="stat"><small>الاختبارات</small><strong>'+Number(gam?.stats?.tests||0)+'</strong></div><div class="stat"><small>أيام القراءة</small><strong>'+Number(reading?.total_days||0)+'</strong></div></div>'+
   '<div class="card-page-grid"><section class="card"><div class="section-head"><div><h3>أوسمتك</h3><p>تُفتح تلقائيًا عند تحقق شرطها.</p></div></div><div class="pass-badges">'+(badges||'<p class="muted">لم تُفتح وسام بعد؛ ابدأ بورد اليوم.</p>')+'</div></section><section class="card"><div class="section-head"><div><h3>آخر حركات الرصيد</h3><p>كل حركة مسجّلة ولا تُحذف.</p></div><button class="btn secondary" type="button" data-card-go="points">كل الحركات</button></div><div class="list">'+(recent||'<p class="muted">لا توجد حركات نقاط بعد.</p>')+'</div></section></div>'+
   '</div>';
@@ -1852,25 +1832,51 @@ async function cardPage(v){
  v.querySelectorAll("[data-card-go]").forEach(btn=>btn.onclick=()=>go(btn.dataset.cardGo));
 }
 
+function staffStudentPassMarkup(row){
+ const student=row.student||{},link=row.links?.add_points||"",serial=passSerial(student.id);
+ const qr=link?qrSvg(link,180):"";
+ return '<article class="student-pass student-pass-print" data-card-student="'+esc(student.id)+'" aria-label="بطاقة '+esc(student.name)+'"><span class="pass-shine" aria-hidden="true"></span><div class="pass-pattern" aria-hidden="true"></div><div class="pass-head"><span class="pass-brand"><span class="pass-brand-mark" aria-hidden="true">إ</span>أكاديمية الإحسان</span><span class="pass-type">بطاقة طالب</span></div><div class="pass-middle"><span class="pass-chip" aria-hidden="true"><i></i><i></i><i></i></span><span class="pass-level">هوية الطالب</span><span class="pass-qr" aria-label="رمز الطالب">'+(qr||'<span class="card-qr-missing">—</span>')+'</span></div><div class="pass-name">'+esc(student.name||"الطالب")+'</div><div class="pass-serial" dir="ltr">'+esc(serial)+'</div><div class="pass-foot"><span>الفوج: '+esc(student.group_name||"—")+'</span><span>أكاديمية الإحسان</span></div></article>';
+}
 async function staffCardsPage(v){
  if(!["admin","teacher","director","supervisor"].includes(S.user.role)){v.innerHTML=head("بطاقات الطلاب","هذه الصفحة للشيخ أو المشرف.");return}
  if(!S.groups.length)await load();
  const groups=assignedGroups();
  if(!groups.length){v.innerHTML=head("بطاقات الطلاب","لا يوجد فوج ضمن صلاحيتك.");return}
  if(!S.cardsGroupId||!groups.some(g=>g.id===S.cardsGroupId))S.cardsGroupId=groups[0].id;
- v.innerHTML=head("بطاقات الطلاب","بطاقة لكل طالب بثلاثة رموز QR مستقلة، جاهزة للطباعة أو الحفظ PDF.")+
-  '<div class="card cards-toolbar"><label class="field">اختر الفوج<select id="cards-group">'+groups.map(g=>'<option value="'+esc(g.id)+'"'+(g.id===S.cardsGroupId?" selected":"")+'>'+esc(g.name)+'</option>').join("")+'</select></label><div class="student-actions"><button class="btn" type="button" id="cards-print">طباعة / PDF</button><span class="muted small" id="cards-count"></span></div><p class="muted small">تُنشأ البطاقة عند فتح الفوج أول مرة. إعادة الإصدار تُبطل الرموز السابقة، والإلغاء يوقف الرمز فورًا.</p></div>'+
-  '<div id="cards-sheet" class="cards-sheet"><div class="loading">جار تجهيز البطاقات…</div></div>';
+ const allValue="__all_managed_groups__";
+ v.innerHTML=head("بطاقات الطلاب","معاينة البطاقة كاملة قبل الطباعة. رمز إضافة النقاط داخل التصميم، ولا تُعرض أرصدة الطلاب في بطاقات الإدارة.")+
+  '<div class="card cards-toolbar"><label class="field">نطاق البطاقات<select id="cards-group"><option value="'+allValue+'">جميع الطلاب ضمن صلاحيتي</option>'+groups.map(g=>'<option value="'+esc(g.id)+'"'+(g.id===S.cardsGroupId?" selected":"")+'>'+esc(g.name)+'</option>').join("")+'</select></label><div class="student-actions"><button class="btn secondary" type="button" id="cards-print">طباعة النطاق المحدد</button><span class="muted small" id="cards-count"></span></div><p class="muted small">كل بطاقة تضم رمز QR الخاص بالطالب داخل تصميم البطاقة نفسه. الطباعة الفردية متاحة من بطاقة كل طالب.</p></div>'+
+  '<div id="cards-sheet" class="cards-sheet"><div class="loading">جار تجهيز معاينة البطاقات…</div></div>';
  const loadCards=async()=>{
-  const host=$("#cards-sheet");if(!host)return;host.innerHTML='<div class="loading">جار تجهيز البطاقات…</div>';
+  const host=$("#cards-sheet");if(!host)return;host.innerHTML='<div class="loading">جار تجهيز معاينة البطاقات…</div>';
   try{
-   const data=await api("/student-cards/bulk",{method:"POST",body:JSON.stringify({group_id:S.cardsGroupId})});
-   const count=$("#cards-count");if(count)count.textContent=Number(data.count||0)+" بطاقة في "+String(data.group?.name||"");
-   host.innerHTML='<div class="cards-sheet-grid">'+(data.cards||[]).map(row=>{
-    const linkCount=Object.keys(row.links||{}).length;
-    const initial=String(row.student.name||'?').trim().slice(0,1);
-    return '<article class="student-card-print" data-card-student="'+esc(row.student.id)+'">'+'<div class="id-card"><div class="id-card-top"><div class="id-card-brand"><span class="id-card-mark">أ</span><span><strong>أكاديمية الإحسان</strong><small>بطاقة المتابعة اليومية</small></span></div><span class="id-card-year">'+new Date().getFullYear()+'</span></div><div class="id-card-person"><span class="id-card-avatar">'+esc(initial)+'</span><div><strong>'+esc(row.student.name)+'</strong><small>'+esc(row.student.group_name||'')+'</small><small dir="ltr">#'+esc(String(row.student.id||'').slice(0,8).toUpperCase())+'</small></div></div><div class="id-card-qrs">'+['add_points','profile','login'].map(kind=>cardQrBadge(kind,row.links)).join('')+'</div><div class="id-card-note">بطاقة خاصة بالطالب؛ لا تُشارك رموزها مع غير المخولين.</div></div><div class="student-card-print-actions"><button class="btn secondary" type="button" data-card-reissue="'+esc(row.student.id)+'">تجديد الرموز</button><button class="btn danger" type="button" data-card-revoke="'+esc(row.student.id)+'">إلغاء البطاقة</button></div></article>';
-   }).join("")+'</div>';
+   const selected=$("#cards-group")?.value||S.cardsGroupId;
+   const selectedGroups=selected===allValue?groups:groups.filter(g=>g.id===selected);
+   if(!selectedGroups.length)throw new Error("لا يوجد فوج ضمن صلاحيتك");
+   const datasets=[];
+   for(const group of selectedGroups){
+    let offset=0;
+    while(true){
+     const data=await api("/student-cards/bulk",{method:"POST",body:JSON.stringify({group_id:group.id,offset,limit:200})});
+     datasets.push(...(data.cards||[]));
+     if(!data.has_more)break;
+     const next=Number(data.next_offset);
+     if(!Number.isInteger(next)||next<=offset)throw new Error("تعذر إكمال تحميل بطاقات الفوج بأمان");
+     offset=next;
+    }
+   }
+   const count=$("#cards-count");if(count)count.textContent=datasets.length+" بطاقة · "+selectedGroups.length+" فوج";
+   const pages=[];
+   for(let offset=0;offset<datasets.length;offset+=8){
+    const items=datasets.slice(offset,offset+8).map(row=>
+     '<section class="student-card-print-item" data-card-item="'+esc(row.student.id)+'">'+staffStudentPassMarkup(row)+'<div class="student-card-print-actions"><button class="btn secondary" type="button" data-card-print-one="'+esc(row.student.id)+'">طباعة هذه البطاقة</button><button class="btn secondary" type="button" data-card-reissue="'+esc(row.student.id)+'">إعادة إصدار الرموز</button><button class="btn danger" type="button" data-card-revoke="'+esc(row.student.id)+'">إلغاء الرموز</button></div></section>'
+    );
+    pages.push('<section class="cards-print-page"><div class="cards-sheet-grid">'+items.join("")+'</div></section>');
+   }
+   host.innerHTML=pages.join("")||'<div class="notice">لا توجد بطاقات في النطاق المحدد.</div>';
+   host.querySelectorAll("[data-card-print-one]").forEach(btn=>btn.onclick=()=>{
+    document.body.dataset.print="card-one";document.body.dataset.printStudent=btn.dataset.cardPrintOne;host.querySelectorAll(".student-card-print-item").forEach(item=>item.classList.toggle("is-print-target",item.dataset.cardItem===btn.dataset.cardPrintOne));window.print();
+   });
    host.querySelectorAll("[data-card-reissue]").forEach(btn=>btn.onclick=async()=>{
     btn.disabled=true;
     try{await api("/student-cards/"+encodeURIComponent(btn.dataset.cardReissue)+"/reissue",{method:"POST",body:JSON.stringify({})});toast("أُصدرت رموز جديدة، والرموز السابقة لم تعد صالحة");await loadCards()}
@@ -1887,7 +1893,7 @@ async function staffCardsPage(v){
  };
  $("#cards-group")?.addEventListener("change",e=>{S.cardsGroupId=e.target.value;loadCards()});
  $("#cards-print")?.addEventListener("click",()=>{document.body.dataset.print="cards";window.print()});
- window.addEventListener("afterprint",()=>{delete document.body.dataset.print},{once:true});
+ window.addEventListener("afterprint",()=>{delete document.body.dataset.print;delete document.body.dataset.printStudent;document.querySelectorAll(".student-card-print-item.is-print-target").forEach(item=>item.classList.remove("is-print-target"))});
  await loadCards();
 }
 
@@ -2209,13 +2215,19 @@ async function renderScanPanel(v,studentId){
     api("/points/summary?student_id="+encodeURIComponent(studentId)),
     api("/quran/path?student_id="+encodeURIComponent(studentId)),
     api("/quran/today?student_id="+encodeURIComponent(studentId)),
-    api("/points/history?student_id="+encodeURIComponent(studentId)+"&limit=8")
+    api("/points/history?student_id="+encodeURIComponent(studentId)+"&limit=8"),
+    S.user.role==="admin"?api("/points/ethics?student_id="+encodeURIComponent(studentId)):Promise.resolve(null),
+    S.user.role==="admin"?api("/points/streak?student_id="+encodeURIComponent(studentId)):Promise.resolve([]),
+    S.user.role==="admin"?api("/points/referrals?student_id="+encodeURIComponent(studentId)):Promise.resolve([])
   ]);
   if(res[0].status!=="fulfilled"){host.innerHTML='<div class="notice error">'+esc(res[0].reason?.message||"تعذر تحميل بيانات الطالب")+'</div>';return}
   summary=res[0].value;
   pathData=res[1].status==="fulfilled"?res[1].value:{enrolled:false};
   today=res[2].status==="fulfilled"?res[2].value:{enrolled:false,logs:{}};
   events=res[3].status==="fulfilled"?res[3].value:[];
+  const ethics=res[4]?.status==="fulfilled"?res[4].value:null;
+  const streaks=res[5]?.status==="fulfilled"?res[5].value:[];
+  const referrals=res[6]?.status==="fulfilled"?res[6].value:[];
   const s=summary.student||{},t=summary.totals||{};
   const info=(pathData&&pathData.path)||null;
   const logs=(today&&today.logs)||{};
@@ -2231,7 +2243,7 @@ async function renderScanPanel(v,studentId){
     if(logged)return '<div class="scan-quran-row is-done"><div><strong>'+esc(label)+'</strong><small>تم اليوم: '+esc(quranFmtAmount(logged.amount,logged.unit))+(Number(logged.repetitions)?" · "+Number(logged.repetitions)+" تكرارًا":"")+'</small></div><span class="pill">مُسجَّل</span></div>';
     return '<form class="scan-quran-row" data-scan-quran="'+kind+'"><div class="scan-quran-head"><strong>'+esc(label)+'</strong><button class="btn secondary sm" type="submit">تسجيل الإنجاز</button></div><div class="scan-quran-fields"><label class="field">المقدار<input type="number" step="0.01" min="0" max="1000" name="amount" required value="'+esc(String(defAmount??""))+'"></label><label class="field">الوحدة<select name="unit">'+units.map(u=>'<option '+(u===defUnit?"selected":"")+'>'+u+'</option>').join("")+'</select></label>'+(kind==="hifz"?'':'<label class="field">التكرار<input type="number" min="0" max="100" name="repetitions" value="'+Number(defReps||0)+'"></label>')+'</div><label class="field">ملاحظات<input name="notes" maxlength="600" placeholder="اختياري — مثل موضع يحتاج تثبيتًا"></label></form>';
   };
-  const activityButtons=[["attendance","حضور"],["hifz","حفظ جديد"],["revision","مراجعة"],["thabit","تثبيت"],["ward","الورد"]].map(([a,l])=>'<button type="button" class="btn secondary" data-scan-activity="'+a+'">'+esc(l)+'</button>').join("");
+  const activityButtons=[["fajr","الفجر · 30"],["shuruq","الشروق · 20"],["maghrib","المغرب · 10"],["hizb","قراءة حزب · 10"],["hifz_no_errors","حفظ ثمن بلا أخطاء · 30"],["hifz_tajweed","حفظ ثمن بالتجويد · 25"],["poetry","أربعة أبيات · 5"],["support","دعم الآخرين · +30%"]].map(([a,l])=>'<button type="button" class="btn secondary" data-scan-activity="'+a+'">'+esc(l)+'</button>').join("");
   const attButtons=[["present","حاضر"],["late","متأخر"],["absent","غائب"],["excused","بعذر"]].map(([st,l])=>'<button type="button" class="btn secondary" data-scan-att="'+st+'">'+esc(l)+'</button>').join("");
   const studentRow=(S.students||[]).find(st=>String(st.id)===String(studentId));
   const recipientUserId=studentRow?.user_id||"";
@@ -2239,13 +2251,21 @@ async function renderScanPanel(v,studentId){
     ?'<h4>تعيين مهمة للطالب</h4><form id="scan-assign-task" class="form-grid"><label class="field full">عنوان المهمة<input name="title" required minlength="3" maxlength="160" placeholder="مثال: مراجعة المتشابهات بين سورتي الرحمن والقارعة"></label><label class="field full">التفاصيل والمطلوب<textarea name="content" required minlength="3" maxlength="8000" rows="2" placeholder="المطلوب من الطالب إنجازه، والموعد، وكيفية التسليم"></textarea></label><button class="btn" type="submit">أرسل المهمة إلى الطالب</button></form>'
     :'<h4>تعيين مهمة للطالب</h4><div class="notice">هذا الطالب بلا حساب داخل المنصة؛ أنشئ حسابه أولًا من صفحة الطلاب ثم عُد لتعيين المهمة.</div>';
   const eventRows=(events||[]).map(e=>'<div class="list-row"><div><strong>'+esc(e.reason||e.event_type)+'</strong><small>'+esc(e.kind_label||e.kind)+' · '+esc(pointsDate(e.created_at))+(e.awarded_by_name?' · بواسطة '+esc(e.awarded_by_name):"")+(e.reversed?' · معكوسة':"")+'</small></div><span class="pill">'+(Number(e.points)>0?"+":"")+Number(e.points)+'</span></div>').join("");
+  const isSheikh=S.user.role==="admin";
+  const referralOptions=(S.students||[]).filter(st=>String(st.id)!==String(studentId)).map(st=>'<option value="'+esc(st.id)+'">'+esc(st.name||st.display_name||"طالب")+'</option>').join("");
+  const streakRows=(streaks||[]).map(x=>'<div class="list-row"><strong>'+esc({hifz:"الحفظ",fajr:"الفجر",shuruq:"الشروق"}[x.activity]||x.activity)+'</strong><span class="pill">'+Number(x.current_days)+' يوم · آخر تسجيل '+esc(x.last_date||"—")+'</span></div>').join("");
+  const referralRows=(referrals||[]).filter(x=>x.status==="pending").map(x=>'<div class="list-row"><div><strong>'+esc(x.invited_name||"الزميل")+'</strong><small>دُعي بواسطة '+esc(x.inviter_name||"")+' · '+pointsDate(x.created_at)+'</small></div><button class="btn secondary" type="button" data-referral-confirm="'+esc(x.id)+'">اعتماد بعد أسبوع</button></div>').join("");
+  const adminPointTools=isSheikh
+    ?'<section class="card"><h4>الاستمرارية</h4><p class="muted small">سجّل اليوم بعد التحقق؛ المكافأة +50% عند 5 و10 و20 و30 يومًا متتالية، ولا تتكرر المحطة.</p><div class="list">'+(streakRows||'<p class="muted">لم تبدأ سلسلة بعد.</p>')+'</div><form id="scan-streak-form" class="form-grid"><label class="field">المسار<select name="activity"><option value="hifz">الحفظ</option><option value="fajr">الفجر</option><option value="shuruq">الشروق</option></select></label><label class="field">نقاط الإنجاز الأساسية<input name="base_points" type="number" min="1" max="1000" value="30" required></label><button class="btn" type="submit">اعتماد يوم الاستمرارية</button></form>'
+    +'<h4>الأخلاق والتنبيهات</h4><p class="muted small">التنبيهات المعتمدة تُسجّل بسببها. بعد ثلاثة تنبيهات يتوقف امتياز المضاعفة؛ والحرمان النهائي لا يُعاد.</p><div class="notice">التنبيهات: '+Number(ethics?.warnings||0)+' · حالة المضاعفة: '+esc({active:"مفعّلة",suspended:"موقوفة بعد 3 تنبيهات",forfeited:"حرمان نهائي"}[ethics?.multiplier_status||"active"])+'</div><form id="scan-ethics-form" class="form-grid"><label class="field">الإجراء<select name="action"><option value="warning">تسجيل تنبيه</option><option value="award">منح مكافأة الأخلاق</option><option value="forfeit">حرمان نهائي من المضاعفة</option><option value="restore">إعادة الامتياز (إن لم يكن نهائيًا)</option></select></label><label class="field">خصم النقاط بعد التنبيه الثالث<input name="deduction_points" type="number" min="1" max="1000" placeholder="اختياري قبل التنبيه الرابع"></label><label class="field full">السبب (إلزامي)<input name="reason" required minlength="3" maxlength="500"></label><button class="btn danger" type="submit">اعتماد الإجراء</button></form>'
+    +'<h4>إحضار زميل</h4><form id="scan-referral-form" class="form-grid"><label class="field">الزميل الجديد<select name="invited_student_id" required><option value="">اختر الطالب</option>'+referralOptions+'</select></label><button class="btn" type="submit">تسجيل الإحالة</button></form><div class="list">'+(referralRows||'<p class="muted">لا توجد إحالات معلّقة.</p>')+'</div></section>'
+    :'<div class="notice">اعتماد النقاط والمكافآت والتنبيهات والاستمرارية من صلاحية الشيخ وحده.</div>';
   host.innerHTML='<section class="card scan-panel-card"><div class="section-head"><div><span class="eyebrow">متابعة الطالب · '+esc(todayIso)+'</span><h3>'+esc(studentDisplayName(s.name||"طالب"))+'</h3><p>'+esc(s.group_name||"")+'</p></div><div class="student-actions"><button class="btn secondary" type="button" id="scan-open-profile">الملف الكامل</button><button class="btn secondary" type="button" id="scan-open-plans">خطط الطلاب واعتمادها</button></div></div>'
-   +'<div class="stats"><div class="stat"><small>رصيد الإنجاز</small><strong>'+Number(t.achievement||0)+'</strong></div><div class="stat"><small>رصيد المتجر</small><strong>'+Number(t.store||0)+'</strong></div></div>'
+   +'<div class="stats"><div class="stat"><small>رصيد النقاط الموحد</small><strong>'+Number(t.balance??t.achievement??0)+'</strong></div></div>'
    +'<h4>خطته المعتمدة</h4>'+planChips
    +'<h4>تسجيل الحضور اليوم</h4><div class="student-actions" id="scan-attendance-buttons">'+attButtons+'</div>'
    +'<h4>تسجيل إنجاز اليوم (حفظ / تثبيت / ورد)</h4><div class="scan-quran-grid">'+quranQuick("hifz","الحفظ الجديد","",Array.from(new Set([info&&info.hifz_unit,"صفحة","سطر","آية","وجه"].filter(Boolean))),0,info?(info.hifz_unit||"صفحة"):"صفحة")+quranQuick("thabit","التثبيت",info?info.thabit_amount:"",["حزب","نصف حزب","ثلاثة أثمان حزب","ربع حزب","ثمن حزب"],15,info?thabitUnitFor(info.thabit_amount):"ربع حزب")+quranQuick("ward","الورد اليومي",info?info.ward_ahzab:"",["حزب","حزبان","أربعة أحزاب"],0,info?wardUnitFor(info.ward_ahzab):"حزب")+'</div>'
-   +'<h4>منح نقاط النشاط</h4><p class="muted small">وفق نظام النقاط المعتمد؛ تُمنع النقاط المكررة في اليوم نفسه تلقائيًا.</p><div class="student-actions" id="scan-activity-buttons">'+activityButtons+'</div><div id="scan-activity-result" class="muted small" aria-live="polite"></div>'
-   +'<h4>منح نقاط يدوية (استثنائي)</h4><form id="scan-manual-award" class="form-grid"><label class="field">نقاط الإنجاز<input type="number" name="achievement_points" min="0" max="1000" value="0"></label><label class="field">رصيد المتجر<input type="number" name="store_points" min="0" max="1000" value="0"></label><label class="field full">سبب المنح (مطلوب)<input name="reason" required minlength="3" maxlength="500" placeholder="مثال: إتقان تثبيت محفوظ الأسبوع"></label><button class="btn" type="submit">منح النقاط</button></form>'
+   +(isSheikh?'<h4>منح النقاط — الشيخ وحده</h4><p class="muted small">اختر النشاط بعد التحقق من إنجازه، ثم اعتمد نقاطه بنفسك.</p><div class="student-actions" id="scan-activity-buttons">'+activityButtons+'</div><div id="scan-activity-result" class="muted small" aria-live="polite"></div><form id="scan-manual-award" class="form-grid"><label class="field">عدد النقاط<input type="number" name="points" min="1" max="1000" value="10" required></label><label class="field full">سبب المنح<input name="reason" required minlength="3" maxlength="500" placeholder="مثال: حفظ ثمن دون أخطاء"></label><button class="btn" type="submit">اعتماد النقاط</button></form>':'<div class="notice">اعتماد النقاط من صلاحية الشيخ وحده.</div>')+adminPointTools
    +assignTaskMarkup
    +'<h4>آخر العمليات على حساب الطالب</h4><div class="list">'+(eventRows||'<div class="empty">لا توجد عمليات بعد.</div>')+'</div>'
    +'</section>';
@@ -2256,7 +2276,7 @@ async function renderScanPanel(v,studentId){
     btn.disabled=true;
     try{await api("/attendance",{method:"POST",body:JSON.stringify({group_id:s.group_id,date:todayIso,items:[{student_id:studentId,status:btn.dataset.scanAtt}]})});
       const label={present:"حاضر",absent:"غائب",late:"متأخر",excused:"بعذر"}[btn.dataset.scanAtt]||btn.dataset.scanAtt;
-      toast("تم تسجيل حضور «"+label+"» — تُمنح نقاط الحضور تلقائيًا عند «حاضر»");await refresh()}
+      toast("تم تسجيل الحضور: "+label);await refresh()}
     catch(error){btn.disabled=false;toast(error.message,true)}
   });
   host.querySelectorAll("[data-scan-quran]").forEach(form=>form.onsubmit=async event=>{
@@ -2264,19 +2284,30 @@ async function renderScanPanel(v,studentId){
     const kind=form.dataset.scanQuran,button=form.querySelector('button[type="submit"]'),data=new FormData(form);
     button.disabled=true;
     try{const result=await api("/quran/daily",{method:"POST",body:JSON.stringify({student_id:studentId,kind,amount:Number(data.get("amount")),unit:data.get("unit"),repetitions:Number(data.get("repetitions")||0),notes:data.get("notes")||""})});
-      const awarded=(result.awards||[]).filter(a=>a.status==="awarded").reduce((n,a)=>n+Number(a.points||0),0);
+      const awarded=(result.awards||[]).find(a=>a.status==="awarded"&&a.kind==="achievement")?.points||0;
       toast("تم تسجيل "+({hifz:"الحفظ الجديد",thabit:"التثبيت",ward:"الورد"}[kind]||"الإنجاز")+(awarded?" — أُضيفت "+awarded+" نقطة":""));await refresh()}
     catch(error){button.disabled=false;toast(error.message,true)}
   });
   host.querySelectorAll("[data-scan-activity]").forEach(btn=>btn.onclick=async()=>{
     const activity=btn.dataset.scanActivity,resultHost=host.querySelector("#scan-activity-result");
     btn.disabled=true;
-    try{const result=await api("/points/activity",{method:"POST",body:JSON.stringify({student_id:studentId,activity,date:todayIso})});
-      const parts=(result.awards||[]).map(a=>a.status==="awarded"?"+"+a.points+" "+(a.kind==="achievement"?"إنجاز":"متجر"):a.status==="duplicate"?"مكررة اليوم (لم تُمنح مرتين)":"بلغ الحد اليومي");
+    try{
+      const payload={student_id:studentId,activity,date:todayIso};
+      if(activity==="support"){const base=Number(window.prompt("كم نقطة للإنجاز الذي قدّم فيه الطالب دعمًا؟"));if(!Number.isInteger(base)||base<1||base>1000)throw new Error("أدخل عدد نقاط صحيحًا بين 1 و1000");payload.base_points=base;}
+      if(activity==="poetry")payload.request_id=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():String(Date.now())+"-"+Math.random().toString(36).slice(2);
+      const result=await api("/points/activity",{method:"POST",body:JSON.stringify(payload)});
+      const first=(result.awards||[]).find(a=>a.kind==="achievement")||result.awards?.[0];const parts=first?[first.status==="awarded"?"+"+first.points+" نقطة":first.status==="duplicate"?"مكررة اليوم (لم تُمنح مرتين)":"بلغ الحد اليومي"]:["لا توجد قاعدة نقاط نشطة لهذا النشاط"];
       if(resultHost)resultHost.textContent="النتيجة: "+parts.join(" · ");
       toast("تم — "+parts.join(" · "));await refresh()}
     catch(error){btn.disabled=false;if(resultHost)resultHost.textContent="تعذر المنح: "+error.message;toast(error.message,true)}
   });
+  const streakForm=host.querySelector("#scan-streak-form");
+  if(streakForm)streakForm.onsubmit=async event=>{event.preventDefault();const data=new FormData(streakForm),button=streakForm.querySelector("button");button.disabled=true;try{const result=await api("/points/streak",{method:"POST",body:JSON.stringify({student_id:studentId,activity:data.get("activity"),base_points:Number(data.get("base_points")),date:todayIso})});toast(result.bonus?"مكافأة الاستمرارية: +"+result.bonus+" نقطة":"سُجّل اليوم · السلسلة "+result.days+" أيام");await refresh()}catch(error){toast(error.message,true);button.disabled=false}};
+  const ethicsForm=host.querySelector("#scan-ethics-form");
+  if(ethicsForm)ethicsForm.onsubmit=async event=>{event.preventDefault();const data=new FormData(ethicsForm),button=ethicsForm.querySelector("button");button.disabled=true;try{await api("/points/ethics",{method:"POST",body:JSON.stringify({student_id:studentId,action:data.get("action"),reason:data.get("reason"),deduction_points:Number(data.get("deduction_points")||0)})});toast("تم اعتماد سجل الأخلاق");await refresh()}catch(error){toast(error.message,true);button.disabled=false}};
+  const referralForm=host.querySelector("#scan-referral-form");
+  if(referralForm)referralForm.onsubmit=async event=>{event.preventDefault();const data=new FormData(referralForm),button=referralForm.querySelector("button");button.disabled=true;try{await api("/points/referrals",{method:"POST",body:JSON.stringify({inviter_student_id:studentId,invited_student_id:data.get("invited_student_id")})});toast("سُجلت الإحالة؛ تُعتمد مكافأتها بعد أسبوع من الثبات");await refresh()}catch(error){toast(error.message,true);button.disabled=false}};
+  host.querySelectorAll("[data-referral-confirm]").forEach(button=>button.onclick=async()=>{button.disabled=true;try{const result=await api("/points/referrals/"+encodeURIComponent(button.dataset.referralConfirm)+"/confirm",{method:"POST",body:"{}"});toast("اعتمدت مكافأة الإحالة: "+result.points+" نقطة");await refresh()}catch(error){toast(error.message,true);button.disabled=false}});
   const assignForm=host.querySelector("#scan-assign-task");
   if(assignForm)assignForm.addEventListener("submit",async event=>{
     event.preventDefault();
@@ -2292,7 +2323,7 @@ async function renderScanPanel(v,studentId){
     const button=manualForm.querySelector('button[type="submit"]'),data=new FormData(manualForm);
     button.disabled=true;
     const requestId=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():String(Date.now())+"-"+Math.random().toString(36).slice(2);
-    try{await api("/points/award",{method:"POST",body:JSON.stringify({student_id:studentId,achievement_points:Number(data.get("achievement_points")||0),store_points:Number(data.get("store_points")||0),reason:String(data.get("reason")||"").trim(),request_id:requestId})});
+    try{await api("/points/award",{method:"POST",body:JSON.stringify({student_id:studentId,points:Number(data.get("points")||0),reason:String(data.get("reason")||"").trim(),request_id:requestId})});
       toast("تم منح النقاط وتحديث الرصيد");await refresh()}
     catch(error){button.disabled=false;toast(error.message,true)}
   });
@@ -2301,7 +2332,7 @@ async function renderScanPanel(v,studentId){
 async function guidePage(v){
  let rules=[];
  try{rules=await api("/points/rules")}catch(error){rules=[]}
- const ruleRows=rules.map(rule=>'<tr><td><strong>'+esc(rule.name)+'</strong><br><small class="muted">'+esc(rule.description||rule.event_type)+'</small></td><td>'+Number(rule.achievement_points||0)+'</td><td>'+Number(rule.store_points||0)+'</td><td>'+(rule.max_per_day?"مرة كل يوم":"—")+'</td></tr>').join("");
+ const ruleRows=rules.map(rule=>'<tr><td><strong>'+esc(rule.name)+'</strong><br><small class="muted">'+esc(rule.description||rule.event_type)+'</small></td><td>'+Number(rule.achievement_points||rule.store_points||0)+'</td><td>'+(rule.max_per_day?"مرة كل يوم":"—")+'</td></tr>').join("");
  const readingRule=rules.find(rule=>rule.event_type==="quran_reading");
  const readingPoints=Number(readingRule?.achievement_points||5),readingStore=Number(readingRule?.store_points||2);
  const stageRows=WORLD_STAGES.map((item,index)=>'<tr><td><strong>'+esc(item.name)+'</strong><br><small class="muted">'+esc(item.title)+'</small></td><td>'+Number(item.min)+'</td><td>'+esc(item.line)+'</td></tr>').join("");
@@ -2317,10 +2348,10 @@ async function guidePage(v){
  v.innerHTML='<div class="guide-page">'+
   '<section class="guide-hero"><span class="eyebrow">دليل الرحلة · بأرقام واضحة</span><h2>كيف تنمو في عالم الإحسان؟</h2><p>في كل يوم، اقرأ هذه الجملة كاملة: <strong>احضر حلقتك، واحفظ وراجع وردك، وأتمّ واجبك، واختبر نفسك، وسجّل قراءتك، واستلم تحديك؛ فكل خطوة تُضاف إلى نقاط إنجازك وترتيبك ورصيد متجرك.</strong></p><div class="guide-hero-stats"><span><strong>6</strong> خطوات يومية</span><span><strong>25/35/30/10</strong> وزن الترتيب</span><span><strong>6</strong> مراتب للعالم</span></div></section>'+
   '<section class="card guide-steps-section"><div class="section-head"><div><span class="eyebrow">دورة النمو</span><h3>ست خطوات، ثم تتحرك مرتبتك</h3><p>اضغط أي خطوة لتنتقل إلى مكان تنفيذها مباشرة.</p></div></div><div class="guide-steps">'+stepCards+'</div></section>'+
-  '<section class="card"><div class="section-head"><div><span class="eyebrow">من أين تأتي النقاط؟</span><h3>قواعد النقاط المعتمدة</h3><p>القيم تُدار من الأكاديمية وليست ثابتة في الكود؛ تُحدّث من لوحة المدير.</p></div></div><div class="table-wrap"><table><thead><tr><th>القاعدة</th><th>نقاط الإنجاز</th><th>رصيد المتجر</th><th>السقف</th></tr></thead><tbody>'+(ruleRows||'<tr><td colspan="4">ستظهر القواعد بعد تهيئة الاقتصاد التعليمي في حسابك.</td></tr>')+'</tbody></table></div><div class="notice"><strong>الفارق المهم:</strong> نقاط الإنجاز مؤشر تراكمي يبني مستواك ولا تُصرف. رصيد المتجر وحده يُستخدم في طلبات الصرف، وكل حركة مسجّلة ولا تُحذف؛ التصحيح بعكس موثّق بسبب.</div></section>'+
+  '<section class="card"><div class="section-head"><div><span class="eyebrow">من أين تأتي النقاط؟</span><h3>قواعد النقاط المعتمدة</h3><p>القيم تُدار من الأكاديمية وليست ثابتة في الكود؛ تُحدّث من لوحة المدير.</p></div></div><div class="table-wrap"><table><thead><tr><th>القاعدة</th><th>النقاط</th><th>السقف</th></tr></thead><tbody>'+(ruleRows||'<tr><td colspan="3">ستظهر القواعد بعد تهيئة الاقتصاد التعليمي في حسابك.</td></tr>')+'</tbody></table></div><div class="notice"><strong>رصيد واحد:</strong> جميع الإنجازات تضيف إلى الرصيد نفسه، وتُستخدم النقاط نفسها في المتجر. كل حركة مسجّلة، والتصحيح بعكس موثّق بسبب.</div></section>'+
   '<div class="guide-grid"><section class="card"><div class="section-head"><div><span class="eyebrow">الترتيب</span><h3>كيف يُحسب ترتيب الفوج؟</h3></div></div><div class="guide-formula"><div><strong>25٪</strong><span>المواظبة والحضور</span></div><div><strong>35٪</strong><span>الحفظ والمراجعة</span></div><div><strong>30٪</strong><span>إتقان الاختبارات</span></div><div><strong>10٪</strong><span>التحديات اليومية</span></div></div><p class="muted small">الترتيب تحفيزي لا يقيس قيمة الطالب، ولا يستبدل تقييم الشيخ لجودة الحفظ والتجويد والفهم.</p></section>'+
   '<section class="card"><div class="section-head"><div><span class="eyebrow">النزاهة</span><h3>قواعد تحفظ العدل</h3></div></div><ul class="guide-rules"><li>كل حدث يُمنح مرة واحدة فقط؛ لا تتكرر النقاط لنفس العمل.</li><li>لكل قاعدة سقف يومي، فلا تتضخم النقاط بالتكرار.</li><li>سجل القراءة مرة واحدة كل يوم، ويُربط بفوجك.</li><li>لا تُحذف الحركات؛ التصحيح يكون بعكس موثّق بسبب.</li></ul></section></div>'+
-  '<section class="card"><div class="section-head"><div><span class="eyebrow">مراتب العالم</span><h3>من البذرة إلى المحراب</h3><p>المرتبة تُفتح بنقاط الإنجاز المتراكمة، لا بالوقت وحده.</p></div></div><div class="table-wrap"><table><thead><tr><th>المرتبة</th><th>تبدأ من</th><th>معناها</th></tr></thead><tbody>'+stageRows+'</tbody></table></div></section>'+
+  '<section class="card"><div class="section-head"><div><span class="eyebrow">مراتب العالم</span><h3>من البذرة إلى المحراب</h3><p>المرتبة تُفتح برصيد النقاط المتراكمة، لا بالوقت وحده.</p></div></div><div class="table-wrap"><table><thead><tr><th>المرتبة</th><th>تبدأ من</th><th>معناها</th></tr></thead><tbody>'+stageRows+'</tbody></table></div></section>'+
   '<div class="guide-actions"><button class="btn" type="button" data-guide-go="world">العودة إلى عالمي</button><button class="btn secondary" type="button" data-guide-go="card">بطاقتي</button><button class="btn secondary" type="button" data-guide-go="tasks">مهامي</button></div>'+
   '</div>';
  v.querySelectorAll("[data-guide-go]").forEach(btn=>btn.onclick=()=>go(btn.dataset.guideGo));
@@ -3214,7 +3245,7 @@ async function studentProfile(v,id){
   const present=attendanceRows.filter(x=>x.status==="present").length,absent=attendanceRows.filter(x=>x.status==="absent").length,late=attendanceRows.filter(x=>x.status==="late").length;
   let html=head("ملخص الطالب",st.name)+'<div class="stats"><div class="stat"><small>سجلات الحضور</small><strong>'+attendanceRows.length+'</strong></div><div class="stat"><small>الحضور</small><strong>'+present+'</strong></div><div class="stat"><small>الغياب</small><strong>'+absent+'</strong></div><div class="stat"><small>التأخر</small><strong>'+late+'</strong></div><div class="stat"><small>متابعات القرآن</small><strong>'+progress.length+'</strong></div><div class="stat"><small>محاولات الاختبارات</small><strong>'+testRows.length+'</strong></div></div><section class="card"><h3>سجل الحضور</h3><div class="list">'+(attendanceRows.length?attendanceRows.slice(0,40).map(r=>'<div class="list-row"><div><strong>'+esc(r.date)+'</strong><small>'+esc(r.note||"")+'</small></div><span class="pill">'+({"present":"حاضر","absent":"غائب","late":"متأخر","excused":"بعذر"}[r.status]||"غير مسجل")+'</span></div>').join(""):'<div class="empty">لا توجد سجلات حضور لهذا الطالب.</div>')+'</div></section><section class="card"><h3>الحفظ والمراجعة</h3><div class="list">'+(progress.length?progress.map(r=>'<div class="list-row"><div><strong>'+esc(r.date)+'</strong><small>الحفظ: '+esc(r.memorized||"—")+' · المراجعة: '+esc(r.reviewed||"—")+' · '+esc(r.notes||"")+'</small></div></div>').join(""):'<div class="empty">لا توجد متابعة قرآنية مسجّلة.</div>')+'</div></section>';
   const taskCounts=(taskData&&taskData.counts)||{},taskRows=(taskData&&taskData.tasks)||[],openTasks=taskRows.filter(t=>t.status==="pending"||t.status==="late");
-  html+='<section class="card"><h3>النقاط والمهام</h3><div class="stats"><div class="stat"><small>نقاط الإنجاز</small><strong>'+Number(pointsSummary?.totals?.achievement||0)+'</strong></div><div class="stat"><small>رصيد المتجر</small><strong>'+Number(pointsSummary?.totals?.store||0)+'</strong></div><div class="stat"><small>مهام مطلوبة</small><strong>'+Number(taskCounts.pending||0)+'</strong></div><div class="stat"><small>مهام متأخرة</small><strong>'+Number(taskCounts.late||0)+'</strong></div></div>'+(openTasks.length?'<div class="list">'+openTasks.slice(0,6).map(t=>'<div class="list-row"><div><strong>'+esc(t.title)+'</strong><small>'+esc(t.type_label)+(t.due_date?' · '+esc(t.due_date):"")+'</small></div><span class="pill">'+esc(t.status_label)+'</span></div>').join("")+'</div>':'<p class="muted small">لا توجد مهام مفتوحة على هذا الطالب.</p>')+'</section>';
+  html+='<section class="card"><h3>النقاط والمهام</h3><div class="stats"><div class="stat"><small>رصيد النقاط</small><strong>'+Number(pointsSummary?.totals?.balance??pointsSummary?.totals?.achievement??0)+'</strong></div><div class="stat"><small>مهام مطلوبة</small><strong>'+Number(taskCounts.pending||0)+'</strong></div><div class="stat"><small>مهام متأخرة</small><strong>'+Number(taskCounts.late||0)+'</strong></div></div>'+(openTasks.length?'<div class="list">'+openTasks.slice(0,6).map(t=>'<div class="list-row"><div><strong>'+esc(t.title)+'</strong><small>'+esc(t.type_label)+(t.due_date?' · '+esc(t.due_date):"")+'</small></div><span class="pill">'+esc(t.status_label)+'</span></div>').join("")+'</div>':'<p class="muted small">لا توجد مهام مفتوحة على هذا الطالب.</p>')+'</section>';
   html+='<section class="card"><h3>نتائج الاختبارات</h3><div class="list">'+(testRows.length?testRows.map(r=>'<div class="list-row"><div><strong>'+esc(r.title||"اختبار")+'</strong><small>'+esc(r.submitted_at||"")+'</small></div><strong>'+r.score+' / '+r.total+'</strong></div>').join(""):'<div class="empty">لا توجد نتائج اختبارات لهذا الطالب.</div>')+'</div></section>';
   if(!isStudent){
    html+='<section class="card"><h3>البيانات الإدارية والدراسية</h3><p class="muted small">تُحفظ هذه البيانات في ملف الطالب ولا تغيّر سجلات الحضور أو الاختبارات.</p><form id="student-profile-form" class="form-grid"><label class="field">رقم هاتف الطالب<input name="phone" maxlength="50" value="'+esc(profile.phone||"")+'"></label><label class="field">طريقة التواصل المفضلة<select name="preferred_contact"><option value="">غير محددة</option>'+["الهاتف","واتساب","ولي الأمر","أخرى"].map(x=>'<option '+(profile.preferred_contact===x?'selected':'')+'>'+x+'</option>').join("")+'</select></label><label class="field">اسم ولي الأمر<input name="guardian_name" maxlength="120" value="'+esc(profile.guardian_name||"")+'"></label><label class="field">هاتف ولي الأمر<input name="guardian_phone" maxlength="50" value="'+esc(profile.guardian_phone||"")+'"></label><label class="field">العمر<input name="age" type="number" min="3" max="100" step="1" value="'+esc(profile.age??"")+'"></label><label class="field">المستوى الدراسي<input name="school_grade" maxlength="120" value="'+esc(profile.school_grade||"")+'"></label><label class="field">المؤسسة التعليمية<input name="school_name" maxlength="160" value="'+esc(profile.school_name||"")+'"></label><label class="field">المعدل من 20<input name="average" type="number" min="0" max="20" step="0.01" value="'+esc(profile.average??"")+'"></label><label class="field wide">ملاحظات إدارية/دراسية<textarea name="notes" rows="3" maxlength="1200">'+esc(profile.notes||"")+'</textarea></label><div class="wide"><button class="btn" type="submit">حفظ بيانات الملف</button><span class="muted small" id="student-profile-status">'+(profile.updated_at?'آخر تحديث: '+esc(profile.updated_at):'لم تُسجّل بيانات إضافية بعد.')+'</span></div></form></section>';

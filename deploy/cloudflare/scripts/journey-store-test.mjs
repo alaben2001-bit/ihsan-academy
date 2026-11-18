@@ -258,11 +258,11 @@ async function main() {
   check("with a zero balance only the real nearest item is shown", (catalog.data?.recommendations?.affordable || []).length === 0 && catalog.data?.recommendations?.nearest?.id === affordableId && Number(catalog.data?.recommendations?.nearest?.missing) === 20, JSON.stringify(catalog.data?.recommendations));
 
   const award = await call("/api/points/award", { method: "POST", token: admin, body: { student_id: studentA.id, achievement_points: 100, store_points: 50, reason: "اختبار الرحلة والمتجر", request_id: "journey-store-award-" + RUN } });
-  check("store balance is funded through the existing points ledger", award.status === 201 && Number(award.data?.totals?.store) === 50 && Number(award.data?.totals?.achievement) === 100, JSON.stringify(award.data));
+  check("store balance is funded through the existing points ledger", award.status === 201 && Number(award.data?.totals?.store) === 100 && Number(award.data?.totals?.achievement) === 100, JSON.stringify(award.data));
 
   const funded = await call("/api/store/items", { token: studentA.token });
   check("funded student sees the affordable real item", (funded.data?.recommendations?.affordable || []).some(item => item.id === affordableId), JSON.stringify(funded.data?.recommendations));
-  check("nearest locked item reports the exact missing balance", funded.data?.recommendations?.nearest?.id === expensiveId && Number(funded.data?.recommendations?.nearest?.missing) === 950, JSON.stringify(funded.data?.recommendations?.nearest));
+  check("nearest locked item reports the exact missing balance", funded.data?.recommendations?.nearest?.id === expensiveId && Number(funded.data?.recommendations?.nearest?.missing) === 900, JSON.stringify(funded.data?.recommendations?.nearest));
 
   const redeemSoldOut = await call("/api/store/redeem", { method: "POST", token: studentA.token, body: { item_id: soldOutId } });
   check("redeeming a sold-out item is rejected", redeemSoldOut.status === 409, JSON.stringify(redeemSoldOut.data));
@@ -272,7 +272,7 @@ async function main() {
   check("redeeming beyond the balance is rejected", redeemExpensive.status === 409, JSON.stringify(redeemExpensive.data));
 
   const redeem = await call("/api/store/redeem", { method: "POST", token: studentA.token, body: { item_id: affordableId, note: "أحتاج المصحف للمراجعة" } });
-  check("student requests a real in-stock reward", redeem.status === 201 && redeem.data?.redemption?.status === "pending" && Number(redeem.data?.balance) === 30, JSON.stringify(redeem.data));
+  check("student requests a real in-stock reward", redeem.status === 201 && redeem.data?.redemption?.status === "pending" && Number(redeem.data?.balance) === 80, JSON.stringify(redeem.data));
   const redemptionId = redeem.data?.redemption?.id;
 
   const afterRedeem = await call("/api/store/items", { token: studentA.token });

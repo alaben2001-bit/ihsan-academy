@@ -3197,34 +3197,72 @@ footer a{text-decoration:none}
 .world-journey-stop.is-current{box-shadow:0 0 0 1px rgba(232,196,106,.5),0 0 22px rgba(var(--ep-glow),.24);transform:translateY(-2px)}
 @keyframes world-halo{to{transform:rotate(360deg)}}
 
-/* ============ Professional student ID cards ============ */
-.cards-sheet-grid{grid-template-columns:repeat(auto-fit,minmax(320px,1fr))}
-.student-card-print{padding:10px;background:transparent;border:0;box-shadow:none;gap:8px}
-.id-card{position:relative;overflow:hidden;border-radius:18px;padding:16px;color:#fff;background:linear-gradient(135deg,#7a1f2b,#4a0f18 65%,#2a0810);border:1px solid rgba(212,175,55,.55);box-shadow:0 10px 26px rgba(0,0,0,.22);break-inside:avoid;page-break-inside:avoid}
-.id-card:after{content:"";position:absolute;width:180px;height:180px;border-radius:50%;border:1px solid rgba(212,175,55,.16);left:-60px;bottom:-90px;pointer-events:none}
-.id-card-top,.id-card-person,.id-card-qrs,.id-card-note{position:relative;z-index:1}
-.id-card-top{display:flex;justify-content:space-between;align-items:center;gap:10px;padding-bottom:10px;border-bottom:1px solid rgba(255,255,255,.18)}
-.id-card-brand{display:flex;align-items:center;gap:8px}
-.id-card-mark{display:grid;place-items:center;width:32px;height:32px;border-radius:9px;background:#d4af37;color:#3a0a10;font-weight:800}
-.id-card-brand strong,.id-card-brand small{display:block}
-.id-card-brand strong{font-size:.92rem;color:#fff}
-.id-card-brand small{font-size:.66rem;color:#f0d7b0}
-.id-card-year{font-size:.7rem;color:#e8cf9c;white-space:nowrap}
-.id-card-person{display:flex;align-items:center;gap:12px;margin:12px 0}
-.id-card-avatar{display:grid;place-items:center;width:52px;height:52px;flex:0 0 52px;border-radius:14px;background:rgba(255,255,255,.14);border:1px solid rgba(212,175,55,.45);font-size:1.4rem;font-weight:800}
-.id-card-person strong,.id-card-person small{display:block}
-.id-card-person strong{font-size:1.05rem}
-.id-card-person small{font-size:.68rem;color:#f0d7b0}
-.id-card-qrs{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;background:rgba(255,255,255,.96);padding:10px;border-radius:12px}
-.id-card-qr{margin:0;text-align:center;color:#18352d}
-.id-card-qr-code{display:grid;place-items:center;aspect-ratio:1;padding:3px;background:#fff}
-.id-card-qr-code svg{width:100%;height:100%;display:block}
-.id-card-qr figcaption{font-size:.62rem;font-weight:800;line-height:1.4;margin-top:3px;color:#3a0a10}
-.id-card-note{margin-top:10px;font-size:.62rem;color:#f0d7b0;line-height:1.6}
+
+/* V74 — student card QR integrated into the preserved pass design and print sizing. */
+.pass-middle{position:relative;min-height:30px}
+.pass-qr{display:grid;place-items:center;width:76px;height:76px;flex:0 0 76px;padding:4px;border-radius:8px;background:#fff;overflow:hidden}
+.pass-qr svg{display:block;width:100%;height:100%;shape-rendering:crispEdges}
+.student-card-print-item{display:flex;flex-direction:column;gap:8px;break-inside:avoid;page-break-inside:avoid}
+.student-card-print-item .student-pass-print{width:100%;max-width:560px;margin:0 auto}
+.student-card-print-actions{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.student-card-print-actions .btn{font-size:.78rem;padding:7px 10px}
+.student-pass-print{aspect-ratio:85.6/54;min-height:0;width:min(560px,100%);padding:clamp(12px,2.2vw,22px);gap:5px}
+.student-pass-print .pass-head{flex:0 0 auto}
+.student-pass-print .pass-middle{flex:1;align-items:center}
+.student-pass-print .pass-qr{width:clamp(54px,13vw,82px);height:clamp(54px,13vw,82px)}
+.student-pass-print .pass-name{font-size:clamp(17px,2.7vw,24px);line-height:1.25;margin:0}
+.student-pass-print .pass-serial{font-size:10px}
+.student-pass-print .pass-foot{font-size:8px;padding-top:4px}
 @media print{
- body[data-print="cards"] .cards-sheet-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important;gap:12mm!important}
- body[data-print="cards"] .student-card-print{padding:0!important;border:0!important;background:transparent!important}
- body[data-print="cards"] .id-card{-webkit-print-color-adjust:exact;print-color-adjust:exact;box-shadow:none!important}
+ @page{size:A4 portrait;margin:10mm}
+ body[data-print="card"] .student-pass{width:85.6mm!important;height:54mm!important;min-height:54mm!important;max-width:none!important;aspect-ratio:85.6/54!important;padding:3.2mm!important;gap:1mm!important;border-radius:3mm!important;box-shadow:none!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+ body[data-print="card"] .pass-middle{min-height:0!important;flex:1}
+ body[data-print="card"] .pass-qr{width:19mm!important;height:19mm!important;flex:0 0 19mm!important;padding:1mm!important}
+ body[data-print="card"] .pass-name{font-size:11pt!important;line-height:1.15!important}
+ body[data-print="card"] .pass-serial{font-size:6.5pt!important}
+ body[data-print="card"] .pass-foot{font-size:5.5pt!important;padding-top:1mm!important}
+ body[data-print="card"] .pass-brand{font-size:7pt!important}
+ body[data-print="card"] .pass-brand-mark{width:7mm!important;height:7mm!important;font-size:11pt!important}
+ body[data-print="card"] .pass-type,body[data-print="card"] .pass-level{font-size:6pt!important}
+ body[data-print="card"] .pass-chip{width:10mm!important;height:7mm!important}
+ body[data-print="card"] .card-page .student-pass-wrap{padding:0!important}
+ body[data-print="cards"] .cards-sheet-grid{display:grid!important;grid-template-columns:repeat(2,85.6mm)!important;justify-content:center!important;align-items:start!important;gap:5mm 6mm!important}
+ body[data-print="cards"] .student-card-print-item{break-inside:avoid!important;page-break-inside:avoid!important;width:85.6mm!important;height:54mm!important;display:block!important}
+ body[data-print="cards"] .student-card-print-item .student-pass{width:85.6mm!important;height:54mm!important;min-height:54mm!important;max-width:none!important;aspect-ratio:85.6/54!important;padding:3.2mm!important;gap:1mm!important;border-radius:3mm!important;box-shadow:none!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+ body[data-print="cards"] .student-card-print-actions{display:none!important}
+ body[data-print="cards"] .pass-middle{min-height:0!important;flex:1}
+ body[data-print="cards"] .pass-qr{width:19mm!important;height:19mm!important;flex:0 0 19mm!important;padding:1mm!important}
+ body[data-print="cards"] .pass-name{font-size:11pt!important;line-height:1.15!important}
+ body[data-print="cards"] .pass-serial{font-size:6.5pt!important}
+ body[data-print="cards"] .pass-foot{font-size:5.5pt!important;padding-top:1mm!important}
+ body[data-print="cards"] .pass-brand{font-size:7pt!important}
+ body[data-print="cards"] .pass-brand-mark{width:7mm!important;height:7mm!important;font-size:11pt!important}
+ body[data-print="cards"] .pass-type,body[data-print="cards"] .pass-level{font-size:6pt!important}
+ body[data-print="cards"] .pass-chip{width:10mm!important;height:7mm!important}
+ body[data-print="card-one"] .workspace-head,body[data-print="card-one"] .sidebar,body[data-print="card-one"] .topbar,body[data-print="card-one"] footer,body[data-print="card-one"] .cards-toolbar,body[data-print="card-one"] .student-card-print-actions{display:none!important}
+ body[data-print="card-one"] .student-card-print-item{display:none!important}
+ body[data-print="card-one"] .student-card-print-item.is-print-target{display:block!important}
+ body[data-print="card-one"] .cards-sheet-grid{display:block!important}
+ body[data-print="card-one"] .student-card-print-item .student-pass{width:85.6mm!important;height:54mm!important;min-height:54mm!important;max-width:none!important;aspect-ratio:85.6/54!important;padding:3.2mm!important;gap:1mm!important;border-radius:3mm!important;box-shadow:none!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+ body[data-print="card-one"] .pass-qr{width:19mm!important;height:19mm!important;flex:0 0 19mm!important;padding:1mm!important}
 }
-/* Readable task/nav labels instead of clipped words */
-.sidebar .nav-btn,.app-authenticated .workspace-head #top-actions .btn{white-space:normal!important;overflow:visible!important;text-overflow:clip!important;line-height:1.5!important;word-break:break-word}
+
+@media print{
+ @page card-single{size:85.6mm 54mm;margin:0}
+ body[data-print="card-one"] .student-card-print-item.is-print-target .student-pass{page:card-single!important}
+}
+
+@media print{
+ body[data-print="card"] .pass-grid{gap:1mm!important;margin-top:0!important}
+ body[data-print="card"] .pass-grid>div{padding:1mm!important;border-radius:1.5mm!important}
+ body[data-print="card"] .pass-grid small{font-size:5pt!important;margin-bottom:0!important}
+ body[data-print="card"] .pass-grid strong{font-size:8pt!important}
+}
+
+/* V75 — explicit A4 card sheets: eight physical CR80 cards per page */
+.cards-print-page{margin:16px 0;padding:12px;border:1px dashed var(--line);border-radius:16px;background:var(--surface-2)}
+@media print{
+ body[data-print="cards"] .cards-print-page{display:block!important;width:100%!important;height:231mm!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:#fff!important;break-after:page!important;page-break-after:always!important;box-sizing:border-box!important}
+ body[data-print="cards"] .cards-print-page:last-child{break-after:auto!important;page-break-after:auto!important}
+ body[data-print="cards"] .cards-sheet-grid{display:grid!important;grid-template-columns:repeat(2,85.6mm)!important;grid-template-rows:repeat(4,54mm)!important;grid-auto-rows:54mm!important;justify-content:center!important;align-content:start!important;align-items:start!important;gap:5mm 6mm!important;width:100%!important;height:231mm!important}
+}

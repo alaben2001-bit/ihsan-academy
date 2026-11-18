@@ -483,8 +483,8 @@ assert.match(backend, /saveQuranPathForStudent\(env,user,student/, "journey appl
 assert.match(backend, /saveQuranPlanForStudent\(env,user,student/, "journey apply must reuse the existing Quran plan writer");
 assert.match(backend, /storeRecommendationPayload\(enriched,balance\)/, "student store reads must derive recommendations from real store rows");
 assert.match(backend, /if\(path==="\/api\/store\/items"&&method==="POST"\)\{\s*if\(user\.role!=="admin"\)return fail\(403,"إدارة المتجر للمدير فقط"\)/, "store creation and edits must remain admin-only");
-assert.match(app, /const STORE_SUGGESTIONS=/, "admin suggestions must remain UI-only helper templates");
-assert.match(app, /غير محفوظة ولا يراها الطالب/, "admin suggestions must disclose that they are not saved or shown to students");
+assert.doesNotMatch(app, /const STORE_SUGGESTIONS=|data-store-suggest/, "the store must not invent sample rewards or point costs");
+assert.match(app, /لا توجد مواد افتراضية/, "the admin store must clearly require the owner's approved catalog");
 assert.match(app, /async function quranPlansReviewPage\(v\)/, "staff must have a journey review screen");
 assert.match(style, /\.journey-shell\{/, "the student journey must have dedicated responsive styling");
 assert.match(style, /\.store-terms\{/, "store redemption terms must be visibly styled");
@@ -542,7 +542,7 @@ assert.match(backend, /login: \{ label: "الدخول السريع", ttlDays: 36
 assert.match(backend, /tokens\[kind\] = \{ hash: await hashToken\(secret\), secret, issued_at: now/, "card tokens must store a hash for verification and the secret for reprint");
 assert.ok(backend.indexOf('path === "/api/cards/resolve"') > 0 && backend.indexOf('path === "/api/cards/resolve"') < backend.indexOf('const user=await currentUser(request,env); if(!user)return fail(401'), "card resolution must run before the login gate so the login QR can be read anonymously");
 assert.match(backend, /requires_password:true,student:\{name:student\.name,username:student\.username/, "the login QR must return only a name and username, never a session");
-assert.match(backend, /if\(kind==="add_points"&&scanner\.role==="student"\)return fail\(403/, "students must not use the add-points QR on themselves");
+assert.match(backend, /if\(kind==="add_points"&&scanner\.role!=="admin"\)return fail\(403,"إضافة النقاط متاحة للشيخ وحده"\)/, "only the Sheikh may use the add-points QR");
 assert.match(backend, /if\(!await canAccessStudentCard\(env,scanner,student\)\)return fail\(403,"هذه البطاقة خارج صلاحيتك"\)/, "card scans must respect group scope");
 assert.match(backend, /if\(path==="\/api\/student-cards\/bulk"&&method==="POST"\)/, "staff must be able to bulk-create group cards");
 assert.match(backend, /student-cards\\\/\(\[\^\/\]\+\)\\\/reissue/, "cards must support reissue");
@@ -586,3 +586,13 @@ assert.ok(index.includes("/qr.js?v=" + releaseVersion), "the QR encoder must be 
 assert.ok(serviceWorker.includes("/qr.js?v="), "the QR encoder must be cached by the service worker");
 
 console.log("Security regression guardrails passed.");
+
+assert.match(backend, /if\(user\.role!=="admin"\)return fail\(403,"منح النقاط للشيخ وحده"\)/, "manual point awards must be Sheikh-only");
+assert.match(backend, /student_point_streaks/, "Masjid Al-Rahma streaks must persist in D1");
+assert.match(backend, /student_ethics/, "Masjid Al-Rahma ethics warnings must persist in D1");
+assert.match(backend, /student_referrals/, "student referrals must be tracked before awarding the seven-day bonus");
+assert.match(backend, /hifz_no_errors.*hifz_tajweed/, "the two memorization point values must be mutually exclusive");
+assert.match(backend, /bonus_percent/, "the 30% support bonus must be configurable and audited");
+assert.match(app, /رصيد النقاط الموحد/, "students must see one unified points balance");
+assert.match(app, /الفجر · 30/, "the Sheikh scan panel must expose the new point activities");
+assert.match(index, /masjid-alrahma-rules\.html/, "the Cloudflare entry page must link to the printable Masjid Al-Rahma rules");
