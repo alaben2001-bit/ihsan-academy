@@ -42,5 +42,5 @@ check("bulk print preserves a full four-row CR80 sheet per A4 page", css.include
 check("bulk print prevents page splitting inside a sheet or card", css.includes("break-inside:avoid!important") && css.includes("page-break-inside:avoid!important"));
 
 const failed = checks.filter(item => !item.ok);
-console.log("\\n" + (checks.length - failed.length) + "/" + checks.length + " source-layout checks passed.");
+console.log("\n" + (checks.length - failed.length) + "/" + checks.length + " source-layout checks passed.");
 if (failed.length) process.exitCode = 1;
