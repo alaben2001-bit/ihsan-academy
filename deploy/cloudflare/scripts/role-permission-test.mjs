@@ -156,12 +156,12 @@ async function roleMatrixTests(admin, inScopeStudentId, groupId) {
   const otherGroupSummary = await call("/api/points/summary?student_id=" + encodeURIComponent(outScopeStudent.id), { token: supervisorToken });
   check("supervisor cannot read points outside own group", otherGroupSummary.status === 403, "status=" + otherGroupSummary.status);
   const supAward = await call("/api/points/award", { method: "POST", token: supervisorToken, body: { student_id: inScopeStudentId, achievement_points: 1, store_points: 0, reason: "تحقق صلاحيات المشرف", request_id: "role-test-sup-" + run } });
-  check("supervisor cannot award points; Sheikh-only policy", supAward.status === 403, "status=" + supAward.status);
+  check("supervisor can award points inside own group", supAward.status === 201, "status=" + supAward.status);
   const supAwardOutside = await call("/api/points/award", { method: "POST", token: supervisorToken, body: { student_id: outScopeStudent.id, achievement_points: 1, store_points: 0, reason: "تحقق النطاق", request_id: "role-test-sup-x-" + run } });
   check("supervisor cannot award points outside own group", supAwardOutside.status === 403, "status=" + supAwardOutside.status);
   await call("/api/points/award", { method: "POST", token: admin, body: { student_id: inScopeStudentId, achievement_points: 0, store_points: 5, reason: "رصيد اختبار المشرف", request_id: "role-sup-fund-" + run } });
   const supPenalty = await call("/api/penalties", { method: "POST", token: supervisorToken, body: { student_id: inScopeStudentId, store_points: 1, reason: "خصم فريق منفّذ" } });
-  check("supervisor cannot deduct points; Sheikh-only policy", supPenalty.status === 403, "status=" + supPenalty.status);
+  check("supervisor can deduct a penalty inside own group", supPenalty.status === 201, "status=" + supPenalty.status);
   const supPenaltyOutside = await call("/api/penalties", { method: "POST", token: supervisorToken, body: { student_id: outScopeStudent.id, store_points: 1, reason: "خصم خارج نطاق المشرف" } });
   check("supervisor cannot deduct a penalty outside own group", supPenaltyOutside.status === 403, "status=" + supPenaltyOutside.status);
   const storeBySupervisor = await call("/api/store/items", { method: "POST", token: supervisorToken, body: { name: "x", cost: 1 } });

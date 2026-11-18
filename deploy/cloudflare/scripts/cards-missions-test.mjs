@@ -170,7 +170,7 @@ async function main() {
   const studentAddPoints = await resolveCard("add_points", addPointsLink.cardId, addPointsLink.secret, student.token);
   check("add_points QR is rejected for the student", studentAddPoints.status === 403, JSON.stringify(studentAddPoints.data));
   const teacherAddPoints = await resolveCard("add_points", addPointsLink.cardId, addPointsLink.secret, teacherInside.token);
-  check("add_points QR is rejected for a group teacher (only the chief sheikh may grant points)", teacherAddPoints.status === 403, JSON.stringify(teacherAddPoints.data));
+  check("add_points QR resolves for the group sheikh", teacherAddPoints.status === 200 && teacherAddPoints.data?.next === "points", JSON.stringify(teacherAddPoints.data));
   const adminAddPoints = await resolveCard("add_points", addPointsLink.cardId, addPointsLink.secret, admin);
   check("add_points QR resolves for the chief sheikh only", adminAddPoints.status === 200 && adminAddPoints.data?.next === "points", JSON.stringify(adminAddPoints.data));
 

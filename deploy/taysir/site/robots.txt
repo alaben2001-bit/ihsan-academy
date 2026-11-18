@@ -2,4 +2,4 @@
 User-agent: *
 Allow: /
 
-Sitemap: https://a-taysir.pages.dev/sitemap.xml
+Sitemap: https://at-taysir.alaben2001.workers.dev/sitemap.xml
