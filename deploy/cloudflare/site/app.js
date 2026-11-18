@@ -1095,9 +1095,9 @@ async function pointsPage(v){
  if(S.user.role==="admin"){
   const ruleRows=rules.map(rule=>{
    const config=encodeURIComponent(JSON.stringify({id:rule.id,event_type:rule.event_type,name:rule.name,description:rule.description||"",sort_order:rule.sort_order||0,auto_award:rule.auto_award}));
-   return '<tr><td><strong>'+esc(rule.name)+'</strong><br><small class="muted">'+esc(rule.event_type)+'</small></td><td><input type="number" min="0" max="100000" value="'+Number(rule.achievement_points)+'" data-rule-achievement style="width:84px"></td><td><input type="number" min="0" max="100000" value="'+Number(rule.store_points)+'" data-rule-store style="width:84px"></td><td><input type="number" min="1" max="1000" value="'+(rule.max_per_day??"")+'" data-rule-max style="width:72px"></td><td><input type="checkbox" '+(Number(rule.active)===1?"checked":"")+' data-rule-active></td><td><button class="btn secondary" type="button" data-rule-config="'+esc(config)+'">حفظ</button></td></tr>';
+   return '<tr><td><strong>'+esc(rule.name)+'</strong><br><small class="muted">'+esc(rule.event_type)+'</small></td><td><input type="number" min="0" max="100000" value="'+Number(rule.achievement_points)+'" data-rule-achievement style="width:84px"></td><td><input type="number" min="0" max="100000" value="'+Number(rule.store_points)+'" data-rule-store style="width:84px"></td><td><input type="number" min="0" max="300" value="'+Number(rule.bonus_percent||0)+'" data-rule-bonus style="width:72px" aria-label="نسبة الزيادة بالمئة"></td><td><input type="number" min="1" max="1000" value="'+(rule.max_per_day??"")+'" data-rule-max style="width:72px"></td><td><input type="checkbox" '+(Number(rule.active)===1?"checked":"")+' data-rule-active></td><td><button class="btn secondary" type="button" data-rule-config="'+esc(config)+'">حفظ</button></td></tr>';
   }).join("");
-  html+='<section class="card"><h3>قواعد النقاط</h3><p class="muted small">القيم هنا هي مصدر المنح التلقائي واليدوي؛ لا تُكتب قيم النقاط في الكود.</p><div class="table-wrap"><table><thead><tr><th>القاعدة</th><th>إنجاز</th><th>متجر</th><th>سقف/يوم</th><th>مفعلة</th><th></th></tr></thead><tbody>'+ruleRows+'</tbody></table></div></section>';
+  html+='<section class="card"><h3>قواعد النقاط</h3><p class="muted small">القيم هنا هي مصدر المنح؛ نسبة الزيادة تُحسب على نقاط الإنجاز الأصلي (مثل دعم الآخرين)، ويعتمدها الشيخ وحده.</p><div class="table-wrap"><table><thead><tr><th>القاعدة</th><th>إنجاز</th><th>متجر</th><th>زيادة %</th><th>سقف/يوم</th><th>مفعلة</th><th></th></tr></thead><tbody>'+ruleRows+'</tbody></table></div></section>';
  }
  v.innerHTML=html;
  $("#points-student-select")?.addEventListener("change",e=>{S.pointsStudentId=e.target.value;pointsPage(v)});
@@ -1185,7 +1185,7 @@ async function pointsPage(v){
  document.querySelectorAll("[data-rule-config]").forEach(btn=>btn.onclick=async()=>{
   try{
    const config=JSON.parse(decodeURIComponent(btn.dataset.ruleConfig)),tr=btn.closest("tr");
-   await api("/points/rules",{method:"POST",body:JSON.stringify({...config,achievement_points:Number(tr.querySelector("[data-rule-achievement]").value),store_points:Number(tr.querySelector("[data-rule-store]").value),max_per_day:tr.querySelector("[data-rule-max]").value===""?null:Number(tr.querySelector("[data-rule-max]").value),active:tr.querySelector("[data-rule-active]").checked})});
+   await api("/points/rules",{method:"POST",body:JSON.stringify({...config,achievement_points:Number(tr.querySelector("[data-rule-achievement]").value),store_points:Number(tr.querySelector("[data-rule-store]").value),bonus_percent:Number(tr.querySelector("[data-rule-bonus]").value),max_per_day:tr.querySelector("[data-rule-max]").value===""?null:Number(tr.querySelector("[data-rule-max]").value),active:tr.querySelector("[data-rule-active]").checked})});
    toast("تم حفظ قاعدة النقاط");await pointsPage(v);
   }catch(error){toast(error.message,true)}
  });
