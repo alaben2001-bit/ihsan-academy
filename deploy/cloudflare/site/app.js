@@ -976,15 +976,6 @@ v.innerHTML='<div class="loading">جار تحميل البيانات…</div>';t
  if(S.tab==="notifications")return notificationsPage(v);v.innerHTML=head("القسم غير متاح","هذا القسم لم يعد متاحًا. اختر قسمًا من القائمة.")+'<button class="btn" id="back-home">العودة إلى الرئيسية</button>';$("#back-home").onclick=()=>go("home");return}catch(e){v.innerHTML='<div class="panel"><h2>تعذّر تحميل البيانات</h2><p class="notice error">'+esc(e.message)+'</p><button class="btn" id="retry">إعادة المحاولة</button></div>';$("#retry").onclick=page}}
 function pointsStatusLabel(status){const labels={pending:"قيد المراجعة",approved:"معتمد",rejected:"مرفوض",fulfilled:"منفذ",cancelled:"ملغى"};return labels[status]||status}
 function pointsDate(value){const text=String(value||"");return text?esc(text.replace("T"," ").slice(0,16)):"—"}
-const STORE_SUGGESTIONS=[
- {icon:"📖",name:"مصحف جيب واضح الخط",description:"نسخة صغيرة لتكون معك في الطريق.",cost:1200},
- {icon:"📝",name:"دفتر مراجعة",description:"دفتر صغير لتسجيل الأوجه والمراجعة.",cost:600},
- {icon:"🎧",name:"جلسة تسميع فردية",description:"جلسة قصيرة مع الشيخ لتثبيت مقدار محدد.",cost:2000},
- {icon:"🏅",name:"وسام إنجاز مطبوع",description:"وسام يحمل اسم الطالب ومرحلته.",cost:1500},
- {icon:"🎁",name:"حقيبة الأكاديمية",description:"حقيبة عملية تحمل هوية الأكاديمية.",cost:3000},
- {icon:"☕",name:"هدية تحفيزية صغيرة",description:"هدية رمزية تُسلَّم في الأكاديمية.",cost:800}
-];
-
 function storeItemImage(item){
  const url=String(item?.image_url||"").trim();
  if(url) return '<img class="store-item-image" src="'+esc(url)+'" alt="'+esc(item.name||"")+'" loading="lazy" onerror="this.style.display=\'none\'">';
@@ -1041,13 +1032,11 @@ function storeStaffMarkup(store,canEdit){
  if(!canEdit){
   return '<section class="card"><div class="section-head"><div><h3>المتجر</h3><p>عرض فقط؛ إضافة المخزون وتعديله من صلاحية المدير. لا تُنشأ مكافآت نيابة عن الإدارة من هنا.</p></div></div><div class="list">'+(items.length?items.map(item=>'<div class="list-row"><div><strong>'+esc(item.icon||"🎁")+' '+esc(item.name)+'</strong><small>'+esc(item.description||"")+' · '+Number(item.cost)+' نقطة + (المخزون: '+(item.stock===null?"بلا حد":Number(item.stock))+')</small></div><span class="pill">'+(Number(item.active)===0?"مخفية":"معروضة")+'</span></div>').join(""):'<p class="muted">لم تُضف مواد إلى المتجر بعد.</p>')+'</div></section>';
  }
- const suggestions=STORE_SUGGESTIONS.map((item,index)=>'<button type="button" class="store-suggestion" data-store-suggest="'+index+'"><strong>'+esc(item.icon+" "+item.name)+'</strong><small>'+esc(item.description)+'</small></button>').join("");
  const rows=items.map(item=>{
   const active=Number(item.active)!==0;
   return '<div class="list-row"><div><strong>'+esc(item.icon||"🎁")+' '+esc(item.name)+(active?"":" · مخفية")+'</strong><small>'+esc(item.description||"")+' · '+Number(item.cost)+' نقطة · المخزون: '+(item.stock===null?"بلا حد":Number(item.stock))+' · حد الطالب: '+(item.max_per_student===null?"بلا حد":Number(item.max_per_student))+' · الترتيب: '+Number(item.sort_order||0)+'</small></div><div class="student-actions"><button class="btn secondary" type="button" data-store-edit="'+esc(item.id)+'">تعديل</button><button class="btn secondary" type="button" data-store-toggle="'+esc(item.id)+'">'+(active?"إخفاء":"إظهار")+'</button></div></div>';
  }).join("");
- return '<section class="card store-admin"><div class="section-head"><div><span class="eyebrow">إدارة المتجر</span><h3>أضف مكافآت حقيقية فقط</h3><p>لا يظهر للطالب إلا ما تحفظه هنا فعليًا مع مخزونه وشروطه. الاقتراحات أدناه قوالب غير محفوظة ولا يراها الطالب.</p></div></div>'+
- '<div class="store-suggestions"><span class="eyebrow">اقتراحات إرشادية غير محفوظة — عدّلها ثم احفظ بعد تأكيد التوفر</span><div class="store-suggestion-grid">'+suggestions+'</div></div>'+
+ return '<section class="card store-admin"><div class="section-head"><div><span class="eyebrow">إدارة المتجر</span><h3>أضف مكافآت حقيقية فقط</h3><p>لا توجد مواد افتراضية. أدخل كتالوج الأكاديمية المعتمد فقط: الاسم والتكلفة والصورة والمخزون وشروط الصرف.</p></div></div>'+
  '<h4 id="store-form-title">إضافة مادة إلى المتجر</h4><form id="store-item-form" class="form-grid"><input type="hidden" name="item_id" value=""><label class="field">اسم المادة<input name="name" required maxlength="160"></label><label class="field">التكلفة (رصيد النقاط)<input name="cost" type="number" min="1" max="100000" required></label><label class="field">المخزون (فارغ = بلا حد)<input name="stock" type="number" min="0"></label><label class="field">حد الطالب (فارغ = بلا حد)<input name="max_per_student" type="number" min="1"></label><label class="field">الرمز<input name="icon" maxlength="8" placeholder="??"><label class="field">رابط الصورة (اختياري)<input name="image_url" maxlength="500" placeholder="https://..."></label></label><label class="field">الترتيب<input name="sort_order" type="number" value="0"></label><label class="field wide">الوصف<textarea name="description" maxlength="2000" rows="2"></textarea></label><label class="field wide"><span><input name="active" type="checkbox" checked> معروضة للطلاب الآن</span></label><div class="student-actions"><button class="btn" type="submit">حفظ المادة</button><button class="btn secondary" type="button" id="store-form-cancel" hidden>إلغاء التعديل</button></div></form>'+
  '<div class="list">'+(rows||'<p class="muted">لم تُضف مواد إلى المتجر بعد.</p>')+'</div></section>';
 }
@@ -1161,15 +1150,6 @@ async function pointsPage(v){
  document.querySelectorAll("[data-store-edit]").forEach(btn=>btn.onclick=()=>{
   const item=(store.items||[]).find(x=>x.id===btn.dataset.storeEdit);
   fillStoreForm(item);
- });
- document.querySelectorAll("[data-store-suggest]").forEach(btn=>btn.onclick=()=>{
-  const suggestion=STORE_SUGGESTIONS[Number(btn.dataset.storeSuggest)];
-  if(!suggestion)return;
-  resetStoreForm();
-  fillStoreForm({...suggestion,id:"",active:1,sort_order:0,stock:null,max_per_student:null});
-  const nameField=storeForm?.querySelector('[name="name"]');
-  nameField?.focus();
-  toast("تعبئة اقتراح إرشادي. عدّل التكلفة والمخزون ثم احفظ بعد تأكيد التوفر.");
  });
  $("#store-item-form")?.addEventListener("submit",async e=>{
   e.preventDefault();const form=e.currentTarget,data=new FormData(form),submit=form.querySelector('button[type="submit"]');
