@@ -40,3 +40,7 @@ check("student card still retains its original gold-chip styling", /\.pass-chip\
 const failed = checks.filter(item => !item.ok);
 console.log("\n" + (checks.length - failed.length) + "/" + checks.length + " source-layout checks passed.");
 if (failed.length) process.exitCode = 1;
+
+check("bulk print clears scroll/height clipping from every app-shell ancestor", /body\\[data-print="cards"\\] #app[\\s\\S]*?max-height:none!important[\\s\\S]*?overflow:visible!important/.test(css));
+check("bulk print preserves a full four-row CR80 sheet per A4 page", /grid-template-rows:repeat\\(4,54mm\\)!important/.test(css) && /height:231mm!important/.test(css));
+check("bulk print prevents page splitting inside a sheet or card", /cards-print-page\\s*\\{[^}]*break-inside:avoid!important/s.test(css) && /student-card-print-item\\s*\\{[^}]*page-break-inside:avoid!important/s.test(css));
