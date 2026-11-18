@@ -18,6 +18,20 @@
       "migrations_dir": "migrations"
     }
   ],
+  // النسخ الاحتياطي المجدول: بعد تفعيل R2 من لوحة Cloudflare (خطوة لمرة واحدة،
+  // R2 غير مفعّل حالياً في الحساب) أزل التعليق عن المقطعين التاليين ثم انشر.
+  // الكود جاهز في src/index.js (scheduled + buildFullBackup) ويعمل محلياً.
+  // "r2_buckets": [
+  //   {
+  //     "binding": "BACKUPS",
+  //     "bucket_name": "ihsan-academy-backups"
+  //   }
+  // ],
+  // "triggers": {
+  //   "crons": [
+  //     "0 3 * * *"
+  //   ]
+  // },
   "vars": {
     "APP_ENV": "production",
     "GOOGLE_CLIENT_ID": "641495662203-4binlb6m78b7p1rqtb68rlc4pqv3d8oo.apps.googleusercontent.com"
