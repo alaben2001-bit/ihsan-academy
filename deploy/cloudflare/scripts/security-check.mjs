@@ -483,8 +483,8 @@ assert.match(backend, /saveQuranPathForStudent\(env,user,student/, "journey appl
 assert.match(backend, /saveQuranPlanForStudent\(env,user,student/, "journey apply must reuse the existing Quran plan writer");
 assert.match(backend, /storeRecommendationPayload\(enriched,balance\)/, "student store reads must derive recommendations from real store rows");
 assert.match(backend, /if\(path==="\/api\/store\/items"&&method==="POST"\)\{\s*if\(user\.role!=="admin"\)return fail\(403,"إدارة المتجر للمدير فقط"\)/, "store creation and edits must remain admin-only");
-assert.match(app, /const STORE_SUGGESTIONS=/, "admin suggestions must remain UI-only helper templates");
-assert.match(app, /غير محفوظة ولا يراها الطالب/, "admin suggestions must disclose that they are not saved or shown to students");
+assert.doesNotMatch(app, /const STORE_SUGGESTIONS=|data-store-suggest/, "the store must not invent sample rewards or point costs");
+assert.match(app, /لا توجد مواد افتراضية/, "the admin store must clearly require the owner's approved catalog");
 assert.match(app, /async function quranPlansReviewPage\(v\)/, "staff must have a journey review screen");
 assert.match(style, /\.journey-shell\{/, "the student journey must have dedicated responsive styling");
 assert.match(style, /\.store-terms\{/, "store redemption terms must be visibly styled");
