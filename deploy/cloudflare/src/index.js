@@ -4459,7 +4459,7 @@ export default {
     // الاقتصاد التعليمي: النقاط والمتجر
     // -----------------------------------------------------------------------
     if(path==="/api/points/activity"&&method==="POST"){
-      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"منح النقاط للمعلم أو الإدارة");
+      if(user.role!=="admin")return fail(403,"منح النقاط للشيخ وحده");
       const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
       const activity=clean(b.activity,20);
       const ACTIVITY_MAP={
