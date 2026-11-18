@@ -3266,3 +3266,93 @@ footer a{text-decoration:none}
  body[data-print="cards"] .cards-print-page:last-child{break-after:auto!important;page-break-after:auto!important}
  body[data-print="cards"] .cards-sheet-grid{display:grid!important;grid-template-columns:repeat(2,85.6mm)!important;grid-template-rows:repeat(4,54mm)!important;grid-auto-rows:54mm!important;justify-content:center!important;align-content:start!important;align-items:start!important;gap:5mm 6mm!important;width:100%!important;height:231mm!important}
 }
+
+
+/* V76 — bulk card print: prevent clipping by app-shell scroll containers and
+   keep each complete 2×4 CR80 sheet together on a physical A4 page. */
+@media print {
+  body[data-print="cards"],
+  body[data-print="cards"] #app,
+  body[data-print="cards"] .app-authenticated,
+  body[data-print="cards"] .layout,
+  body[data-print="cards"] .app-shell,
+  body[data-print="cards"] .workspace,
+  body[data-print="cards"] .content-area,
+  body[data-print="cards"] .content,
+  body[data-print="cards"] #view,
+  body[data-print="cards"] .cards-sheet,
+  body[data-print="cards"] #cards-sheet {
+    display:block!important;
+    width:100%!important;
+    height:auto!important;
+    min-height:0!important;
+    max-height:none!important;
+    overflow:visible!important;
+    position:static!important;
+    contain:none!important;
+    transform:none!important;
+    clip:auto!important;
+    background:#fff!important;
+  }
+  body[data-print="cards"] .cards-print-page {
+    display:block!important;
+    box-sizing:border-box!important;
+    width:100%!important;
+    height:231mm!important;
+    min-height:231mm!important;
+    max-height:231mm!important;
+    margin:0!important;
+    padding:0!important;
+    overflow:visible!important;
+    break-inside:avoid!important;
+    page-break-inside:avoid!important;
+    break-after:page!important;
+    page-break-after:always!important;
+  }
+  body[data-print="cards"] .cards-print-page:last-child {
+    break-after:auto!important;
+    page-break-after:auto!important;
+  }
+  body[data-print="cards"] .cards-sheet-grid {
+    display:grid!important;
+    box-sizing:border-box!important;
+    grid-template-columns:repeat(2,85.6mm)!important;
+    grid-template-rows:repeat(4,54mm)!important;
+    grid-auto-rows:54mm!important;
+    grid-auto-flow:row!important;
+    justify-content:center!important;
+    align-content:start!important;
+    align-items:start!important;
+    gap:5mm 6mm!important;
+    width:100%!important;
+    height:231mm!important;
+    min-height:231mm!important;
+    max-height:231mm!important;
+    margin:0 auto!important;
+    padding:0!important;
+    overflow:visible!important;
+  }
+  body[data-print="cards"] .student-card-print-item {
+    display:block!important;
+    box-sizing:border-box!important;
+    width:85.6mm!important;
+    height:54mm!important;
+    min-height:54mm!important;
+    max-height:54mm!important;
+    margin:0!important;
+    padding:0!important;
+    overflow:visible!important;
+    break-inside:avoid!important;
+    page-break-inside:avoid!important;
+  }
+  body[data-print="cards"] .student-card-print-item .student-pass {
+    display:flex!important;
+    box-sizing:border-box!important;
+    width:85.6mm!important;
+    height:54mm!important;
+    min-height:54mm!important;
+    max-height:54mm!important;
+    margin:0!important;
+    overflow:hidden!important;
+  }
+}
