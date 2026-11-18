@@ -172,7 +172,7 @@ async function main() {
   const teacherAddPoints = await resolveCard("add_points", addPointsLink.cardId, addPointsLink.secret, teacherInside.token);
   check("add_points QR resolves for the group sheikh", teacherAddPoints.status === 200 && teacherAddPoints.data?.next === "points", JSON.stringify(teacherAddPoints.data));
   const adminAddPoints = await resolveCard("add_points", addPointsLink.cardId, addPointsLink.secret, admin);
-  check("add_points QR resolves for the chief sheikh only", adminAddPoints.status === 200 && adminAddPoints.data?.next === "points", JSON.stringify(adminAddPoints.data));
+  check("add_points QR resolves for the administrator", adminAddPoints.status === 200 && adminAddPoints.data?.next === "points", JSON.stringify(adminAddPoints.data));
 
   // 5) Reissue invalidates the previous secret; revoke disables one kind only.
   const reissued = await call("/api/student-cards/" + encodeURIComponent(student.id) + "/reissue", { method: "POST", token: admin, body: { kind: "login" } });
