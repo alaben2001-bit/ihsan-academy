@@ -3488,49 +3488,71 @@ footer a{text-decoration:none}
 @keyframes world-halo{to{transform:rotate(360deg)}}
 
 
-/* V72 — بطاقات CR80 حقيقية وطباعة جماعية متعددة الصفحات */
-.cards-print-page{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px;margin:14px 0;padding:12px;border:1px dashed var(--line);border-radius:16px;background:var(--surface-2)}
-.student-card-print{position:relative;display:flex;flex-direction:column;justify-content:space-between;gap:7px;min-width:0;aspect-ratio:85.6/54;padding:12px;border:1px solid rgba(196,164,92,.65);border-radius:13px;overflow:hidden;color:#f4f5e9;background:radial-gradient(circle at 90% 8%,rgba(11,104,70,.9),transparent 48%),linear-gradient(135deg,#061b13,#0b3325 58%,#07150f);box-shadow:0 8px 24px rgba(0,0,0,.18);break-inside:avoid;page-break-inside:avoid}
-.student-card-print::before{content:"";position:absolute;inset:4px;border:1px solid rgba(224,194,125,.28);border-radius:9px;pointer-events:none}
-.student-card-print-brand{position:relative;display:flex;align-items:center;gap:8px;min-width:0}
-.student-card-print-mark{display:grid;place-items:center;flex:0 0 30px;width:30px;height:30px;border:1px solid #c6a96b;border-radius:9px;color:#f2d99f;font-family:"Reem Kufi",serif;font-size:19px;font-weight:800}
-.student-card-print-brand-copy{display:flex;flex-direction:column;min-width:0;line-height:1.45}
-.student-card-print-brand-copy strong{color:#f4e7c2;font-size:12px}
-.student-card-print-brand-copy small{color:#b8cfc2;font-size:8px}
-.student-card-print-type{margin-inline-start:auto;padding:3px 7px;border:1px solid rgba(224,194,125,.45);border-radius:20px;color:#f2d99f;font-size:8px;white-space:nowrap}
-.student-card-print-main{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:8px;min-height:0}
-.student-card-print-identity{display:flex;flex-direction:column;align-items:flex-start;gap:3px;min-width:0}
-.student-card-print-identity>small:first-child{color:#c3d5ca;font-size:8px}
-.student-card-print-identity>strong{max-width:100%;color:#fff;font-size:clamp(12px,1.4vw,18px);line-height:1.5;overflow-wrap:anywhere}
-.student-card-print-identity>span{color:#e5d5aa;font-size:9px}
-.student-card-print-serial{margin-top:4px;color:#b8cfc2;font-family:monospace;font-size:7px}
-.student-card-print-qrs{display:grid;grid-template-columns:repeat(3,1fr);gap:4px;align-items:center;width:47%;min-width:0}
-.student-card-print .card-qr{display:flex;flex-direction:column;gap:2px;min-width:0;padding:3px;border:1px solid #d8d8d0;border-radius:5px;background:#fff;text-align:center}
-.student-card-print .card-qr-code{width:100%;aspect-ratio:1;padding:1px;border-radius:2px;background:#fff}
-.student-card-print .card-qr-code svg{width:100%;height:100%}
-.student-card-print .card-qr figcaption{gap:0;align-items:center}
-.student-card-print .card-qr figcaption strong{color:#10251b;font-size:7px;line-height:1.2}
-.student-card-print .card-qr figcaption small{display:none}
-.student-card-print-footer{position:relative;display:flex;justify-content:space-between;gap:6px;padding-top:5px;border-top:1px solid rgba(224,194,125,.25);color:#c6d7cd;font-size:7px}
-.student-card-print-actions{display:flex;gap:6px}
-.student-card-print-actions .btn{flex:1}
-@media(max-width:760px){.cards-print-page{grid-template-columns:1fr}.student-card-print{min-height:190px;aspect-ratio:85.6/54}.student-card-print-qrs{width:48%}}
+/* V74 — student card QR integrated into the preserved pass design and print sizing. */
+.pass-middle{position:relative;min-height:30px}
+.pass-qr{display:grid;place-items:center;width:76px;height:76px;flex:0 0 76px;padding:4px;border-radius:8px;background:#fff;overflow:hidden}
+.pass-qr svg{display:block;width:100%;height:100%;shape-rendering:crispEdges}
+.student-card-print-item{display:flex;flex-direction:column;gap:8px;break-inside:avoid;page-break-inside:avoid}
+.student-card-print-item .student-pass-print{width:100%;max-width:560px;margin:0 auto}
+.student-card-print-actions{display:flex;flex-wrap:wrap;gap:6px;justify-content:center}
+.student-card-print-actions .btn{font-size:.78rem;padding:7px 10px}
+.student-pass-print{aspect-ratio:85.6/54;min-height:0;width:min(560px,100%);padding:clamp(12px,2.2vw,22px);gap:5px}
+.student-pass-print .pass-head{flex:0 0 auto}
+.student-pass-print .pass-middle{flex:1;align-items:center}
+.student-pass-print .pass-qr{width:clamp(54px,13vw,82px);height:clamp(54px,13vw,82px)}
+.student-pass-print .pass-name{font-size:clamp(17px,2.7vw,24px);line-height:1.25;margin:0}
+.student-pass-print .pass-serial{font-size:10px}
+.student-pass-print .pass-foot{font-size:8px;padding-top:4px}
 @media print{
  @page{size:A4 portrait;margin:10mm}
- html,body{width:210mm!important;min-height:297mm!important;margin:0!important;padding:0!important;background:#fff!important}
- body[data-print="cards"] *{visibility:hidden!important}
- body[data-print="cards"] #cards-sheet,body[data-print="cards"] #cards-sheet *{visibility:visible!important}
- body[data-print="cards"] #cards-sheet{position:absolute!important;top:0!important;left:0!important;width:190mm!important;margin:0!important;padding:0!important;background:#fff!important}
- body[data-print="cards"] .cards-print-page{display:grid!important;grid-template-columns:repeat(2,85.6mm)!important;grid-template-rows:repeat(4,54mm)!important;grid-auto-rows:54mm!important;gap:4mm!important;justify-content:center!important;align-content:start!important;width:100%!important;height:228mm!important;margin:0 auto!important;padding:0!important;border:0!important;border-radius:0!important;background:#fff!important;break-after:page!important;page-break-after:always!important;box-sizing:border-box!important}
- body[data-print="cards"] .cards-print-page:last-child{break-after:auto!important;page-break-after:auto!important}
- body[data-print="cards"] .student-card-print{display:flex!important;width:85.6mm!important;height:54mm!important;min-height:0!important;max-height:54mm!important;aspect-ratio:auto!important;margin:0!important;padding:3mm!important;border:1px solid #9a875f!important;border-radius:3mm!important;box-shadow:none!important;overflow:hidden!important;box-sizing:border-box!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;break-inside:avoid!important;page-break-inside:avoid!important}
- body[data-print="cards"] .student-card-print-brand-copy strong{font-size:9pt!important}
- body[data-print="cards"] .student-card-print-brand-copy small{font-size:6pt!important}
- body[data-print="cards"] .student-card-print-identity>strong{font-size:11pt!important}
- body[data-print="cards"] .student-card-print-qrs{width:43%!important;gap:1.2mm!important}
- body[data-print="cards"] .student-card-print .card-qr{padding:1mm!important}
- body[data-print="cards"] .student-card-print .card-qr figcaption strong{font-size:5.5pt!important}
+ body[data-print="card"] .student-pass{width:85.6mm!important;height:54mm!important;min-height:54mm!important;max-width:none!important;aspect-ratio:85.6/54!important;padding:3.2mm!important;gap:1mm!important;border-radius:3mm!important;box-shadow:none!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+ body[data-print="card"] .pass-middle{min-height:0!important;flex:1}
+ body[data-print="card"] .pass-qr{width:19mm!important;height:19mm!important;flex:0 0 19mm!important;padding:1mm!important}
+ body[data-print="card"] .pass-name{font-size:11pt!important;line-height:1.15!important}
+ body[data-print="card"] .pass-serial{font-size:6.5pt!important}
+ body[data-print="card"] .pass-foot{font-size:5.5pt!important;padding-top:1mm!important}
+ body[data-print="card"] .pass-brand{font-size:7pt!important}
+ body[data-print="card"] .pass-brand-mark{width:7mm!important;height:7mm!important;font-size:11pt!important}
+ body[data-print="card"] .pass-type,body[data-print="card"] .pass-level{font-size:6pt!important}
+ body[data-print="card"] .pass-chip{width:10mm!important;height:7mm!important}
+ body[data-print="card"] .card-page .student-pass-wrap{padding:0!important}
+ body[data-print="cards"] .cards-sheet-grid{display:grid!important;grid-template-columns:repeat(2,85.6mm)!important;justify-content:center!important;align-items:start!important;gap:5mm 6mm!important}
+ body[data-print="cards"] .student-card-print-item{break-inside:avoid!important;page-break-inside:avoid!important;width:85.6mm!important;height:54mm!important;display:block!important}
+ body[data-print="cards"] .student-card-print-item .student-pass{width:85.6mm!important;height:54mm!important;min-height:54mm!important;max-width:none!important;aspect-ratio:85.6/54!important;padding:3.2mm!important;gap:1mm!important;border-radius:3mm!important;box-shadow:none!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
  body[data-print="cards"] .student-card-print-actions{display:none!important}
- body[data-print="cards"] .student-card-print-footer{font-size:5.5pt!important}
- body[data-print="cards"] .student-card-print::before{inset:1.2mm!important}
+ body[data-print="cards"] .pass-middle{min-height:0!important;flex:1}
+ body[data-print="cards"] .pass-qr{width:19mm!important;height:19mm!important;flex:0 0 19mm!important;padding:1mm!important}
+ body[data-print="cards"] .pass-name{font-size:11pt!important;line-height:1.15!important}
+ body[data-print="cards"] .pass-serial{font-size:6.5pt!important}
+ body[data-print="cards"] .pass-foot{font-size:5.5pt!important;padding-top:1mm!important}
+ body[data-print="cards"] .pass-brand{font-size:7pt!important}
+ body[data-print="cards"] .pass-brand-mark{width:7mm!important;height:7mm!important;font-size:11pt!important}
+ body[data-print="cards"] .pass-type,body[data-print="cards"] .pass-level{font-size:6pt!important}
+ body[data-print="cards"] .pass-chip{width:10mm!important;height:7mm!important}
+ body[data-print="card-one"] .workspace-head,body[data-print="card-one"] .sidebar,body[data-print="card-one"] .topbar,body[data-print="card-one"] footer,body[data-print="card-one"] .cards-toolbar,body[data-print="card-one"] .student-card-print-actions{display:none!important}
+ body[data-print="card-one"] .student-card-print-item{display:none!important}
+ body[data-print="card-one"] .student-card-print-item.is-print-target{display:block!important}
+ body[data-print="card-one"] .cards-sheet-grid{display:block!important}
+ body[data-print="card-one"] .student-card-print-item .student-pass{width:85.6mm!important;height:54mm!important;min-height:54mm!important;max-width:none!important;aspect-ratio:85.6/54!important;padding:3.2mm!important;gap:1mm!important;border-radius:3mm!important;box-shadow:none!important;-webkit-print-color-adjust:exact;print-color-adjust:exact}
+ body[data-print="card-one"] .pass-qr{width:19mm!important;height:19mm!important;flex:0 0 19mm!important;padding:1mm!important}
+}
+
+@media print{
+ @page card-single{size:85.6mm 54mm;margin:0}
+ body[data-print="card-one"] .student-card-print-item.is-print-target .student-pass{page:card-single!important}
+}
+
+@media print{
+ body[data-print="card"] .pass-grid{gap:1mm!important;margin-top:0!important}
+ body[data-print="card"] .pass-grid>div{padding:1mm!important;border-radius:1.5mm!important}
+ body[data-print="card"] .pass-grid small{font-size:5pt!important;margin-bottom:0!important}
+ body[data-print="card"] .pass-grid strong{font-size:8pt!important}
+}
+
+/* V75 — explicit A4 card sheets: eight physical CR80 cards per page */
+.cards-print-page{margin:16px 0;padding:12px;border:1px dashed var(--line);border-radius:16px;background:var(--surface-2)}
+@media print{
+ body[data-print="cards"] .cards-print-page{display:block!important;width:100%!important;height:231mm!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:#fff!important;break-after:page!important;page-break-after:always!important;box-sizing:border-box!important}
+ body[data-print="cards"] .cards-print-page:last-child{break-after:auto!important;page-break-after:auto!important}
+ body[data-print="cards"] .cards-sheet-grid{display:grid!important;grid-template-columns:repeat(2,85.6mm)!important;grid-template-rows:repeat(4,54mm)!important;grid-auto-rows:54mm!important;justify-content:center!important;align-content:start!important;align-items:start!important;gap:5mm 6mm!important;width:100%!important;height:231mm!important}
 }
