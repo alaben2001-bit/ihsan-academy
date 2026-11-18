@@ -3505,3 +3505,19 @@ footer a{text-decoration:none}
   body.app-authenticated .content-area .card,
   body.app-authenticated .content-area .panel{background:var(--surface)!important;color:var(--ink)!important;border:1px solid var(--line)!important;box-shadow:none!important}
 }
+
+
+/* IHsan brand palette v77: every authenticated surface follows the selected theme tokens. */
+:root{--brand-accent:var(--green);--brand-soft:var(--mint);--brand-border:var(--line)}
+.app-authenticated .stat strong,.app-authenticated .quick-action-icon,.app-authenticated .quick-action-arrow,.app-authenticated .quick-action:hover .quick-action-arrow,.app-authenticated .nav-btn.active,.app-authenticated .nav-btn:hover,.app-authenticated .sidebar .nav-btn[aria-current="page"],.app-authenticated .section-head .eyebrow,.app-authenticated .workspace-banner .eyebrow,.app-authenticated .stat-link .stat-icon{color:var(--green)!important}
+.app-authenticated .stat .stat-icon,.app-authenticated .quick-action-icon,.app-authenticated .quick-action-arrow,.app-authenticated .nav-btn.active,.app-authenticated .nav-btn:hover,.app-authenticated .sidebar .nav-btn[aria-current="page"]{background:var(--mint)!important;border-color:var(--line)!important}
+.app-authenticated .stat,.app-authenticated .quick-action,.app-authenticated .card,.app-authenticated .panel,.app-authenticated .workspace-banner,.app-authenticated .sidebar,.app-authenticated .nav-btn,.app-authenticated .table-wrap,.app-authenticated input,.app-authenticated select,.app-authenticated textarea{border-color:var(--line)!important}
+.app-authenticated .quick-action:hover,.app-authenticated .nav-btn:hover,.app-authenticated .table-wrap tbody tr:hover{background:var(--mint)!important}
+.app-authenticated .btn:not(.secondary):not(.danger),.app-authenticated .btn.primary,.app-authenticated button[type=submit]:not(.secondary){background:var(--green)!important;border-color:var(--green)!important;color:#fff!important}
+.app-authenticated .btn.secondary,.app-authenticated .appearance-choice,.app-authenticated .theme-choice,.app-authenticated .scan-student-item{background:var(--surface)!important;color:var(--ink)!important;border-color:var(--line)!important}
+.app-authenticated .btn.secondary:hover,.app-authenticated .appearance-choice.active,.app-authenticated .theme-choice[aria-pressed=true],.app-authenticated .scan-student-item.is-selected{background:var(--mint)!important;color:var(--green)!important;border-color:var(--green)!important}
+.app-authenticated .sidebar .nav-btn{color:var(--ink)!important}.app-authenticated .sidebar .nav-btn .nav-icon-wrap{color:var(--green)!important}
+.app-authenticated .table-wrap th{background:var(--mint)!important;color:var(--ink)!important}.app-authenticated .table-wrap td{color:var(--ink)!important}
+.scan-task-setup{margin-bottom:14px;border:1px solid var(--line);background:var(--surface)}.scan-task-setup .form-grid{align-items:end}.scan-task-setup .notice.success{border-color:var(--green);background:var(--mint);color:var(--ink)}.report-period-select{min-width:175px}
+@media(max-width:760px){.scan-task-setup .form-grid{grid-template-columns:minmax(0,1fr)}.report-period-select{min-width:0}}
+@media print{.scan-task-setup,.report-period-select{display:none!important}}
