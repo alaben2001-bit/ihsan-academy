@@ -1801,11 +1801,42 @@ export default {
     // محسن/زائر -> حساب «visitor» يقرأ عن الأكاديمية ويساهم، ولا يصل إلى بيانات الطلاب أو الفرق.
     // شيخ/معلم -> حساب «visitor» + طلب انضمام بصفة شيخ/معلم؛ لا تُمنح الصلاحية إلا باعتماد مسؤول مخوّل.
     // لا يوجد مسار يمنح صلاحيات إدارية أو إشرافية عند التسجيل.
-    // التسجيل العام لم يعد متاحًا من هذه الصفحة؛ الانضمام العام عبر «بوابة التيسير».
     if (path === "/api/signup" && method === "POST") {
-      return fail(410,"التسجيل العام انتقل إلى بوابة التيسير؛ هذه بوابة داخلية للمسجلين المعتمدين.");
+      const limited=await rateLimit(env,"signup",rateLimitKey(request),10,3600);
+      if(!limited.allowed)return fail(429,"طلبات إنشاء حسابات كثيرة خلال وقت قصير. انتظر قليلًا ثم أعد المحاولة.");
+      const parsed=await parseBody(request); if(parsed.error)return parsed.error; const b=parsed.value;
+      const name=clean(b.name,120),email=clean(b.email,200).toLowerCase(),password=String(b.password||"");
+      const kind=clean(b.kind,20),schoolId=clean(b.school_id,80),note=clean(b.note,500);
+      if(name.length<2)return fail(400,"أدخل الاسم الكامل");
+      if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email))return fail(400,"أدخل بريدًا إلكترونيًا صحيحًا");
+      if(password.length<10||password.length>256)return fail(400,"كلمة المرور يجب أن تكون 10 أحرف على الأقل ولا تتجاوز 256");
+      if(!["student","visitor","teacher"].includes(kind))return fail(400,"اختر نوع الحساب: طالب، زائر/محسن، أو شيخ/معلم");
+      let school=null;
+      if(kind==="student"&&schoolId){school=await env.DB.prepare("SELECT id FROM quran_schools WHERE id=? AND active=1").bind(schoolId).first();if(!school)return fail(400,"المدرسة المختارة غير موجودة أو غير نشطة");}
+      const existing=await env.DB.prepare("SELECT id FROM users WHERE identity_normalized=? LIMIT 1").bind(email).first();
+      if(existing)return fail(409,"هذا البريد مسجّل بالفعل. سجّل الدخول بدل إنشاء حساب جديد.");
+      const role=kind==="student"?"student":"visitor";
+      const id=uuid();
+      try {
+        await env.DB.prepare("INSERT INTO users (id,display_name,identity_normalized,password_hash,role,active) VALUES (?,?,?,?,?,1)").bind(id,name,email,await passwordHash(password),role).run();
+      } catch (error) {
+        const message=String(error?.message||error);
+        if(/unique|identity_normalized/i.test(message))return fail(409,"هذا البريد مسجّل بالفعل. سجّل الدخول بدل إنشاء حساب جديد.");
+        throw error;
+      }
+      let studentId=null;
+      if(kind==="student"){
+        studentId=uuid();
+        await env.DB.prepare("INSERT INTO students (id,user_id,display_name,group_id,active) VALUES (?,?,?,NULL,1)").bind(studentId,id,name).run();
+        if(school)await env.DB.prepare("INSERT INTO join_requests (id,user_id,kind,school_id,requested_note,status) VALUES (?,?,'school_join',?,?,'pending')").bind(uuid(),id,school.id,note).run();
+      } else if(kind==="teacher"){
+        await env.DB.prepare("INSERT INTO join_requests (id,user_id,kind,requested_note,status) VALUES (?,?,'teacher_request',?,'pending')").bind(uuid(),id,note).run();
+      }
+      const token=hex(crypto.getRandomValues(new Uint8Array(32)));
+      await env.DB.prepare("INSERT INTO sessions(token_hash,user_id,expires_at) VALUES(?,?,?)").bind(await hashToken(token),id,new Date(Date.now()+12*60*60*1000).toISOString()).run();
+      await log(env,id,"signup",{kind,school_id:school?.id||null});
+      return sessionResponse({user:safeUser({id,name,email,role,must_change_password:0,student_id:studentId,group_id:null}),join_note:"تم إنشاء حسابك. "+(kind==="student"?"طلب انضمامك قيد الاعتماد؛ ستُشعَر عند اعتماد الشيخ طلبك.":kind==="teacher"?"طلب انضمامك بصفة شيخ/معلم قيد المراجعة؛ لا تُفعّل صلاحيات الشيخ إلا باعتماد إدارة الأكاديمية.":"يمكنك الآن التعرف على الأكاديمية والمساهمة، وستجد في حسابك تبويب «ملفي».")},token,false,201);
     }
-
     if (path === "/api/auth/google/config" && method === "GET") {
       const clientId=clean(env.GOOGLE_CLIENT_ID,300),enabled=!!clientId&&clientId.endsWith(".apps.googleusercontent.com");
       return json({enabled,client_id:enabled?clientId:null});
