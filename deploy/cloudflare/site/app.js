@@ -152,15 +152,15 @@ function applyAppearanceSettings(){
  const iconStyle=safeStore.get("ihsan_icon_style")||"soft";
  const iconSize=safeStore.get("ihsan_icon_size")||"medium";
  const fontScale=Math.min(1.8,Math.max(.85,Number(safeStore.get("ihsan_font_scale")||1)));
- // The academy now uses one permanent dark (Emerald Noir) appearance; retain the user's other accessibility preferences.
- safeStore.set("ihsan_appearance_mode","dark");
+ // The academy uses the selected light brand palette; do not force the old Emerald Noir override.
+ safeStore.set("ihsan_appearance_mode","light");
  applyTheme();
- root.dataset.appearance="dark";
+ root.dataset.appearance="light";
  root.dataset.appearanceBackground=background;
  root.dataset.iconStyle=iconStyle;
  root.dataset.iconSize=iconSize;
- root.dataset.appearancePalette="dark";
- root.style.colorScheme="dark";
+ root.dataset.appearancePalette="light";
+ root.style.colorScheme="light";
  root.style.setProperty("--user-font-scale",String(fontScale));
  const selected=themes.find(t=>t.name===root.dataset.ihsanTheme)||themes[0];
  const meta=document.querySelector('meta[name="theme-color"]');
