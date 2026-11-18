@@ -36,7 +36,7 @@ const rules = server.slice(rulesStart, rulesEnd);
 check("Sheikh can configure bonus percentage in rule UI", /data-rule-bonus/.test(ruleUi) && /زيادة %/.test(ruleUi));
 check("rule save sends bonus_percent to API", /bonus_percent:Number\(tr\.querySelector\("\[data-rule-bonus\]"\)\.value\)/.test(app));
 check("server validates bonus percentage from 0 to 300", /bonusPercent<0\|\|bonusPercent>300/.test(rules));
-check("support activity is staff-only (admin/teacher/director/supervisor)", /if\(!\["admin","teacher","director","supervisor"\]\.includes\(user\.role\)\)/.test(activity));
+check("support activity is Sheikh/admin-only", /if\(user\.role!==\"admin\"\)/.test(activity));
 check("support activity uses the support_others rule", /support:\{eventType:\"support_others\"/.test(activity));
 check("support activity requires a valid original achievement amount", /activity===\"support\"&&\(!Number\.isInteger\(basePoints\)\|\|basePoints<1\|\|basePoints>1000\)/.test(activity));
 check("bonus formula applies configured percentage to original points", /Math\.round\(baseAmount\*\(1\+Number\(rule\.bonus_percent\)\/100\)\)/.test(award));
