@@ -1850,7 +1850,7 @@ export default {
       if(name.length<2)return fail(400,"أدخل الاسم الكامل");
       if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email))return fail(400,"أدخل بريدًا إلكترونيًا صحيحًا");
       if(password.length<10||password.length>256)return fail(400,"كلمة المرور يجب أن تكون 10 أحرف على الأقل ولا تتجاوز 256");
-      if(!["student","visitor","teacher"].includes(kind))return fail(400,"اختر نوع الحساب: طالب، زائر/محسن، أو شيخ/معلم");
+      if(!["student","teacher"].includes(kind))return fail(403,"التسجيل للطلاب والشيوخ فقط؛ الزائرون والمحسنون يتسجّلون عبر «بوابة التيسير».");
       let school=null;
       if(kind==="student"&&schoolId){school=await env.DB.prepare("SELECT id FROM quran_schools WHERE id=? AND active=1").bind(schoolId).first();if(!school)return fail(400,"المدرسة المختارة غير موجودة أو غير نشطة");}
       const existing=await env.DB.prepare("SELECT id FROM users WHERE identity_normalized=? LIMIT 1").bind(email).first();

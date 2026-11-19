@@ -121,13 +121,15 @@ async function main() {
   check("signup cannot self-grant the supervisor role", badSupervisor.status === 400, JSON.stringify(badSupervisor.data));
   const dupSignup = await signup({ name: "مكرر", email: studentEmail, password: "Dup#2026xxxxx", kind: "student" });
   check("duplicate signup email is rejected", dupSignup.status === 409, JSON.stringify(dupSignup.data));
-  const weakPassword = await signup({ name: "ضعيف المرور", email: "weak-pass-" + RUN + "@test.local", password: "short", kind: "visitor" });
+  const weakPassword = await signup({ name: "ضعيف المرور", email: "weak-pass-" + RUN + "@test.local", password: "short", kind: "student" });
   check("weak password rejected", weakPassword.status === 400, JSON.stringify(weakPassword.data));
 
   // ---------- 4) زائر/محسن ----------
   const visitorEmail = "journey-visitor-" + RUN + "@test.local";
-  const visitorSignup = await signup({ name: "محسن رحلة " + RUN, email: visitorEmail, password: "VisitorJourney#2026", kind: "visitor", note: "أريد كفالة طالب" });
-  check("visitor/contributor can sign up", visitorSignup.status === 201 && visitorSignup.data?.user?.role === "visitor", JSON.stringify(visitorSignup.data));
+  const visitorSignup = await signup({ name: "محسن رحلة " + RUN, email: visitorEmail, password: "VisitorJourney#2026", kind: "teacher", note: "أريد كفالة طالب" });
+  check("contributor account starts as a pending visitor", visitorSignup.status === 201 && visitorSignup.data?.user?.role === "visitor", JSON.stringify(visitorSignup.data));
+  const directVisitor = await signup({ name: "زائر مباشر " + RUN, email: "direct-visitor-" + RUN + "@test.local", password: "VisitorJourney#2026", kind: "visitor" });
+  check("direct visitor signup is closed and points to Taysir", directVisitor.status === 403 && /التيسير/.test(String(directVisitor.data?.message || "")), JSON.stringify(directVisitor.data));
   const visitorToken = visitorSignup.token;
   const visitorStudents = await call("/api/students", { token: visitorToken });
   check("visitor cannot list students", visitorStudents.status === 403, JSON.stringify(visitorStudents.data));
