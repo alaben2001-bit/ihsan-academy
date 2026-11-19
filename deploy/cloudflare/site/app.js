@@ -1818,9 +1818,9 @@ async function processPendingScan(){
    return;
   }
   if(scan.kind==="add_points"){
-   S.pointsStudentId=result.student.id;
-   go("points");
-   toast("بطاقة "+String(result.student?.name||"الطالب")+" — يمكنك منح النقاط الآن.");
+   S.scanStudentId=result.student.id;S.scanTaskType="points";S.scanDate=localDateISO();S.scanActivity="";
+   go("scan");
+   toast("تم التعرف إلى "+String(result.student?.name||"الطالب")+"؛ اختر نشاط النقاط ثم اعتمد الإنجاز.");
   }
  }catch(error){toast(error.message,true)}
 }
