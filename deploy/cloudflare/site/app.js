@@ -2197,7 +2197,7 @@ async function scanPage(v){
     +'<section class="card scan-task-setup scan-task-studio"><input id="scan-task-type" type="hidden" value="'+esc(savedTask)+'">'
     +'<div class="scan-task-topline"><span class="scan-task-kicker">ابدأ من هنا</span><span class="scan-task-date-hint">تاريخ المتابعة</span></div>'
     +'<div class="scan-task-controls"><button type="button" id="scan-task-toggle" class="scan-task-launcher" aria-expanded="false" aria-controls="scan-task-picker"><span class="scan-task-launcher-symbol" aria-hidden="true">✦</span><span class="scan-task-launcher-copy"><strong id="scan-task-launcher-title">اختر مهمة المتابعة</strong><small id="scan-task-launcher-subtitle">اضغط لعرض المهام على شكل بطاقات</small></span><span class="scan-task-launcher-arrow" aria-hidden="true">⌄</span></button>'
-    +'<label class="scan-date-field"><span>التاريخ</span><input id="scan-task-date" type="date" value="'+esc(S.scanDate||S.date||localDateISO())+'" max="'+localDateISO()+'" required></label></div>'
+    +'<input id="scan-task-date" type="hidden" value="'+localDateISO()+'"></div>'
     +'<div id="scan-task-picker" class="scan-task-picker" aria-label="مهام المتابعة"><div class="scan-task-grid-inner"><div class="scan-task-grid" role="group" aria-label="اختر مهمة">'+taskTiles+'</div></div></div>'
     +'<section id="scan-point-picker" class="scan-point-picker hidden" aria-label="أنشطة النقاط"><div class="scan-point-heading"><strong>أنشطة النقاط — اختر قبل المسح</strong><small>لا فوج ولا إعدادات إضافية؛ سيُعرف الطالب تلقائيًا من بطاقته.</small></div><div class="scan-point-grid">'+pointActivityTiles+'</div></section>'
     +'<div class="scan-task-feedback"><span class="scan-task-feedback-dot" aria-hidden="true"></span><span id="scan-task-ready" role="status">اختر مهمة لفتح المسح.</span></div></section>'
@@ -2212,7 +2212,7 @@ async function scanPage(v){
   const status=v.querySelector("#scan-status"),video=v.querySelector("#scan-video"),listEl=v.querySelector("#scan-student-list");
   const taskType=v.querySelector("#scan-task-type"),taskDate=v.querySelector("#scan-task-date"),ready=v.querySelector("#scan-task-ready");
   const picker=v.querySelector("#scan-task-picker"),toggle=v.querySelector("#scan-task-toggle"),startButton=v.querySelector("#scan-start"),pointPicker=v.querySelector("#scan-point-picker");
-  taskType.value=savedTask;taskDate.value=S.scanDate||S.date||localDateISO();
+  taskType.value=savedTask;taskDate.value=localDateISO();S.scanDate=taskDate.value;S.date=taskDate.value;
   const setPickerOpen=open=>{picker.classList.toggle("is-open",Boolean(open));picker.inert=!open;toggle.setAttribute("aria-expanded",String(Boolean(open)));toggle.classList.toggle("is-open",Boolean(open))};
   const renderList=()=>{
     const q=String(v.querySelector("#scan-search")?.value||"").trim().toLocaleLowerCase("ar");
@@ -2333,7 +2333,7 @@ async function renderScanPanel(v,studentId){
     if(logged)return '<div class="scan-quran-row is-done"><div><strong>'+esc(label)+'</strong><small>تم اليوم: '+esc(quranFmtAmount(logged.amount,logged.unit))+(Number(logged.repetitions)?" · "+Number(logged.repetitions)+" تكرارًا":"")+'</small></div><span class="pill">مُسجَّل</span></div>';
     return '<form class="scan-quran-row" data-scan-quran="'+kind+'"><div class="scan-quran-head"><strong>'+esc(label)+'</strong><button class="btn secondary sm" type="submit">تسجيل الإنجاز</button></div><div class="scan-quran-fields"><label class="field">المقدار<input type="number" step="0.01" min="0" max="1000" name="amount" required value="'+esc(String(defAmount??""))+'"></label><label class="field">الوحدة<select name="unit">'+units.map(u=>'<option '+(u===defUnit?"selected":"")+'>'+u+'</option>').join("")+'</select></label>'+(kind==="hifz"?'':'<label class="field">التكرار<input type="number" min="0" max="100" name="repetitions" value="'+Number(defReps||0)+'"></label>')+'</div><label class="field">ملاحظات<input name="notes" maxlength="600" placeholder="اختياري — مثل موضع يحتاج تثبيتًا"></label></form>';
   };
-  const activityButtons=[["fajr","الفجر · 30"],["shuruq","الشروق · 20"],["maghrib","المغرب · 10"],["hizb","قراءة حزب · 10"],["hifz_no_errors","حفظ ثمن بلا أخطاء · 30"],["hifz_tajweed","حفظ ثمن بالتجويد · 25"],["poetry","أربعة أبيات · 5"],["support","دعم الآخرين · +30%"]].map(([a,l])=>'<button type="button" class="btn secondary" data-scan-activity="'+a+'">'+esc(l)+'</button>').join("");
+  const activityButtons=[["fajr","الفجر · 30"],["shuruq","الشروق · 20"],["maghrib","المغرب · 10"],["hizb","قراءة حزب · 10"],["hifz_no_errors","حفظ ثمن بلا أخطاء · 30"],["hifz_tajweed","حفظ ثمن بالتجويد · 25"],["poetry","أربعة أبيات · 5"],["support","دعم الآخرين · +30%"]].filter(([a])=>!S.scanActivity||a===S.scanActivity).map(([a,l])=>'<button type="button" class="btn" data-scan-activity="'+a+'">'+esc(S.scanActivity?"اعتماد: "+l:l)+'</button>').join("");
   const attButtons=[["present","حاضر"],["late","متأخر"],["absent","غائب"],["excused","بعذر"]].map(([st,l])=>'<button type="button" class="btn secondary" data-scan-att="'+st+'">'+esc(l)+'</button>').join("");
   const studentRow=(S.students||[]).find(st=>String(st.id)===String(studentId));
   const recipientUserId=studentRow?.user_id||"";
