@@ -101,6 +101,23 @@ assert.doesNotMatch(index, /<script(?![^>]*(?:\bsrc=|type="application\/ld\+json
 assert.match(style, /\.doc-page/, "shared documentation styles for about/privacy must exist");
 assert.match(style, /\.daily-nourishment-grid/, "daily supplication and learning cards must retain their styling");
 
+// Regression guards for the responsive shell and task-first scanner.
+const shellStart = app.indexOf("function shell(){");
+const shellEnd = app.indexOf('const actionBar=$("#top-actions")', shellStart);
+assert.ok(shellStart >= 0 && shellEnd > shellStart, "the authenticated shell must exist");
+assert.ok(app.slice(shellStart, shellEnd).includes("mobilePrimaryMarkup()+mobileMoreMarkup()"), "the mobile navigation and complete More drawer must be rendered inside the authenticated shell");
+assert.ok(app.includes("function mobilePrimaryItems(){") && app.includes("function mobileMoreMarkup(){"), "mobile navigation must be defined from the role-filtered item list");
+assert.ok(app.includes("'+navMarkup()+'"), "the mobile More drawer must reuse the complete role-aware navigation");
+const scanStart = app.indexOf("async function scanPage(v){");
+const scanEnd = app.indexOf("\nfunction studentsForScanCheck", scanStart);
+assert.ok(scanStart >= 0 && scanEnd > scanStart, "the QR scan page must exist");
+const scanUi = app.slice(scanStart, scanEnd);
+assert.ok(!scanUi.includes('id="scan-task-group"'), "QR scanning must not ask the operator to choose a group");
+assert.ok(scanUi.includes("data-scan-task"), "QR scan must display selectable task tiles");
+assert.ok(app.includes("authorizedRoster.find(st=>String(st.id)===String(student.id))"), "QR scan must validate the student against the permission-scoped roster");
+assert.ok(style.includes(".mobile-primary-nav") && style.includes(".mobile-more-dialog"), "the mobile bar and drawer must be styled");
+assert.ok(style.includes("prefers-reduced-motion:reduce"), "new animations must respect reduced-motion preferences");
+
 // These are static regression guardrails, not a replacement for live role-by-role acceptance tests.
 assert.ok(backend.includes('const temporaryPassword=()=>"Ih!"+hex(crypto.getRandomValues(new Uint8Array(10)))'), "temporary passwords must be randomly generated");
 assert.match(backend, /uniqueStudentIdentity\(env,st\.display_name/, "onboarding must resolve unique student usernames");
