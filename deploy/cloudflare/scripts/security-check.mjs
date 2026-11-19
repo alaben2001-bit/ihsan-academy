@@ -559,7 +559,7 @@ assert.match(backend, /login: \{ label: "الدخول السريع", ttlDays: 36
 assert.match(backend, /tokens\[kind\] = \{ hash: await hashToken\(secret\), secret, issued_at: now/, "card tokens must store a hash for verification and the secret for reprint");
 assert.ok(backend.indexOf('path === "/api/cards/resolve"') > 0 && backend.indexOf('path === "/api/cards/resolve"') < backend.indexOf('const user=await currentUser(request,env); if(!user)return fail(401'), "card resolution must run before the login gate so the login QR can be read anonymously");
 assert.match(backend, /requires_password:true,student:\{name:student\.name,username:student\.username/, "the login QR must return only a name and username, never a session");
-assert.match(backend, /if\(kind==="add_points"&&scanner\.role==="student"\)return fail\(403/, "students must not use the add-points QR");
+assert.match(backend, /if\(kind==="add_points"&&scanner\.role!=="admin"\)return fail\(403/, "only the Sheikh account may use the add-points QR");
 assert.match(backend, /if\(!await canAccessStudentCard\(env,scanner,student\)\)return fail\(403,"هذه البطاقة خارج صلاحيتك"\)/, "card scans must respect group scope");
 assert.match(backend, /if\(path==="\/api\/student-cards\/bulk"&&method==="POST"\)/, "staff must be able to bulk-create group cards");
 assert.match(backend, /student-cards\\\/\(\[\^\/\]\+\)\\\/reissue/, "cards must support reissue");
