@@ -2189,10 +2189,10 @@ async function scanPage(v){
     {id:"general",label:"متابعة شاملة",hint:"فتح أدوات المتابعة المتكاملة",symbol:"◈"}
   ];
   const taskLabel=()=>((taskDefinitions.find(t=>t.id===taskType.value)||{}).label)||"";
-  const taskTiles=taskDefinitions.map(t=>'<button type="button" class="scan-task-option" data-scan-task="'+t.id+'" aria-pressed="false"><span class="scan-task-symbol" aria-hidden="true">'+t.symbol+'</span><span class="scan-task-copy"><strong>'+t.label+'</strong><small>'+t.hint+'</small></span><span class="scan-task-check" aria-hidden="true">✓</span></button>').join("");
+  const taskTiles=taskDefinitions.filter(t=>t.id!=="points"||S.user.role==="admin").map(t=>'<button type="button" class="scan-task-option" data-scan-task="'+t.id+'" aria-pressed="false"><span class="scan-task-symbol" aria-hidden="true">'+t.symbol+'</span><span class="scan-task-copy"><strong>'+t.label+'</strong><small>'+t.hint+'</small></span><span class="scan-task-check" aria-hidden="true">✓</span></button>').join("");
   const pointActivities=[["fajr","الفجر · 30"],["shuruq","الشروق · 20"],["maghrib","المغرب · 10"],["hizb","قراءة حزب · 10"],["hifz_no_errors","حفظ ثمن بلا أخطاء · 30"],["hifz_tajweed","حفظ ثمن بالتجويد · 25"],["poetry","أربعة أبيات · 5"],["support","دعم الآخرين · +30%"]];
   const pointActivityTiles=pointActivities.map(([id,label])=>'<button type="button" class="scan-point-option" data-scan-pre-activity="'+id+'">'+esc(label)+'</button>').join("");
-  const savedTask=taskDefinitions.some(t=>t.id===S.scanTaskType)?S.scanTaskType:"";
+  const savedTask=taskDefinitions.some(t=>t.id===S.scanTaskType&&(t.id!=="points"||S.user.role==="admin"))?S.scanTaskType:"";
   v.innerHTML=head("المسح والمتابعة","اختر المهمة مرة واحدة، ثم امسح بطاقة الطالب؛ يتعرّف النظام تلقائيًا إلى فوجه ضمن نطاق صلاحيتك.")
     +'<section class="card scan-task-setup scan-task-studio"><input id="scan-task-type" type="hidden" value="'+esc(savedTask)+'">'
     +'<div class="scan-task-topline"><span class="scan-task-kicker">ابدأ من هنا</span><span class="scan-task-date-hint">اليوم · تلقائي</span></div>'
@@ -2226,7 +2226,7 @@ async function scanPage(v){
   const updateTask=()=>{
     S.scanTaskType=taskType.value;S.scanDate=taskDate.value;S.date=taskDate.value;safeStore.set("ihsan_attendance_date",taskDate.value);
     const selected=taskDefinitions.find(t=>t.id===taskType.value);
-    const pointsMode=Boolean(selected&&(selected.id==="points"||selected.id==="general"));
+    const pointsMode=Boolean(selected&&(selected.id==="points"||selected.id==="general")&&S.user.role==="admin");
     pointPicker.classList.toggle("hidden",!(pointsMode&&S.user.role==="admin"));
     v.querySelector("#scan-task-launcher-title").textContent=selected?selected.label:"اختر مهمة المتابعة";
     v.querySelector("#scan-task-launcher-subtitle").textContent=selected?"تم اختيار المهمة — امسح بطاقة الطالب أو ابحث عنه":"اضغط لعرض المهام على شكل بطاقات";
