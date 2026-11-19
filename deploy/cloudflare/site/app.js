@@ -115,8 +115,8 @@ function rotateKnowledgeVerses(){
 
 clearSessionToken();
 const themes=[
-{name:"عنابي فاخر",green:"#7a1f2b",mint:"#fdecef",gold:"#d4af37",paper:"#fff7f8",ink:"#2b0f14",muted:"#7a4a52",line:"#f1c9d0",surface:"#ffffff",surface2:"#fce9ec"},
-{name:"زمردي",green:"#087f5b",mint:"#ddfaed",gold:"#f5b942",paper:"#f2fbf7",ink:"#0d2b22",muted:"#456b5a",line:"#bfe5d1",surface:"#ffffff",surface2:"#eaf8f0"}];
+{name:"عنابي ليلي",green:"#a64b5e",mint:"#3b222b",gold:"#d8b66e",paper:"#100d12",ink:"#f5e9ed",muted:"#c3a8b0",line:"#593640",surface:"#21171d",surface2:"#302029"},
+{name:"زمردي ليلي",green:"#21a47a",mint:"#183a31",gold:"#dec078",paper:"#091411",ink:"#eaf4ee",muted:"#a8beb2",line:"#2b4a3e",surface:"#14251f",surface2:"#1b3229"}]
 function applyTheme(){
  const validIndex=value=>{const i=Number(value);return Number.isInteger(i)&&i>=0&&i<themes.length?i:-1};
  const savedMode=safeStore.get("ihsan_theme_mode");
@@ -125,7 +125,7 @@ function applyTheme(){
  let i=-1;
  if(mode==="fixed"){
   i=validIndex(safeStore.get("ihsan_theme_index"));
-  if(i<0)i=0;
+  if(i<0)i=1;
  }else{
   i=validIndex(safeStore.getSession("ihsan_session_theme_index"));
   if(i<0){
@@ -152,15 +152,15 @@ function applyAppearanceSettings(){
  const iconStyle=safeStore.get("ihsan_icon_style")||"soft";
  const iconSize=safeStore.get("ihsan_icon_size")||"medium";
  const fontScale=Math.min(1.8,Math.max(.85,Number(safeStore.get("ihsan_font_scale")||1)));
- // The academy uses the selected light brand palette; do not force the old Emerald Noir override.
- safeStore.set("ihsan_appearance_mode","light");
+ // Permanent night appearance. Select either a deep burgundy or emerald accent.
+ safeStore.set("ihsan_appearance_mode","dark");
  applyTheme();
- root.dataset.appearance="light";
+ root.dataset.appearance="dark";
  root.dataset.appearanceBackground=background;
  root.dataset.iconStyle=iconStyle;
  root.dataset.iconSize=iconSize;
- root.dataset.appearancePalette="light";
- root.style.colorScheme="light";
+ root.dataset.appearancePalette="dark";
+ root.style.colorScheme="dark";
  root.style.setProperty("--user-font-scale",String(fontScale));
  const selected=themes.find(t=>t.name===root.dataset.ihsanTheme)||themes[0];
  const meta=document.querySelector('meta[name="theme-color"]');
@@ -824,6 +824,25 @@ function openIhsanTeaser(){
  $("#teaser-close")?.focus();
 }
 
+
+function mobilePrimaryItems(){
+ const list=items(),preferred=S.user?.role==="student"?["world","quran","tasks","points"]:["home","students","scan","attendance","quran"];
+ const chosen=preferred.map(id=>list.find(x=>x[0]===id)).filter(Boolean),result=chosen.slice(0,4);
+ for(const item of list){if(result.length>=4)break;if(!result.some(x=>x[0]===item[0]))result.push(item)}
+ return result;
+}
+function mobilePrimaryMarkup(){
+ const chosen=mobilePrimaryItems();
+ return '<nav class="mobile-primary-nav" aria-label="التنقل السريع">'+chosen.map(item=>'<button type="button" class="mobile-primary-item'+(S.tab===item[0]?" is-active":"")+'" data-tab="'+esc(item[0])+'" aria-current="'+(S.tab===item[0]?"page":"false")+'"><span class="mobile-primary-icon">'+navIcon(item[0])+'</span><span>'+esc(item[1])+'</span></button>').join("")+'<button type="button" class="mobile-primary-item mobile-primary-more" id="mobile-more-open" aria-haspopup="dialog"><span class="mobile-primary-icon" aria-hidden="true">⋯</span><span>المزيد</span></button></nav>';
+}
+function mobileMoreMarkup(){
+ const showSwitch=!(S.user?.role==="visitor"||(S.user?.role==="student"&&!S.user?.group_id));
+ const adminButton=S.user?.role==="admin"?'<button type="button" class="mobile-more-action" id="mobile-more-admin"><span>▦</span><strong>'+(adminFocusIsFull()?"العودة إلى مهام الشيخ":"عرض كل أدوات الإدارة")+'</strong></button>':"";
+ const switchButton=showSwitch?'<button type="button" class="mobile-more-action" id="mobile-more-switch"><span>↔</span><strong>'+(S.mode==="school"?"منهج الإحسان":"المدرسة القرآنية")+'</strong></button>':"";
+ return '<dialog id="mobile-more-dialog" class="mobile-more-dialog" dir="rtl" aria-labelledby="mobile-more-title"><div class="mobile-more-grabber" aria-hidden="true"></div><header class="mobile-more-head"><div><span class="eyebrow">مساحة الأكاديمية</span><h2 id="mobile-more-title">كل الأقسام والأدوات</h2><p>جميع الصفحات المتاحة لحسابك، مرتبة بحسب المهمة والصلاحية.</p></div><button type="button" class="settings-close" id="mobile-more-close" aria-label="إغلاق">×</button></header><div class="mobile-more-scroll">'+navMarkup()+'</div><div class="mobile-more-actions"><button type="button" class="mobile-more-action" id="mobile-more-account"><span>◉</span><strong>حسابي</strong></button><button type="button" class="mobile-more-action" id="mobile-more-settings"><span>⚙</span><strong>الإعدادات</strong></button>'+adminButton+switchButton+'<button type="button" class="mobile-more-action" id="mobile-more-install"><span>↓</span><strong>تثبيت التطبيق</strong></button><button type="button" class="mobile-more-action is-danger" id="mobile-more-logout"><span>↪</span><strong>تسجيل الخروج</strong></button></div></dialog>';
+}
+function closeMobileMore(){const dialog=$("#mobile-more-dialog");if(dialog?.open){try{dialog.close()}catch{dialog.removeAttribute("open")}}}
+
 function shell(){
  const retainedActions=$("#top-actions"),retainedHeader=document.querySelector("header.topbar");if(retainedActions&&retainedHeader&&!retainedHeader.contains(retainedActions))retainedHeader.appendChild(retainedActions);
  document.body.classList.add("app-authenticated");
@@ -837,7 +856,17 @@ function shell(){
  const showModuleSwitch=!(S.user?.role==="visitor"||(S.user?.role==="student"&&!S.user?.group_id));
  app.innerHTML='<div class="layout app-shell"><nav class="sidebar" aria-label="القائمة الرئيسية"><div class="sidebar-brand"><img class="sidebar-brand-logo" src="/icon.svg" alt="" width="48" height="48"><span class="sidebar-brand-copy"><strong>أكاديمية الإحسان</strong><small>في بناء الإنسان</small></span></div><div class="sidebar-navigation">'+navMarkup()+'</div><button class="nav-btn mobile-settings" id="mobile-settings" type="button" aria-label="إعدادات الأكاديمية"><span class="nav-icon-wrap" aria-hidden="true">⚙</span><span class="nav-label">الإعدادات</span></button><button class="nav-btn mobile-logout" id="mobile-logout" type="button" aria-label="تسجيل الخروج"><span class="nav-icon-wrap" aria-hidden="true">↪</span><span class="nav-label">خروج</span></button><div class="sidebar-bottom">' +(S.user.role==="admin"?'<button class="admin-focus-toggle" id="admin-focus-toggle" type="button">' +(adminFocusIsFull()?"العودة إلى مهام الشيخ":"واجهة الإدارة") +'</button>':"") +(showModuleSwitch?'<button class="module-switch" id="switch-module" type="button"><span aria-hidden="true">↔</span> '+(S.mode==="school"?"منهج الإحسان (قريبًا)":"الذهاب إلى المدرسة القرآنية")+'</button>':"")+'</div></nav><section class="workspace"><header class="workspace-head"><div class="workspace-heading"><div class="breadcrumbs"><strong id="workspace-title">'+esc(currentTitle)+'</strong></div><p>'+esc(role)+'</p></div><label class="workspace-search"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m16 16 5 5"/></svg><input id="nav-search" type="search" list="nav-search-options" placeholder="ابحث عن صفحة…" aria-label="ابحث عن صفحة في القائمة"><datalist id="nav-search-options">'+options+'</datalist></label><div class="workspace-wallet" id="workspace-wallet" aria-live="polite"></div><button class="workspace-user" id="identity-open" type="button" aria-haspopup="dialog" aria-label="حسابي: '+esc(displayUserName)+' — '+esc(role)+'"><span class="workspace-status" aria-hidden="true"></span><span class="workspace-user-copy"><strong>'+esc(displayUserName)+'</strong><small>'+esc(role)+'</small></span><span class="workspace-user-caret" aria-hidden="true">⌄</span></button></header><div class="content-area">'+banner+'<section id="view" class="content"><div class="loading">جار التحميل…</div></section></div></section></div>';
  const actionBar=$("#top-actions"),innerHeader=document.querySelector(".workspace-head");if(actionBar&&innerHeader)innerHeader.appendChild(actionBar);
- document.querySelectorAll(".nav-btn[data-tab]").forEach(b=>b.onclick=()=>go(b.dataset.tab));$("#mobile-settings")?.addEventListener("click",showSettings);$("#mobile-logout")?.addEventListener("click",logout);
+ document.querySelectorAll(".nav-btn[data-tab]").forEach(b=>b.onclick=()=>{closeMobileMore();go(b.dataset.tab)});document.querySelectorAll(".mobile-primary-item[data-tab]").forEach(b=>b.onclick=()=>go(b.dataset.tab));$("#mobile-settings")?.addEventListener("click",showSettings);$("#mobile-logout")?.addEventListener("click",logout);
+  const moreDialog=$("#mobile-more-dialog");
+  $("#mobile-more-open")?.addEventListener("click",()=>{if(typeof moreDialog?.showModal==="function")moreDialog.showModal();else moreDialog?.setAttribute("open","")});
+  $("#mobile-more-close")?.addEventListener("click",closeMobileMore);
+  moreDialog?.addEventListener("click",event=>{if(event.target===moreDialog)closeMobileMore()});
+  $("#mobile-more-account")?.addEventListener("click",()=>{closeMobileMore();identitySheet()});
+  $("#mobile-more-settings")?.addEventListener("click",()=>{closeMobileMore();showSettings()});
+  $("#mobile-more-admin")?.addEventListener("click",()=>{closeMobileMore();toggleAdminFocus()});
+  $("#mobile-more-switch")?.addEventListener("click",()=>{closeMobileMore();switchModule()});
+  $("#mobile-more-install")?.addEventListener("click",()=>{closeMobileMore();showInstallGuide()});
+  $("#mobile-more-logout")?.addEventListener("click",()=>{closeMobileMore();logout()});
  $("#switch-module")?.addEventListener("click",switchModule);
  $("#admin-focus-toggle")?.addEventListener("click",toggleAdminFocus);
  $("#identity-open")?.addEventListener("click",identitySheet);
@@ -2147,53 +2176,92 @@ function wireQuranSchedule(v,pathData,summary){
 async function scanPage(v){
   if(!["admin","teacher","director","supervisor"].includes(S.user.role)){v.innerHTML=head("المسح والمتابعة","هذه الصفحة متاحة للشيخ أو المشرف أو المدير فقط.");return}
   if(!S.groups.length||!S.students.length)await load();
-  const groups=assignedGroups();
-  const students=S.students.filter(st=>groups.some(g=>String(g.id)===String(st.group_id))).slice().sort((a,b)=>compareStudentNames(a.name,b.name));
-  v.innerHTML=head("المسح والمتابعة","حدّد المهمة والفوج والتاريخ أولًا، ثم ابدأ المسح؛ ستُربط المتابعة بالاختيار الذي اعتمدته.")
-   +'<section class="card scan-task-setup"><div class="section-head"><div><span class="eyebrow">الخطوة الأولى · قبل المسح</span><h3>تحديد مهمة المتابعة</h3><p>لا تُشغّل الكاميرا قبل تحديد ما تريد تسجيله.</p></div></div><div class="form-grid"><label class="field">نوع المهمة<select id="scan-task-type" required><option value="">اختر المهمة</option><option value="attendance">الحضور والغياب</option><option value="hifz">الحفظ الجديد</option><option value="revision">المراجعة والتثبيت</option><option value="ward">الورد اليومي</option><option value="points">إنجاز ونقاط</option><option value="assignment">تعيين مهمة للطالب</option><option value="general">متابعة شاملة</option></select></label><label class="field">الفوج<select id="scan-task-group" required><option value="">اختر الفوج</option>'+groups.map(g=>'<option value="'+esc(g.id)+'">'+esc(g.name)+'</option>').join("")+'</select></label><label class="field">تاريخ المتابعة<input id="scan-task-date" type="date" value="'+esc(S.date||localDateISO())+'" max="'+localDateISO()+'" required></label><div class="field"><span>حالة الإعداد</span><div id="scan-task-ready" class="notice">اختر المهمة والفوج والتاريخ لتفعيل المسح.</div></div></div></section>'
-   +'<div class="scan-layout">'
-   +'<section class="card scan-camera-card"><div class="section-head"><div><span class="eyebrow">الطريقة الأولى</span><h3>المسح ببطاقة QR</h3><p>وجّه كاميرا الهاتف أو الحاسوب نحو رمز الطالب على بطاقته. يطلب المتصفح إذن الكاميرا، ولا تغادر أي صورة جهازك؛ الفك يتم محليًا.</p></div></div>'
-   +'<div class="scan-video-wrap"><video id="scan-video" playsinline muted aria-label="بث الكاميرا لمسح بطاقة الطالب"></video><div class="scan-frame" aria-hidden="true"></div></div>'
-   +'<div id="scan-status" class="notice" role="status">الكاميرا متوقفة. اضغط «تشغيل الكاميرا» للمسح.</div>'
-   +'<div class="student-actions"><button class="btn" type="button" id="scan-start">تشغيل الكاميرا</button><button class="btn secondary" type="button" id="scan-stop">إيقاف الكاميرا</button></div></section>'
-   +'<section class="card scan-manual-card"><div class="section-head"><div><span class="eyebrow">الطريقة الثانية</span><h3>الاختيار اليدوي</h3><p>بديل يعمل دائمًا: ابحث باسم الطالب ثم اختره من القائمة.</p></div></div>'
-   +'<label class="field">ابحث باسم الطالب<input id="scan-search" type="search" placeholder="اكتب جزءًا من الاسم…" autocomplete="off"></label>'
-   +'<div id="scan-student-list" class="scan-student-list" role="listbox" aria-label="قائمة الطلاب"></div></section>'
-   +'</div><div id="scan-panel"></div>';
+  const groups=assignedGroups(),allowedGroupIds=new Set(groups.map(g=>String(g.id)));
+  const students=S.students.filter(st=>allowedGroupIds.has(String(st.group_id))).slice().sort((a,b)=>compareStudentNames(a.name,b.name));
+  v.__scanStudents=students;
+  const taskDefinitions=[
+    {id:"attendance",label:"الحضور والغياب",hint:"تسجيل الحضور أو الغياب",symbol:"✓"},
+    {id:"hifz",label:"الحفظ الجديد",hint:"متابعة المقدار المحفوظ",symbol:"آ"},
+    {id:"revision",label:"المراجعة والتثبيت",hint:"تثبيت المحفوظ ومراجعته",symbol:"↻"},
+    {id:"ward",label:"الورد اليومي",hint:"متابعة الورد المقرر",symbol:"۞"},
+    {id:"points",label:"إنجاز ونقاط",hint:"اعتماد نشاط ومنح نقاطه",symbol:"★"},
+    {id:"assignment",label:"تعيين مهمة",hint:"إسناد تكليف خاص للطالب",symbol:"＋"},
+    {id:"general",label:"متابعة شاملة",hint:"فتح أدوات المتابعة المتكاملة",symbol:"◈"}
+  ];
+  const taskLabel=()=>((taskDefinitions.find(t=>t.id===taskType.value)||{}).label)||"";
+  const taskTiles=taskDefinitions.map(t=>'<button type="button" class="scan-task-option" data-scan-task="'+t.id+'" aria-pressed="false"><span class="scan-task-symbol" aria-hidden="true">'+t.symbol+'</span><span class="scan-task-copy"><strong>'+t.label+'</strong><small>'+t.hint+'</small></span><span class="scan-task-check" aria-hidden="true">✓</span></button>').join("");
+  const savedTask=taskDefinitions.some(t=>t.id===S.scanTaskType)?S.scanTaskType:"";
+  v.innerHTML=head("المسح والمتابعة","اختر المهمة مرة واحدة، ثم امسح بطاقة الطالب؛ يتعرّف النظام تلقائيًا إلى فوجه ضمن نطاق صلاحيتك.")
+    +'<section class="card scan-task-setup scan-task-studio"><input id="scan-task-type" type="hidden" value="'+esc(savedTask)+'">'
+    +'<div class="scan-task-topline"><span class="scan-task-kicker">ابدأ من هنا</span><span class="scan-task-date-hint">تاريخ المتابعة</span></div>'
+    +'<div class="scan-task-controls"><button type="button" id="scan-task-toggle" class="scan-task-launcher" aria-expanded="false" aria-controls="scan-task-picker"><span class="scan-task-launcher-symbol" aria-hidden="true">✦</span><span class="scan-task-launcher-copy"><strong id="scan-task-launcher-title">اختر مهمة المتابعة</strong><small id="scan-task-launcher-subtitle">اضغط لعرض المهام على شكل بطاقات</small></span><span class="scan-task-launcher-arrow" aria-hidden="true">⌄</span></button>'
+    +'<label class="scan-date-field"><span>التاريخ</span><input id="scan-task-date" type="date" value="'+esc(S.scanDate||S.date||localDateISO())+'" max="'+localDateISO()+'" required></label></div>'
+    +'<div id="scan-task-picker" class="scan-task-picker" aria-label="مهام المتابعة"><div class="scan-task-grid-inner"><div class="scan-task-grid" role="group" aria-label="اختر مهمة">'+taskTiles+'</div></div></div>'
+    +'<div class="scan-task-feedback"><span class="scan-task-feedback-dot" aria-hidden="true"></span><span id="scan-task-ready" role="status">اختر مهمة لفتح المسح.</span></div></section>'
+    +'<div class="scan-layout">'
+    +'<section class="card scan-camera-card"><div class="section-head"><div><span class="eyebrow">المسح الذكي</span><h3>امسح بطاقة الطالب</h3><p>وجّه كاميرا الهاتف أو الحاسوب نحو رمز QR. تتم قراءة الرمز على الجهاز ولا تُرفع صورة الكاميرا.</p></div></div>'
+    +'<div class="scan-video-wrap"><video id="scan-video" playsinline muted aria-label="بث الكاميرا لمسح بطاقة الطالب"></video><div class="scan-frame" aria-hidden="true"></div></div>'
+    +'<div id="scan-status" class="notice" role="status">اختر المهمة أولًا، ثم شغّل الكاميرا.</div>'
+    +'<div class="student-actions"><button class="btn" type="button" id="scan-start" disabled>تشغيل الكاميرا</button><button class="btn secondary" type="button" id="scan-stop">إيقاف الكاميرا</button></div></section>'
+    +'<section class="card scan-manual-card"><div class="section-head"><div><span class="eyebrow">بديل سريع</span><h3>ابحث عن الطالب</h3><p>لا تحتاج إلى اختيار الفوج؛ تظهر لك أسماء الطلاب الذين تقع متابعتهم ضمن صلاحيتك.</p></div></div>'
+    +'<label class="field">اسم الطالب<input id="scan-search" type="search" placeholder="اكتب الاسم أو جزءًا منه…" autocomplete="off"></label>'
+    +'<div id="scan-student-list" class="scan-student-list" role="listbox" aria-label="قائمة الطلاب"></div></section></div><div id="scan-panel"></div>';
   const status=v.querySelector("#scan-status"),video=v.querySelector("#scan-video"),listEl=v.querySelector("#scan-student-list");
-  const taskType=v.querySelector("#scan-task-type"),taskGroup=v.querySelector("#scan-task-group"),taskDate=v.querySelector("#scan-task-date"),ready=v.querySelector("#scan-task-ready");
-  taskGroup.value=S.scanGroupId&&groups.some(g=>String(g.id)===String(S.scanGroupId))?S.scanGroupId:"";taskType.value=S.scanTaskType||"";taskDate.value=S.scanDate||S.date||localDateISO();
-  const taskLabel=()=>({attendance:"الحضور والغياب",hifz:"الحفظ الجديد",revision:"المراجعة والتثبيت",ward:"الورد اليومي",points:"إنجاز ونقاط",assignment:"تعيين مهمة للطالب",general:"متابعة شاملة"}[taskType.value]||"");
-  const updateTask=()=>{S.scanTaskType=taskType.value;S.scanGroupId=taskGroup.value;S.scanDate=taskDate.value;S.date=taskDate.value;safeStore.set("ihsan_attendance_date",taskDate.value);ready.textContent=taskType.value&&taskGroup.value&&taskDate.value?"جاهز: "+taskLabel()+" · "+(groups.find(g=>String(g.id)===String(taskGroup.value))?.name||"")+" · "+taskDate.value:"اختر المهمة والفوج والتاريخ لتفعيل المسح.";ready.classList.toggle("success",Boolean(taskType.value&&taskGroup.value&&taskDate.value));renderList()};
-  [taskType,taskGroup,taskDate].forEach(el=>el.addEventListener("change",updateTask));
-  const setStatus=(msg,kind)=>{status.textContent=msg;status.classList.toggle("error",kind==="error")};
-  const stopped=()=>setStatus("الكاميرا متوقفة. اضغط «تشغيل الكاميرا» للمسح.","");
-  const selectStudent=id=>{const st=students.find(x=>String(x.id)===String(id));if(!taskType.value||!taskGroup.value||!taskDate.value){toast("حدّد المهمة والفوج والتاريخ أولًا.",true);return}if(!st||String(st.group_id)!==String(taskGroup.value)){toast("هذا الطالب ليس ضمن الفوج المحدد للمهمة.",true);return}try{window.IhsanScanner&&window.IhsanScanner.stop()}catch{};S.scanStudentId=id;stopped();renderScanPanel(v,id)};
+  const taskType=v.querySelector("#scan-task-type"),taskDate=v.querySelector("#scan-task-date"),ready=v.querySelector("#scan-task-ready");
+  const picker=v.querySelector("#scan-task-picker"),toggle=v.querySelector("#scan-task-toggle"),startButton=v.querySelector("#scan-start");
+  taskType.value=savedTask;taskDate.value=S.scanDate||S.date||localDateISO();
+  const setPickerOpen=open=>{picker.classList.toggle("is-open",Boolean(open));picker.inert=!open;toggle.setAttribute("aria-expanded",String(Boolean(open)));toggle.classList.toggle("is-open",Boolean(open))};
   const renderList=()=>{
-    const q=String(v.querySelector("#scan-search").value||"").trim().toLocaleLowerCase("ar");
-    const matches=students.filter(st=>(!taskGroup.value||String(st.group_id)===String(taskGroup.value))&&(!q||String(st.name||"").toLocaleLowerCase("ar").includes(q)));
-    listEl.innerHTML=matches.length?matches.slice(0,80).map(st=>'<button type="button" class="scan-student-item'+(S.scanStudentId===st.id?" is-selected":"")+'" role="option" aria-selected="'+(S.scanStudentId===st.id?"true":"false")+'" data-scan-pick="'+esc(st.id)+'"><strong>'+esc(studentDisplayName(st.name))+'</strong><small>'+esc((groups.find(g=>String(g.id)===String(st.group_id))||{}).name||"")+'</small></button>').join(""):'<div class="empty">لا توجد نتائج مطابقة.</div>';
-    listEl.querySelectorAll("[data-scan-pick]").forEach(btn=>btn.onclick=()=>{renderListSelection(btn.dataset.scanPick)});
+    const q=String(v.querySelector("#scan-search")?.value||"").trim().toLocaleLowerCase("ar");
+    const matches=students.filter(st=>!q||String(st.name||"").toLocaleLowerCase("ar").includes(q));
+    listEl.innerHTML=matches.length?matches.slice(0,100).map(st=>{
+      const group=groups.find(g=>String(g.id)===String(st.group_id));
+      return '<button type="button" class="scan-student-item'+(String(S.scanStudentId)===String(st.id)?" is-selected":"")+'" role="option" aria-selected="'+(String(S.scanStudentId)===String(st.id)?"true":"false")+'" data-scan-pick="'+esc(st.id)+'"><strong>'+esc(studentDisplayName(st.name))+'</strong><small>'+esc(group?.name||"")+'</small></button>';
+    }).join(""):'<div class="empty">لا توجد نتائج مطابقة ضمن الأفواج المسموح بها.</div>';
+    listEl.querySelectorAll("[data-scan-pick]").forEach(btn=>btn.onclick=()=>selectStudent(btn.dataset.scanPick));
   };
-  const renderListSelection=id=>{S.scanStudentId=id;selectStudent(id)};
+  const updateTask=()=>{
+    S.scanTaskType=taskType.value;S.scanDate=taskDate.value;S.date=taskDate.value;safeStore.set("ihsan_attendance_date",taskDate.value);
+    const selected=taskDefinitions.find(t=>t.id===taskType.value);
+    v.querySelector("#scan-task-launcher-title").textContent=selected?selected.label:"اختر مهمة المتابعة";
+    v.querySelector("#scan-task-launcher-subtitle").textContent=selected?"تم اختيار المهمة — امسح بطاقة الطالب أو ابحث عنه":"اضغط لعرض المهام على شكل بطاقات";
+    toggle.classList.toggle("has-selection",Boolean(selected));
+    ready.textContent=selected&&taskDate.value?"جاهز: "+selected.label+" · "+taskDate.value:"اختر مهمة لفتح المسح.";
+    ready.parentElement.classList.toggle("is-ready",Boolean(selected&&taskDate.value));
+    startButton.disabled=!(selected&&taskDate.value);
+    v.querySelectorAll("[data-scan-task]").forEach(button=>{const active=button.dataset.scanTask===taskType.value;button.classList.toggle("is-selected",active);button.setAttribute("aria-pressed",String(active))});
+    status.textContent=selected&&taskDate.value?"جاهز للمسح: "+selected.label:"اختر المهمة أولًا، ثم شغّل الكاميرا.";
+    renderList();
+  };
+  const openTaskPicker=()=>{setPickerOpen(true);toggle.focus()};
+  const selectStudent=id=>{
+    const st=students.find(x=>String(x.id)===String(id));
+    if(!taskType.value||!taskDate.value){openTaskPicker();toast("اختر المهمة والتاريخ أولًا.",true);return}
+    if(!st){toast("هذا الطالب خارج نطاق صلاحيتك؛ لم تُفتح المتابعة.",true);return}
+    S.scanGroupId=String(st.group_id||"");S.scanStudentId=st.id;
+    try{window.IhsanScanner&&window.IhsanScanner.stop()}catch{}
+    status.textContent="تم تحديد الطالب — "+(taskLabel()||"المتابعة")+" · "+(groups.find(g=>String(g.id)===String(st.group_id))?.name||"");
+    renderList();renderScanPanel(v,st.id);
+  };
+  toggle.addEventListener("click",()=>setPickerOpen(!picker.classList.contains("is-open")));
+  taskDate.addEventListener("change",updateTask);
+  v.querySelectorAll("[data-scan-task]").forEach(button=>button.addEventListener("click",()=>{taskType.value=button.dataset.scanTask;updateTask();setPickerOpen(false)}));
   v.querySelector("#scan-search").addEventListener("input",renderList);
   let scanning=false;
-  v.querySelector("#scan-start").addEventListener("click",async()=>{
-    if(!taskType.value||!taskGroup.value||!taskDate.value){toast("حدّد المهمة والفوج والتاريخ قبل تشغيل السكان.",true);return}
+  startButton.addEventListener("click",async()=>{
+    if(!taskType.value||!taskDate.value){openTaskPicker();toast("اختر المهمة والتاريخ قبل المسح.",true);return}
     if(scanning)return;
-    if(!window.IhsanScanner){setStatus("تعذر تحميل الماسح. حدّث الصفحة وحاول مجددًا.","error");return}
-    scanning=true;setStatus("جار تشغيل الكاميرا…","");
-    const ok=await window.IhsanScanner.start(video,async raw=>{
-      scanning=false;try{window.IhsanScanner.stop()}catch{};
-      await handleScannedText(v,raw);
-    },err=>{scanning=false;setStatus((err&&err.message)||"تعذر تشغيل الكاميرا","error")});
-    if(ok)setStatus("وجّه الكاميرا نحو بطاقة الطالب…","");else scanning=false;
+    if(!window.IhsanScanner){status.textContent="تعذر تحميل الماسح. حدّث الصفحة وحاول مجددًا.";status.classList.add("error");return}
+    scanning=true;status.textContent="جار تشغيل الكاميرا…";status.classList.remove("error");
+    const ok=await window.IhsanScanner.start(video,async raw=>{scanning=false;try{window.IhsanScanner.stop()}catch{}await handleScannedText(v,raw)},err=>{scanning=false;status.textContent=(err&&err.message)||"تعذر تشغيل الكاميرا";status.classList.add("error")});
+    if(ok)status.textContent="وجّه الكاميرا نحو بطاقة الطالب…";else scanning=false;
   });
-  v.querySelector("#scan-stop").addEventListener("click",()=>{scanning=false;try{window.IhsanScanner.stop()}catch{};stopped()});
-  updateTask();renderList();
-  if(S.scanStudentId&&students.some(st=>String(st.id)===String(S.scanStudentId)&&String(st.group_id)===String(taskGroup.value))&&taskType.value&&taskGroup.value)renderScanPanel(v,S.scanStudentId);
+  v.querySelector("#scan-stop").addEventListener("click",()=>{scanning=false;try{window.IhsanScanner.stop()}catch{}status.textContent="الكاميرا متوقفة."});
+  setPickerOpen(false);updateTask();
+  if(S.scanStudentId&&students.some(st=>String(st.id)===String(S.scanStudentId))&&taskType.value&&taskDate.value){
+    const existing=students.find(st=>String(st.id)===String(S.scanStudentId));S.scanGroupId=String(existing.group_id||"");renderScanPanel(v,S.scanStudentId);
+  }
 }
-
 function studentsForScanCheck(id){return (S.students||[]).find(st=>String(st.id)===String(id))||null}
 async function handleScannedText(v,raw){
   const match=String(raw||"").match(/scan=([^#\s"']+)/);
@@ -2206,9 +2274,11 @@ async function handleScannedText(v,raw){
     const result=await api("/cards/resolve",{method:"POST",body:JSON.stringify({kind,card_id:cardId,secret})});
     const student=result&&result.student;
     if(!student||!student.id)throw new Error("تعذر قراءة بيانات البطاقة");
-    if(!S.scanTaskType||!S.scanGroupId||!S.scanDate){toast("امسح البطاقة بعد تحديد المهمة والفوج والتاريخ.",true);return}
-    const rosterStudent=studentsForScanCheck(student.id);
-    if(!rosterStudent||String(rosterStudent.group_id)!==String(S.scanGroupId)){toast("الطالب لا ينتمي إلى الفوج المحدد؛ لم تُفتح المتابعة.",true);return}
+    if(!S.scanTaskType||!S.scanDate){toast("اختر مهمة المتابعة والتاريخ أولًا.",true);return}
+    const authorizedRoster=v.__scanStudents||[];
+    const rosterStudent=authorizedRoster.find(st=>String(st.id)===String(student.id));
+    if(!rosterStudent){toast("هذا الطالب خارج نطاق صلاحيتك؛ لم تُفتح المتابعة.",true);return}
+    S.scanGroupId=String(rosterStudent.group_id||"");
     S.scanStudentId=student.id;
     const kindLabel={add_points:"رمز إضافة النقاط",profile:"رمز الملف الشخصي",login:"رمز الدخول"}[kind]||"بطاقة";
     toast("تم مسح البطاقة ("+kindLabel+") — "+(student.name||"طالب"));
@@ -2915,7 +2985,7 @@ function quranStationsMarkup(stations,makeups){
   const stationList=(stations||[]).map(row=>'<div class="list-row"><div><strong>محطة '+esc(row.stage)+' حزبًا · '+esc(row.scheduled_for)+'</strong><small>'+esc(row.memorized_amount||"")+(row.notes?' · '+esc(row.notes):"")+'</small></div><span class="pill">'+esc(QURAN_STATION_UI[row.status]||row.status)+(row.score!==null&&row.score!==undefined?' · '+Number(row.score):"")+'</span></div>').join("");
   const makeupList=(makeups||[]).map(row=>'<div class="list-row"><div><strong>'+esc(row.kind_label||QURAN_KIND_UI[row.kind]?.label||row.kind)+' · استحقاق '+esc(row.due_date)+'</strong><small>'+esc(row.reason_label||QURAN_REASON_UI[row.reason]||row.reason)+(row.reason_note?' · '+esc(row.reason_note):"")+' · مقترح: '+esc(row.proposed_date||"—")+'</small></div><span class="pill">'+esc(QURAN_MAKEUP_UI[row.status]||row.status)+'</span></div>').join("");
   return '<div class="quran-stations-grid"><section class="card"><div class="section-head"><div><span class="eyebrow">محطات الشيخ</span><h3>اطلب موعد محطتك</h3><p>الشيخ يعتمد 15 و30 و45 و60 حزبًا. المقادير الوسيطة يتابعها الرفيق.</p></div></div><form id="quran-station-form" class="quran-log-form"><div class="quran-log-fields"><label class="field">المحطة<select name="stage"><option value="15">15 حزبًا</option><option value="30">30 حزبًا</option><option value="45">45 حزبًا</option><option value="60">60 حزبًا</option></select></label><label class="field">الموعد<input type="date" name="scheduled_for" required value="'+localDateISO()+'"></label></div><label class="field">مقدار المحفوظ<input name="memorized_amount" maxlength="120" placeholder="مثال: 15 حزبًا كاملة"></label><label class="field">ملاحظة<textarea name="notes" rows="2" maxlength="600"></textarea></label><button class="btn" type="submit">طلب المحطة</button></form><div class="list">'+(stationList||'<div class="empty">لا توجد محطات مسجلة.</div>')+'</div></section>'+
-    '<section class="card"><div class="section-head"><div><span class="eyebrow">الاستدراك</span><h3>بلّغ عن مقدار متأخر</h3><p>تسألك المنصة عن السبب، وتقترح خطة استدراك، وترفع الحالة للشيخ عند الحاجة.</p></div></div><form id="quran-makeup-form" class="quran-log-form"><div class="quran-log-fields"><label class="field">القسم<select name="kind"><option value="hifz">الحفظ</option><option value="thabit">التثبيت</option><option value="ward">الورد</option></select></label><label class="field">تاريخ الاستحقاق<input type="date" name="due_date" required value="'+localDateISO()+'"></label></div><div class="quran-log-fields"><label class="field">المقدار<input name="amount" maxlength="120" placeholder="مثال: نصف حزب"></label><label class="field">السبب<select name="reason">'+Object.entries(QURAN_REASON_UI).map(([id,label])=>'<option value="'+id+'">'+label+'</option>').join("")+'</select></label><label class="field">الموعد المقترح<input type="date" name="proposed_date" value="'+shiftLocalDateISO(localDateISO(),3)+'"></label></div><label class="field">توضيح مختصر<textarea name="reason_note" rows="2" maxlength="600"></textarea></label><button class="btn" type="submit">إضافة إلى قائمة الاستدراك</button></form><div class="list">'+(makeupList||'<div class="empty">لا توجد متأخرات.</div>')+'</div></section></div>';
+    '<section class="card"><div class="section-head"><div><span class="eyebrow">الاستدراك</span><h3>بلّغ عن مقدار متأخر</h3><p>تسألك المنصة عن السبب، وتقترح خطة استدراك، وترفع الحالة للشيخ عند الحاجة.</p></div></div><form id="quran-makeup-form" class="quran-log-form"><div class="quran-log-fields"><label class="field">القسم<select name="kind"><option value="hifz">الحفظ</option><option value="thabit">التثبيت</option><option value="ward">الورد</option></select></label><label class="field">تاريخ الاستحقاق<input type="date" name="due_date" required value="'+localDateISO()+'"></label></div><div class="quran-log-fields"><label class="field">المقدار<input name="amount" maxlength="120" placeholder="مثال: نصف حزب"></label><label class="field">السبب<select name="reason">'+Object.entries(QURAN_REASON_UI).map(([id,label])=>'<option value="'+id+'">'+label+'</option>').join("")+'</select></label><label class="field">الموعد المقترح<input type="date" name="proposed_date" value="'+shiftLocalDateISO(localDateISO(),3)+'"></label></div><label class="field">توضيح مختصر<textarea name="reason_note" rows="2" maxlength="600"></textarea></label><button class="btn" type="submit">إضافة إلى قائمة الاستدراك</button></form><div class="list">'+(makeupList||'<div class="empty">لا توجد متأخرات.</div>')+'</div></section></div>'+mobilePrimaryMarkup()+mobileMoreMarkup();
 }
 function quranPrintStyles(){
   return 'body{font-family:"IBM Plex Sans Arabic","Segoe UI",Tahoma,sans-serif;background:#fff;color:#111;margin:0;padding:24px;direction:rtl}h1{font-size:20px;margin:0 0 4px}h2{font-size:15px;margin:18px 0 8px}.muted{color:#666;font-size:12px}.card{border:1px solid #ccc;border-radius:12px;padding:16px;margin:12px 0}.row{display:flex;justify-content:space-between;gap:12px;padding:6px 0;border-bottom:1px dashed #ddd}.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.line{border-bottom:1px solid #999;min-height:22px}table{width:100%;border-collapse:collapse;font-size:12px}th,td{border:1px solid #bbb;padding:6px;text-align:right}.pledge{border:1px dashed #888;padding:10px;border-radius:8px;font-size:12px}.sig{display:flex;justify-content:space-between;margin-top:28px;font-size:12px}.sig span{width:45%;border-top:1px solid #999;padding-top:6px;text-align:center}@page{size:A4;margin:14mm}';
