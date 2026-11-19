@@ -2253,7 +2253,7 @@ async function scanPage(v){
   toggle.addEventListener("click",()=>setPickerOpen(!picker.classList.contains("is-open")));
   taskDate.addEventListener("change",updateTask);
   v.querySelectorAll("[data-scan-task]").forEach(button=>button.addEventListener("click",()=>{taskType.value=button.dataset.scanTask;if(!["points","general"].includes(taskType.value))S.scanActivity="";updateTask();setPickerOpen(false)}));
-  v.querySelectorAll("[data-scan-pre-activity]").forEach(button=>button.addEventListener("click",()=>{if(S.user.role!=="admin")return;S.scanActivity=button.dataset.scanPreActivity;v.querySelectorAll("[data-scan-pre-activity]").forEach(item=>item.classList.toggle("is-selected",item.dataset.scanPreActivity===S.scanActivity));updateTask()}));
+  v.querySelectorAll("[data-scan-pre-activity]").forEach(button=>button.addEventListener("click",()=>{if(S.user.role!=="admin")return;S.scanActivity=button.dataset.scanPreActivity;v.querySelectorAll("[data-scan-pre-activity]").forEach(item=>item.classList.toggle("is-selected",item.dataset.scanPreActivity===S.scanActivity));updateTask();if(S.scanStudentId)renderScanPanel(v,S.scanStudentId)}));
   v.querySelector("#scan-search").addEventListener("input",renderList);
   let scanning=false;
   startButton.addEventListener("click",async()=>{
