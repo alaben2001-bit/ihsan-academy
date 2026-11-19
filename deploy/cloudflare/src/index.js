@@ -1980,7 +1980,7 @@ export default {
       const scanner=await currentUser(request,env);
       if(!scanner)return fail(401,"سجّل الدخول أولًا ثم أعد مسح البطاقة.");
       if(!await canAccessStudentCard(env,scanner,student))return fail(403,"هذه البطاقة خارج صلاحيتك");
-      if(kind==="add_points"&&scanner.role==="student")return fail(403,"رمز إضافة النقاط يُستخدم من الشيخ أو المشرف");
+      if(kind==="add_points"&&scanner.role!=="admin")return fail(403,"رمز إضافة النقاط مخصص لحساب الشيخ وحده");
       const totals=await pointsTotals(env,student.id);
       await log(env,scanner.id,"student_card_scan_"+kind,{card_id:card.id,student_id:student.id});
       return json({ok:true,kind,student:{id:student.id,name:student.name,group_id:student.group_id,group_name:student.group_name||""},totals,next:kind==="add_points"?"points":"profile"});
@@ -4459,7 +4459,7 @@ export default {
     // الاقتصاد التعليمي: النقاط والمتجر
     // -----------------------------------------------------------------------
     if(path==="/api/points/activity"&&method==="POST"){
-      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"منح النقاط متاح للشيخ والمعلم والمشرف ضمن نطاق صلاحياتهم");
+      if(user.role!=="admin")return fail(403,"اعتماد منح النقاط اليدوي للشيخ وحده");
       const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
       const activity=clean(b.activity,20);
       const ACTIVITY_MAP={
@@ -4572,7 +4572,7 @@ export default {
       return json({ok:true,rule},existing?200:201);
     }
     if(path==="/api/points/award"&&method==="POST"){
-      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"منح النقاط للمعلم أو الإدارة");
+      if(user.role!=="admin")return fail(403,"اعتماد منح النقاط اليدوي للشيخ وحده");
       const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
       const resolved=await resolvePointStudent(env,user,clean(b.student_id,80));
       if(resolved.error)return resolved.error;
