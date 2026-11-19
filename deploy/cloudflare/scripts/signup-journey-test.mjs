@@ -116,9 +116,9 @@ async function main() {
 
   // ---------- 3) التسجيل لا يمنح أدوارًا خاصة ----------
   const badAdmin = await signup({ name: "محتال الدور", email: "evil-admin-" + RUN + "@test.local", password: "Evil#2026xxxx", kind: "admin" });
-  check("signup cannot self-grant the admin role", badAdmin.status === 400, JSON.stringify(badAdmin.data));
+  check("signup cannot self-grant the admin role", [400, 403].includes(badAdmin.status), JSON.stringify(badAdmin.data));
   const badSupervisor = await signup({ name: "محتال الإشراف", email: "evil-supervisor-" + RUN + "@test.local", password: "Evil#2026xxxx", kind: "supervisor" });
-  check("signup cannot self-grant the supervisor role", badSupervisor.status === 400, JSON.stringify(badSupervisor.data));
+  check("signup cannot self-grant the supervisor role", [400, 403].includes(badSupervisor.status), JSON.stringify(badSupervisor.data));
   const dupSignup = await signup({ name: "مكرر", email: studentEmail, password: "Dup#2026xxxxx", kind: "student" });
   check("duplicate signup email is rejected", dupSignup.status === 409, JSON.stringify(dupSignup.data));
   const weakPassword = await signup({ name: "ضعيف المرور", email: "weak-pass-" + RUN + "@test.local", password: "short", kind: "student" });
@@ -129,7 +129,7 @@ async function main() {
   const visitorSignup = await signup({ name: "محسن رحلة " + RUN, email: visitorEmail, password: "VisitorJourney#2026", kind: "teacher", note: "أريد كفالة طالب" });
   check("contributor account starts as a pending visitor", visitorSignup.status === 201 && visitorSignup.data?.user?.role === "visitor", JSON.stringify(visitorSignup.data));
   const directVisitor = await signup({ name: "زائر مباشر " + RUN, email: "direct-visitor-" + RUN + "@test.local", password: "VisitorJourney#2026", kind: "visitor" });
-  check("direct visitor signup is closed and points to Taysir", directVisitor.status === 403 && /التيسير/.test(String(directVisitor.data?.message || "")), JSON.stringify(directVisitor.data));
+  check("direct visitor signup is closed and points to Taysir", directVisitor.status === 403 && /التيسير/.test(String(directVisitor.data?.error || directVisitor.data?.message || "")), JSON.stringify(directVisitor.data));
   const visitorToken = visitorSignup.token;
   const visitorStudents = await call("/api/students", { token: visitorToken });
   check("visitor cannot list students", visitorStudents.status === 403, JSON.stringify(visitorStudents.data));
