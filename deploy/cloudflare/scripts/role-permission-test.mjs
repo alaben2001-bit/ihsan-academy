@@ -201,6 +201,18 @@ async function main() {
   const students = await call("/api/students?group_id=" + encodeURIComponent(groupId), { token: adminToken });
   const student = (students.data || []).find(s => s.name === "طالب صلاحيات");
   check("student exists", !!student, JSON.stringify(students.data)?.slice(0, 200));
+  if (student) {
+    const attendanceDate = new Date().toISOString().slice(0, 10);
+    const beforeAttendance = await call("/api/points/summary?student_id=" + encodeURIComponent(student.id), { token: adminToken });
+    const markPresent = await call("/api/attendance", { method: "POST", token: adminToken, body: { group_id: groupId, date: attendanceDate, items: [{ student_id: student.id, status: "present" }] } });
+    const afterAttendance = await call("/api/points/summary?student_id=" + encodeURIComponent(student.id), { token: adminToken });
+    const delta = Number(afterAttendance.data?.totals?.balance || 0) - Number(beforeAttendance.data?.totals?.balance || 0);
+    check("marking present records attendance", markPresent.status === 200, "status=" + markPresent.status);
+    check("attendance awards 30 points", markPresent.status === 200 && delta === 30, "delta=" + delta);
+    await call("/api/attendance", { method: "POST", token: adminToken, body: { group_id: groupId, date: attendanceDate, items: [{ student_id: student.id, status: "present" }] } });
+    const afterRepeat = await call("/api/points/summary?student_id=" + encodeURIComponent(student.id), { token: adminToken });
+    check("repeated attendance scan does not duplicate points", Number(afterRepeat.data?.totals?.balance || 0) === Number(afterAttendance.data?.totals?.balance || 0), "before=" + afterAttendance.data?.totals?.balance + " after=" + afterRepeat.data?.totals?.balance);
+  }
   if (student && !student.user_id) {
     await call("/api/students/" + encodeURIComponent(student.id) + "/account", { method: "POST", token: adminToken, body: { username: "perm-student", password: "StudentPass#2026Strong", must_change_password: false } });
   }
