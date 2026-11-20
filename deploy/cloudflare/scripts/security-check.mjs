@@ -572,6 +572,8 @@ assert.match(backend, /if\(reason\.length<3\)return fail\(400,"اكتب سبب �
 assert.match(backend, /student_card_reissue/, "card reissue must be audited");
 assert.match(backend, /student_card_revoke/, "card revoke must be audited");
 assert.match(backend, /student_card_print/, "card printing must be audited");
+assert.match(backend, /status:"present",note:"تسجيل حضور آلي بمسح بطاقة الطالب"/, "add-points card scans must automatically record attendance");
+assert.match(backend, /awardAttendancePoints\(env,\{groupId:student\.group_id,date,studentIds:\[student\.id\],awardedBy:scanner\.id\}\)/, "add-points card scans must award attendance points through the idempotent attendance engine");
 assert.match(rateLimitsMigration, /CREATE TABLE IF NOT EXISTS rate_limits/, "0008 must create the rate-limit table");
 assert.match(backend, /CREATE TABLE IF NOT EXISTS rate_limits/, "the worker must create the rate-limit table lazily when the migration is missing");
 assert.match(backend, /async function rateLimit\(env, bucket, key, limit, windowSeconds\)/, "server-side rate limiting must be implemented");
