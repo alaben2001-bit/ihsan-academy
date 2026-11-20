@@ -2263,7 +2263,7 @@ async function scanPage(v){
     if(scanning)return;
     if(!window.IhsanScanner){status.textContent="تعذر تحميل الماسح. حدّث الصفحة وحاول مجددًا.";status.classList.add("error");return}
     scanning=true;status.textContent="جار تشغيل الكاميرا…";status.classList.remove("error");
-    const ok=await window.IhsanScanner.start(video,async raw=>{scanning=false;try{window.IhsanScanner.stop()}catch{}await handleScannedText(v,raw)},err=>{scanning=false;status.textContent=(err&&err.message)||"تعذر تشغيل الكاميرا";status.classList.add("error")});
+    const ok=await window.IhsanScanner.start(video,async raw=>{scanning=false;try{window.IhsanScanner.stop()}catch{}await handleScannedText(v,raw);if(v.isConnected&&["attendance","hifz"].includes(S.scanTaskType))setTimeout(()=>{if(v.isConnected&&!scanning)startButton.click()},250)},err=>{scanning=false;status.textContent=(err&&err.message)||"تعذر تشغيل الكاميرا";status.classList.add("error")});
     if(ok)status.textContent="وجّه الكاميرا نحو بطاقة الطالب…";else scanning=false;
   });
   v.querySelector("#scan-stop").addEventListener("click",()=>{scanning=false;try{window.IhsanScanner.stop()}catch{}status.textContent="الكاميرا متوقفة."});
@@ -2294,7 +2294,7 @@ async function handleScannedText(v,raw){
     S.scanGroupId=String(rosterStudent.group_id||"");
     S.scanStudentId=String(rosterStudent.id);
     const kindLabel={add_points:"رمز إضافة النقاط",profile:"رمز الملف الشخصي",login:"رمز الدخول"}[kind]||"بطاقة";
-    toast("تم ربط البطاقة بالطالب: "+String(rosterStudent.name||student.name||"طالب")+" · "+kindLabel);
+    if(kind==="add_points"&&S.scanTaskType==="attendance")toast("حضور "+String(rosterStudent.name||student.name||"طالب")+" — "+(result.attendance_awards?.length?"30 نقطة، ولا تتكرر اليوم":"تم تسجيل الحضور مسبقًا اليوم."));else if(kind==="add_points"&&S.scanTaskType==="hifz")toast("حفظ "+String(rosterStudent.name||student.name||"طالب")+" — "+(result.hifz_awards?.some(x=>x.status==="awarded")?"20 نقطة":"مكافأة الحفظ مسجلة اليوم."));else toast("تم ربط البطاقة بالطالب: "+String(rosterStudent.name||student.name||"طالب")+" · "+kindLabel);
     renderScanPanel(v,String(rosterStudent.id));
   }catch(error){toast(error.message||"تعذر استخدام البطاقة",true)}
 }
