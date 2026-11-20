@@ -219,7 +219,7 @@ assert.match(app, /function playUiSound\(kind="click"\)/, "optional non-musical 
 assert.ok(app.includes('id="settings-ui-sounds"') && app.includes('id="settings-sound-preview"'), "sound settings must provide a toggle and preview control");
 assert.match(app, /ihsan_ui_sounds/, "sound preference must be persisted locally");
 assert.match(backend, /if\(path==="\/api\/admin\/roster-add"&&method==="POST"\)/, "nominal roster import must use the Cloudflare API");
-assert.match(backend, /if\(count>=target\)\{skipped\+\+;continue\}/, "retries must preserve intended duplicate counts without duplicating the whole list");
+assert.match(backend, /if\(count>0\)\{skipped\+\+;continue\}/, "retries and repeated roster names must never create duplicate student profiles");
 
 assert.ok(app.includes('id="student-profile-form"'), "staff must be able to edit student academic and guardian profile fields");
 assert.match(app, /<details class="move-control"><summary class="btn secondary">نقل الفوج<\/summary><div class="move-control-options"><label class="field">الفوج الجديد<select data-move-student=/, "student group choices must stay hidden until the move control is opened");
