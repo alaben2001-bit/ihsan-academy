@@ -169,8 +169,14 @@ async function main() {
   check("profile QR resolves for the student themselves", studentProfile.status === 200 && studentProfile.data?.student?.id === student.id, JSON.stringify(studentProfile.data));
   const studentAddPoints = await resolveCard("add_points", addPointsLink.cardId, addPointsLink.secret, student.token);
   check("add_points QR is rejected for the student", studentAddPoints.status === 403, JSON.stringify(studentAddPoints.data));
+  const beforeScanPoints = await call("/api/points/summary?student_id=" + encodeURIComponent(student.id), { token: admin });
   const teacherAddPoints = await resolveCard("add_points", addPointsLink.cardId, addPointsLink.secret, teacherInside.token);
+  const afterScanPoints = await call("/api/points/summary?student_id=" + encodeURIComponent(student.id), { token: admin });
   check("add_points QR resolves for the group sheikh", teacherAddPoints.status === 200 && teacherAddPoints.data?.next === "points", JSON.stringify(teacherAddPoints.data));
+  check("one card scan automatically records attendance and awards 30 points", teacherAddPoints.data?.attendance?.status === "present" && Number(afterScanPoints.data?.totals?.balance || 0) - Number(beforeScanPoints.data?.totals?.balance || 0) === 30, JSON.stringify({ attendance: teacherAddPoints.data?.attendance, before: beforeScanPoints.data?.totals, after: afterScanPoints.data?.totals }));
+  const repeatScan = await resolveCard("add_points", addPointsLink.cardId, addPointsLink.secret, teacherInside.token);
+  const afterRepeatScanPoints = await call("/api/points/summary?student_id=" + encodeURIComponent(student.id), { token: admin });
+  check("repeated scan the same day does not award duplicate attendance points", repeatScan.status === 200 && Number(afterRepeatScanPoints.data?.totals?.balance || 0) === Number(afterScanPoints.data?.totals?.balance || 0), JSON.stringify(afterRepeatScanPoints.data?.totals));
   const adminAddPoints = await resolveCard("add_points", addPointsLink.cardId, addPointsLink.secret, admin);
   check("add_points QR resolves for the administrator", adminAddPoints.status === 200 && adminAddPoints.data?.next === "points", JSON.stringify(adminAddPoints.data));
 
