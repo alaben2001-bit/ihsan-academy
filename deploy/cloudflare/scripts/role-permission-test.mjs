@@ -156,7 +156,7 @@ async function roleMatrixTests(admin, inScopeStudentId, groupId) {
   const otherGroupSummary = await call("/api/points/summary?student_id=" + encodeURIComponent(outScopeStudent.id), { token: supervisorToken });
   check("supervisor cannot read points outside own group", otherGroupSummary.status === 403, "status=" + otherGroupSummary.status);
   const supAward = await call("/api/points/award", { method: "POST", token: supervisorToken, body: { student_id: inScopeStudentId, achievement_points: 1, store_points: 0, reason: "تحقق صلاحيات المشرف", request_id: "role-test-sup-" + run } });
-  check("supervisor can award points inside own group", supAward.status === 201, "status=" + supAward.status);
+  check("supervisor cannot manually award points; Sheikh-only policy", supAward.status === 403, "status=" + supAward.status);
   const supAwardOutside = await call("/api/points/award", { method: "POST", token: supervisorToken, body: { student_id: outScopeStudent.id, achievement_points: 1, store_points: 0, reason: "تحقق النطاق", request_id: "role-test-sup-x-" + run } });
   check("supervisor cannot award points outside own group", supAwardOutside.status === 403, "status=" + supAwardOutside.status);
   await call("/api/points/award", { method: "POST", token: admin, body: { student_id: inScopeStudentId, achievement_points: 0, store_points: 5, reason: "رصيد اختبار المشرف", request_id: "role-sup-fund-" + run } });
