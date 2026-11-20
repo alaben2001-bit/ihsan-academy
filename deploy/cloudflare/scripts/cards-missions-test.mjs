@@ -106,8 +106,8 @@ function parseScanLink(link) {
   return { kind: parts[0], cardId: parts[1], secret: parts.slice(2).join(".") };
 }
 
-async function resolveCard(kind, cardId, secret, token = "") {
-  return call("/api/cards/resolve", { method: "POST", token, body: { kind, card_id: cardId, secret } });
+async function resolveCard(kind, cardId, secret, token = "", task = "attendance") {
+  return call("/api/cards/resolve", { method: "POST", token, body: { kind, task, card_id: cardId, secret } });
 }
 
 async function main() {
@@ -177,6 +177,13 @@ async function main() {
   const repeatScan = await resolveCard("add_points", addPointsLink.cardId, addPointsLink.secret, teacherInside.token);
   const afterRepeatScanPoints = await call("/api/points/summary?student_id=" + encodeURIComponent(student.id), { token: admin });
   check("repeated scan the same day does not award duplicate attendance points", repeatScan.status === 200 && Number(afterRepeatScanPoints.data?.totals?.balance || 0) === Number(afterScanPoints.data?.totals?.balance || 0), JSON.stringify(afterRepeatScanPoints.data?.totals));
+  const beforeHifzPoints = await call("/api/points/summary?student_id=" + encodeURIComponent(student.id), { token: admin });
+  const hifzScan = await resolveCard("add_points", addPointsLink.cardId, addPointsLink.secret, teacherInside.token, "hifz");
+  const afterHifzPoints = await call("/api/points/summary?student_id=" + encodeURIComponent(student.id), { token: admin });
+  check("memorization scan awards 20 points without marking attendance again", hifzScan.status === 200 && Array.isArray(hifzScan.data?.hifz_awards) && hifzScan.data.hifz_awards.some(x => x.status === "awarded") && Number(afterHifzPoints.data?.totals?.balance || 0) - Number(beforeHifzPoints.data?.totals?.balance || 0) === 20 && hifzScan.data?.attendance === null, JSON.stringify({awards:hifzScan.data?.hifz_awards,attendance:hifzScan.data?.attendance,before:beforeHifzPoints.data?.totals,after:afterHifzPoints.data?.totals}));
+  const hifzRepeat = await resolveCard("add_points", addPointsLink.cardId, addPointsLink.secret, teacherInside.token, "hifz");
+  const afterHifzRepeat = await call("/api/points/summary?student_id=" + encodeURIComponent(student.id), { token: admin });
+  check("repeated memorization scan does not duplicate 20 points", hifzRepeat.status === 200 && Number(afterHifzRepeat.data?.totals?.balance || 0) === Number(afterHifzPoints.data?.totals?.balance || 0), JSON.stringify(afterHifzRepeat.data?.totals));
   const adminAddPoints = await resolveCard("add_points", addPointsLink.cardId, addPointsLink.secret, admin);
   check("add_points QR resolves for the administrator", adminAddPoints.status === 200 && adminAddPoints.data?.next === "points", JSON.stringify(adminAddPoints.data));
 
