@@ -199,7 +199,9 @@ assert.ok(serviceWorker.includes(appVersion), "service-worker cache version must
 assert.ok(backend.includes('if(path==="/api/admin/roster-add"&&method==="POST")'), "bulk roster insertion must be admin-only");
 assert.ok(backend.includes('collection=\'student_profiles\''), "student profile fields must use the existing flexible D1 records store");
 assert.ok(backend.includes('studentProfileMatch&&method==="PATCH"'), "student academic profile updates must have a dedicated API route");
-assert.ok(backend.includes('if(count>=target){skipped++;continue}'), "re-running roster insertion must not create extra duplicate-name records");
+assert.ok(backend.includes('if(count>0){skipped++;continue}'), "bulk roster insertion must skip every already-existing normalized student name");
+assert.ok(backend.includes('findDuplicateStudentByName(env,name)'), "new student creation and public signup must reject an existing normalized student name");
+assert.ok(backend.includes('WHERE id=? AND user_id IS NULL'), "student account linking must be single-writer and prevent a second account racing onto one student");
 assert.ok(!app.includes('id="roster-add-form"'), "the requested obsolete roster insertion form must stay removed from the UI");
 assert.doesNotMatch(app, /async function postsPage\(v\)/, "the removed Sheikh Library screen must not remain in the frontend");
 assert.doesNotMatch(backend, /path===\"\/api\/posts\"/, "the removed Sheikh Library API must not remain exposed");
