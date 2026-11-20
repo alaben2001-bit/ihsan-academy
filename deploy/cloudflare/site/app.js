@@ -2190,7 +2190,7 @@ async function scanPage(v){
   ];
   const taskLabel=()=>((taskDefinitions.find(t=>t.id===taskType.value)||{}).label)||"";
   const taskTiles=taskDefinitions.filter(t=>t.id!=="points"||S.user.role==="admin").map(t=>'<button type="button" class="scan-task-option" data-scan-task="'+t.id+'" aria-pressed="false"><span class="scan-task-symbol" aria-hidden="true">'+t.symbol+'</span><span class="scan-task-copy"><strong>'+t.label+'</strong><small>'+t.hint+'</small></span><span class="scan-task-check" aria-hidden="true">✓</span></button>').join("");
-  const pointActivities=[["fajr","الفجر · 30"],["shuruq","الشروق · 20"],["maghrib","المغرب · 10"],["hizb","قراءة حزب · 10"],["hifz_no_errors","حفظ ثمن بلا أخطاء · 30"],["hifz_tajweed","حفظ ثمن بالتجويد · 25"],["poetry","أربعة أبيات · 5"],["support","دعم الآخرين · +30%"]];
+  const pointActivities=[["fajr","الفجر · 30"],["shuruq","الشروق · 20"],["maghrib","المغرب · 10"],["hizb","قراءة حزب · 10"],["hifz_no_errors","حفظ ثمن بلا أخطاء · 20"],["hifz_tajweed","حفظ ثمن بالتجويد · 20"],["poetry","أربعة أبيات · 5"],["support","دعم الآخرين · +30%"]];
   const pointActivityTiles=pointActivities.map(([id,label])=>'<button type="button" class="scan-point-option" data-scan-pre-activity="'+id+'">'+esc(label)+'</button>').join("");
   const savedTask=taskDefinitions.some(t=>t.id===S.scanTaskType&&(t.id!=="points"||S.user.role==="admin"))?S.scanTaskType:"";
   v.innerHTML=head("المسح والمتابعة","اختر المهمة مرة واحدة، ثم امسح بطاقة الطالب؛ يتعرّف النظام تلقائيًا إلى فوجه ضمن نطاق صلاحيتك.")
@@ -2281,7 +2281,7 @@ async function handleScannedText(v,raw){
   if(parts.length<3||!["add_points","profile","login"].includes(kind)){toast("هذا الرمز ليس بطاقة طالب صالحة أو أنه غير مكتمل",true);return}
   const cardId=parts[1],secret=parts.slice(2).join(".");
   try{
-    const result=await api("/cards/resolve",{method:"POST",body:JSON.stringify({kind,card_id:cardId,secret})});
+    const result=await api("/cards/resolve",{method:"POST",body:JSON.stringify({kind,task:S.scanTaskType||"attendance",card_id:cardId,secret})});
     const student=result&&result.student;
     if(!student||!student.id)throw new Error("تعذر قراءة بيانات البطاقة");
     if(!S.scanTaskType||!S.scanDate){toast("اختر مهمة المتابعة أولًا.",true);return}
@@ -2336,7 +2336,7 @@ async function renderScanPanel(v,studentId){
     if(logged)return '<div class="scan-quran-row is-done"><div><strong>'+esc(label)+'</strong><small>تم اليوم: '+esc(quranFmtAmount(logged.amount,logged.unit))+(Number(logged.repetitions)?" · "+Number(logged.repetitions)+" تكرارًا":"")+'</small></div><span class="pill">مُسجَّل</span></div>';
     return '<form class="scan-quran-row" data-scan-quran="'+kind+'"><div class="scan-quran-head"><strong>'+esc(label)+'</strong><button class="btn secondary sm" type="submit">تسجيل الإنجاز</button></div><div class="scan-quran-fields"><label class="field">المقدار<input type="number" step="0.01" min="0" max="1000" name="amount" required value="'+esc(String(defAmount??""))+'"></label><label class="field">الوحدة<select name="unit">'+units.map(u=>'<option '+(u===defUnit?"selected":"")+'>'+u+'</option>').join("")+'</select></label>'+(kind==="hifz"?'':'<label class="field">التكرار<input type="number" min="0" max="100" name="repetitions" value="'+Number(defReps||0)+'"></label>')+'</div><label class="field">ملاحظات<input name="notes" maxlength="600" placeholder="اختياري — مثل موضع يحتاج تثبيتًا"></label></form>';
   };
-  const activityButtons=[["fajr","الفجر · 30"],["shuruq","الشروق · 20"],["maghrib","المغرب · 10"],["hizb","قراءة حزب · 10"],["hifz_no_errors","حفظ ثمن بلا أخطاء · 30"],["hifz_tajweed","حفظ ثمن بالتجويد · 25"],["poetry","أربعة أبيات · 5"],["support","دعم الآخرين · +30%"]].filter(([a])=>!S.scanActivity||a===S.scanActivity).map(([a,l])=>'<button type="button" class="btn" data-scan-activity="'+a+'">'+esc(S.scanActivity?"اعتماد: "+l:l)+'</button>').join("");
+  const activityButtons=[["fajr","الفجر · 30"],["shuruq","الشروق · 20"],["maghrib","المغرب · 10"],["hizb","قراءة حزب · 10"],["hifz_no_errors","حفظ ثمن بلا أخطاء · 20"],["hifz_tajweed","حفظ ثمن بالتجويد · 20"],["poetry","أربعة أبيات · 5"],["support","دعم الآخرين · +30%"]].filter(([a])=>!S.scanActivity||a===S.scanActivity).map(([a,l])=>'<button type="button" class="btn" data-scan-activity="'+a+'">'+esc(S.scanActivity?"اعتماد: "+l:l)+'</button>').join("");
   const attButtons=[["present","حاضر"],["late","متأخر"],["absent","غائب"],["excused","بعذر"]].map(([st,l])=>'<button type="button" class="btn secondary" data-scan-att="'+st+'">'+esc(l)+'</button>').join("");
   const studentRow=(S.students||[]).find(st=>String(st.id)===String(studentId));
   const recipientUserId=studentRow?.user_id||"";
