@@ -40,7 +40,9 @@ check("only Sheikh account can award point activities", /if\(user\.role!=="admin
 check("QR point-award controls are restricted to the Sheikh", /const canGrantPoints=S\.user\.role==="admin"/.test(app) && /scan-point-picker/.test(app));
 check("point activity choices appear before camera scan", /data-scan-pre-activity/.test(app));
 check("daily scan uses current date without manual date selection", /id="scan-task-date" type="hidden"/.test(app));
-check("add-points QR resolution is restricted to Sheikh account", /kind==="add_points"&&scanner\.role!=="admin"/.test(server));
+check("add-points QR resolution is limited to authorized group staff", /kind==="add_points"&&!\["admin","teacher","director","supervisor"\]\.includes\(scanner\.role\)/.test(server));
+check("add-points QR scan automatically records present attendance", /status:"present",note:"تسجيل حضور آلي بمسح بطاقة الطالب"/.test(server));
+check("add-points QR scan awards attendance through the once-per-day engine", /awardAttendancePoints\(env,\{groupId:student\.group_id,date,studentIds:\[student\.id\],awardedBy:scanner\.id\}\)/.test(server));
 check("support activity uses the support_others rule", /support:\{eventType:\"support_others\"/.test(activity));
 check("support activity requires a valid original achievement amount", /activity===\"support\"&&\(!Number\.isInteger\(basePoints\)\|\|basePoints<1\|\|basePoints>1000\)/.test(activity));
 check("bonus formula applies configured percentage to original points", /Math\.round\(baseAmount\*\(1\+Number\(rule\.bonus_percent\)\/100\)\)/.test(award));
