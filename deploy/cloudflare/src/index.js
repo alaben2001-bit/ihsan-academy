@@ -417,9 +417,22 @@ const cardActive = token => Boolean(token) && !token.revoked_at && (!token.expir
 async function cardRecord(env, cardId) {
   const id = clean(cardId, 80);
   if (!id) return null;
-  const row = await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='student_cards' AND id=?").bind(id).first();
+  const row = await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='student_cards' AND (id=? OR student_id=?) ORDER BY CASE WHEN id=? THEN 0 ELSE 1 END LIMIT 1").bind(id,id,id).first();
   if (!row) return null;
   try { return JSON.parse(row.payload_json); } catch { return null; }
+}
+async function ensureStudentCard(env, student, actorId = null) {
+  if (!student?.id) throw new Error("student_card_requires_student_id");
+  let card = await cardRecord(env, student.id);
+  const created = !card;
+  if (!card) card = { id: student.id, student_id: student.id, group_id: student.group_id || null, name: student.name || student.display_name || "", created_by: actorId, created_at: nowIso(), updated_at: nowIso(), tokens: {} };
+  // Immutable student ID is the identity key; names are display data only.
+  card = { ...card, id: student.id, student_id: student.id, group_id: student.group_id || null, name: student.name || student.display_name || card.name || "" };
+  for (const kind of CARD_KIND_ORDER) {
+    if (!card.tokens?.[kind] || !cardActive(card.tokens[kind]) || !card.tokens[kind].secret) card = await issueCardToken(card, kind);
+  }
+  await saveRecord(env, "student_cards", card);
+  return { card, created };
 }
 function cardPublic(card) {
   const tokens = {};
@@ -1927,6 +1940,7 @@ export default {
       if(kind==="student"){
         studentId=uuid();
         await env.DB.prepare("INSERT INTO students (id,user_id,display_name,group_id,active) VALUES (?,?,?,NULL,1)").bind(studentId,id,name).run();
+        await ensureStudentCard(env,{id:studentId,name,group_id:null},id);
         if(school)await env.DB.prepare("INSERT INTO join_requests (id,user_id,kind,school_id,requested_note,status) VALUES (?,?,'school_join',?,?,'pending')").bind(uuid(),id,school.id,note).run();
       } else if(kind==="teacher"){
         await env.DB.prepare("INSERT INTO join_requests (id,user_id,kind,requested_note,status) VALUES (?,?,'teacher_request',?,'pending')").bind(uuid(),id,note).run();
@@ -2716,9 +2730,10 @@ export default {
       if(!await canManageGroup(env,user,groupId))return fail(403,"لا تملك صلاحية هذا الفوج");
       const id=uuid(),studentId=uuid();
       try{await env.DB.prepare("INSERT INTO users(id,display_name,identity_normalized,password_hash,role,active,must_change_password) VALUES(?,?,?,?, 'student',1,1)").bind(id,name,identity,await passwordHash(password)).run();
-        await env.DB.prepare("INSERT INTO students(id,user_id,display_name,group_id,active) VALUES(?,?,?,?,1)").bind(studentId,id,name,groupId).run();}
-      catch{await env.DB.prepare("DELETE FROM users WHERE id=?").bind(id).run();return fail(409,"اسم الدخول مستخدم بالفعل");}
-      await log(env,user.id,"student_create",{student_id:studentId,group_id:groupId});return json({id:studentId,user_id:id,name,username:identity,group_id:groupId},201);
+        await env.DB.prepare("INSERT INTO students(id,user_id,display_name,group_id,active) VALUES(?,?,?,?,1)").bind(studentId,id,name,groupId).run();
+        await ensureStudentCard(env,{id:studentId,name,group_id:groupId},user.id);}
+      catch{await env.DB.prepare("DELETE FROM students WHERE id=?").bind(studentId).run();await env.DB.prepare("DELETE FROM users WHERE id=?").bind(id).run();return fail(409,"تعذّر إنشاء الطالب وبطاقته؛ تحقق من البيانات ثم أعد المحاولة");}
+      await log(env,user.id,"student_create",{student_id:studentId,group_id:groupId,card_auto_created:true});return json({id:studentId,user_id:id,name,username:identity,group_id:groupId,card_created:true},201);
     }
     const rosterAccountMatch=path.match(/^\/api\/students\/([^/]+)\/account$/);
     if(rosterAccountMatch&&method==="POST"){
@@ -4836,8 +4851,10 @@ export default {
       const student=await studentCardRow(env,studentId);
       if(!student)return fail(404,"ملف الطالب غير موجود");
       if(!await canAccessStudentCard(env,user,student))return fail(403,"هذه البطاقة خارج صلاحيتك");
-      const card=await cardRecord(env,student.id);
-      return json({card:card?cardPublic(card):null,links:card?cardLinks(card,url.origin):{},student:{id:student.id,name:student.name,group_id:student.group_id,group_name:student.group_name||""}});
+      const ensured=await ensureStudentCard(env,student,user.id);
+      const card=ensured.card;
+      if(ensured.created)await log(env,user.id,"student_card_auto_create",{card_id:card.id,student_id:student.id});
+      return json({card:cardPublic(card),links:cardLinks(card,url.origin),student:{id:student.id,name:student.name,group_id:student.group_id,group_name:student.group_name||""},created:ensured.created});
     }
     if(path==="/api/student-cards"&&method==="POST"){
       const parsed=await parseBody(request,4000);if(parsed.error)return parsed.error;const b=parsed.value;
@@ -4846,13 +4863,9 @@ export default {
       const student=await studentCardRow(env,studentId);
       if(!student)return fail(404,"ملف الطالب غير موجود");
       if(!await canAccessStudentCard(env,user,student))return fail(403,"هذه البطاقة خارج صلاحيتك");
-      let card=await cardRecord(env,student.id);
-      const created=!card;
-      if(!card){
-        card={id:student.id,student_id:student.id,group_id:student.group_id,name:student.name,created_by:user.id,created_at:nowIso(),updated_at:nowIso(),tokens:{}};
-        for(const kind of CARD_KIND_ORDER)card=await issueCardToken(card,kind);
-        await saveRecord(env,"student_cards",card);
-      }
+      const ensured=await ensureStudentCard(env,student,user.id);
+      const card=ensured.card;
+      const created=ensured.created;
       await log(env,user.id,created?"student_card_create":"student_card_open",{card_id:card.id,student_id:student.id});
       return json({ok:true,created,card:cardPublic(card),links:cardLinks(card,url.origin),student:{id:student.id,name:student.name,group_id:student.group_id,group_name:student.group_name||""}},created?201:200);
     }
@@ -4868,12 +4881,8 @@ export default {
       const rows=await env.DB.prepare("SELECT id,display_name AS name FROM students WHERE group_id=? AND active=1 ORDER BY display_name LIMIT ? OFFSET ?").bind(groupId,limit,offset).all();
       const cards=[];
       for(const row of rows.results||[]){
-        let card=await cardRecord(env,row.id);
-        if(!card){
-          card={id:row.id,student_id:row.id,group_id:groupId,name:row.name,created_by:user.id,created_at:nowIso(),updated_at:nowIso(),tokens:{}};
-          for(const kind of CARD_KIND_ORDER)card=await issueCardToken(card,kind);
-          await saveRecord(env,"student_cards",card);
-        }
+        const ensured=await ensureStudentCard(env,{id:row.id,name:row.name,group_id:groupId},user.id);
+        const card=ensured.card;
         cards.push({student:{id:row.id,name:row.name,group_id:groupId,group_name:group.name},card:cardPublic(card),links:cardLinks(card,url.origin)});
       }
       await log(env,user.id,"student_cards_bulk",{group_id:groupId,count:cards.length});
