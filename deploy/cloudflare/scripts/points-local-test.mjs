@@ -148,11 +148,15 @@ async function main() {
   const attendance1 = await call("/api/attendance", { method: "POST", token: admin, body: attendanceBody });
   check("attendance save succeeds", attendance1.status === 200, JSON.stringify(attendance1.data));
   const afterAttendance = await call("/api/points/summary?student_id=" + encodeURIComponent(student.id), { token: admin });
-  check("generic attendance rule is disabled until the Sheikh enables a named activity", afterAttendance.data?.totals?.achievement === 30 && afterAttendance.data?.totals?.store === 30, JSON.stringify(afterAttendance.data?.totals));
+  check("present attendance adds 30 points automatically", afterAttendance.data?.totals?.achievement === 60 && afterAttendance.data?.totals?.store === 60, JSON.stringify(afterAttendance.data?.totals));
 
   const attendance2 = await call("/api/attendance", { method: "POST", token: admin, body: attendanceBody });
   const afterAttendance2 = await call("/api/points/summary?student_id=" + encodeURIComponent(student.id), { token: admin });
-  check("re-saving attendance does not create points under the disabled generic rule", attendance2.status === 200 && afterAttendance2.data?.totals?.achievement === 30 && afterAttendance2.data?.totals?.store === 30, JSON.stringify(afterAttendance2.data?.totals));
+  check("re-saving attendance does not duplicate the 30-point award", attendance2.status === 200 && afterAttendance2.data?.totals?.achievement === 60 && afterAttendance2.data?.totals?.store === 60, JSON.stringify(afterAttendance2.data?.totals));
+  const attendanceHistory = await call("/api/points/history?student_id=" + encodeURIComponent(student.id) + "&limit=100", { token: admin });
+  const attendanceEvent = (attendanceHistory.data || []).find(event => event.event_type === "attendance_present" && event.kind === "achievement");
+  const undoAttendanceTest = attendanceEvent ? await call("/api/points/events/" + encodeURIComponent(attendanceEvent.id) + "/reverse", { method: "POST", token: admin, body: { reason: "إعادة تهيئة رصيد اختبار الحضور" } }) : { status: 404 };
+  check("attendance test award can be reversed without deleting its record", undoAttendanceTest.status === 200 && undoAttendanceTest.data?.totals?.balance === 30, JSON.stringify(undoAttendanceTest.data));
 
   const quran = await call("/api/quran/progress", { method: "POST", token: admin, body: { student_id: student.id, date: today, activity: "memorization", memorized: "سورة الملك 1-5" } });
   check("Quran progress save succeeds", quran.status === 201, JSON.stringify(quran.data));
@@ -294,11 +298,10 @@ async function main() {
   check("students can read the competitions list", studentCompetitionList.status === 200 && Array.isArray(studentCompetitionList.data), JSON.stringify(studentCompetitionList.data));
 
   // -------------------------------------------------------------------------
-  // 14) Restore the seeded attendance rule so later suites on the same local
-  //     database (backup, competitions) see the documented 5/2 default.
+  // 14) Restore the academy's configured 30/30 attendance rule for later suites.
   // -------------------------------------------------------------------------
-  const restoreRule = await call("/api/points/rules", { method: "POST", token: admin, body: { id: attendanceRule.id, event_type: "attendance_present", name: attendanceRule.name, description: attendanceRule.description, achievement_points: 5, store_points: 2, max_per_day: 1, auto_award: 1, active: 1, sort_order: attendanceRule.sort_order } });
-  check("attendance rule is restored to the seeded 5/2 default", restoreRule.status === 200 && restoreRule.data?.rule?.store_points === 2, JSON.stringify(restoreRule.data));
+  const restoreRule = await call("/api/points/rules", { method: "POST", token: admin, body: { id: attendanceRule.id, event_type: "attendance_present", name: attendanceRule.name, description: attendanceRule.description, achievement_points: 30, store_points: 30, max_per_day: 1, auto_award: 1, active: 1, sort_order: attendanceRule.sort_order } });
+  check("attendance rule is restored to the academy 30-point default", restoreRule.status === 200 && restoreRule.data?.rule?.store_points === 30 && restoreRule.data?.rule?.achievement_points === 30, JSON.stringify(restoreRule.data));
 
   const report = { base: BASE, failures, passed: results.filter(row => row.ok).length, total: results.length, results };
   const outputPath = process.env.POINTS_TEST_REPORT || "";
