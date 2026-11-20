@@ -726,6 +726,7 @@ const LEARNING_SCHEMA_STATEMENTS = [
     ('rule-support-others','support_others','دعم الآخرين','زيادة ثلاثين بالمئة على الإنجاز المعتمد.',1,1,1,1,1,11)`,
   `UPDATE point_rules SET name='قراءة حزب',description='عشر نقاط للحزب المقروء.',achievement_points=10,store_points=10,max_per_day=1,auto_award=1,active=1 WHERE event_type='quran_reading'`,
   `UPDATE point_rules SET active=1,auto_award=1,achievement_points=30,store_points=30,max_per_day=1 WHERE event_type='attendance_present'`,
+  `UPDATE point_rules SET active=1,auto_award=1,achievement_points=20,store_points=20,max_per_day=1,description='عشرون نقطة للحفظ المعتمد.' WHERE event_type IN ('hifz_no_errors','hifz_tajweed')`,
   `UPDATE point_rules SET active=0,auto_award=0 WHERE event_type='quran_entry'`,
   `CREATE TABLE IF NOT EXISTS student_point_streaks (
     student_id TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
@@ -2047,7 +2048,7 @@ export default {
     if (path === "/api/cards/resolve" && method === "POST") {
       if (!bearerSessionToken(request) && cookieSessionToken(request) && !csrfIsValid(request)) return fail(403,"تعذّر التحقق من حماية الطلب. حدّث الصفحة ثم أعد المحاولة.");
       const parsed=await parseBody(request,4000);if(parsed.error)return parsed.error;const b=parsed.value;
-      const kind=clean(b.kind,20),cardId=clean(b.card_id,80),secret=clean(b.secret,80);
+      const kind=clean(b.kind,20),task=clean(b.task,20),cardId=clean(b.card_id,80),secret=clean(b.secret,80);
       if(!CARD_KINDS[kind])return fail(400,"نوع رمز البطاقة غير معروف");
       if(!cardId||!secret)return fail(400,"رمز البطاقة غير مكتمل");
       // حدّ المسح لكل بطاقة على حدة (لا لكل جهاز) حتى يستطيع الشيخ مسح بطاقات فوجه
@@ -2068,7 +2069,7 @@ export default {
       if(kind==="add_points"&&!["admin","teacher","director","supervisor"].includes(scanner.role))return fail(403,"مسح بطاقة إضافة النقاط متاح للمشرفين المصرح لهم فقط");
       let attendance=null;
       let attendanceAwards=[];
-      if(kind==="add_points"){
+      if(kind==="add_points"&&task!=="hifz"){
         const date=academyDate();
         const row={id:date+":"+student.id,student_id:student.id,group_id:student.group_id,date,status:"present",note:"تسجيل حضور آلي بمسح بطاقة الطالب",marked_by:scanner.id,updated_at:nowIso()};
         await env.DB.prepare("INSERT INTO academy_records(collection,id,owner_user_id,group_id,student_id,payload_json,updated_at) VALUES('attendance',?,?,?,?,?,?) ON CONFLICT(collection,id) DO UPDATE SET owner_user_id=excluded.owner_user_id,group_id=excluded.group_id,student_id=excluded.student_id,payload_json=excluded.payload_json,updated_at=excluded.updated_at").bind(row.id,scanner.id,student.group_id,student.id,JSON.stringify(row),row.updated_at).run();
