@@ -551,7 +551,9 @@ assert.match(app, /pending_review:"بانتظار مراجعة الشيخ"/, "co
 // server-side rate limiting. All state reuses existing tables/records stores.
 assert.match(backend, /collection='student_cards'/, "student cards must reuse the existing academy_records store");
 assert.doesNotMatch(backend, /CREATE TABLE IF NOT EXISTS student_cards/, "student cards must not add a duplicate table");
-assert.match(backend, /card=\{id:student\.id,student_id:student\.id/, "the card id must equal the student id (one card per student)");
+assert.match(backend, /async function ensureStudentCard\(env, student, actorId = null\)/, "every student must have an idempotent card ensure function");
+assert.match(backend, /id: student\.id, student_id: student\.id/, "the canonical card id and student_id must both use the immutable student id");
+assert.match(backend, /ORDER BY CASE WHEN id=\? THEN 0 ELSE 1 END LIMIT 1/, "legacy card lookup must prefer the canonical student id and recover mislinked cards");
 assert.match(backend, /const CARD_KINDS = \{/, "card QR kinds must be declared explicitly");
 assert.match(backend, /add_points: \{ label: "إضافة نقاط", ttlDays: 90, requiresAuth: true \}/, "the add-points QR must expire after 90 days");
 assert.match(backend, /profile: \{ label: "الملف الشخصي", ttlDays: 365, requiresAuth: true \}/, "the profile QR must expire after 365 days");
