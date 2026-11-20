@@ -2188,11 +2188,13 @@ async function scanPage(v){
     {id:"assignment",label:"تعيين مهمة",hint:"إسناد تكليف خاص للطالب",symbol:"＋"},
     {id:"general",label:"متابعة شاملة",hint:"فتح أدوات المتابعة المتكاملة",symbol:"◈"}
   ];
-  const taskLabel=()=>((taskDefinitions.find(t=>t.id===taskType.value)||{}).label)||"";
+  const selectedTaskIds=()=>String(taskType.value||"").split(",").filter(Boolean);
+  const taskLabel=()=>selectedTaskIds().map(id=>taskDefinitions.find(t=>t.id===id)?.label).filter(Boolean).join(" + ");
   const taskTiles=taskDefinitions.filter(t=>t.id!=="points"||S.user.role==="admin").map(t=>'<button type="button" class="scan-task-option" data-scan-task="'+t.id+'" aria-pressed="false"><span class="scan-task-symbol" aria-hidden="true">'+t.symbol+'</span><span class="scan-task-copy"><strong>'+t.label+'</strong><small>'+t.hint+'</small></span><span class="scan-task-check" aria-hidden="true">✓</span></button>').join("");
   const pointActivities=[["fajr","الفجر · 30"],["shuruq","الشروق · 20"],["maghrib","المغرب · 10"],["hizb","قراءة حزب · 10"],["hifz_no_errors","حفظ ثمن بلا أخطاء · 20"],["hifz_tajweed","حفظ ثمن بالتجويد · 20"],["poetry","أربعة أبيات · 5"],["support","دعم الآخرين · +30%"]];
   const pointActivityTiles=pointActivities.map(([id,label])=>'<button type="button" class="scan-point-option" data-scan-pre-activity="'+id+'">'+esc(label)+'</button>').join("");
-  const savedTask=taskDefinitions.some(t=>t.id===S.scanTaskType&&(t.id!=="points"||S.user.role==="admin"))?S.scanTaskType:"";
+  const savedIds=String(S.scanTaskType||"").split(",").filter(id=>taskDefinitions.some(t=>t.id===id&&(id!=="points"||S.user.role==="admin")));
+  const savedTask=savedIds.join(",");
   v.innerHTML=head("المسح والمتابعة","اختر المهمة مرة واحدة، ثم امسح بطاقة الطالب؛ يتعرّف النظام تلقائيًا إلى فوجه ضمن نطاق صلاحيتك.")
     +'<section class="card scan-task-setup scan-task-studio"><input id="scan-task-type" type="hidden" value="'+esc(savedTask)+'">'
     +'<div class="scan-task-topline"><span class="scan-task-kicker">ابدأ من هنا</span><span class="scan-task-date-hint">اليوم · تلقائي</span></div>'
@@ -2224,26 +2226,28 @@ async function scanPage(v){
     listEl.querySelectorAll("[data-scan-pick]").forEach(btn=>btn.onclick=()=>selectStudent(btn.dataset.scanPick));
   };
   const updateTask=()=>{
-    S.scanTaskType=taskType.value;S.scanDate=taskDate.value;S.date=taskDate.value;safeStore.set("ihsan_attendance_date",taskDate.value);
-    const selected=taskDefinitions.find(t=>t.id===taskType.value);
-    const pointsMode=Boolean(selected&&(selected.id==="points"||selected.id==="general")&&S.user.role==="admin");
-    pointPicker.classList.toggle("hidden",!(pointsMode&&S.user.role==="admin"));
-    v.querySelector("#scan-task-launcher-title").textContent=selected?selected.label:"اختر مهمة المتابعة";
-    v.querySelector("#scan-task-launcher-subtitle").textContent=selected?"تم اختيار المهمة — امسح بطاقة الطالب أو ابحث عنه":"اضغط لعرض المهام على شكل بطاقات";
-    toggle.classList.toggle("has-selection",Boolean(selected));
+    const ids=selectedTaskIds();
+    S.scanTaskType=ids.join(",");S.scanDate=taskDate.value;S.date=taskDate.value;safeStore.set("ihsan_attendance_date",taskDate.value);
+    const selected=ids.map(id=>taskDefinitions.find(t=>t.id===id)).filter(Boolean);
+    const pointsMode=selected.some(t=>(t.id==="points"||t.id==="general")&&S.user.role==="admin");
+    pointPicker.classList.toggle("hidden",!pointsMode);
+    const label=selected.map(t=>t.label).join(" + ");
+    v.querySelector("#scan-task-launcher-title").textContent=label||"اختر مهمة المتابعة";
+    v.querySelector("#scan-task-launcher-subtitle").textContent=selected.length?"تم اختيار "+selected.length+" مهمة — امسح بطاقة الطالب أو ابحث عنه":"اضغط لعرض المهام على شكل بطاقات";
+    toggle.classList.toggle("has-selection",selected.length>0);
     const activityReady=!pointsMode||Boolean(S.scanActivity);
-    ready.textContent=!selected?"اختر مهمة لفتح المسح.":!activityReady?"اختر نشاط النقاط أولًا.":"جاهز: "+selected.label;
-    ready.parentElement.classList.toggle("is-ready",Boolean(selected&&activityReady));
-    startButton.disabled=!(selected&&taskDate.value&&activityReady);
-    v.querySelectorAll("[data-scan-task]").forEach(button=>{const active=button.dataset.scanTask===taskType.value;button.classList.toggle("is-selected",active);button.setAttribute("aria-pressed",String(active))});
+    ready.textContent=!selected.length?"اختر مهمة لفتح المسح.":!activityReady?"اختر نشاط النقاط أولًا.":"جاهز: "+label;
+    ready.parentElement.classList.toggle("is-ready",Boolean(selected.length&&activityReady));
+    startButton.disabled=!(selected.length&&taskDate.value&&activityReady);
+    v.querySelectorAll("[data-scan-task]").forEach(button=>{const active=ids.includes(button.dataset.scanTask);button.classList.toggle("is-selected",active);button.setAttribute("aria-pressed",String(active))});
     v.querySelectorAll("[data-scan-pre-activity]").forEach(button=>{const active=button.dataset.scanPreActivity===S.scanActivity;button.classList.toggle("is-selected",active);button.setAttribute("aria-pressed",String(active))});
-    status.textContent=selected&&taskDate.value?"جاهز للمسح: "+selected.label:"اختر المهمة أولًا، ثم شغّل الكاميرا.";
+    status.textContent=selected.length&&taskDate.value?"جاهز للمسح: "+label:"اختر المهمة أولًا، ثم شغّل الكاميرا.";
     renderList();
   };
   const openTaskPicker=()=>{setPickerOpen(true);toggle.focus()};
   const selectStudent=id=>{
     const st=students.find(x=>String(x.id)===String(id));
-    if(!taskType.value||!taskDate.value){openTaskPicker();toast("اختر المهمة أولًا.",true);return}
+    if(!selectedTaskIds().length||!taskDate.value){openTaskPicker();toast("اختر المهمة أولًا.",true);return}
     if(["points","general"].includes(taskType.value)&&S.user.role==="admin"&&!S.scanActivity){toast("اختر نشاط النقاط قبل مسح البطاقة.",true);pointPicker.scrollIntoView({behavior:"smooth",block:"center"});return}
     if(!st){toast("هذا الطالب خارج نطاق صلاحيتك؛ لم تُفتح المتابعة.",true);return}
     S.scanGroupId=String(st.group_id||"");S.scanStudentId=st.id;
@@ -2253,7 +2257,7 @@ async function scanPage(v){
   };
   toggle.addEventListener("click",()=>setPickerOpen(!picker.classList.contains("is-open")));
   taskDate.addEventListener("change",updateTask);
-  v.querySelectorAll("[data-scan-task]").forEach(button=>button.addEventListener("click",()=>{taskType.value=button.dataset.scanTask;if(!["points","general"].includes(taskType.value))S.scanActivity="";updateTask();setPickerOpen(false)}));
+  v.querySelectorAll("[data-scan-task]").forEach(button=>button.addEventListener("click",()=>{const id=button.dataset.scanTask;let ids=selectedTaskIds();if(["attendance","hifz"].includes(id)){ids=ids.filter(x=>["attendance","hifz"].includes(x));ids=ids.includes(id)?ids.filter(x=>x!==id):[...ids,id];}else{ids=[id];}taskType.value=ids.join(",");if(!ids.some(x=>["points","general"].includes(x)))S.scanActivity="";updateTask();if(!["attendance","hifz"].includes(id)||!ids.length)setPickerOpen(false)}));
   v.querySelectorAll("[data-scan-pre-activity]").forEach(button=>button.addEventListener("click",()=>{if(S.user.role!=="admin")return;S.scanActivity=button.dataset.scanPreActivity;v.querySelectorAll("[data-scan-pre-activity]").forEach(item=>item.classList.toggle("is-selected",item.dataset.scanPreActivity===S.scanActivity));updateTask();if(S.scanStudentId)renderScanPanel(v,S.scanStudentId)}));
   v.querySelector("#scan-search").addEventListener("input",renderList);
   let scanning=false;
@@ -2263,7 +2267,7 @@ async function scanPage(v){
     if(scanning)return;
     if(!window.IhsanScanner){status.textContent="تعذر تحميل الماسح. حدّث الصفحة وحاول مجددًا.";status.classList.add("error");return}
     scanning=true;status.textContent="جار تشغيل الكاميرا…";status.classList.remove("error");
-    const ok=await window.IhsanScanner.start(video,async raw=>{scanning=false;try{window.IhsanScanner.stop()}catch{}await handleScannedText(v,raw);if(v.isConnected&&["attendance","hifz"].includes(S.scanTaskType))setTimeout(()=>{if(v.isConnected&&!scanning)startButton.click()},250)},err=>{scanning=false;status.textContent=(err&&err.message)||"تعذر تشغيل الكاميرا";status.classList.add("error")});
+    const ok=await window.IhsanScanner.start(video,async raw=>{scanning=false;try{window.IhsanScanner.stop()}catch{}await handleScannedText(v,raw);if(v.isConnected&&selectedTaskIds().some(id=>["attendance","hifz"].includes(id)))setTimeout(()=>{if(v.isConnected&&!scanning)startButton.click()},250)},err=>{scanning=false;status.textContent=(err&&err.message)||"تعذر تشغيل الكاميرا";status.classList.add("error")});
     if(ok)status.textContent="وجّه الكاميرا نحو بطاقة الطالب…";else scanning=false;
   });
   v.querySelector("#scan-stop").addEventListener("click",()=>{scanning=false;try{window.IhsanScanner.stop()}catch{}status.textContent="الكاميرا متوقفة."});
@@ -2281,20 +2285,33 @@ async function handleScannedText(v,raw){
   if(parts.length<3||!["add_points","profile","login"].includes(kind)){toast("هذا الرمز ليس بطاقة طالب صالحة أو أنه غير مكتمل",true);return}
   const cardId=parts[1],secret=parts.slice(2).join(".");
   try{
-    const result=await api("/cards/resolve",{method:"POST",body:JSON.stringify({kind,task:S.scanTaskType||"attendance",card_id:cardId,secret})});
-    const student=result&&result.student;
+    const taskIds=selectedTaskIds();
+    if(!taskIds.length||!S.scanDate){toast("اختر مهمة المتابعة أولًا.",true);return}
+    if(taskIds.some(id=>["points","general"].includes(id))&&kind!=="add_points"){toast("لمنح النقاط يجب مسح رمز «إضافة نقاط» الخاص بالطالب، لا رمز الملف أو الدخول.",true);return}
+    if(taskIds.some(id=>["points","general"].includes(id))&&S.user.role==="admin"&&!S.scanActivity){toast("اختر نشاط النقاط قبل مسح البطاقة.",true);return}
+    const tasks=(kind==="add_points"&&taskIds.every(id=>["attendance","hifz"].includes(id)))?taskIds:[taskIds[0]];
+    const results=[];
+    for(const task of tasks){
+      results.push(await api("/cards/resolve",{method:"POST",body:JSON.stringify({kind,task,card_id:cardId,secret})}));
+    }
+    const result=results[0],student=result&&result.student;
     if(!student||!student.id)throw new Error("تعذر قراءة بيانات البطاقة");
-    if(!S.scanTaskType||!S.scanDate){toast("اختر مهمة المتابعة أولًا.",true);return}
-    if(["points","general"].includes(S.scanTaskType)&&kind!=="add_points"){toast("لمنح النقاط يجب مسح رمز «إضافة نقاط» الخاص بالطالب، لا رمز الملف أو الدخول.",true);return}
-    if(["points","general"].includes(S.scanTaskType)&&S.user.role==="admin"&&!S.scanActivity){toast("اختر نشاط النقاط قبل مسح البطاقة.",true);return}
     const authorizedRoster=v.__scanStudents||[];
     const rosterStudent=authorizedRoster.find(st=>String(st.id)===String(student.id));
     if(!rosterStudent){toast("هذا الطالب خارج نطاق صلاحيتك؛ لم تُفتح المتابعة.",true);return}
     // Use the roster row matched by immutable student ID; never match or award by name.
     S.scanGroupId=String(rosterStudent.group_id||"");
     S.scanStudentId=String(rosterStudent.id);
-    const kindLabel={add_points:"رمز إضافة النقاط",profile:"رمز الملف الشخصي",login:"رمز الدخول"}[kind]||"بطاقة";
-    if(kind==="add_points"&&S.scanTaskType==="attendance")toast("حضور "+String(rosterStudent.name||student.name||"طالب")+" — "+(result.attendance_awards?.length?"30 نقطة، ولا تتكرر اليوم":"تم تسجيل الحضور مسبقًا اليوم."));else if(kind==="add_points"&&S.scanTaskType==="hifz")toast("حفظ "+String(rosterStudent.name||student.name||"طالب")+" — "+(result.hifz_awards?.some(x=>x.status==="awarded")?"20 نقطة":"مكافأة الحفظ مسجلة اليوم."));else toast("تم ربط البطاقة بالطالب: "+String(rosterStudent.name||student.name||"طالب")+" · "+kindLabel);
+    const attendanceResult=results.find((_,i)=>tasks[i]==="attendance");
+    const hifzResult=results.find((_,i)=>tasks[i]==="hifz");
+    const name=String(rosterStudent.name||student.name||"طالب");
+    if(kind==="add_points"&&tasks.length>1){
+      const a=attendanceResult?.attendance_awards?.length?"30 نقطة حضور":"الحضور مسجل اليوم";
+      const h=hifzResult?.hifz_awards?.some(x=>x.status==="awarded")?"20 نقطة حفظ":"مكافأة الحفظ مسجلة اليوم";
+      toast(name+" — "+a+" + "+h);
+    }else if(kind==="add_points"&&tasks[0]==="attendance")toast("حضور "+name+" — "+(result.attendance_awards?.length?"30 نقطة، ولا تتكرر اليوم":"تم تسجيل الحضور مسبقًا اليوم."));
+    else if(kind==="add_points"&&tasks[0]==="hifz")toast("حفظ "+name+" — "+(result.hifz_awards?.some(x=>x.status==="awarded")?"20 نقطة":"مكافأة الحفظ مسجلة اليوم."));
+    else toast("تم ربط البطاقة بالطالب: "+name+" · "+({add_points:"رمز إضافة النقاط",profile:"رمز الملف الشخصي",login:"رمز الدخول"}[kind]||"بطاقة"));
     renderScanPanel(v,String(rosterStudent.id));
   }catch(error){toast(error.message||"تعذر استخدام البطاقة",true)}
 }
