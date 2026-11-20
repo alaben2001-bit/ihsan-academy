@@ -2052,7 +2052,7 @@ export default {
       if(!cardId||!secret)return fail(400,"رمز البطاقة غير مكتمل");
       // حدّ المسح لكل بطاقة على حدة (لا لكل جهاز) حتى يستطيع الشيخ مسح بطاقات فوجه
       // كاملة من جهاز واحد، مع حماية كل بطاقة من تخمين الرمز السري.
-      const limited=await rateLimit(env,"card-resolve:"+kind,kind==="login"?cardId:rateLimitKey(request),kind==="login"?12:40,600);
+      const limited=await rateLimit(env,"card-resolve:"+kind,kind==="login"?cardId:rateLimitKey(request),kind==="login"?12:300,600);
       if(!limited.allowed)return json({error:"محاولات مسح كثيرة خلال وقت قصير. انتظر قليلًا ثم أعد المحاولة.",retry_after:limited.retry_after},429,{"retry-after":String(limited.retry_after)});
       const card=await cardRecord(env,cardId);
       if(!card||!await verifyCardToken(card,kind,secret))return fail(404,"رمز البطاقة غير صالح أو منتهٍ. اطلب إعادة إصداره من الإدارة.");
@@ -2066,9 +2066,19 @@ export default {
       if(!scanner)return fail(401,"سجّل الدخول أولًا ثم أعد مسح البطاقة.");
       if(!await canAccessStudentCard(env,scanner,student))return fail(403,"هذه البطاقة خارج صلاحيتك");
       if(kind==="add_points"&&scanner.role!=="admin")return fail(403,"رمز إضافة النقاط مخصص لحساب الشيخ وحده");
+      let attendance=null;
+      let attendanceAwards=[];
+      if(kind==="add_points"){
+        const date=academyDate();
+        const row={id:date+":"+student.id,student_id:student.id,group_id:student.group_id,date,status:"present",note:"تسجيل حضور آلي بمسح بطاقة الطالب",marked_by:scanner.id,updated_at:nowIso()};
+        await env.DB.prepare("INSERT INTO academy_records(collection,id,owner_user_id,group_id,student_id,payload_json,updated_at) VALUES('attendance',?,?,?,?,?,?) ON CONFLICT(collection,id) DO UPDATE SET owner_user_id=excluded.owner_user_id,group_id=excluded.group_id,student_id=excluded.student_id,payload_json=excluded.payload_json,updated_at=excluded.updated_at").bind(row.id,scanner.id,student.group_id,student.id,JSON.stringify(row),row.updated_at).run();
+        await awardAttendancePoints(env,{groupId:student.group_id,date,studentIds:[student.id],awardedBy:scanner.id});
+        attendance={date,status:"present",automatic:true};
+        attendanceAwards=(await env.DB.prepare("SELECT kind,points,event_key FROM point_events WHERE student_id=? AND event_type='attendance_present' AND awarded_date=? AND event_key=? AND reversed_at IS NULL").bind(student.id,date,"attendance:"+date+":"+student.id).all()).results||[];
+      }
       const totals=await pointsTotals(env,student.id);
       await log(env,scanner.id,"student_card_scan_"+kind,{card_id:card.id,student_id:student.id});
-      return json({ok:true,kind,student:{id:student.id,name:student.name,group_id:student.group_id,group_name:student.group_name||""},totals,next:kind==="add_points"?"points":"profile"});
+      return json({ok:true,kind,student:{id:student.id,name:student.name,group_id:student.group_id,group_name:student.group_name||""},totals,attendance,attendance_awards:attendanceAwards,next:kind==="add_points"?"points":"profile"});
     }
     const user=await currentUser(request,env); if(!user)return fail(401,"يرجى تسجيل الدخول");
     if (!bearerSessionToken(request) && cookieSessionToken(request) && ["POST","PUT","PATCH","DELETE"].includes(method) && !csrfIsValid(request)) return fail(403,"تعذّر التحقق من حماية الطلب. حدّث الصفحة ثم أعد المحاولة.");
