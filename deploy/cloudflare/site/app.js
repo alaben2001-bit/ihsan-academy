@@ -2200,7 +2200,7 @@ async function scanPage(v){
     +'<div class="scan-task-topline"><span class="scan-task-kicker">ابدأ من هنا</span><span class="scan-task-date-hint">اليوم · تلقائي</span></div>'
     +'<div class="scan-task-controls"><button type="button" id="scan-task-toggle" class="scan-task-launcher" aria-expanded="false" aria-controls="scan-task-picker"><span class="scan-task-launcher-symbol" aria-hidden="true">✦</span><span class="scan-task-launcher-copy"><strong id="scan-task-launcher-title">اختر مهمة المتابعة</strong><small id="scan-task-launcher-subtitle">اضغط لعرض المهام على شكل بطاقات</small></span><span class="scan-task-launcher-arrow" aria-hidden="true">⌄</span></button>'
     +'<input id="scan-task-date" type="hidden" value="'+localDateISO()+'"></div>'
-    +'<div id="scan-task-picker" class="scan-task-picker" aria-label="مهام المتابعة"><div class="scan-task-grid-inner"><div class="scan-task-grid" role="group" aria-label="اختر مهمة">'+taskTiles+'</div></div></div>'
+    +'<div id="scan-task-picker" class="scan-task-picker is-open" aria-label="مهام المتابعة"><div class="scan-task-grid-inner"><p class="scan-task-multi-hint">اختر مهمة أو أكثر — يمكنك تحديد الحضور والحفظ معًا، وستبقى اختياراتك ظاهرة بعلامة ✓.</p><div class="scan-task-grid" role="group" aria-label="اختر مهمة أو أكثر">'+taskTiles+'</div></div></div>'
     +'<section id="scan-point-picker" class="scan-point-picker hidden" aria-label="أنشطة النقاط"><div class="scan-point-heading"><strong>أنشطة النقاط — اختر قبل المسح</strong><small>لا فوج ولا إعدادات إضافية؛ سيُعرف الطالب تلقائيًا من بطاقته.</small></div><div class="scan-point-grid">'+pointActivityTiles+'</div></section>'
     +'<div class="scan-task-feedback"><span class="scan-task-feedback-dot" aria-hidden="true"></span><span id="scan-task-ready" role="status">اختر مهمة لفتح المسح.</span></div></section>'
     +'<div class="scan-layout">'
@@ -2271,7 +2271,7 @@ async function scanPage(v){
     if(ok)status.textContent="وجّه الكاميرا نحو بطاقة الطالب…";else scanning=false;
   });
   v.querySelector("#scan-stop").addEventListener("click",()=>{scanning=false;try{window.IhsanScanner.stop()}catch{}status.textContent="الكاميرا متوقفة."});
-  setPickerOpen(false);updateTask();
+  setPickerOpen(true);updateTask();
   if(S.scanStudentId&&students.some(st=>String(st.id)===String(S.scanStudentId))&&taskType.value&&taskDate.value){
     const existing=students.find(st=>String(st.id)===String(S.scanStudentId));S.scanGroupId=String(existing.group_id||"");renderScanPanel(v,S.scanStudentId);
   }
