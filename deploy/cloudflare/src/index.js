@@ -2721,7 +2721,12 @@ export default {
       if(groupId){sql+=" AND group_id=?";binds.push(groupId);}
       sql+=" ORDER BY display_name";
       const r=await env.DB.prepare(sql).bind(...binds).all();
-      return json(r.results||[]);
+      const students=r.results||[];
+      // Repair/create missing cards for every student visible in this roster.
+      for(const student of students){
+        await ensureStudentCard(env,{id:student.id,name:student.name,group_id:student.group_id},user.id);
+      }
+      return json(students);
     }
     if(path==="/api/students"&&method==="POST"){
       if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"غير مسموح");const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
