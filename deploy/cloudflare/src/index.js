@@ -1809,6 +1809,65 @@ function competitionJsonFields(row) {
   };
 }
 
+// النسخة الاحتياطية الكاملة — نفس استعلامات بوابة التصدير؛ يستخدمها التصدير والمجدول اليومي (R2).
+async function buildFullBackup(env) {
+const [users,groups,students,recordsResult,schools,audit,googleIdentities,pointRules,pointEvents,storeItems,storeRedemptions,quranPaths,quranDaily,quranPairs,quranPairSessions,quranStations,quranMakeups,competitionCategories,competitions,competitionRegistrations,competitionJudges,competitionScores,competitionResults,competitionEvents,competitionTerms]=await Promise.all([
+  env.DB.prepare("SELECT id,display_name,identity_normalized,password_hash,role,active,must_change_password,created_at FROM users ORDER BY created_at").all(),
+  env.DB.prepare("SELECT id,name,school_id,active,created_at,teacher_id FROM groups ORDER BY created_at").all(),
+  env.DB.prepare("SELECT id,user_id,display_name,group_id,active,created_at FROM students ORDER BY created_at").all(),
+  env.DB.prepare("SELECT collection,id,owner_user_id,group_id,student_id,payload_json,updated_at FROM academy_records ORDER BY collection,updated_at").all(),
+  env.DB.prepare("SELECT id,name,description,active,sort_order,created_at FROM quran_schools ORDER BY sort_order,name").all(),
+  env.DB.prepare("SELECT id,user_id,action,metadata_json,created_at FROM audit_log ORDER BY created_at").all(),
+  env.DB.prepare("SELECT google_sub,user_id,email,linked_at FROM google_identities ORDER BY linked_at").all(),
+  env.DB.prepare("SELECT * FROM point_rules ORDER BY sort_order,id").all(),
+  env.DB.prepare("SELECT * FROM point_events ORDER BY created_at").all(),
+  env.DB.prepare("SELECT * FROM store_items ORDER BY sort_order,id").all(),
+  env.DB.prepare("SELECT * FROM store_redemptions ORDER BY requested_at").all(),
+  env.DB.prepare("SELECT * FROM quran_paths ORDER BY created_at").all(),
+  env.DB.prepare("SELECT * FROM quran_daily ORDER BY day,created_at").all(),
+  env.DB.prepare("SELECT * FROM quran_pairs ORDER BY created_at").all(),
+  env.DB.prepare("SELECT * FROM quran_pair_sessions ORDER BY day,created_at").all(),
+  env.DB.prepare("SELECT * FROM quran_stations ORDER BY scheduled_for").all(),
+  env.DB.prepare("SELECT * FROM quran_makeups ORDER BY due_date").all(),
+  env.DB.prepare("SELECT * FROM competition_categories ORDER BY sort_order,id").all(),
+  env.DB.prepare("SELECT * FROM competitions ORDER BY created_at").all(),
+  env.DB.prepare("SELECT * FROM competition_registrations ORDER BY registered_at").all(),
+  env.DB.prepare("SELECT * FROM competition_judges ORDER BY created_at").all(),
+  env.DB.prepare("SELECT * FROM competition_scores ORDER BY scored_at").all(),
+  env.DB.prepare("SELECT * FROM competition_results ORDER BY created_at").all(),
+  env.DB.prepare("SELECT * FROM competition_events ORDER BY event_date").all(),
+  env.DB.prepare("SELECT * FROM competition_reference_terms ORDER BY sort_order,id").all()
+]);
+const payload={format:"ihsan-academy-full-backup-v4",created_at:nowIso(),notice:"نسخة كاملة قابلة للدمج والاستعادة: تتضمن بصمات كلمات المرور وروابط Google، واقتصاد النقاط، ومسار القرآن، ومنظومة المسابقات. تعامل معها كملف سري. لا تتضمن رموز الجلسات أو محاولات الدخول؛ سيحتاج المستخدمون إلى تسجيل الدخول مجددًا عند النقل إلى قاعدة جديدة.",data:{
+  users:users.results||[],
+  google_identities:googleIdentities.results||[],
+  groups:groups.results||[],
+  students:students.results||[],
+  academy_records:(recordsResult.results||[]).map(r=>{let value=null;try{value=JSON.parse(r.payload_json)}catch{}return {collection:r.collection,id:r.id,owner_user_id:r.owner_user_id,group_id:r.group_id,student_id:r.student_id,updated_at:r.updated_at,payload:value}}),
+  quran_schools:schools.results||[],
+  audit_log:audit.results||[],
+  point_rules:pointRules.results||[],
+  point_events:pointEvents.results||[],
+  store_items:storeItems.results||[],
+  store_redemptions:storeRedemptions.results||[],
+  quran_paths:quranPaths.results||[],
+  quran_daily:quranDaily.results||[],
+  quran_pairs:quranPairs.results||[],
+  quran_pair_sessions:quranPairSessions.results||[],
+  quran_stations:quranStations.results||[],
+  quran_makeups:quranMakeups.results||[],
+  competition_categories:competitionCategories.results||[],
+  competitions:competitions.results||[],
+  competition_registrations:competitionRegistrations.results||[],
+  competition_judges:competitionJudges.results||[],
+  competition_scores:competitionScores.results||[],
+  competition_results:competitionResults.results||[],
+  competition_events:competitionEvents.results||[],
+  competition_reference_terms:competitionTerms.results||[]
+}};
+  return payload;
+}
+
 export default {
   async fetch(request, env) {
     const url = new URL(request.url), path = url.pathname, method = request.method.toUpperCase();
@@ -5133,60 +5192,8 @@ export default {
       if(user.role!=="admin")return fail(403,"forbidden");
       try { await log(env,user.id,"admin_backup_full_export",{format:"ihsan-academy-full-backup-v4"}); }
       catch (auditError) { console.error("Ihsan full-backup audit failed",{message:String(auditError?.message||auditError)}); }
-      const [users,groups,students,recordsResult,schools,audit,googleIdentities,pointRules,pointEvents,storeItems,storeRedemptions,quranPaths,quranDaily,quranPairs,quranPairSessions,quranStations,quranMakeups,competitionCategories,competitions,competitionRegistrations,competitionJudges,competitionScores,competitionResults,competitionEvents,competitionTerms]=await Promise.all([
-        env.DB.prepare("SELECT id,display_name,identity_normalized,password_hash,role,active,must_change_password,created_at FROM users ORDER BY created_at").all(),
-        env.DB.prepare("SELECT id,name,school_id,active,created_at,teacher_id FROM groups ORDER BY created_at").all(),
-        env.DB.prepare("SELECT id,user_id,display_name,group_id,active,created_at FROM students ORDER BY created_at").all(),
-        env.DB.prepare("SELECT collection,id,owner_user_id,group_id,student_id,payload_json,updated_at FROM academy_records ORDER BY collection,updated_at").all(),
-        env.DB.prepare("SELECT id,name,description,active,sort_order,created_at FROM quran_schools ORDER BY sort_order,name").all(),
-        env.DB.prepare("SELECT id,user_id,action,metadata_json,created_at FROM audit_log ORDER BY created_at").all(),
-        env.DB.prepare("SELECT google_sub,user_id,email,linked_at FROM google_identities ORDER BY linked_at").all(),
-        env.DB.prepare("SELECT * FROM point_rules ORDER BY sort_order,id").all(),
-        env.DB.prepare("SELECT * FROM point_events ORDER BY created_at").all(),
-        env.DB.prepare("SELECT * FROM store_items ORDER BY sort_order,id").all(),
-        env.DB.prepare("SELECT * FROM store_redemptions ORDER BY requested_at").all(),
-        env.DB.prepare("SELECT * FROM quran_paths ORDER BY created_at").all(),
-        env.DB.prepare("SELECT * FROM quran_daily ORDER BY day,created_at").all(),
-        env.DB.prepare("SELECT * FROM quran_pairs ORDER BY created_at").all(),
-        env.DB.prepare("SELECT * FROM quran_pair_sessions ORDER BY day,created_at").all(),
-        env.DB.prepare("SELECT * FROM quran_stations ORDER BY scheduled_for").all(),
-        env.DB.prepare("SELECT * FROM quran_makeups ORDER BY due_date").all(),
-        env.DB.prepare("SELECT * FROM competition_categories ORDER BY sort_order,id").all(),
-        env.DB.prepare("SELECT * FROM competitions ORDER BY created_at").all(),
-        env.DB.prepare("SELECT * FROM competition_registrations ORDER BY registered_at").all(),
-        env.DB.prepare("SELECT * FROM competition_judges ORDER BY created_at").all(),
-        env.DB.prepare("SELECT * FROM competition_scores ORDER BY scored_at").all(),
-        env.DB.prepare("SELECT * FROM competition_results ORDER BY created_at").all(),
-        env.DB.prepare("SELECT * FROM competition_events ORDER BY event_date").all(),
-        env.DB.prepare("SELECT * FROM competition_reference_terms ORDER BY sort_order,id").all()
-      ]);
-      const payload={format:"ihsan-academy-full-backup-v4",created_at:nowIso(),notice:"نسخة كاملة قابلة للدمج والاستعادة: تتضمن بصمات كلمات المرور وروابط Google، واقتصاد النقاط، ومسار القرآن، ومنظومة المسابقات. تعامل معها كملف سري. لا تتضمن رموز الجلسات أو محاولات الدخول؛ سيحتاج المستخدمون إلى تسجيل الدخول مجددًا عند النقل إلى قاعدة جديدة.",data:{
-        users:users.results||[],
-        google_identities:googleIdentities.results||[],
-        groups:groups.results||[],
-        students:students.results||[],
-        academy_records:(recordsResult.results||[]).map(r=>{let value=null;try{value=JSON.parse(r.payload_json)}catch{}return {collection:r.collection,id:r.id,owner_user_id:r.owner_user_id,group_id:r.group_id,student_id:r.student_id,updated_at:r.updated_at,payload:value}}),
-        quran_schools:schools.results||[],
-        audit_log:audit.results||[],
-        point_rules:pointRules.results||[],
-        point_events:pointEvents.results||[],
-        store_items:storeItems.results||[],
-        store_redemptions:storeRedemptions.results||[],
-        quran_paths:quranPaths.results||[],
-        quran_daily:quranDaily.results||[],
-        quran_pairs:quranPairs.results||[],
-        quran_pair_sessions:quranPairSessions.results||[],
-        quran_stations:quranStations.results||[],
-        quran_makeups:quranMakeups.results||[],
-        competition_categories:competitionCategories.results||[],
-        competitions:competitions.results||[],
-        competition_registrations:competitionRegistrations.results||[],
-        competition_judges:competitionJudges.results||[],
-        competition_scores:competitionScores.results||[],
-        competition_results:competitionResults.results||[],
-        competition_events:competitionEvents.results||[],
-        competition_reference_terms:competitionTerms.results||[]
-      }};
+      const payload=await buildFullBackup(env);
+
       return json(payload,200,{"content-disposition":'attachment; filename="ihsan-academy-full-backup.json"',"cache-control":"no-store"});
     }
     if(path==="/api/admin/backup/restore"&&method==="POST"){
@@ -5388,6 +5395,27 @@ export default {
       console.error("Ihsan API request failed", { path, method, message: String(error?.message || error) });
       if (path.startsWith("/api/")) return fail(500, "حدث خطأ داخلي أثناء معالجة الطلب. تم تسجيل الخطأ للتشخيص؛ أعد المحاولة.");
       return new Response("Internal Server Error", { status: 500 });
+    }
+  },
+  // مجدول نسخة احتياطية يومية: يبني النسخة الكاملة ثم يرفعها إلى R2 (يحتفظ بآخر 14 نسخة).
+  // في حال الفشل يسجّل "backup_scheduled_failure" في سجل التدقيق ولا يُفشل الإطلاق.
+  async scheduled(event, env) {
+    try {
+      if (!env.BACKUPS) throw new Error("BACKUPS (R2) binding is not configured");
+      const payload = await buildFullBackup(env);
+      const key = "backups/ihsan-academy-full-backup-v4-" + new Date().toISOString().replace(/[:.]/g, "-") + ".json";
+      await env.BACKUPS.put(key, JSON.stringify(payload));
+      try {
+        const listed = await env.BACKUPS.list({ prefix: "backups/" });
+        const objects = (listed.objects || []).sort((a, b) => String(a.uploaded || "").localeCompare(String(b.uploaded || "")));
+        const stale = objects.slice(0, Math.max(0, objects.length - 14));
+        for (const item of stale) { try { await env.BACKUPS.delete(item.key); } catch {} }
+      } catch { /* حذف القديمة ليس سبباً لفشل النسخة */ }
+      await log(env, null, "backup_scheduled_success", { key, users: payload.data.users.length, records: payload.data.academy_records.length, store_items: payload.data.store_items.length });
+    } catch (error) {
+      const message = String(error?.message || error).slice(0, 300);
+      console.error("Ihsan scheduled backup failed", { message });
+      try { await log(env, null, "backup_scheduled_failure", { message }); } catch {}
     }
   }
 };
