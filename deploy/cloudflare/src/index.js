@@ -75,6 +75,13 @@ export const addCalendarDays = (dateOnly, days) => {
 };
 const BULK_STUDENT_ONBOARDING_IDS=["roster-20261020-01","roster-20261020-04","roster-20261020-05","roster-20261020-07","roster-20261020-09","roster-20261020-11","roster-20261020-13","roster-20261020-14","roster-20261020-15","roster-20261020-16","roster-20261020-18","roster-20261020-19","roster-20261020-20","roster-20261020-22","roster-20261020-23","roster-20261020-24","roster-20261020-26","roster-20261020-27","roster-20261020-28","roster-20261020-29","roster-20261020-30","roster-20261020-32","roster-20261020-33","roster-20261020-35","roster-20261020-36","roster-20261020-37","roster-20261020-38","roster-20261020-39","roster-20261020-42","roster-20261020-43","roster-20261020-44","roster-20261020-46","roster-20261020-47","roster-20261020-48","roster-20261020-49","roster-20261020-50","roster-20261020-51","roster-20261020-53","roster-20261020-54","roster-20261020-55"];
 const clean = (v, max = 200) => String(v ?? "").trim().slice(0, max);
+const normalizeStudentName = value => String(value || "").normalize("NFKC").replace(/[\u064B-\u065F\u0670\u0640]/g, "").replace(/\s+/g, " ").trim().toLocaleLowerCase("ar");
+async function findDuplicateStudentByName(env, name, excludeId = "") {
+  const key = normalizeStudentName(name);
+  if (!key) return null;
+  const rows = await env.DB.prepare("SELECT id,display_name,group_id,user_id FROM students WHERE active=1").all();
+  return (rows.results || []).find(row => row.id !== excludeId && normalizeStudentName(row.display_name) === key) || null;
+}
 const uuid = () => crypto.randomUUID();
 const hex = bytes => [...new Uint8Array(bytes)].map(b => b.toString(16).padStart(2, "0")).join("");
 const unhex = value => new Uint8Array((value.match(/.{1,2}/g) || []).map(x => parseInt(x, 16)));
@@ -1920,6 +1927,10 @@ export default {
       const name=clean(b.name,120),email=clean(b.email,200).toLowerCase(),password=String(b.password||"");
       const kind=clean(b.kind,20),schoolId=clean(b.school_id,80),note=clean(b.note,500);
       if(name.length<2)return fail(400,"أدخل الاسم الكامل");
+      if(kind==="student"){
+        const duplicateStudent=await findDuplicateStudentByName(env,name);
+        if(duplicateStudent)return fail(409,"يوجد ملف طالب بهذا الاسم بالفعل. لا تنشئ ملفًا جديدًا؛ اطلب من الشيخ ربط حساب الدخول بالملف الموجود بعد التحقق من الهوية.");
+      }
       if(!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(email))return fail(400,"أدخل بريدًا إلكترونيًا صحيحًا");
       if(password.length<10||password.length>256)return fail(400,"كلمة المرور يجب أن تكون 10 أحرف على الأقل ولا تتجاوز 256");
       if(!["student","teacher"].includes(kind))return fail(403,"التسجيل للطلاب والشيوخ فقط؛ الزائرون والمحسنون يتسجّلون عبر «بوابة التيسير».");
@@ -2674,9 +2685,9 @@ export default {
       let created=0,skipped=0;
       for(const name of names){
         const key=normalizeName(name),count=counts.get(key)||0,target=targets.get(key)||1;
-        if(count>=target){skipped++;continue}
+        if(count>0){skipped++;continue}
         await env.DB.prepare("INSERT INTO students(id,user_id,display_name,group_id,active) VALUES(?,NULL,?,?,1)").bind(uuid(),name,groupId).run();
-        counts.set(key,count+1);created++;
+        counts.set(key,1);created++;
       }
       await log(env,user.id,"student_roster_bulk_add",{group_id:groupId,created,skipped});
       return json({ok:true,group_id:groupId,group_name:group.name,created,skipped,total:names.length},201);
@@ -2733,6 +2744,8 @@ export default {
       const name=clean(b.name,120),identity=clean(b.username,100).toLowerCase(),password=String(b.password||""),groupId=clean(b.group_id,80);
       if(!name||!identity||identity.length>120||password.length<8||password.length>256||!groupId)return fail(400,"أكمل الاسم وكلمة المرور والفوج");
       if(!await canManageGroup(env,user,groupId))return fail(403,"لا تملك صلاحية هذا الفوج");
+      const duplicateStudent=await findDuplicateStudentByName(env,name);
+      if(duplicateStudent)return fail(409,"يوجد ملف طالب بالاسم نفسه بالفعل. افتح ملفه وأنشئ حساب الدخول من داخله بدل إنشاء طالب جديد.");
       const id=uuid(),studentId=uuid();
       try{await env.DB.prepare("INSERT INTO users(id,display_name,identity_normalized,password_hash,role,active,must_change_password) VALUES(?,?,?,?, 'student',1,1)").bind(id,name,identity,await passwordHash(password)).run();
         await env.DB.prepare("INSERT INTO students(id,user_id,display_name,group_id,active) VALUES(?,?,?,?,1)").bind(studentId,id,name,groupId).run();
