@@ -2262,8 +2262,8 @@ async function scanPage(v){
   v.querySelector("#scan-search").addEventListener("input",renderList);
   let scanning=false;
   startButton.addEventListener("click",async()=>{
-    if(!taskType.value||!taskDate.value){openTaskPicker();toast("اختر المهمة أولًا.",true);return}
-    if(["points","general"].includes(taskType.value)&&S.user.role==="admin"&&!S.scanActivity){toast("اختر نشاط النقاط قبل تشغيل الكاميرا.",true);pointPicker.scrollIntoView({behavior:"smooth",block:"center"});return}
+    if(!selectedTaskIds().length||!taskDate.value){openTaskPicker();toast("اختر المهمة أولًا.",true);return}
+    if(selectedTaskIds().some(id=>["points","general"].includes(id))&&S.user.role==="admin"&&!S.scanActivity){toast("اختر نشاط النقاط قبل تشغيل الكاميرا.",true);pointPicker.scrollIntoView({behavior:"smooth",block:"center"});return}
     if(scanning)return;
     if(!window.IhsanScanner){status.textContent="تعذر تحميل الماسح. حدّث الصفحة وحاول مجددًا.";status.classList.add("error");return}
     scanning=true;status.textContent="جار تشغيل الكاميرا…";status.classList.remove("error");
