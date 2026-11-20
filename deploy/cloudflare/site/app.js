@@ -623,7 +623,7 @@ function items(){
  const staff=["admin","director","teacher","supervisor"].includes(S.user.role);
  if(S.user.role==="admin"){
   const full=adminFocusIsFull();
-  const daily=[["home","الرئيسية"],["students","الطلاب"],["cards","بطاقات الطلاب"],["scan","المسح والمتابعة", "join-requests","طلبات الانضمام"],["join-requests","طلبات الانضمام"],["attendance","الحضور"],["quran","الحفظ والمراجعة"],["effort","تسجيل المتابعة اليومية"],["teams","الفرق"],["effort-ranking","الترتيب الأسبوعي/الشهري"],["points","النقاط والمتجر"],["notifications","التنبيهات"],["messages","الرسائل"]];
+  const daily=[["home","الرئيسية"],["groups","الأفواج وحسابات المعلمين"],["students","الطلاب"],["cards","بطاقات الطلاب"],["scan","المسح والمتابعة", "join-requests","طلبات الانضمام"],["join-requests","طلبات الانضمام"],["attendance","الحضور"],["quran","الحفظ والمراجعة"],["effort","تسجيل المتابعة اليومية"],["teams","الفرق"],["effort-ranking","الترتيب الأسبوعي/الشهري"],["points","النقاط والمتجر"],["notifications","التنبيهات"],["messages","الرسائل"]];
   if(!full)return daily;
   return [["home","الرئيسية"],["groups","الأفواج"],["students","الطلاب"],["cards","بطاقات الطلاب"],["scan","المسح والمتابعة", "join-requests","طلبات الانضمام"],["join-requests","طلبات الانضمام"],["attendance","الحضور"],["quran","الحفظ والمراجعة"],["effort","تسجيل المتابعة اليومية"],["teams","الفرق"],["effort-ranking","الترتيب الأسبوعي/الشهري"],["points","النقاط والمتجر"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"],["hadith","الحديث والمتون"],["competitions","المسابقات"],["system-check","فحص النظام"],["hierarchy","التسلسل الإداري"],["roadmap","خريطة الإنجاز"]];
  }
