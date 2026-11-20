@@ -2768,7 +2768,11 @@ export default {
       const userId=uuid();
       try{
         await env.DB.prepare("INSERT INTO users(id,display_name,identity_normalized,password_hash,role,active,must_change_password) VALUES(?,?,?,?, 'student',1,1)").bind(userId,name,identity,await passwordHash(password)).run();
-        await env.DB.prepare("UPDATE students SET user_id=?,display_name=? WHERE id=?").bind(userId,name,s.id).run();
+        const linked=await env.DB.prepare("UPDATE students SET user_id=?,display_name=? WHERE id=? AND user_id IS NULL").bind(userId,name,s.id).run();
+        if(Number(linked?.meta?.changes||0)!==1){
+          await env.DB.prepare("DELETE FROM users WHERE id=?").bind(userId).run();
+          return fail(409,"تم ربط حساب بهذا الطالب للتو. حدّث الصفحة ولا تنشئ حسابًا ثانيًا.");
+        }
       }catch(error){
         await env.DB.prepare("DELETE FROM users WHERE id=?").bind(userId).run();
         return fail(409,"تعذّر إنشاء الحساب؛ تحقّق من اسم الدخول ثم أعد المحاولة");
