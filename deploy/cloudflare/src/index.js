@@ -2629,9 +2629,9 @@ export default {
       if(!name||!identity||identity.length>120||(password&&(password.length<8||password.length>256)))return fail(400,"تحقق من الاسم واسم الدخول وكلمة المرور (8 أحرف على الأقل)");
       const duplicate=await env.DB.prepare("SELECT id FROM users WHERE identity_normalized=? AND id<>? LIMIT 1").bind(identity,target.id).first();
       if(duplicate)return fail(409,"اسم الدخول مستخدم بالفعل");
-      if(password)await env.DB.prepare("UPDATE users SET display_name=?,identity_normalized=?,password_hash=?,must_change_password=1 WHERE id=?").bind(name,identity,await passwordHash(password),target.id).run();
+      if(password){await env.DB.prepare("UPDATE users SET display_name=?,identity_normalized=?,password_hash=?,must_change_password=1 WHERE id=?").bind(name,identity,await passwordHash(password),target.id).run();await env.DB.prepare("DELETE FROM sessions WHERE user_id=?").bind(target.id).run();}
       else await env.DB.prepare("UPDATE users SET display_name=?,identity_normalized=? WHERE id=?").bind(name,identity,target.id).run();
-      await log(env,user.id,"teacher_update",{id:target.id,name});return json({ok:true,name,username:identity});
+      await log(env,user.id,password?"teacher_password_reset":"teacher_update",{id:target.id,name,force_change:!!password});return json({ok:true,name,username:identity,must_change_password:!!password});
     }
     if(teacherMatch&&method==="DELETE"){
       if(user.role!=="admin")return fail(403,"تعطيل حسابات المعلمين للمدير فقط");
@@ -2823,12 +2823,12 @@ export default {
       }
       await env.DB.prepare("UPDATE students SET display_name=?,group_id=? WHERE id=?").bind(name,nextGroup,s.id).run();
       if(s.user_id&&identity!==null){
-        if(password)await env.DB.prepare("UPDATE users SET display_name=?,identity_normalized=?,password_hash=?,must_change_password=1 WHERE id=?").bind(name,identity,await passwordHash(password),s.user_id).run();
+        if(password){await env.DB.prepare("UPDATE users SET display_name=?,identity_normalized=?,password_hash=?,must_change_password=1 WHERE id=?").bind(name,identity,await passwordHash(password),s.user_id).run();await env.DB.prepare("DELETE FROM sessions WHERE user_id=?").bind(s.user_id).run();}
         else await env.DB.prepare("UPDATE users SET display_name=?,identity_normalized=? WHERE id=?").bind(name,identity,s.user_id).run();
       }else if(s.user_id&&b.name!==undefined){
         await env.DB.prepare("UPDATE users SET display_name=? WHERE id=?").bind(name,s.user_id).run();
       }
-      await log(env,user.id,"student_update",{student_id:s.id,name,old_group_id:s.group_id,new_group_id:nextGroup});
+      await log(env,user.id,password?"student_password_reset":"student_update",{student_id:s.id,name,old_group_id:s.group_id,new_group_id:nextGroup,force_change:!!password});
       return json({ok:true,name,group_id:nextGroup});
     }
     if(studentMatch&&method==="DELETE"){
