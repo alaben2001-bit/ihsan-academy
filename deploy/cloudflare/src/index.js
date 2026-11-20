@@ -2065,7 +2065,7 @@ export default {
       const scanner=await currentUser(request,env);
       if(!scanner)return fail(401,"سجّل الدخول أولًا ثم أعد مسح البطاقة.");
       if(!await canAccessStudentCard(env,scanner,student))return fail(403,"هذه البطاقة خارج صلاحيتك");
-      if(kind==="add_points"&&scanner.role!=="admin")return fail(403,"رمز إضافة النقاط مخصص لحساب الشيخ وحده");
+      if(kind==="add_points"&&!["admin","teacher","director","supervisor"].includes(scanner.role))return fail(403,"مسح بطاقة إضافة النقاط متاح للمشرفين المصرح لهم فقط");
       let attendance=null;
       let attendanceAwards=[];
       if(kind==="add_points"){
