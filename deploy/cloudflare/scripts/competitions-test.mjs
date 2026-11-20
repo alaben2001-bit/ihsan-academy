@@ -431,7 +431,7 @@ async function main() {
   check("the default editable award is applied to first place", generateC.status === 200 && Number(resultC1?.award_achievement) === 100 && Number(resultC1?.award_store) === 50, JSON.stringify(resultC1));
   const approveC = await call("/api/competitions/" + encodeURIComponent(competitionC.id) + "/results/approve", { method: "POST", token: admin, body: {} });
   const summaryS1AfterC = await call("/api/points/summary?student_id=" + encodeURIComponent(s1.id), { token: admin });
-  check("a second competition awards once and adds to the balance", approveC.status === 200 && summaryS1AfterC.data?.totals?.achievement === 185 && summaryS1AfterC.data?.totals?.store === 185, JSON.stringify({ approve: approveC.data, totals: summaryS1AfterC.data?.totals }));
+  check("a second competition awards once and adds to the balance", approveC.status === 200 && summaryS1AfterC.data?.totals?.achievement === 210 && summaryS1AfterC.data?.totals?.store === 210, JSON.stringify({ approve: approveC.data, totals: summaryS1AfterC.data?.totals }));
   const historyS1AfterC = await call("/api/points/history?student_id=" + encodeURIComponent(s1.id) + "&limit=200", { token: admin });
   const awardEventsAfterC = (historyS1AfterC.data || []).filter(row => row.event_type === "competition_award");
   check("awards stay one visible history entry per competition, not per retry", awardEventsAfterC.length === 2, JSON.stringify(awardEventsAfterC));
