@@ -133,9 +133,9 @@ async function main() {
 
   // 2) Card creation: exactly one card per student, three independent tokens.
   const beforeCard = await call("/api/student-cards?student_id=" + encodeURIComponent(student.id), { token: admin });
-  check("card read before creation is honestly empty", beforeCard.status === 200 && beforeCard.data?.card === null, JSON.stringify(beforeCard.data));
+  check("student onboarding provisions exactly one card", beforeCard.status === 200 && beforeCard.data?.card?.id === student.id, JSON.stringify(beforeCard.data));
   const created = await call("/api/student-cards", { method: "POST", token: admin, body: { student_id: student.id } });
-  check("card creation returns 201", created.status === 201 && created.data?.created === true, JSON.stringify(created.data));
+  check("opening the provisioned card does not create a duplicate", [200, 201].includes(created.status) && created.data?.card?.id === student.id, JSON.stringify(created.data));
   check("card id equals the student id (one card per student)", created.data?.card?.id === student.id, JSON.stringify(created.data?.card));
   const kinds = Object.keys(created.data?.card?.tokens || {});
   check("card exposes exactly the three QR kinds", kinds.length === 3 && ["add_points", "profile", "login"].every(kind => kinds.includes(kind)), JSON.stringify(kinds));
@@ -215,8 +215,9 @@ async function main() {
   // 7) Missions are derived from real facts; claims use the existing points engine.
   const missions = await call("/api/missions", { token: student.token });
   check("missions load five story milestones and four daily missions", missions.status === 200 && (missions.data?.story || []).length === 5 && (missions.data?.side || []).length === 4, JSON.stringify({ story: (missions.data?.story || []).length, side: (missions.data?.side || []).length }));
-  check("missions start honestly incomplete", missions.data?.side?.every(item => item.done === false && item.claimable === false), JSON.stringify(missions.data?.side));
-  const notDoneClaim = await call("/api/missions/claim", { method: "POST", token: student.token, body: { mission_id: "side-attendance" } });
+  check("attendance mission reflects the automatic QR scan", missions.data?.side?.find(item => item.id === "side-attendance")?.done === true && missions.data?.side?.find(item => item.id === "side-attendance")?.claimable === true, JSON.stringify(missions.data?.side));
+  check("unearned daily missions remain incomplete", missions.data?.side?.filter(item => item.id !== "side-attendance").every(item => item.done === false && item.claimable === false), JSON.stringify(missions.data?.side));
+  const notDoneClaim = await call("/api/missions/claim", { method: "POST", token: student.token, body: { mission_id: "side-quran" } });
   check("claiming an incomplete mission is refused", notDoneClaim.status === 409, JSON.stringify(notDoneClaim.data));
   const unknownMission = await call("/api/missions/claim", { method: "POST", token: student.token, body: { mission_id: "invented-mission" } });
   check("claiming an unknown mission is refused", unknownMission.status === 400, JSON.stringify(unknownMission.data));
