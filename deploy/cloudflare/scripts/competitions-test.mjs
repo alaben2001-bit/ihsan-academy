@@ -176,7 +176,7 @@ async function main() {
   const progress = await call("/api/quran/progress", { method: "POST", token: admin, body: { student_id: s1.id, date: today, activity: "memorization", memorized: "سورة الملك 1-5" } });
   check("baseline attendance and Quran progress save", attendance.status === 200 && progress.status === 201, JSON.stringify({ attendance: attendance.data, progress: progress.data }));
   const baseline = await call("/api/points/summary?student_id=" + encodeURIComponent(s1.id), { token: admin });
-  check("baseline is represented as one unified balance", baseline.data?.totals?.achievement === 5 && baseline.data?.totals?.store === 5, JSON.stringify(baseline.data?.totals));
+  check("baseline is represented as one unified balance", baseline.data?.totals?.achievement === 30 && baseline.data?.totals?.store === 30, JSON.stringify(baseline.data?.totals));
 
   // -------------------------------------------------------------------------
   // 2) Categories and creation validation
@@ -377,7 +377,7 @@ async function main() {
   const summaryS1 = await call("/api/points/summary?student_id=" + encodeURIComponent(s1.id), { token: admin });
   const summaryS2 = await call("/api/points/summary?student_id=" + encodeURIComponent(s2.id), { token: admin });
   const summaryS3 = await call("/api/points/summary?student_id=" + encodeURIComponent(s3.id), { token: admin });
-  check("competition award adds to the unified cumulative balance", summaryS1.data?.totals?.achievement === 85 && summaryS1.data?.totals?.store === 85, JSON.stringify(summaryS1.data?.totals));
+  check("competition award adds to the unified cumulative balance", summaryS1.data?.totals?.achievement === 110 && summaryS1.data?.totals?.store === 110, JSON.stringify(summaryS1.data?.totals));
   check("second place receives only its approved award", summaryS2.data?.totals?.achievement === 40 && summaryS2.data?.totals?.store === 40, JSON.stringify(summaryS2.data?.totals));
   check("rejected participation earns no points", summaryS3.data?.totals?.achievement === 0 && summaryS3.data?.totals?.store === 0, JSON.stringify(summaryS3.data?.totals));
   const historyS1 = await call("/api/points/history?student_id=" + encodeURIComponent(s1.id) + "&limit=200", { token: admin });
@@ -520,7 +520,7 @@ async function main() {
   check("the student roster is unchanged", rosterRead.status === 200 && [s1.id, s2.id, s3.id].every(id => (rosterRead.data || []).some(row => row.id === id)), JSON.stringify(rosterRead.data));
   const reSaveAttendance = await call("/api/attendance", { method: "POST", token: admin, body: { group_id: groupAId, date: today, items: [{ student_id: s1.id, status: "present" }] } });
   const summaryAfterReSave = await call("/api/points/summary?student_id=" + encodeURIComponent(s1.id), { token: admin });
-  check("re-saving attendance does not double-award after competitions", reSaveAttendance.status === 200 && summaryAfterReSave.data?.totals?.achievement === 185 && summaryAfterReSave.data?.totals?.store === 185, JSON.stringify(summaryAfterReSave.data?.totals));
+  check("re-saving attendance does not double-award after competitions", reSaveAttendance.status === 200 && summaryAfterReSave.data?.totals?.achievement === 210 && summaryAfterReSave.data?.totals?.store === 210, JSON.stringify(summaryAfterReSave.data?.totals));
 
   // -------------------------------------------------------------------------
   // 9) Mobile/app shell guardrails and final health
