@@ -725,7 +725,8 @@ const LEARNING_SCHEMA_STATEMENTS = [
     ('rule-poetry','poetry','أربعة أبيات','كل أربعة أبيات بخمسة نقاط.',5,5,1,1,1,10),
     ('rule-support-others','support_others','دعم الآخرين','زيادة ثلاثين بالمئة على الإنجاز المعتمد.',1,1,1,1,1,11)`,
   `UPDATE point_rules SET name='قراءة حزب',description='عشر نقاط للحزب المقروء.',achievement_points=10,store_points=10,max_per_day=1,auto_award=1,active=1 WHERE event_type='quran_reading'`,
-  `UPDATE point_rules SET active=0,auto_award=0 WHERE event_type IN ('attendance_present','quran_entry')`,
+  `UPDATE point_rules SET active=1,auto_award=1,achievement_points=30,store_points=30,max_per_day=1 WHERE event_type='attendance_present'`,
+  `UPDATE point_rules SET active=0,auto_award=0 WHERE event_type='quran_entry'`,
   `CREATE TABLE IF NOT EXISTS student_point_streaks (
     student_id TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
     activity TEXT NOT NULL CHECK(activity IN ('hifz','fajr','shuruq')),
