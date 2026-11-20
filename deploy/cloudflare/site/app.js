@@ -2285,15 +2285,17 @@ async function handleScannedText(v,raw){
     const student=result&&result.student;
     if(!student||!student.id)throw new Error("تعذر قراءة بيانات البطاقة");
     if(!S.scanTaskType||!S.scanDate){toast("اختر مهمة المتابعة أولًا.",true);return}
+    if(["points","general"].includes(S.scanTaskType)&&kind!=="add_points"){toast("لمنح النقاط يجب مسح رمز «إضافة نقاط» الخاص بالطالب، لا رمز الملف أو الدخول.",true);return}
     if(["points","general"].includes(S.scanTaskType)&&S.user.role==="admin"&&!S.scanActivity){toast("اختر نشاط النقاط قبل مسح البطاقة.",true);return}
     const authorizedRoster=v.__scanStudents||[];
     const rosterStudent=authorizedRoster.find(st=>String(st.id)===String(student.id));
     if(!rosterStudent){toast("هذا الطالب خارج نطاق صلاحيتك؛ لم تُفتح المتابعة.",true);return}
+    // Use the roster row matched by immutable student ID; never match or award by name.
     S.scanGroupId=String(rosterStudent.group_id||"");
-    S.scanStudentId=student.id;
+    S.scanStudentId=String(rosterStudent.id);
     const kindLabel={add_points:"رمز إضافة النقاط",profile:"رمز الملف الشخصي",login:"رمز الدخول"}[kind]||"بطاقة";
-    toast("تم مسح البطاقة ("+kindLabel+") — "+(student.name||"طالب"));
-    renderScanPanel(v,student.id);
+    toast("تم ربط البطاقة بالطالب: "+String(rosterStudent.name||student.name||"طالب")+" · "+kindLabel);
+    renderScanPanel(v,String(rosterStudent.id));
   }catch(error){toast(error.message||"تعذر استخدام البطاقة",true)}
 }
 
