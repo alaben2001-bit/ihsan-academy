@@ -2269,7 +2269,6 @@ async function scanPage(v){
     ready.parentElement.classList.toggle("is-ready",Boolean(selected.length&&activityReady));
     startButton.disabled=!(selected.length&&taskDate.value&&activityReady);
     v.querySelectorAll("[data-scan-task]").forEach(button=>{const active=ids.includes(button.dataset.scanTask);button.classList.toggle("is-selected",active);button.setAttribute("aria-pressed",String(active))});
-    v.querySelectorAll("[data-scan-pre-activity]").forEach(button=>{const active=button.dataset.scanPreActivity===S.scanActivity;button.classList.toggle("is-selected",active);button.setAttribute("aria-pressed",String(active))});
     status.textContent=selected.length&&taskDate.value?"جاهز للمسح: "+label:"اختر المهمة أولًا، ثم شغّل الكاميرا.";
     renderList();
   };
