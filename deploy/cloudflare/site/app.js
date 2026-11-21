@@ -577,9 +577,11 @@ function startOfflineFromCache(){
 async function boot(){
  try{
   const scan=readScanHash();if(scan)savePendingScan(scan);
-  const st=await api("/setup/status");
+  const statusRequest=api("/setup/status");
+  const sessionRequest=api("/me");
+  const st=await statusRequest;
   try{
-   S.user=await api("/me");
+   S.user=await sessionRequest;
    const pending=pendingScan();
    if(pending&&pending.kind==="login"){
     try{const r=await api("/cards/resolve",{method:"POST",body:JSON.stringify({kind:"login",card_id:pending.cardId,secret:pending.secret})});toast("بطاقة "+String(r.student?.name||"الطالب")+" — أنت مسجّل الدخول بالفعل.")}catch{}
@@ -616,7 +618,18 @@ const prayers=[
 ];
 const prayer=prayers[Math.floor(Math.random()*prayers.length)];
 ihsanPrayerDialog({title:prayer.title,text:prayer.text,source:prayer.source||(prayer.kind?prayer.kind+"؛ ليس نصًا منسوبًا إلى السنة":""),icon:"☾",primary:"تسجيل الخروج",secondary:"البقاء في الأكاديمية",onPrimary:async()=>{try{await api("/logout",{method:"POST",body:"{}"})}catch{}try{history.replaceState({ihsanMode:"auth"},"",location.pathname+"#login")}catch{}document.body.classList.remove("app-authenticated");offlineSessionActive=false;S.token="";S.user=null;S.mode="hub";S.tab="home";safeStore.removeSession("ihsan_last_mode");safeStore.removeSession("ihsan_last_tab");safeStore.remove(offlineUserKey());clearSessionToken();auth(false)}})}
-async function load(){const r=await Promise.allSettled([api("/groups"),api("/students")]);S.groups=r[0].status==="fulfilled"?r[0].value:[];S.students=r[1].status==="fulfilled"?r[1].value:[];if(["admin","director"].includes(S.user.role))try{S.teachers=await api("/teachers")}catch{S.teachers=[]}if(S.user.role==="admin"){const extra=await Promise.allSettled([api("/admin/staff"),api("/public/quran-schools")]);S.staff=extra[0].status==="fulfilled"?extra[0].value:[];S.schools=extra[1].status==="fulfilled"?extra[1].value:[]}}
+async function load(){
+ const jobs=[api("/groups"),api("/students")];
+ const teachersIndex=["admin","director"].includes(S.user.role)?jobs.push(api("/teachers"))-1:-1;
+ const staffIndex=S.user.role==="admin"?jobs.push(api("/admin/staff"))-1:-1;
+ const schoolsIndex=S.user.role==="admin"?jobs.push(api("/public/quran-schools"))-1:-1;
+ const results=await Promise.allSettled(jobs);
+ S.groups=results[0].status==="fulfilled"?results[0].value:[];
+ S.students=results[1].status==="fulfilled"?results[1].value:[];
+ S.teachers=teachersIndex>=0&&results[teachersIndex].status==="fulfilled"?results[teachersIndex].value:[];
+ S.staff=staffIndex>=0&&results[staffIndex].status==="fulfilled"?results[staffIndex].value:[];
+ S.schools=schoolsIndex>=0&&results[schoolsIndex].status==="fulfilled"?results[schoolsIndex].value:[];
+}
 function adminFocusIsFull(){return safeStore.get("ihsan_admin_focus")!=="daily"}
 function items(){
  if(S.mode==="ihsan"){const curriculum=[["all","نظرة عامة"],["allah","معرفة الله"],["prophet","الرسول ﷺ"],["quranpath","القرآن الكريم"],["hifzprogram","الحال المرتحل"],["sunnah","السنة والمتون"],["adab","الأدب والعمل"]];if(S.user.role==="teacher")curriculum.push(["groups","أفواجي"]);return curriculum;}
@@ -803,8 +816,29 @@ function showRotatingEntryPrayer(){
  });
 }
 
-function animateModuleChange(work){if(document.body.classList.contains("ihsan-module-transition"))return;document.body.classList.add("ihsan-module-transition");const overlay=document.createElement("div");overlay.className="ihsan-transition-screen";overlay.setAttribute("aria-hidden","true");overlay.innerHTML='<div class="ihsan-transition-mark">إحسان</div><div class="ihsan-transition-track"><span></span></div><p>تتهيأ بساتين العلم…</p>';document.body.append(overlay);requestAnimationFrame(()=>overlay.classList.add("is-visible"));window.setTimeout(async()=>{try{await work()}finally{overlay.classList.remove("is-visible");window.setTimeout(()=>{overlay.remove();document.body.classList.remove("ihsan-module-transition")},320)}},240)}
-function moduleChooser(push=true){safeStore.setSession("ihsan_last_mode","hub");safeStore.removeSession("ihsan_last_tab");document.body.classList.remove("app-authenticated");const outerHeader=document.querySelector("header.topbar"),actionBar=$("#top-actions");if(outerHeader&&actionBar&&!outerHeader.contains(actionBar))outerHeader.appendChild(actionBar);S.mode="hub";if(push){try{history.pushState({ihsanMode:"hub"},"",location.pathname+"#home")}catch{}}document.body.classList.remove("app-authenticated");renderTopActions();const hubName=honorificDisplayName(S.user.name,S.user.role),hubRole=ROLE_LABELS[S.user.role]||"عضو الأكاديمية",hubInitial=esc((S.user.name||"إ").trim().slice(0,1));app.innerHTML='<section class="module-welcome"><span class="eyebrow">أَكَادِيمِيَّةُ الإِحْسَانِ فِي بِنَاءِ الإِنْسَان</span><h1>'+(S.user.role==="student"?"تجوّل في بساتين الإحسان":"مناراتُ العلم وبساتينُ الإحسان")+'</h1><div class="module-user-line"><span class="module-user-avatar" aria-hidden="true">'+hubInitial+'</span><span class="module-user-copy"><strong>'+esc(hubName)+'</strong><small>'+esc(hubRole)+'</small></span></div><p>'+(S.user.role==="student"?"من هنا تبدأ رحلتان متكاملتان: مدرسةٌ تحفظ القرآن وتتابع الحفظ والمراجعة، وبساتينُ علمٍ تتفيّأ ظلال الوحي؛ تتعرّف فيها إلى ربك تعالى، وتصحب سيرة رسوله ﷺ، وتفتح نوافذ التدبّر في القرآن، وتنهل من السنة، ثم ترى أثر العلم في عبادتك وخُلُقك ومعاملتك.":"من هُنا تُبنى العقول، وتُهذَّب النفوس، وتُصاغ هممُ الرجال؛ بالقرآن نهتدي، وبالسنة نقتدي، وبالعلم نرتقي، وبالأخلاق نسمو، وبالعمل نُثمر؛ لنُخرّج جيلًا راسخَ العلم، كريمَ الخُلُق، عظيمَ الأثر، يحمل نورَ الوحي إلى العالمين، ويترك في الحياة بصمةَ المحسنين خارجا من ظلمة الغافلين.")+'</p></section><div class="module-grid"><button class="module-card school-module" id="open-school"><span class="module-art school-art" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M7 27 32 9l25 18v28H7z"/><path d="M17 55V34h30v21M26 55V41h12v14M17 27h30M23 20h18"/></svg></span><span class="module-label">المدرسة القرآنية</span><span class="module-desc">الحفظ والمراجعة، الأفواج، الطلاب، المعلمون، الحضور والمتابعة.</span><span class="module-link">الدخول إلى المدرسة ←</span></button><button class="module-card ihsan-module" id="open-ihsan"><span class="module-art ihsan-art" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M32 7 38 22 54 27 38 33 32 49 26 33 10 27 26 22z"/><path d="M48 40 51 47 58 50 51 53 48 60 45 53 38 50 45 47zM15 7l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/></svg></span><span class="module-label">منهج الإحسان</span><span class="module-desc">مساحة علمية تجمع معرفة الله تعالى، وسيرة الرسول ﷺ، والقرآن والسنة، والأدب والعمل الصالح.</span><span class="module-link">قريبًا · استعراض العناوين ←</span></button></div><div class="module-about-action"><button type="button" class="btn secondary" id="about-open-hub">رؤية عامة ومميزات الأكاديمية</button></div><p class="module-foot">«وَقُلْ رَبِّ زِدْنِي عِلْمًا»</p>';
+function ihsanIntentionReminder(){
+ const previous=safeStore.getSession("ihsan_entry_reminder")||"ikhlas";
+ const next=previous==="niyyah"?"ikhlas":"niyyah";
+ safeStore.setSession("ihsan_entry_reminder",next);
+ return next==="niyyah"?{title:"جدّد النية",text:"نتعلّم ونعمل ابتغاء مرضاة الله."}:{title:"جدّد الإخلاص",text:"اجعل قصدك لله وحده، واسأله القبول."};
+}
+function animateModuleChange(work){
+ if(document.body.classList.contains("ihsan-module-transition"))return;
+ document.body.classList.add("ihsan-module-transition");
+ const reminder=ihsanIntentionReminder();
+ const overlay=document.createElement("div");
+ overlay.className="ihsan-transition-screen";
+ overlay.setAttribute("aria-hidden","true");
+ overlay.innerHTML='<div class="ihsan-transition-mark">إحسان</div><span class="ihsan-transition-spinner" aria-hidden="true"></span><strong class="ihsan-transition-reminder">'+reminder.title+'</strong><p class="ihsan-transition-reminder-text">'+reminder.text+'</p>';
+ document.body.append(overlay);
+ requestAnimationFrame(()=>overlay.classList.add("is-visible"));
+ Promise.resolve().then(work).catch(error=>{console.error(error);toast(error?.message||"تعذر فتح القسم",true)}).finally(()=>{
+  overlay.classList.remove("is-visible");
+  window.setTimeout(()=>{overlay.remove();document.body.classList.remove("ihsan-module-transition")},160);
+ });
+}if(document.body.classList.contains("ihsan-module-transition"))return;document.body.classList.add("ihsan-module-transition");const overlay=document.createElement("div");overlay.className="ihsan-transition-screen";overlay.setAttribute("aria-hidden","true");overlay.innerHTML='<div class="ihsan-transition-mark">إحسان</div><div class="ihsan-transition-track"><span></span></div><p>تتهيأ بساتين العلم…</p>';document.body.append(overlay);requestAnimationFrame(()=>overlay.classList.add("is-visible"));window.setTimeout(async()=>{try{await work()}finally{overlay.classList.remove("is-visible");window.setTimeout(()=>{overlay.remove();document.body.classList.remove("ihsan-module-transition")},320)}},240)}
+function moduleChooser(push=true){safeStore.setSession("ihsan_last_mode","hub");safeStore.removeSession("ihsan_last_tab");document.body.classList.remove("app-authenticated");const outerHeader=document.querySelector("header.topbar"),actionBar=$("#top-actions");if(outerHeader&&actionBar&&!outerHeader.contains(actionBar))outerHeader.appendChild(actionBar);S.mode="hub";if(push){try{history.pushState({ihsanMode:"hub"},"",location.pathname+"#home")}catch{}}document.body.classList.remove("app-authenticated");renderTopActions();const hubName=honorificDisplayName(S.user.name,S.user.role),hubRole=ROLE_LABELS[S.user.role]||"عضو الأكاديمية",hubInitial=esc((S.user.name||"إ").trim().slice(0,1));const entryReminder=ihsanIntentionReminder();
+app.innerHTML='<section class="module-welcome"><span class="eyebrow">أَكَادِيمِيَّةُ الإِحْسَانِ فِي بِنَاءِ الإِنْسَان</span><h1>'+(S.user.role==="student"?"تجوّل في بساتين الإحسان":"مناراتُ العلم وبساتينُ الإحسان")+'</h1><div class="module-user-line"><span class="module-user-avatar" aria-hidden="true">'+hubInitial+'</span><span class="module-user-copy"><strong>'+esc(hubName)+'</strong><small>'+esc(hubRole)+'</small></span></div><p>'+(S.user.role==="student"?"من هنا تبدأ رحلتان متكاملتان: مدرسةٌ تحفظ القرآن وتتابع الحفظ والمراجعة، وبساتينُ علمٍ تتفيّأ ظلال الوحي؛ تتعرّف فيها إلى ربك تعالى، وتصحب سيرة رسوله ﷺ، وتفتح نوافذ التدبّر في القرآن، وتنهل من السنة، ثم ترى أثر العلم في عبادتك وخُلُقك ومعاملتك.":"من هُنا تُبنى العقول، وتُهذَّب النفوس، وتُصاغ هممُ الرجال؛ بالقرآن نهتدي، وبالسنة نقتدي، وبالعلم نرتقي، وبالأخلاق نسمو، وبالعمل نُثمر؛ لنُخرّج جيلًا راسخَ العلم، كريمَ الخُلُق، عظيمَ الأثر، يحمل نورَ الوحي إلى العالمين، ويترك في الحياة بصمةَ المحسنين خارجا من ظلمة الغافلين.")+'</p><div class="ihsan-entry-reminder"><span>'+esc(entryReminder.title)+'</span><strong>'+esc(entryReminder.text)+'</strong></div></section><div class="module-grid"><button class="module-card school-module" id="open-school"><span class="module-art school-art" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M7 27 32 9l25 18v28H7z"/><path d="M17 55V34h30v21M26 55V41h12v14M17 27h30M23 20h18"/></svg></span><span class="module-label">المدرسة القرآنية</span><span class="module-desc">الحفظ والمراجعة، الأفواج، الطلاب، المعلمون، الحضور والمتابعة.</span><span class="module-link">الدخول إلى المدرسة ←</span></button><button class="module-card ihsan-module" id="open-ihsan"><span class="module-art ihsan-art" aria-hidden="true"><svg viewBox="0 0 64 64"><path d="M32 7 38 22 54 27 38 33 32 49 26 33 10 27 26 22z"/><path d="M48 40 51 47 58 50 51 53 48 60 45 53 38 50 45 47zM15 7l2 5 5 2-5 2-2 5-2-5-5-2 5-2z"/></svg></span><span class="module-label">منهج الإحسان</span><span class="module-desc">مساحة علمية تجمع معرفة الله تعالى، وسيرة الرسول ﷺ، والقرآن والسنة، والأدب والعمل الصالح.</span><span class="module-link">قريبًا · استعراض العناوين ←</span></button></div><div class="module-about-action"><button type="button" class="btn secondary" id="about-open-hub">رؤية عامة ومميزات الأكاديمية</button></div><p class="module-foot">«وَقُلْ رَبِّ زِدْنِي عِلْمًا»</p>';
 $("#about-open-hub")?.addEventListener("click",showAcademyAbout);
 $("#open-school").onclick=openSchoolModule;
  $("#open-ihsan").onclick=openIhsanTeaser}
@@ -2172,10 +2206,15 @@ function wireQuranSchedule(v,pathData,summary){
   reload();
 }
 
+let ihsanScannerAssetsPromise=null;
+function ihsanLoadScript(src){return new Promise((resolve,reject)=>{const script=document.createElement("script");script.src=src;script.async=true;script.onload=resolve;script.onerror=()=>reject(new Error("تعذر تحميل أداة المسح: "+src));document.head.appendChild(script)})}
+function ensureScannerAssets(){if(window.IhsanScanner)return Promise.resolve();if(!ihsanScannerAssetsPromise){ihsanScannerAssetsPromise=(async()=>{if(!("BarcodeDetector" in window)&&typeof window.jsQR!=="function")await ihsanLoadScript("/jsQR.js?v=20261121-17");await ihsanLoadScript("/scanner.js?v=20261121-17")})().catch(error=>{ihsanScannerAssetsPromise=null;throw error})}return ihsanScannerAssetsPromise}
 // ---- واجهة الشيخ: المسح والمتابعة (QR حقيقي أو اختيار يدوي) ----
 async function scanPage(v){
   if(!["admin","teacher","director","supervisor"].includes(S.user.role)){v.innerHTML=head("المسح والمتابعة","هذه الصفحة متاحة للشيخ أو المشرف أو المدير فقط.");return}
+  const scannerReady=ensureScannerAssets();
   if(!S.groups.length||!S.students.length)await load();
+  await scannerReady;
   const groups=assignedGroups(),allowedGroupIds=new Set(groups.map(g=>String(g.id)));
   const students=S.students.filter(st=>allowedGroupIds.has(String(st.group_id))).slice().sort((a,b)=>compareStudentNames(a.name,b.name));
   v.__scanStudents=students;
