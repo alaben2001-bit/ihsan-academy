@@ -621,11 +621,18 @@ async function load(){
  const staffIndex=S.user.role==="admin"?jobs.push(api("/admin/staff"))-1:-1;
  const schoolsIndex=S.user.role==="admin"?jobs.push(api("/public/quran-schools"))-1:-1;
  const results=await Promise.allSettled(jobs);
- S.groups=results[0].status==="fulfilled"?results[0].value:[];
- S.students=results[1].status==="fulfilled"?results[1].value:[];
- S.teachers=teachersIndex>=0&&results[teachersIndex].status==="fulfilled"?results[teachersIndex].value:[];
- S.staff=staffIndex>=0&&results[staffIndex].status==="fulfilled"?results[staffIndex].value:[];
- S.schools=schoolsIndex>=0&&results[schoolsIndex].status==="fulfilled"?results[schoolsIndex].value:[];
+ S.groups=results[0].status==="fulfilled"&&Array.isArray(results[0].value)?results[0].value:(Array.isArray(S.groups)?S.groups:[]);
+ if(results[1].status==="fulfilled"&&Array.isArray(results[1].value)){
+  S.students=results[1].value;
+  S.studentsLoadError="";
+ }else{
+  S.studentsLoadError=results[1].status==="rejected"?String(results[1].reason?.message||"تعذر تحميل ملفات الطلاب"):"استجابة قائمة الطلاب غير صالحة";
+  if(!Array.isArray(S.students))S.students=[];
+  console.error("Ihsan roster load failed",results[1].status==="rejected"?results[1].reason:results[1].value);
+ }
+ S.teachers=teachersIndex>=0&&results[teachersIndex].status==="fulfilled"?results[teachersIndex].value:(Array.isArray(S.teachers)?S.teachers:[]);
+ S.staff=staffIndex>=0&&results[staffIndex].status==="fulfilled"?results[staffIndex].value:(Array.isArray(S.staff)?S.staff:[]);
+ S.schools=schoolsIndex>=0&&results[schoolsIndex].status==="fulfilled"?results[schoolsIndex].value:(Array.isArray(S.schools)?S.schools:[]);
 }
 function adminFocusIsFull(){return safeStore.get("ihsan_admin_focus")!=="daily"}
 function items(){
@@ -2600,7 +2607,7 @@ if(S.user.role!=="student"){
   const visibleGroups=["teacher","director","supervisor"].includes(S.user.role)?assignedGroups():S.groups;
   const visibleStudents=["teacher","director","supervisor"].includes(S.user.role)?S.students.filter(st=>visibleGroups.some(g=>String(g.id)===String(st.group_id))):S.students;
  const attendanceStat=["admin","director","teacher"].includes(S.user.role)?"":'<button type="button" class="stat stat-link" data-go="attendance"><span class="stat-icon" aria-hidden="true">'+navIcon("attendance")+'</span><small>معاينة الحضور الأسبوعي</small><strong>'+(d.attendance_marked??0)+'</strong></button>';
- html+='<div class="stats"><button type="button" class="stat stat-link" data-go="students"><span class="stat-icon" aria-hidden="true">'+navIcon("students")+'</span><small>'+studentLabel+'</small><strong>'+visibleStudents.length+'</strong></button><button type="button" class="stat stat-link" data-go="groups"><span class="stat-icon" aria-hidden="true">'+navIcon("groups")+'</span><small>الأفواج</small><strong>'+visibleGroups.length+'</strong></button>'+attendanceStat+'</div>';
+ html+='<div class="stats"><button type="button" class="stat stat-link" data-go="students"><span class="stat-icon" aria-hidden="true">'+navIcon("students")+'</span><small>'+studentLabel+'</small><strong>'+(S.studentsLoadError?"—":visibleStudents.length)+'</strong></button><button type="button" class="stat stat-link" data-go="groups"><span class="stat-icon" aria-hidden="true">'+navIcon("groups")+'</span><small>الأفواج</small><strong>'+visibleGroups.length+'</strong></button>'+attendanceStat+'</div>';
 
 } else {
  const result=await Promise.allSettled([api("/quran/progress"),api("/attendance?history=1"),api("/tests"),api("/leaderboard"),api("/gamification"),api("/assignments")]);
@@ -2620,9 +2627,19 @@ if(S.user.role!=="student"){
 const daySeed=Math.floor(Math.random()*1000000);
 const dailySupplications=[
 {title:"دعاء من القرآن",text:"وَقُلْ رَبِّ زِدْنِي عِلْمًا",source:"سورة طه: 114"},
+{title:"دعاء من القرآن",text:"رَبِّ اشْرَحْ لِي صَدْرِي ۝ وَيَسِّرْ لِي أَمْرِي",source:"سورة طه: 25–26"},
 {title:"دعاء من القرآن",text:"رَبَّنَا آتِنَا فِي الدُّنْيَا حَسَنَةً وَفِي الْآخِرَةِ حَسَنَةً وَقِنَا عَذَابَ النَّارِ",source:"سورة البقرة: 201"},
 {title:"دعاء من القرآن",text:"رَبَّنَا لَا تُزِغْ قُلُوبَنَا بَعْدَ إِذْ هَدَيْتَنَا وَهَبْ لَنَا مِنْ لَدُنْكَ رَحْمَةً إِنَّكَ أَنْتَ الْوَهَّابُ",source:"سورة آل عمران: 8"},
-{title:"دعاء نبوي",text:"اللَّهُمَّ أَعِنِّي عَلَى ذِكْرِكَ وَشُكْرِكَ وَحُسْنِ عِبَادَتِكَ",source:"سنن أبي داود (1522)، والنسائي (1303)؛ صححه الألباني."}
+{title:"دعاء من القرآن",text:"رَبَّنَا تَقَبَّلْ مِنَّا إِنَّكَ أَنْتَ السَّمِيعُ الْعَلِيمُ",source:"سورة البقرة: 127"},
+{title:"دعاء من القرآن",text:"رَبَّنَا أَفْرِغْ عَلَيْنَا صَبْرًا وَثَبِّتْ أَقْدَامَنَا",source:"سورة البقرة: 250"},
+{title:"دعاء من القرآن",text:"رَبَّنَا ظَلَمْنَا أَنْفُسَنَا وَإِنْ لَمْ تَغْفِرْ لَنَا وَتَرْحَمْنَا لَنَكُونَنَّ مِنَ الْخَاسِرِينَ",source:"سورة الأعراف: 23"},
+{title:"دعاء من القرآن",text:"رَبِّ اجْعَلْنِي مُقِيمَ الصَّلَاةِ وَمِنْ ذُرِّيَّتِي رَبَّنَا وَتَقَبَّلْ دُعَاءِ",source:"سورة إبراهيم: 40"},
+{title:"دعاء نبوي",text:"اللَّهُمَّ أَعِنِّي عَلَى ذِكْرِكَ وَشُكْرِكَ وَحُسْنِ عِبَادَتِكَ",source:"سنن أبي داود (1522)، والنسائي (1303)"},
+{title:"دعاء نبوي",text:"اللَّهُمَّ إِنِّي أَسْأَلُكَ الْهُدَى وَالتُّقَى وَالْعَفَافَ وَالْغِنَى",source:"صحيح مسلم (2721)"},
+{title:"دعاء نبوي",text:"اللَّهُمَّ إِنِّي أَسْأَلُكَ عِلْمًا نَافِعًا، وَرِزْقًا طَيِّبًا، وَعَمَلًا مُتَقَبَّلًا",source:"سنن ابن ماجه (925)"},
+{title:"دعاء نبوي",text:"يَا مُقَلِّبَ الْقُلُوبِ، ثَبِّتْ قَلْبِي عَلَى دِينِكَ",source:"جامع الترمذي (2140)، حديث حسن"},
+{title:"دعاء نبوي",text:"اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ الْهَمِّ وَالْحَزَنِ، وَالْعَجْزِ وَالْكَسَلِ",source:"صحيح البخاري (6369)"},
+{title:"دعاء نبوي",text:"اللَّهُمَّ إِنِّي أَسْأَلُكَ الْعَفْوَ وَالْعَافِيَةَ فِي الدُّنْيَا وَالْآخِرَةِ",source:"سنن أبي داود (5074)، وسنن ابن ماجه (3871)"}
 ];
 const dailyWisdom=[
 {title:"من أدب موسى عليه السلام في طلب العلم",text:"طلب موسى عليه السلام الإذن من الخضر بأدب فقال: ﴿هَلْ أَتَّبِعُكَ عَلَى أَنْ تُعَلِّمَنِ مِمَّا عُلِّمْتَ رُشْدًا﴾؛ جمع السؤال بين التواضع ووضوح المقصد.",source:"القرآن الكريم، سورة الكهف: 66."},
@@ -2810,9 +2827,15 @@ const loginFilter=$("#student-login-filter")?.value||"all";
 const query=String($("#student-name-search")?.value||"").trim().toLocaleLowerCase("ar");
 const matchesLogin=s=>(!query||String(s.name||"").toLocaleLowerCase("ar").includes(query))&&(loginFilter==="all"||(loginFilter==="missing"?!s.user_id:!!s.user_id));
 const rosterStudentSet=S.user.role==="admin"?S.students:S.students.filter(s=>assignedGroups().some(g=>String(g.id)===String(s.group_id)));
-$("#roster-total").textContent=String(rosterStudentSet.length);
-$("#roster-linked").textContent=String(rosterStudentSet.filter(s=>!!s.user_id).length);
-$("#roster-missing").textContent=String(rosterStudentSet.filter(s=>!s.user_id).length);
+const studentsReady=!S.studentsLoadError;
+$("#roster-total").textContent=studentsReady?String(rosterStudentSet.length):"—";
+$("#roster-linked").textContent=studentsReady?String(rosterStudentSet.filter(s=>!!s.user_id).length):"—";
+$("#roster-missing").textContent=studentsReady?String(rosterStudentSet.filter(s=>!s.user_id).length):"—";
+if(!studentsReady){
+ host.innerHTML='<div class="notice error" role="alert">تعذر تحميل ملفات الطلاب من الخادم؛ لم نعرض صفرًا مضللًا ولم نغيّر أي سجل. أعد المحاولة بعد لحظة. <button class="btn secondary" id="retry-student-roster" type="button">إعادة المحاولة</button></div>';
+ host.querySelector("#retry-student-roster")?.addEventListener("click",async()=>{const b=host.querySelector("#retry-student-roster");b.disabled=true;try{await load();shell();await page()}catch(e){toast(e.message||"تعذر تحديث القائمة",true);b.disabled=false}});
+ return;
+}
 const accessibleGroups=assignedGroups();
  const groups=accessibleGroups.slice().sort((a,b)=>a.name.localeCompare(b.name,"ar")).filter(g=>selected==="all"||g.id===selected);
 let html="";
