@@ -3683,3 +3683,12 @@ html[data-ihsan-theme="عنابي ليلي"] .app-authenticated .content-area :i
 html[data-ihsan-theme="عنابي ليلي"] .app-authenticated .content-area :is(.hero,.welcome){background:linear-gradient(125deg,#592b3a,#321d29 64%,#21151d)!important}
 html[data-ihsan-theme="عنابي ليلي"] .scan-point-picker{background:linear-gradient(145deg,#321e29,#21151c);border-color:#754655}
 .app-authenticated .content-area :is(.module-card,.task-card,.student-card,.group-card,.path-card,.list-row,.table-wrap,.notice,.empty,.settings-section,.quick-action,.dashboard-card,.feature-card,.learning-card,.lesson-card,.quiz-card,.test-card){border-color:rgba(177,207,185,.14)!important}
+
+
+/* V73: إصلاح تباين نصوص التسجيل على الهاتف */
+.auth-tab{color:#12382d!important}
+.auth-tab.is-active{color:#12382d!important;background:#ffffff!important}
+.signup-kind-card{color:#18352c!important;background:#fcfefc!important}
+.signup-kind-card strong{color:#102b22!important}
+.signup-kind-card small{color:#40594f!important}
+.signup-kind-option:focus-within .signup-kind-card{outline:2px solid #0b7256;outline-offset:2px}
