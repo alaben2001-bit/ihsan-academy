@@ -2225,7 +2225,7 @@ async function scanPage(v){
   const selectedTaskIds=()=>String(taskType.value||"").split(",").filter(id=>["attendance","hifz"].includes(id));
   const taskLabel=()=>selectedTaskIds().map(id=>taskDefinitions.find(t=>t.id===id)?.label).filter(Boolean).join(" + ");
   const taskTiles=taskDefinitions.map(t=>'<button type="button" class="scan-task-option scan-task-simple" data-scan-task="'+t.id+'" aria-pressed="false"><span class="scan-task-symbol" aria-hidden="true">'+t.symbol+'</span><span class="scan-task-copy"><strong>'+t.label+'</strong><small>'+t.hint+'</small></span><span class="scan-task-check" aria-hidden="true">✓</span></button>').join("");
-  const savedIds=String(S.scanTaskType||safeStore.get("ihsan_scan_task_type")||"").split(",").filter(id=>["attendance","hifz"].includes(id));
+  const savedIds=String(safeStore.get("ihsan_scan_task_type")||S.scanTaskType||"").split(",").filter(id=>["attendance","hifz"].includes(id));
   const savedTask=savedIds.join(",");
   v.innerHTML=head("المسح والمتابعة","")
     +'<section class="card scan-task-setup scan-task-studio"><input id="scan-task-type" type="hidden" value="'+esc(savedTask)+'">'
