@@ -3825,3 +3825,17 @@ body:has(.scan-task-studio) .scan-task-feedback{font-size:13px!important}
 .app-authenticated .content-area .card,.module-card{animation:ihsan-card-enter .32s ease both}
 @media(max-width:700px){.module-card{min-height:190px!important}.auth-layout>.welcome{min-height:170px!important}.academy-about-dialog{max-height:84dvh}}
 @media(prefers-reduced-motion:reduce){.app-authenticated .content-area .card,.module-card,.loading-spinner{animation:none!important}}
+
+/* V80 — student-first dashboard: action, progress, less prose */
+.student-dashboard .student-welcome p{display:none!important}
+.student-dashboard .path-cards-section .section-head p{display:none!important}
+.student-dashboard .achievement-card p{margin:6px 0!important;line-height:1.55!important}
+.student-dashboard .achievement-card p:nth-of-type(3){display:none!important}
+.student-dashboard .achievement-card p:nth-of-type(2){display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:1;overflow:hidden}
+.student-dashboard .path-card{min-height:142px!important;gap:7px!important}
+.student-dashboard .path-card small{display:block;max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.student-dashboard .stats{gap:9px!important}
+.ihsan-teaser-head p,.ihsan-teaser-note{display:none!important}
+.ihsan-teaser-sections{gap:8px!important}
+.ihsan-teaser-sections li{padding:11px 13px!important;border-radius:15px!important}
+@media(max-width:560px){.student-dashboard .path-card{min-height:126px!important;padding:13px!important}.student-dashboard .stats{grid-template-columns:repeat(2,minmax(0,1fr))!important}}
