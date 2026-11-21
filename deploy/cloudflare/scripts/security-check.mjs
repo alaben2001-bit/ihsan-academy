@@ -482,7 +482,7 @@ assert.doesNotMatch(privacy, /fonts\.googleapis\.com|<style>/, "privacy page mus
 assert.match(index, /class="boot-splash"/, "the initial HTML must show a compact neutral splash while the app initializes");
 assert.match(index, /<strong>أكاديمية الإحسان<\/strong>/, "the initial splash must identify the academy without stale public-page content");
 assert.match(app, /id="signup-form"/, "visitors must retain the self-service signup entry point after the app initializes");
-assert.match(index, /قيد الاعتماد/, "visitors must learn that join requests wait for authorized approval before access");
+assert.match(app, /يبقى طلبك قيد الاعتماد/, "visitors must learn that join requests wait for authorized approval after the login interface initializes");
 assert.match(index, /<a class="skip-link" href="#app">/, "the home page must provide a keyboard skip link");
 assert.match(about, /<a class="skip-link" href="#main-content">/, "the about page must provide a keyboard skip link");
 assert.match(about, /حساب طالب يُسند إلى فوج بعد اعتماد الشيخ أو الإدارة/, "the about page must explain the approval-based open signup accurately");
