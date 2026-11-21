@@ -479,9 +479,9 @@ for (const [name, page] of [["about", about], ["privacy", privacy]]) {
 }
 assert.doesNotMatch(about, /fonts\.googleapis\.com|rel="stylesheet" href="\/ihsan-dark-theme\.css/, "about page must use the self-hosted consolidated stylesheet");
 assert.doesNotMatch(privacy, /fonts\.googleapis\.com|<style>/, "privacy page must use the self-hosted consolidated stylesheet");
-assert.match(index, /<h1 id="public-heading">أكاديمية الإحسان في بناء الإنسان<\/h1>/, "the initial HTML must identify the platform to members before the app loads");
-assert.match(index, /<li>متابعة الحفظ والمراجعة القرآنية\.<\/li>/, "the initial HTML must describe a real platform feature");
-assert.match(index, /إنشاء حساب جديد من هذه الصفحة/, "visitors must see the self-service signup entry point on the login page");
+assert.match(index, /class="boot-splash"/, "the initial HTML must show a compact neutral splash while the app initializes");
+assert.match(index, /<strong>أكاديمية الإحسان<\/strong>/, "the initial splash must identify the academy without stale public-page content");
+assert.match(app, /id="signup-form"/, "visitors must retain the self-service signup entry point after the app initializes");
 assert.match(index, /قيد الاعتماد/, "visitors must learn that join requests wait for authorized approval before access");
 assert.match(index, /<a class="skip-link" href="#app">/, "the home page must provide a keyboard skip link");
 assert.match(about, /<a class="skip-link" href="#main-content">/, "the about page must provide a keyboard skip link");
