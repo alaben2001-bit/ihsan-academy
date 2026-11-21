@@ -1,5 +1,5 @@
-﻿const CACHE = "ihsan-academy-pwa-v171-20261121-17";
-const ASSET_VERSION = "20261121-17";
+﻿const CACHE = "ihsan-academy-pwa-v171-20261121-18";
+const ASSET_VERSION = "20261121-18";
 
 const SHELL = [
   "/",
