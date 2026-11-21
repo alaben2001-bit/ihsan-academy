@@ -3692,3 +3692,30 @@ html[data-ihsan-theme="عنابي ليلي"] .scan-point-picker{background:linea
 .signup-kind-card strong{color:#102b22!important}
 .signup-kind-card small{color:#40594f!important}
 .signup-kind-option:focus-within .signup-kind-card{outline:2px solid #0b7256;outline-offset:2px}
+
+
+/* V74: واجهة أخف للعين، وإخفاء عبارة انتظار البيانات مع مؤشر هادئ */
+.app-authenticated .content-area .card,
+.app-authenticated .content-area .panel{
+  border-radius:18px!important;
+  box-shadow:0 8px 22px rgba(0,0,0,.13),inset 0 1px rgba(255,255,255,.025)!important;
+}
+.app-authenticated .content-area .card:before,
+.app-authenticated .content-area .panel:before{display:none!important}
+.app-authenticated .content-area .section-head h2,
+.app-authenticated .content-area h2{line-height:1.45;letter-spacing:0}
+.app-authenticated .content-area p{line-height:1.85}
+.app-authenticated .content-area .card{padding:clamp(14px,3vw,21px)!important}
+.app-authenticated .content-area .list{gap:8px}
+.app-authenticated .content-area .list-row{border-radius:14px!important;padding:12px!important}
+.loading{font-size:0!important;min-height:42px;padding:14px!important;color:transparent!important}
+.loading:after{content:"";display:block;width:17px;height:17px;margin:0 auto;border:2px solid rgba(216,187,120,.22);border-top-color:var(--gold);border-radius:50%;animation:ihsan-loading-spin .8s linear infinite}
+@keyframes ihsan-loading-spin{to{transform:rotate(360deg)}}
+@media(max-width:820px){
+ .mobile-primary-nav{min-height:68px!important;height:68px!important;padding:5px 6px!important;gap:2px!important}
+ .mobile-primary-item{min-height:55px!important;gap:3px!important;font-size:9px!important}
+ .mobile-primary-icon{width:23px!important;height:23px!important}
+ .app-authenticated .content-area{padding-inline:13px!important}
+ .app-authenticated .content-area .hero{border-radius:19px!important}
+}
+@media(prefers-reduced-motion:reduce){.loading:after{animation:none!important}}
