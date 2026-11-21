@@ -3729,3 +3729,40 @@ html[data-ihsan-theme="عنابي ليلي"] .scan-point-picker{background:linea
 .boot-spinner{width:24px;height:24px;border:2px solid rgba(210,184,128,.24);border-top-color:#d2b880;border-radius:50%;animation:ihsan-boot-spin .8s linear infinite}
 @keyframes ihsan-boot-spin{to{transform:rotate(360deg)}}
 @media(prefers-reduced-motion:reduce){.boot-spinner{animation:none}}
+
+/* V76: emerald atelier — calm, spacious cards across every academy workspace */
+:root{--ihsan-deep:#071d17;--ihsan-panel:#102b23;--ihsan-panel-2:#15372d;--ihsan-edge:rgba(173,207,188,.18);--ihsan-gold:#d7bd83}
+html[data-appearance="dark"] body{background:radial-gradient(ellipse at 50% -12%,rgba(26,100,76,.22),transparent 48%),linear-gradient(155deg,#071711,#0b211a 58%,#071610)!important}
+html[data-appearance="dark"] :is(.app-authenticated .content-area,.app-authenticated .workspace,.app-authenticated .sidebar){background:transparent!important}
+html[data-appearance="dark"] .app-authenticated .content-area :is(.card,.panel,.stat,.module-card,.task-card,.student-card,.group-card,.path-card,.list-row,.table-wrap,.notice,.empty,.settings-section,.quick-action,.dashboard-card,.feature-card,.learning-card,.lesson-card,.quiz-card,.test-card,.form-card,.curriculum-card,.curriculum-banner,.curriculum-tile){
+ background:linear-gradient(145deg,rgba(19,49,39,.96),rgba(10,31,25,.98))!important;
+ border:1px solid var(--ihsan-edge)!important;border-radius:22px!important;
+ box-shadow:0 12px 32px rgba(0,0,0,.13),inset 0 1px rgba(255,255,255,.025)!important;
+ color:#edf5ef!important
+}
+html[data-appearance="dark"] .app-authenticated .content-area :is(.hero,.welcome,.module-welcome){
+ background:radial-gradient(ellipse at 12% 0%,rgba(42,128,94,.22),transparent 58%),linear-gradient(145deg,#14382c,#0d261f 72%)!important;
+ border:1px solid rgba(181,211,190,.18)!important;border-radius:26px!important
+}
+html[data-appearance="dark"] .app-authenticated .content-area :is(.list-row,.table-wrap,.stat,.notice,.empty){border-color:rgba(173,207,188,.15)!important}
+html[data-appearance="dark"] .app-authenticated .content-area :is(.muted,.card p,.panel p,.module-desc){color:#b9c9c0!important}
+html[data-appearance="dark"] .app-authenticated .content-area :is(input,select,textarea,.status-select){background:#0a211a!important;border-color:#345447!important;color:#f0f6f1!important}
+html[data-appearance="dark"] .app-authenticated .content-area :is(.btn,.nav-btn.active,.nav-btn:hover){border-radius:13px}
+.module-welcome{background:radial-gradient(ellipse at 8% 0%,rgba(44,125,91,.20),transparent 58%),linear-gradient(145deg,#153a2e,#0c241d)!important;border:1px solid rgba(180,211,191,.17)!important;border-radius:28px!important;box-shadow:0 16px 36px rgba(0,0,0,.16)!important}
+.module-card{position:relative;overflow:hidden;background:linear-gradient(145deg,#142f27 0%,#0d211b 76%)!important;color:#f1f5ef!important;border-color:rgba(180,211,191,.22)!important;box-shadow:0 16px 34px rgba(0,0,0,.17)!important;min-height:290px}
+.module-card:after{content:"";position:absolute;inset:auto -12% -48% 28%;height:85%;border-radius:50%;background:radial-gradient(ellipse,rgba(188,164,105,.10),transparent 68%);pointer-events:none}
+.module-card:hover{transform:translateY(-2px);border-color:rgba(214,190,135,.48)!important;box-shadow:0 20px 40px rgba(0,0,0,.2)!important}
+.module-card .module-label{color:#f1f5ef}
+.module-card .module-desc{color:#b9c9c0}
+.module-card .module-link{color:#e0c58e}
+.module-card .module-art{background:linear-gradient(145deg,#1b4034,#172b32)!important;color:#8de0c1!important;border-color:rgba(180,211,191,.23)!important;box-shadow:0 12px 28px rgba(0,0,0,.14)!important}
+.ihsan-entry-reminder{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:22px;padding:14px 17px;border:1px solid rgba(214,190,135,.24);border-radius:16px;background:rgba(7,27,21,.42)}
+.ihsan-entry-reminder span{font-size:12px;font-weight:800;color:#e0c58e}
+.ihsan-entry-reminder strong{font-size:14px;font-weight:500;color:#d5e3da}
+.ihsan-transition-screen{gap:14px}
+.ihsan-transition-track{display:none!important}
+.ihsan-transition-spinner{display:block;width:26px;height:26px;border-radius:50%;border:2px solid rgba(216,194,145,.22);border-top-color:#e0c58e;animation:ihsan-transition-spin .75s linear infinite}
+.ihsan-transition-reminder{font-size:15px;color:#e0c58e}
+.ihsan-transition-reminder-text{font-size:13px;color:#d5e3da;margin:0}
+@keyframes ihsan-transition-spin{to{transform:rotate(360deg)}}
+@media(max-width:700px){.module-card{min-height:245px;padding:22px!important}.ihsan-entry-reminder{gap:6px;align-items:flex-start;flex-direction:column}}
