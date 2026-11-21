@@ -2754,10 +2754,9 @@ export default {
       sql+=" ORDER BY display_name";
       const r=await env.DB.prepare(sql).bind(...binds).all();
       const students=r.results||[];
-      // Repair/create missing cards for every student visible in this roster.
-      for(const student of students){
-        await ensureStudentCard(env,{id:student.id,name:student.name,group_id:student.group_id},user.id);
-      }
+      // Roster reads stay read-only and fast. Student cards are provisioned when
+      // a student is created or explicitly onboarded; never repair 165 cards on
+      // every GET /api/students request (that can exceed the browser timeout).
       return json(students);
     }
     if(path==="/api/students"&&method==="POST"){
