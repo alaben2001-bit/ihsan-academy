@@ -282,6 +282,10 @@ async function uniqueStudentIdentity(env, value, exceptUserId = null, studentId 
   }
   throw new Error("تعذّر توليد اسم دخول فريد لهذا الطالب");
 }
+function generateStudentTemporaryPassword() {
+  const bytes=crypto.getRandomValues(new Uint8Array(8));
+  return Array.from(bytes,value=>String(value%10)).join("");
+}
 async function parseBody(request, maxBytes = 32000) {
   try { return { value: await bodyJson(request, maxBytes), error: null }; }
   catch (e) { return { value: null, error: fail(e.message === "payload_too_large" ? 413 : 400, e.message) }; }
@@ -2758,17 +2762,17 @@ export default {
     }
     if(path==="/api/students"&&method==="POST"){
       if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"غير مسموح");const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
-      const name=clean(b.name,120),identity=clean(b.username,100).toLowerCase(),password=String(b.password||""),groupId=clean(b.group_id,80);
-      if(!name||!identity||identity.length>120||password.length<8||password.length>256||!groupId)return fail(400,"أكمل الاسم وكلمة المرور والفوج");
+      const name=clean(b.name,120),requestedIdentity=clean(b.username||b.name,100).toLowerCase(),providedPassword=String(b.password||""),groupId=clean(b.group_id,80);
+      if(!name||!requestedIdentity||requestedIdentity.length>120||(providedPassword&&(providedPassword.length<8||providedPassword.length>256))||!groupId)return fail(400,"أكمل الاسم واسم الدخول والفوج؛ كلمة المرور اليدوية لا تقل عن 8 أحرف");
       if(!await canManageGroup(env,user,groupId))return fail(403,"لا تملك صلاحية هذا الفوج");
       const duplicateStudent=await findDuplicateStudentByName(env,name);
-      if(duplicateStudent)return fail(409,"يوجد ملف طالب بالاسم نفسه بالفعل. افتح ملفه وأنشئ حساب الدخول من داخله بدل إنشاء طالب جديد.");
-      const id=uuid(),studentId=uuid();
+      if(duplicateStudent)return fail(409,"يوجد ملف طالب بهذا الاسم بالفعل. افتح الملف الموجود وأنشئ حساب الدخول منه؛ لن ننشئ طالبًا مكررًا.");
+      const id=uuid(),studentId=uuid(),identity=await uniqueStudentIdentity(env,requestedIdentity,null,studentId),password=providedPassword||generateStudentTemporaryPassword();
       try{await env.DB.prepare("INSERT INTO users(id,display_name,identity_normalized,password_hash,role,active,must_change_password) VALUES(?,?,?,?, 'student',1,1)").bind(id,name,identity,await passwordHash(password)).run();
         await env.DB.prepare("INSERT INTO students(id,user_id,display_name,group_id,active) VALUES(?,?,?,?,1)").bind(studentId,id,name,groupId).run();
         await ensureStudentCard(env,{id:studentId,name,group_id:groupId},user.id);}
-      catch{await env.DB.prepare("DELETE FROM students WHERE id=?").bind(studentId).run();await env.DB.prepare("DELETE FROM users WHERE id=?").bind(id).run();return fail(409,"تعذّر إنشاء الطالب وبطاقته؛ تحقق من البيانات ثم أعد المحاولة");}
-      await log(env,user.id,"student_create",{student_id:studentId,group_id:groupId,card_auto_created:true});return json({id:studentId,user_id:id,name,username:identity,group_id:groupId,card_created:true},201);
+      catch(error){await env.DB.prepare("DELETE FROM students WHERE id=?").bind(studentId).run();await env.DB.prepare("DELETE FROM users WHERE id=?").bind(id).run();console.error("Ihsan student creation failed",{message:String(error?.message||error)});return fail(409,"تعذّر إنشاء الطالب؛ حدّث الصفحة وأعد المحاولة، ولم تُمسّ بيانات أي طالب آخر");}
+      await log(env,user.id,"student_create",{student_id:studentId,group_id:groupId,card_auto_created:true,generated_password:!providedPassword});return json({id:studentId,user_id:id,name,username:identity,initial_password:password,group_id:groupId,card_created:true},201);
     }
     const rosterAccountMatch=path.match(/^\/api\/students\/([^/]+)\/account$/);
     if(rosterAccountMatch&&method==="POST"){
@@ -2778,11 +2782,9 @@ export default {
       if(!s)return fail(404,"الطالب غير موجود");
       if(!await canManageGroup(env,user,s.group_id))return fail(403,"لا تملك صلاحية هذا الطالب");
       if(s.user_id)return fail(409,"لدى الطالب حساب دخول بالفعل");
-      const name=clean(b.name||s.display_name,120),identity=clean(b.username,120).toLowerCase(),password=String(b.password||"");
-      if(!name||!identity||password.length<8||password.length>256)return fail(400,"أدخل اسم الدخول وكلمة مرور من 8 أحرف على الأقل");
-      const duplicate=await env.DB.prepare("SELECT id FROM users WHERE identity_normalized=? LIMIT 1").bind(identity).first();
-      if(duplicate)return fail(409,"اسم الدخول مستخدم بالفعل؛ اختر اسمًا آخر");
-      const userId=uuid();
+      const name=clean(b.name||s.display_name,120),requestedIdentity=clean(b.username||b.name||s.display_name,120).toLowerCase(),providedPassword=String(b.password||"");
+      if(!name||!requestedIdentity||requestedIdentity.length>120||(providedPassword&&(providedPassword.length<8||providedPassword.length>256)))return fail(400,"أدخل اسم الطالب واسم الدخول؛ كلمة المرور اليدوية لا تقل عن 8 أحرف");
+      const userId=uuid(),identity=await uniqueStudentIdentity(env,requestedIdentity,null,s.id),password=providedPassword||generateStudentTemporaryPassword();
       try{
         await env.DB.prepare("INSERT INTO users(id,display_name,identity_normalized,password_hash,role,active,must_change_password) VALUES(?,?,?,?, 'student',1,1)").bind(userId,name,identity,await passwordHash(password)).run();
         const linked=await env.DB.prepare("UPDATE students SET user_id=?,display_name=? WHERE id=? AND user_id IS NULL").bind(userId,name,s.id).run();
@@ -2795,7 +2797,7 @@ export default {
         return fail(409,"تعذّر إنشاء الحساب؛ تحقّق من اسم الدخول ثم أعد المحاولة");
       }
       await log(env,user.id,"student_account_created",{student_id:s.id,group_id:s.group_id});
-      return json({ok:true,id:s.id,user_id:userId,name,username:identity,group_id:s.group_id},201);
+      return json({ok:true,id:s.id,user_id:userId,name,username:identity,initial_password:password,group_id:s.group_id},201);
     }
     if(path==="/api/admin/students/bulk-onboarding/status"&&method==="GET"){
       if(user.role!=="admin")return fail(403,"تهيئة حسابات الطلاب الجماعية للمدير العام فقط");
