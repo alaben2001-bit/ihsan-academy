@@ -3781,3 +3781,13 @@ html[data-appearance="dark"] .app-authenticated .content-area :is(.btn,.nav-btn.
 .scan-task-feedback{margin-top:14px}
 .scan-task-launcher-subtitle{font-size:13px!important}
 @media(max-width:420px){.scan-task-grid-two{gap:9px!important}.scan-task-simple{min-height:130px!important;padding:14px 8px!important}.scan-task-simple .scan-task-copy strong{font-size:17px!important}}
+
+/* V78 — scan screen: remove prose and secondary clutter */
+body:has(.scan-task-studio) .scan-task-controls{display:none!important}
+body:has(.scan-task-studio) .scan-manual-card{display:none!important}
+body:has(.scan-task-studio) .scan-camera-card .section-head p,
+body:has(.scan-task-studio) .scan-camera-card .section-head .eyebrow{display:none!important}
+body:has(.scan-task-studio) .scan-camera-card .section-head{margin-bottom:12px!important}
+body:has(.scan-task-studio) .scan-camera-card .section-head h3{font-size:18px!important;margin:0!important}
+body:has(.scan-task-studio) .scan-task-topline{margin-bottom:14px!important}
+body:has(.scan-task-studio) .scan-task-feedback{font-size:13px!important}
