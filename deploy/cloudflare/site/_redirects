@@ -6,3 +6,7 @@
 # Old SVG icon URLs still cached by installed PWAs.
 /icon-192.svg    /icon-192.png   301
 /icon-512.svg    /icon-512.png   301
+
+# Canonical academy rules page
+/masjid-alrahma-rules.html /ihsan-rules.html 301
+/masjid-alrahma-rules /ihsan-rules.html 301
