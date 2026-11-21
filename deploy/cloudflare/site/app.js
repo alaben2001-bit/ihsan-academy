@@ -2311,7 +2311,7 @@ async function handleScannedText(v,raw){
   if(parts.length<3||!["add_points","profile","login"].includes(kind)){toast("هذا الرمز ليس بطاقة طالب صالحة أو أنه غير مكتمل",true);return}
   const cardId=parts[1],secret=parts.slice(2).join(".");
   try{
-    const taskIds=selectedTaskIds();
+    const taskIds=String(S.scanTaskType||safeStore.get("ihsan_scan_task_type")||"").split(",").filter(id=>["attendance","hifz"].includes(id));
     if(!taskIds.length||!S.scanDate){toast("اختر الحضور أو الحفظ أولًا.",true);return}
     if(kind!=="add_points"){toast("امسح بطاقة إضافة النقاط الخاصة بالطالب.",true);return}
     const tasks=taskIds;
