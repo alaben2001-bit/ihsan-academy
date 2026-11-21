@@ -2219,28 +2219,20 @@ async function scanPage(v){
   const students=S.students.filter(st=>allowedGroupIds.has(String(st.group_id))).slice().sort((a,b)=>compareStudentNames(a.name,b.name));
   v.__scanStudents=students;
   const taskDefinitions=[
-    {id:"attendance",label:"الحضور والغياب",hint:"تسجيل الحضور أو الغياب",symbol:"✓"},
-    {id:"hifz",label:"الحفظ الجديد",hint:"متابعة المقدار المحفوظ",symbol:"آ"},
-    {id:"revision",label:"المراجعة والتثبيت",hint:"تثبيت المحفوظ ومراجعته",symbol:"↻"},
-    {id:"ward",label:"الورد اليومي",hint:"متابعة الورد المقرر",symbol:"۞"},
-    {id:"points",label:"إنجاز ونقاط",hint:"اعتماد نشاط ومنح نقاطه",symbol:"★"},
-    {id:"assignment",label:"تعيين مهمة",hint:"إسناد تكليف خاص للطالب",symbol:"＋"},
-    {id:"general",label:"متابعة شاملة",hint:"فتح أدوات المتابعة المتكاملة",symbol:"◈"}
+    {id:"attendance",label:"الحضور",hint:"30 نقطة",symbol:"✓"},
+    {id:"hifz",label:"الحفظ",hint:"20 نقطة",symbol:"آ"}
   ];
-  const selectedTaskIds=()=>String(taskType.value||"").split(",").filter(Boolean);
+  const selectedTaskIds=()=>String(taskType.value||"").split(",").filter(id=>["attendance","hifz"].includes(id));
   const taskLabel=()=>selectedTaskIds().map(id=>taskDefinitions.find(t=>t.id===id)?.label).filter(Boolean).join(" + ");
-  const taskTiles=taskDefinitions.filter(t=>t.id!=="points"||S.user.role==="admin").map(t=>'<button type="button" class="scan-task-option" data-scan-task="'+t.id+'" aria-pressed="false"><span class="scan-task-symbol" aria-hidden="true">'+t.symbol+'</span><span class="scan-task-copy"><strong>'+t.label+'</strong><small>'+t.hint+'</small></span><span class="scan-task-check" aria-hidden="true">✓</span></button>').join("");
-  const pointActivities=[["fajr","الفجر · 30"],["shuruq","الشروق · 20"],["maghrib","المغرب · 10"],["hizb","قراءة حزب · 10"],["hifz_no_errors","حفظ ثمن بلا أخطاء · 20"],["hifz_tajweed","حفظ ثمن بالتجويد · 20"],["poetry","أربعة أبيات · 5"],["support","دعم الآخرين · +30%"]];
-  const pointActivityTiles=pointActivities.map(([id,label])=>'<button type="button" class="scan-point-option" data-scan-pre-activity="'+id+'">'+esc(label)+'</button>').join("");
-  const savedIds=String(S.scanTaskType||"").split(",").filter(id=>taskDefinitions.some(t=>t.id===id&&(id!=="points"||S.user.role==="admin")));
+  const taskTiles=taskDefinitions.map(t=>'<button type="button" class="scan-task-option scan-task-simple" data-scan-task="'+t.id+'" aria-pressed="false"><span class="scan-task-symbol" aria-hidden="true">'+t.symbol+'</span><span class="scan-task-copy"><strong>'+t.label+'</strong><small>'+t.hint+'</small></span><span class="scan-task-check" aria-hidden="true">✓</span></button>').join("");
+  const savedIds=String(S.scanTaskType||safeStore.get("ihsan_scan_task_type")||"").split(",").filter(id=>["attendance","hifz"].includes(id));
   const savedTask=savedIds.join(",");
-  v.innerHTML=head("المسح والمتابعة","اختر المهمة مرة واحدة، ثم امسح بطاقة الطالب؛ يتعرّف النظام تلقائيًا إلى فوجه ضمن نطاق صلاحيتك.")
+  v.innerHTML=head("المسح والمتابعة","")
     +'<section class="card scan-task-setup scan-task-studio"><input id="scan-task-type" type="hidden" value="'+esc(savedTask)+'">'
-    +'<div class="scan-task-topline"><span class="scan-task-kicker">ابدأ من هنا</span><span class="scan-task-date-hint">اليوم · تلقائي</span></div>'
-    +'<div class="scan-task-controls"><button type="button" id="scan-task-toggle" class="scan-task-launcher" aria-expanded="false" aria-controls="scan-task-picker"><span class="scan-task-launcher-symbol" aria-hidden="true">✦</span><span class="scan-task-launcher-copy"><strong id="scan-task-launcher-title">اختر مهمة المتابعة</strong><small id="scan-task-launcher-subtitle">اضغط لعرض المهام على شكل بطاقات</small></span><span class="scan-task-launcher-arrow" aria-hidden="true">⌄</span></button>'
+    +'<div class="scan-task-topline"><strong class="scan-task-kicker">اختر ما تريد تسجيله</strong><span class="scan-task-date-hint">اليوم</span></div>'
+    +'<div class="scan-task-controls"><button type="button" id="scan-task-toggle" class="scan-task-launcher" aria-expanded="false" aria-controls="scan-task-picker"><span class="scan-task-launcher-symbol" aria-hidden="true">✦</span><span class="scan-task-launcher-copy"><strong id="scan-task-launcher-title">اختر المهمة</strong><small id="scan-task-launcher-subtitle">الحضور 30 · الحفظ 20</small></span><span class="scan-task-launcher-arrow" aria-hidden="true">⌄</span></button>'
     +'<input id="scan-task-date" type="hidden" value="'+localDateISO()+'"></div>'
-    +'<div id="scan-task-picker" class="scan-task-picker is-open" aria-label="مهام المتابعة"><div class="scan-task-grid-inner"><p class="scan-task-multi-hint">اختر مهمة أو أكثر — يمكنك تحديد الحضور والحفظ معًا، وستبقى اختياراتك ظاهرة بعلامة ✓.</p><div class="scan-task-grid" role="group" aria-label="اختر مهمة أو أكثر">'+taskTiles+'</div></div></div>'
-    +'<section id="scan-point-picker" class="scan-point-picker hidden" aria-label="أنشطة النقاط"><div class="scan-point-heading"><strong>أنشطة النقاط — اختر قبل المسح</strong><small>لا فوج ولا إعدادات إضافية؛ سيُعرف الطالب تلقائيًا من بطاقته.</small></div><div class="scan-point-grid">'+pointActivityTiles+'</div></section>'
+    +'<div id="scan-task-picker" class="scan-task-picker is-open" aria-label="مهام المتابعة"><div class="scan-task-grid-inner"><div class="scan-task-grid scan-task-grid-two" role="group" aria-label="الحضور والحفظ">'+taskTiles+'</div></div></div>'
     +'<div class="scan-task-feedback"><span class="scan-task-feedback-dot" aria-hidden="true"></span><span id="scan-task-ready" role="status">اختر مهمة لفتح المسح.</span></div></section>'
     +'<div class="scan-layout">'
     +'<section class="card scan-camera-card"><div class="section-head"><div><span class="eyebrow">المسح الذكي</span><h3>امسح بطاقة الطالب</h3><p>وجّه كاميرا الهاتف أو الحاسوب نحو رمز QR. تتم قراءة الرمز على الجهاز ولا تُرفع صورة الكاميرا.</p></div></div>'
@@ -2252,7 +2244,7 @@ async function scanPage(v){
     +'<div id="scan-student-list" class="scan-student-list" role="listbox" aria-label="قائمة الطلاب"></div></section></div><div id="scan-panel"></div>';
   const status=v.querySelector("#scan-status"),video=v.querySelector("#scan-video"),listEl=v.querySelector("#scan-student-list");
   const taskType=v.querySelector("#scan-task-type"),taskDate=v.querySelector("#scan-task-date"),ready=v.querySelector("#scan-task-ready");
-  const picker=v.querySelector("#scan-task-picker"),toggle=v.querySelector("#scan-task-toggle"),startButton=v.querySelector("#scan-start"),pointPicker=v.querySelector("#scan-point-picker");
+  const picker=v.querySelector("#scan-task-picker"),toggle=v.querySelector("#scan-task-toggle"),startButton=v.querySelector("#scan-start");
   taskType.value=savedTask;taskDate.value=localDateISO();S.scanDate=taskDate.value;S.date=taskDate.value;
   const setPickerOpen=open=>{picker.classList.toggle("is-open",Boolean(open));picker.inert=!open;toggle.setAttribute("aria-expanded",String(Boolean(open)));toggle.classList.toggle("is-open",Boolean(open))};
   const renderList=()=>{
@@ -2266,15 +2258,13 @@ async function scanPage(v){
   };
   const updateTask=()=>{
     const ids=selectedTaskIds();
-    S.scanTaskType=ids.join(",");S.scanDate=taskDate.value;S.date=taskDate.value;safeStore.set("ihsan_attendance_date",taskDate.value);
+    S.scanTaskType=ids.join(",");safeStore.set("ihsan_scan_task_type",ids.join(","));S.scanDate=taskDate.value;S.date=taskDate.value;safeStore.set("ihsan_attendance_date",taskDate.value);
     const selected=ids.map(id=>taskDefinitions.find(t=>t.id===id)).filter(Boolean);
-    const pointsMode=selected.some(t=>(t.id==="points"||t.id==="general")&&S.user.role==="admin");
-    pointPicker.classList.toggle("hidden",!pointsMode);
     const label=selected.map(t=>t.label).join(" + ");
     v.querySelector("#scan-task-launcher-title").textContent=label||"اختر مهمة المتابعة";
     v.querySelector("#scan-task-launcher-subtitle").textContent=selected.length?"تم اختيار "+selected.length+" مهمة — امسح بطاقة الطالب أو ابحث عنه":"اضغط لعرض المهام على شكل بطاقات";
     toggle.classList.toggle("has-selection",selected.length>0);
-    const activityReady=!pointsMode||Boolean(S.scanActivity);
+    const activityReady=true;
     ready.textContent=!selected.length?"اختر مهمة لفتح المسح.":!activityReady?"اختر نشاط النقاط أولًا.":"جاهز: "+label;
     ready.parentElement.classList.toggle("is-ready",Boolean(selected.length&&activityReady));
     startButton.disabled=!(selected.length&&taskDate.value&&activityReady);
@@ -2287,7 +2277,6 @@ async function scanPage(v){
   const selectStudent=id=>{
     const st=students.find(x=>String(x.id)===String(id));
     if(!selectedTaskIds().length||!taskDate.value){openTaskPicker();toast("اختر المهمة أولًا.",true);return}
-    if(["points","general"].includes(taskType.value)&&S.user.role==="admin"&&!S.scanActivity){toast("اختر نشاط النقاط قبل مسح البطاقة.",true);pointPicker.scrollIntoView({behavior:"smooth",block:"center"});return}
     if(!st){toast("هذا الطالب خارج نطاق صلاحيتك؛ لم تُفتح المتابعة.",true);return}
     S.scanGroupId=String(st.group_id||"");S.scanStudentId=st.id;
     try{window.IhsanScanner&&window.IhsanScanner.stop()}catch{}
@@ -2297,12 +2286,10 @@ async function scanPage(v){
   toggle.addEventListener("click",()=>setPickerOpen(!picker.classList.contains("is-open")));
   taskDate.addEventListener("change",updateTask);
   v.querySelectorAll("[data-scan-task]").forEach(button=>button.addEventListener("click",()=>{const id=button.dataset.scanTask;let ids=selectedTaskIds();if(["attendance","hifz"].includes(id)){ids=ids.filter(x=>["attendance","hifz"].includes(x));ids=ids.includes(id)?ids.filter(x=>x!==id):[...ids,id];}else{ids=[id];}taskType.value=ids.join(",");if(!ids.some(x=>["points","general"].includes(x)))S.scanActivity="";updateTask();if(!["attendance","hifz"].includes(id)||!ids.length)setPickerOpen(false)}));
-  v.querySelectorAll("[data-scan-pre-activity]").forEach(button=>button.addEventListener("click",()=>{if(S.user.role!=="admin")return;S.scanActivity=button.dataset.scanPreActivity;v.querySelectorAll("[data-scan-pre-activity]").forEach(item=>item.classList.toggle("is-selected",item.dataset.scanPreActivity===S.scanActivity));updateTask();if(S.scanStudentId)renderScanPanel(v,S.scanStudentId)}));
   v.querySelector("#scan-search").addEventListener("input",renderList);
   let scanning=false;
   startButton.addEventListener("click",async()=>{
     if(!selectedTaskIds().length||!taskDate.value){openTaskPicker();toast("اختر المهمة أولًا.",true);return}
-    if(selectedTaskIds().some(id=>["points","general"].includes(id))&&S.user.role==="admin"&&!S.scanActivity){toast("اختر نشاط النقاط قبل تشغيل الكاميرا.",true);pointPicker.scrollIntoView({behavior:"smooth",block:"center"});return}
     if(scanning)return;
     if(!window.IhsanScanner){status.textContent="تعذر تحميل الماسح. حدّث الصفحة وحاول مجددًا.";status.classList.add("error");return}
     scanning=true;status.textContent="جار تشغيل الكاميرا…";status.classList.remove("error");
@@ -2325,10 +2312,9 @@ async function handleScannedText(v,raw){
   const cardId=parts[1],secret=parts.slice(2).join(".");
   try{
     const taskIds=selectedTaskIds();
-    if(!taskIds.length||!S.scanDate){toast("اختر مهمة المتابعة أولًا.",true);return}
-    if(taskIds.some(id=>["points","general"].includes(id))&&kind!=="add_points"){toast("لمنح النقاط يجب مسح رمز «إضافة نقاط» الخاص بالطالب، لا رمز الملف أو الدخول.",true);return}
-    if(taskIds.some(id=>["points","general"].includes(id))&&S.user.role==="admin"&&!S.scanActivity){toast("اختر نشاط النقاط قبل مسح البطاقة.",true);return}
-    const tasks=(kind==="add_points"&&taskIds.every(id=>["attendance","hifz"].includes(id)))?taskIds:[taskIds[0]];
+    if(!taskIds.length||!S.scanDate){toast("اختر الحضور أو الحفظ أولًا.",true);return}
+    if(kind!=="add_points"){toast("امسح بطاقة إضافة النقاط الخاصة بالطالب.",true);return}
+    const tasks=taskIds;
     const results=[];
     for(const task of tasks){
       results.push(await api("/cards/resolve",{method:"POST",body:JSON.stringify({kind,task,card_id:cardId,secret})}));
