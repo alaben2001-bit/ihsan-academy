@@ -37,8 +37,8 @@ check("Sheikh can configure bonus percentage in rule UI", /data-rule-bonus/.test
 check("rule save sends bonus_percent to API", /bonus_percent:Number\(tr\.querySelector\("\[data-rule-bonus\]"\)\.value\)/.test(app));
 check("server validates bonus percentage from 0 to 300", /bonusPercent<0\|\|bonusPercent>300/.test(rules));
 check("only Sheikh account can award point activities", /if\(user\.role!=="admin"\)return fail\(403,"اعتماد منح النقاط اليدوي للشيخ وحده"\)/.test(activity));
-check("QR point-award controls are restricted to the Sheikh", /const canGrantPoints=S\.user\.role==="admin"/.test(app) && /scan-point-picker/.test(app));
-check("point activity choices appear before camera scan", /data-scan-pre-activity/.test(app));
+check("QR scanner offers only attendance and hifz tasks", /\{id:"attendance",label:"الحضور",hint:"30 نقطة"/.test(app) && /\{id:"hifz",label:"الحفظ",hint:"20 نقطة"/.test(app) && !/scan-point-picker|data-scan-pre-activity/.test(app));
+check("QR scanner remembers selected tasks between visits", /ihsan_scan_task_type/.test(app) && /safeStore\.set\("ihsan_scan_task_type"/.test(app));
 check("daily scan uses current date without manual date selection", /id="scan-task-date" type="hidden"/.test(app));
 check("add-points QR resolution is limited to authorized group staff", /kind==="add_points"&&!\["admin","teacher","director","supervisor"\]\.includes\(scanner\.role\)/.test(server));
 check("add-points QR scan automatically records present attendance", /status:"present",note:"تسجيل حضور آلي بمسح بطاقة الطالب"/.test(server));
