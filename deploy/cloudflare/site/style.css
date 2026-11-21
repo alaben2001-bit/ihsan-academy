@@ -3791,3 +3791,37 @@ body:has(.scan-task-studio) .scan-camera-card .section-head{margin-bottom:12px!i
 body:has(.scan-task-studio) .scan-camera-card .section-head h3{font-size:18px!important;margin:0!important}
 body:has(.scan-task-studio) .scan-task-topline{margin-bottom:14px!important}
 body:has(.scan-task-studio) .scan-task-feedback{font-size:13px!important}
+
+/* V79 — quiet interface, clear hierarchy, emerald cards */
+.auth-layout .welcome-description,.auth-layout .knowledge-verse,.auth-layout #auth-title + p{display:none!important}
+.auth-layout>.welcome{min-height:230px!important;justify-content:center!important;gap:18px!important}
+.auth-layout .welcome-bottom{margin-top:14px}
+.auth-layout .academy-about-welcome{min-height:44px;border-radius:14px}
+.module-welcome{padding:clamp(18px,3vw,30px)!important;gap:12px!important}
+.module-welcome>p:not(.module-foot){display:none!important}
+.module-card{min-height:220px!important;padding:clamp(18px,3vw,28px)!important}
+.module-card .module-desc{font-size:14px!important;line-height:1.6!important}
+.module-about-action{margin-top:12px}
+.ihsan-entry-reminder{margin-top:12px!important;padding:11px 14px!important}
+.ihsan-org-chart{display:grid;justify-items:center;gap:7px;padding:12px 0}
+.ihsan-org-node,.ihsan-org-supervisors span{padding:10px 16px;border:1px solid rgba(180,211,191,.22);border-radius:14px;background:linear-gradient(145deg,#153a2e,#0d261f);color:#edf5ef;text-align:center;font-weight:700;min-width:min(100%,220px)}
+.ihsan-org-root{border-color:rgba(215,189,131,.48);color:#e4cd98}
+.ihsan-org-line{width:1px;height:12px;background:rgba(215,189,131,.6)}
+.ihsan-org-supervisors{display:flex;justify-content:center;gap:8px;flex-wrap:wrap;margin-top:8px}
+.ihsan-org-supervisors span{min-width:0;font-size:12px}
+.academy-about-dialog{max-width:min(760px,calc(100% - 20px));max-height:88dvh;overflow:auto}
+.academy-about-body{gap:12px}
+.academy-about-card{padding:14px!important}
+.academy-about-card p{font-size:13px;line-height:1.65;margin:6px 0 0}
+.academy-about-principles>p{display:none!important}
+.app-authenticated .content-area .section-head>div>p{max-width:58ch;display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:1;overflow:hidden;text-overflow:ellipsis;font-size:12px;line-height:1.5;margin-top:3px}
+.app-authenticated .content-area .section-head{margin-bottom:12px}
+.app-authenticated .content-area .card{border-radius:20px!important}
+.app-authenticated .content-area .card h3{line-height:1.4}
+.app-authenticated .content-area .muted.small{line-height:1.55}
+.loading{min-height:42px!important;font-size:0!important;color:transparent!important}
+.loading-spinner{display:block;width:18px;height:18px;margin:auto;border:2px solid rgba(216,187,120,.22);border-top-color:var(--gold);border-radius:50%;animation:ihsan-loading-spin .8s linear infinite}
+@keyframes ihsan-card-enter{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.app-authenticated .content-area .card,.module-card{animation:ihsan-card-enter .32s ease both}
+@media(max-width:700px){.module-card{min-height:190px!important}.auth-layout>.welcome{min-height:170px!important}.academy-about-dialog{max-height:84dvh}}
+@media(prefers-reduced-motion:reduce){.app-authenticated .content-area .card,.module-card,.loading-spinner{animation:none!important}}
