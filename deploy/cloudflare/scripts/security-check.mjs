@@ -613,7 +613,7 @@ assert.ok(serviceWorker.includes("/qr.js?v="), "the QR encoder must be cached by
 
 console.log("Security regression guardrails passed.");
 
-assert.match(backend, /if\(!\["admin","teacher","director","supervisor"\]\.includes\(user\.role\)\)return fail\(403/, "manual point awards must be staff-only");
+assert.match(backend, /if\(user\.role!=="admin"\)return fail\(403,"اعتماد منح النقاط اليدوي للشيخ وحده"\)/, "manual point awards must be restricted to the Sheikh admin account");
 assert.match(backend, /student_point_streaks/, "Masjid Al-Rahma streaks must persist in D1");
 assert.match(backend, /student_ethics/, "Masjid Al-Rahma ethics warnings must persist in D1");
 assert.match(backend, /student_referrals/, "student referrals must be tracked before awarding the seven-day bonus");
@@ -621,4 +621,4 @@ assert.match(backend, /hifz_no_errors.*hifz_tajweed/, "the two memorization poin
 assert.match(backend, /bonus_percent/, "the 30% support bonus must be configurable and audited");
 assert.match(app, /رصيد النقاط الموحد/, "students must see one unified points balance");
 assert.match(app, /الفجر · 30/, "the Sheikh scan panel must expose the new point activities");
-assert.match(index, /masjid-alrahma-rules\.html/, "the Cloudflare entry page must link to the printable Masjid Al-Rahma rules");
+assert.match(index, /ihsan-rules\.html/, "the Cloudflare entry page must link to the printable Ihsan rules");
