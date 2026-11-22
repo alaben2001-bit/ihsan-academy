@@ -115,7 +115,7 @@ async function main() {
   check("repeated request_id does not double-award", award2.status === 201 && duplicateEvents && award2.data?.totals?.achievement === 30 && award2.data?.totals?.store === 30, JSON.stringify(award2.data));
 
   const summaryAfterAward = await call("/api/points/summary?student_id=" + encodeURIComponent(student.id), { token: admin });
-  check("summary reports one unified 30-point balance", summaryAfterAward.data?.totals?.achievement === 30 && summaryAfterAward.data?.totals?.store === 30, JSON.stringify(summaryAfterAward.data?.totals));
+  check("summary reports separate achievement and store balances", summaryAfterAward.data?.totals?.achievement === 30 && summaryAfterAward.data?.totals?.store === 30 && summaryAfterAward.data?.totals?.balance === 30 && summaryAfterAward.data?.totals?.mode === "separate", JSON.stringify(summaryAfterAward.data?.totals));
 
   // -------------------------------------------------------------------------
   // 4) Store item, student redemption, rejection refunds balance
@@ -178,7 +178,7 @@ async function main() {
   const review = await call("/api/assignment-review", { method: "POST", token: admin, body: { assignment_id: assignmentId, student_id: student.id, grade: 90, feedback: "إتقان" } });
   check("assignment review succeeds", review.status === 200, JSON.stringify(review.data));
   const afterReview = await call("/api/points/summary?student_id=" + encodeURIComponent(student.id), { token: admin });
-  check("excellent assignment awards one unified 20-point reward", afterReview.data?.totals?.achievement === 50 && afterReview.data?.totals?.store === 50, JSON.stringify(afterReview.data?.totals));
+  check("excellent assignment adds the configured amount to both balances", afterReview.data?.totals?.achievement === 50 && afterReview.data?.totals?.store === 50, JSON.stringify(afterReview.data?.totals));
 
   // -------------------------------------------------------------------------
   // 6) Rule editing is honoured by later automatic awards
@@ -193,7 +193,7 @@ async function main() {
   const yesterday = academyDate(-1);
   const attendance3 = await call("/api/attendance", { method: "POST", token: admin, body: { group_id: groupId, date: yesterday, items: [{ student_id: student.id, status: "present" }] } });
   const afterRuleChange = await call("/api/points/summary?student_id=" + encodeURIComponent(student.id), { token: admin });
-  check("updated rule applies to a new day as one 5-point award", attendance3.status === 200 && afterRuleChange.data?.totals?.achievement === 55 && afterRuleChange.data?.totals?.store === 55, JSON.stringify(afterRuleChange.data?.totals));
+  check("updated rule applies separate 5 achievement and 4 store points", attendance3.status === 200 && afterRuleChange.data?.totals?.achievement === 55 && afterRuleChange.data?.totals?.store === 54 && afterRuleChange.data?.totals?.balance === 54, JSON.stringify(afterRuleChange.data?.totals));
 
   // -------------------------------------------------------------------------
   // 7) Reversal is documented, not destructive
@@ -313,19 +313,20 @@ async function main() {
   //     the balances expected by the store and reversal tests above).
   // -------------------------------------------------------------------------
   const balanceBeforeAdjustment = await call("/api/points/summary?student_id=" + encodeURIComponent(student.id), { token: admin });
-  const startingBalance = Number(balanceBeforeAdjustment.data?.totals?.balance || 0);
+  const startingBalance = Number(balanceBeforeAdjustment.data?.totals?.store || balanceBeforeAdjustment.data?.totals?.balance || 0);
+  const startingAchievement = Number(balanceBeforeAdjustment.data?.totals?.achievement || 0);
   const adjustNoReason = await call("/api/points/adjust", { method: "POST", token: admin, body: { student_id: student.id, points: 5, request_id: "test-adjust-no-reason" } });
   check("general adjustment requires a reason", adjustNoReason.status === 400, JSON.stringify(adjustNoReason.data));
 
   const adjustmentBody = { student_id: student.id, points: 7, reason: "اختبار إضافة عامة", request_id: "test-general-adjust-001" };
   const adjustment1 = await call("/api/points/adjust", { method: "POST", token: admin, body: adjustmentBody });
-  check("general adjustment adds points", adjustment1.status === 201 && adjustment1.data?.totals?.balance === startingBalance + 7, JSON.stringify(adjustment1.data));
+  check("general adjustment adds points to both balances", adjustment1.status === 201 && adjustment1.data?.totals?.store === startingBalance + 7 && adjustment1.data?.totals?.achievement === startingAchievement + 7, JSON.stringify(adjustment1.data));
 
   const adjustment2 = await call("/api/points/adjust", { method: "POST", token: admin, body: adjustmentBody });
-  check("repeated general adjustment does not duplicate", adjustment2.status === 201 && (adjustment2.data?.events || []).every(event => event.status === "duplicate") && adjustment2.data?.totals?.balance === startingBalance + 7, JSON.stringify(adjustment2.data));
+  check("repeated general adjustment does not duplicate", adjustment2.status === 201 && (adjustment2.data?.events || []).every(event => event.status === "duplicate") && adjustment2.data?.totals?.store === startingBalance + 7 && adjustment2.data?.totals?.achievement === startingAchievement + 7, JSON.stringify(adjustment2.data));
 
   const adjustmentSubtract = await call("/api/points/adjust", { method: "POST", token: admin, body: { student_id: student.id, points: -2, reason: "اختبار خصم عام", request_id: "test-general-adjust-002" } });
-  check("general adjustment subtracts points once", adjustmentSubtract.status === 201 && adjustmentSubtract.data?.totals?.balance === startingBalance + 5, JSON.stringify(adjustmentSubtract.data));
+  check("general adjustment subtracts points once from both balances", adjustmentSubtract.status === 201 && adjustmentSubtract.data?.totals?.store === startingBalance + 5 && adjustmentSubtract.data?.totals?.achievement === startingAchievement + 5, JSON.stringify(adjustmentSubtract.data));
 
   const adjustmentOverdraw = await call("/api/points/adjust", { method: "POST", token: admin, body: { student_id: student.id, points: -(startingBalance + 6), reason: "اختبار منع الرصيد السالب", request_id: "test-general-adjust-003" } });
   check("general adjustment prevents a negative balance", adjustmentOverdraw.status === 409, JSON.stringify(adjustmentOverdraw.data));
