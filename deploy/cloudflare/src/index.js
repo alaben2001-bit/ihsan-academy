@@ -299,15 +299,62 @@ async function parseBody(request, maxBytes = 32000) {
 // نقاط الإنجاز مؤشر تراكمي، ورصيد المتجر هو ما يُصرف فقط.
 // ---------------------------------------------------------------------------
 const POINT_KINDS = ["achievement", "store"];
-const POINT_KIND_LABELS = { achievement: "رصيد النقاط", store: "حركة نقاط" };
+const POINT_KIND_LABELS = { achievement: "نقاط الإنجاز", store: "رصيد المتجر" };
 const MAX_RULE_POINTS = 100000;
 const MAX_MANUAL_POINTS = 1000;
 
 async function pointsTotals(env, studentId) {
-  const row = await env.DB.prepare(
-    "WITH grouped AS (SELECT event_key,MAX(CASE WHEN kind='achievement' THEN points END) AS achievement_points,MAX(CASE WHEN kind='store' AND event_type<>'store_redemption' THEN points END) AS store_points FROM point_events WHERE student_id=? AND reversed_at IS NULL AND event_type<>'store_redemption' GROUP BY event_key), redeemed AS (SELECT COALESCE(SUM(points),0) AS spent FROM point_events WHERE student_id=? AND reversed_at IS NULL AND event_type='store_redemption' AND kind='store') SELECT COALESCE(SUM(MAX(COALESCE(achievement_points,-100000),COALESCE(store_points,-100000))),0)+(SELECT spent FROM redeemed) AS balance FROM grouped"
-  ).bind(studentId,studentId).first();
-  const balance=Number(row?.balance||0); return { achievement: balance, store: balance, balance };
+  const legacySql = "WITH grouped AS (SELECT event_key,MAX(CASE WHEN kind='achievement' THEN points END) AS achievement_points,MAX(CASE WHEN kind='store' AND event_type<>'store_redemption' THEN points END) AS store_points FROM point_events WHERE student_id=? AND reversed_at IS NULL AND event_type<>'store_redemption' GROUP BY event_key), redeemed AS (SELECT COALESCE(SUM(points),0) AS spent FROM point_events WHERE student_id=? AND reversed_at IS NULL AND event_type='store_redemption' AND kind='store') SELECT COALESCE(SUM(MAX(COALESCE(achievement_points,-100000),COALESCE(store_points,-100000))),0)+(SELECT spent FROM redeemed) AS balance FROM grouped";
+  const legacyTotals = async () => {
+    const row = await env.DB.prepare(legacySql).bind(studentId,studentId).first();
+    const balance=Number(row?.balance||0);
+    return { achievement: balance, store: balance, balance, mode: "legacy" };
+  };
+  let cutover=null;
+  try { cutover=await env.DB.prepare("SELECT active FROM point_balance_cutovers WHERE id=1").first(); } catch {}
+  if(Number(cutover?.active)!==1) return legacyTotals();
+  try {
+    const row=await env.DB.prepare(`
+      WITH opening AS (
+        SELECT opening_balance,as_of FROM student_store_opening_balances WHERE student_id=?
+      ),
+      achievement_events AS (
+        SELECT event_key,MAX(points) AS points FROM point_events
+        WHERE student_id=? AND kind='achievement' AND reversed_at IS NULL
+        GROUP BY event_key
+      ),
+      store_events AS (
+        SELECT event_key,MAX(points) AS points FROM point_events
+        WHERE student_id=? AND kind='store' AND event_type<>'store_redemption' AND reversed_at IS NULL
+          AND created_at>COALESCE((SELECT as_of FROM opening),'1970-01-01T00:00:00.000Z')
+        GROUP BY event_key
+      ),
+      new_redemptions AS (
+        SELECT COALESCE(SUM(CASE WHEN status IN ('pending','approved','fulfilled') THEN -cost ELSE 0 END),0) AS net
+        FROM store_redemptions
+        WHERE student_id=? AND requested_at>COALESCE((SELECT as_of FROM opening),'1970-01-01T00:00:00.000Z')
+      ),
+      old_redemption_refunds AS (
+        SELECT COALESCE(SUM(cost),0) AS refund
+        FROM store_redemptions
+        WHERE student_id=?
+          AND requested_at<=COALESCE((SELECT as_of FROM opening),'1970-01-01T00:00:00.000Z')
+          AND status='rejected'
+          AND decided_at>COALESCE((SELECT as_of FROM opening),'1970-01-01T00:00:00.000Z')
+      )
+      SELECT
+        COALESCE((SELECT SUM(points) FROM achievement_events),0) AS achievement,
+        COALESCE((SELECT opening_balance FROM opening),0)
+          +COALESCE((SELECT SUM(points) FROM store_events),0)
+          +(SELECT net FROM new_redemptions)
+          +(SELECT refund FROM old_redemption_refunds) AS store
+    `).bind(studentId,studentId,studentId,studentId,studentId).first();
+    const achievement=Number(row?.achievement||0);
+    const store=Number(row?.store||0);
+    return { achievement, store, balance: store, mode: "separate" };
+  } catch {
+    return legacyTotals();
+  }
 }
 
 function storeItemAvailability(item, balance) {
@@ -4933,7 +4980,7 @@ export default {
       if(!Number.isInteger(delta)||delta===0||Math.abs(delta)>MAX_MANUAL_POINTS)return fail(400,"أدخل عددًا صحيحًا بين -1000 و1000 دون الصفر");
       if(reason.length<3)return fail(400,"اكتب سبب الإضافة أو الخصم (3 أحرف على الأقل)");
       const totals=await pointsTotals(env,student.id);
-      if(Number(totals.balance||0)+delta<0)return fail(409,"لا يمكن أن يتجاوز الخصم رصيد الطالب الحالي");
+      if(Number(totals.store||0)+delta<0||Number(totals.achievement||0)+delta<0)return fail(409,"لا يمكن أن يتجاوز الخصم أحد رصيدي الطالب الحاليين");
       const requestId=clean(b.request_id,80);
       if(!/^[a-zA-Z0-9_-]{6,80}$/.test(requestId))return fail(400,"معرّف الحركة مطلوب لمنع التكرار");
       const eventKey="general-adjustment:"+requestId,date=academyDate(),events=[];
