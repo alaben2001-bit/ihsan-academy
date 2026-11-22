@@ -147,8 +147,18 @@ async function main() {
   const thabit = await call("/api/quran/daily", { method: "POST", token: studentA.token, body: { kind: "thabit", amount: 0.25, unit: "حزب", repetitions: 15 } });
   check("student logs consolidation with repetitions", thabit.status === 201 && Number(thabit.data?.entry?.repetitions) === 15, JSON.stringify(thabit.data));
 
+  // Build a five-day ward streak in chronological order, using only test records in local D1.
+  for (let offset = -4; offset <= -1; offset += 1) {
+    const priorWard = await call("/api/quran/daily", { method: "POST", token: studentA.token, body: { kind: "ward", day: academyDate(offset), amount: 1, unit: "حزب" } });
+    check("student logs prior ward day " + offset, priorWard.status === 201, JSON.stringify(priorWard.data));
+  }
   const ward = await call("/api/quran/daily", { method: "POST", token: studentA.token, body: { kind: "ward", amount: 2, unit: "حزب" } });
   check("student logs the daily portion", ward.status === 201 && Number(ward.data?.entry?.amount) === 2, JSON.stringify(ward.data));
+  check("fifth consecutive ward day is counted automatically", ward.data?.streak?.days === 5 && ward.data?.streak?.milestone?.milestone_days === 5, JSON.stringify(ward.data?.streak));
+  const streakView = await call("/api/points/streak", { token: studentA.token });
+  const wardStreak = (streakView.data?.streaks || []).find(row => row.activity === "ward");
+  const fiveDayBadge = (streakView.data?.badges || []).find(row => row.activity === "ward" && Number(row.milestone_days) === 5);
+  check("student sees a five-day ward streak and badge", streakView.status === 200 && wardStreak?.current_days === 5 && fiveDayBadge?.points_awarded === 10, JSON.stringify(streakView.data));
 
   const futureLog = await call("/api/quran/daily", { method: "POST", token: studentA.token, body: { kind: "ward", day: academyDate(2), amount: 1 } });
   check("future daily log is rejected", futureLog.status === 400, JSON.stringify(futureLog.data));
