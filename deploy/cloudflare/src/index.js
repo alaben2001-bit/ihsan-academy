@@ -73,7 +73,7 @@ export const addCalendarDays = (dateOnly, days) => {
   const [year, month, day] = dateOnly.split("-").map(Number);
   return new Date(Date.UTC(year, month-1, day+days)).toISOString().slice(0,10);
 };
-const BULK_STUDENT_ONBOARDING_IDS=["roster-20261020-01","roster-20261020-04","roster-20261020-05","roster-20261020-07","roster-20261020-09","roster-20261020-11","roster-20261020-13","roster-20261020-14","roster-20261020-15","roster-20261020-16","roster-20261020-18","roster-20261020-19","roster-20261020-20","roster-20261020-22","roster-20261020-23","roster-20261020-24","roster-20261020-26","roster-20261020-27","roster-20261020-28","roster-20261020-29","roster-20261020-30","roster-20261020-32","roster-20261020-33","roster-20261020-35","roster-20261020-36","roster-20261020-37","roster-20261020-38","roster-20261020-39","roster-20261020-42","roster-20261020-43","roster-20261020-44","roster-20261020-46","roster-20261020-47","roster-20261020-48","roster-20261020-49","roster-20261020-50","roster-20261020-51","roster-20261020-53","roster-20261020-54","roster-20261020-55"];
+
 const clean = (v, max = 200) => String(v ?? "").trim().slice(0, max);
 const normalizeStudentName = value => String(value || "").normalize("NFKC").replace(/[\u064B-\u065F\u0670\u0640]/g, "").replace(/\s+/g, " ").trim().toLocaleLowerCase("ar");
 async function findDuplicateStudentByName(env, name, excludeId = "") {
@@ -282,9 +282,9 @@ async function uniqueStudentIdentity(env, value, exceptUserId = null, studentId 
   }
   throw new Error("تعذّر توليد اسم دخول فريد لهذا الطالب");
 }
+const INITIAL_STUDENT_PASSWORD = "12345678";
 function generateStudentTemporaryPassword() {
-  const bytes=crypto.getRandomValues(new Uint8Array(8));
-  return Array.from(bytes,value=>String(value%10)).join("");
+  return INITIAL_STUDENT_PASSWORD;
 }
 async function parseBody(request, maxBytes = 32000) {
   try { return { value: await bodyJson(request, maxBytes), error: null }; }
@@ -2811,62 +2811,80 @@ export default {
     }
     if(path==="/api/admin/students/bulk-onboarding/status"&&method==="GET"){
       if(user.role!=="admin")return fail(403,"تهيئة حسابات الطلاب الجماعية للمدير العام فقط");
-      const raw=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='platform_settings' AND id='student_bulk_onboarding_v1'").first();
-      let state={};try{state=raw?JSON.parse(raw.payload_json):{}}catch{}
-      const done=Array.isArray(state.completed_student_ids)?state.completed_student_ids:[];
-      return json({completed:state.completed===true&&BULK_STUDENT_ONBOARDING_IDS.every(id=>done.includes(id)),completed_count:done.length,total:BULK_STUDENT_ONBOARDING_IDS.length});
+      const row=await env.DB.prepare("SELECT COUNT(*) AS total,SUM(CASE WHEN user_id IS NULL AND group_id IS NOT NULL THEN 1 ELSE 0 END) AS remaining FROM students WHERE active=1").first();
+      const total=Number(row?.total||0),remaining=Number(row?.remaining||0);
+      return json({completed:remaining===0,completed_count:total-remaining,total,remaining});
     }
     if(path==="/api/admin/students/bulk-onboarding"&&method==="POST"){
       if(user.role!=="admin")return fail(403,"تهيئة حسابات الطلاب الجماعية للمدير العام فقط");
       const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
       const requestedInput=Array.isArray(b.student_ids)?[...new Set(b.student_ids.map(x=>clean(x,80)).filter(Boolean))]:[];
-      if(!requestedInput.length||requestedInput.length>BULK_STUDENT_ONBOARDING_IDS.length||requestedInput.some(id=>!BULK_STUDENT_ONBOARDING_IDS.includes(id)))return fail(400,"اختر أسماء الفوج المحددة في إجراء التهيئة فقط");
-      const markerId="student_bulk_onboarding_v1";
-      const rawState=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='platform_settings' AND id=?").bind(markerId).first();
-      let state={};try{state=rawState?JSON.parse(rawState.payload_json):{}}catch{}
-      const completedIds=new Set(Array.isArray(state.completed_student_ids)?state.completed_student_ids:[]);
-      if(state.completed===true&&BULK_STUDENT_ONBOARDING_IDS.every(id=>completedIds.has(id)))return fail(409,"تم تجهيز حسابات الأسماء الكاملة بالفعل. أُخفي هذا الإجراء من المنصة.");
-      const requested=requestedInput.filter(id=>!completedIds.has(id));
-      if(!requested.length)return fail(409,"اكتملت أسماء هذه الدفعة سابقًا.");
-      const credentials=[],skipped=[];let created=0,reset=0;
-      const temporaryPassword=()=>"Ih!"+hex(crypto.getRandomValues(new Uint8Array(10)));
-      for(const studentId of requested){
-        const st=await env.DB.prepare("SELECT id,display_name,group_id,user_id FROM students WHERE id=? AND active=1").bind(studentId).first();
-        if(!st||!st.group_id){skipped.push({student_id:studentId,reason:"not_eligible"});continue}
-        const g=await groupRow(env,st.group_id);if(!g||g.active!==1){skipped.push({student_id:studentId,reason:"inactive_group"});continue}
-        if(st.user_id){
-          if(b.reset_existing!==true){skipped.push({student_id:studentId,reason:"already_linked"});continue}
-          const existing=await env.DB.prepare("SELECT id,display_name,identity_normalized,role,active FROM users WHERE id=?").bind(st.user_id).first();
-          if(!existing||existing.role!=="student"||existing.active!==1){skipped.push({student_id:studentId,reason:"invalid_linked_account"});continue}
-          const password=temporaryPassword();
-          const identity=await uniqueStudentIdentity(env,st.display_name,existing.id,st.id);
-          await env.DB.prepare("UPDATE users SET display_name=?,identity_normalized=?,password_hash=?,must_change_password=1 WHERE id=?").bind(st.display_name,identity,await passwordHash(password),existing.id).run();
-          credentials.push({student_id:st.id,name:st.display_name,group_id:st.group_id,username:identity,password,reset_existing:true});
-          reset++;completedIds.add(st.id);
-          await saveRecord(env,"platform_settings",{id:markerId,owner_user_id:user.id,completed:false,completed_student_ids:[...completedIds],target_student_ids:BULK_STUDENT_ONBOARDING_IDS,updated_at:nowIso()});
+      if(!requestedInput.length||requestedInput.length>200)return fail(400,"اختر من طالب واحد إلى 200 طالب ممن لديهم فوج نشط");
+      const marks=requestedInput.map(()=>"?").join(",");
+      const found=await env.DB.prepare("SELECT id,display_name,group_id,user_id FROM students WHERE active=1 AND id IN ("+marks+")").bind(...requestedInput).all();
+      const studentRows=found.results||[];
+      if(studentRows.length!==requestedInput.length)return fail(400,"توجد ملفات غير نشطة أو غير موجودة ضمن القائمة؛ حدّث الصفحة وأعد المحاولة");
+      const allUnlinked=await env.DB.prepare("SELECT id,display_name FROM students WHERE active=1 AND user_id IS NULL").all();
+      const orphanRows=await env.DB.prepare("SELECT id,display_name,identity_normalized,role,active FROM users WHERE active=1 AND role='student' AND id NOT IN (SELECT user_id FROM students WHERE user_id IS NOT NULL)").all();
+      let unlinkedRoster=(allUnlinked.results||[]).map(x=>({...x,key:normalizeStudentName(x.display_name)}));
+      let orphanAccounts=(orphanRows.results||[]).map(x=>({...x,key:normalizeStudentName(x.display_name)}));
+      const credentials=[],skipped=[];let created=0,linkedExisting=0;
+      for(const st of studentRows){
+        if(!st.group_id){skipped.push({student_id:st.id,name:st.display_name,reason:"missing_group"});continue}
+        const group=await groupRow(env,st.group_id);
+        if(!group||group.active!==1){skipped.push({student_id:st.id,name:st.display_name,reason:"inactive_group"});continue}
+        if(st.user_id){skipped.push({student_id:st.id,name:st.display_name,reason:"already_linked"});continue}
+        const key=normalizeStudentName(st.display_name);
+        const accountMatches=orphanAccounts.filter(x=>x.key===key);
+        const studentMatches=unlinkedRoster.filter(x=>x.key===key);
+        if(accountMatches.length){
+          if(accountMatches.length!==1||studentMatches.length!==1){
+            skipped.push({student_id:st.id,name:st.display_name,reason:"ambiguous_existing_account"});
+            continue;
+          }
+          const account=accountMatches[0],password=INITIAL_STUDENT_PASSWORD,hash=await passwordHash(password);
+          try{
+            const linked=await env.DB.batch([
+              env.DB.prepare("UPDATE students SET user_id=? WHERE id=? AND user_id IS NULL AND EXISTS (SELECT 1 FROM users u WHERE u.id=? AND u.role='student' AND u.active=1 AND NOT EXISTS (SELECT 1 FROM students s2 WHERE s2.user_id=u.id))").bind(account.id,st.id,account.id),
+              env.DB.prepare("UPDATE users SET display_name=?,password_hash=?,must_change_password=1 WHERE id=? AND role='student' AND active=1 AND EXISTS (SELECT 1 FROM students s WHERE s.id=? AND s.user_id=?)").bind(st.display_name,hash,account.id,st.id,account.id)
+            ]);
+            if(Number(linked?.[0]?.meta?.changes||0)!==1||Number(linked?.[1]?.meta?.changes||0)!==1){
+              skipped.push({student_id:st.id,name:st.display_name,reason:"link_race_or_conflict"});
+              continue;
+            }
+            credentials.push({student_id:st.id,name:st.display_name,group_id:st.group_id,username:account.identity_normalized,password,linked_existing:true});
+            linkedExisting++;
+            orphanAccounts=orphanAccounts.filter(x=>x.id!==account.id);
+            unlinkedRoster=unlinkedRoster.filter(x=>x.id!==st.id);
+          }catch(error){
+            skipped.push({student_id:st.id,name:st.display_name,reason:"link_failed"});
+            console.error("Ihsan safe student account link failed",{student_id:st.id,message:String(error?.message||error)});
+          }
           continue;
         }
-        const identity=await uniqueStudentIdentity(env,st.display_name,null,st.id);
-        const password=temporaryPassword(),userId=uuid();
+        const identity=await uniqueStudentIdentity(env,st.display_name,null,st.id),password=INITIAL_STUDENT_PASSWORD,userId=uuid();
         try{
           await env.DB.prepare("INSERT INTO users(id,display_name,identity_normalized,password_hash,role,active,must_change_password) VALUES(?,?,?,?, 'student',1,1)").bind(userId,st.display_name,identity,await passwordHash(password)).run();
-          await env.DB.prepare("UPDATE students SET user_id=? WHERE id=? AND user_id IS NULL").bind(userId,st.id).run();
-          const linked=await env.DB.prepare("SELECT user_id FROM students WHERE id=?").bind(st.id).first();
-          if(!linked||linked.user_id!==userId){await env.DB.prepare("DELETE FROM users WHERE id=?").bind(userId).run();skipped.push({student_id:studentId,reason:"already_linked"});continue}
-          credentials.push({student_id:st.id,name:st.display_name,group_id:st.group_id,username:identity,password,reset_existing:false});
-          created++;completedIds.add(st.id);
-          await saveRecord(env,"platform_settings",{id:markerId,owner_user_id:user.id,completed:false,completed_student_ids:[...completedIds],target_student_ids:BULK_STUDENT_ONBOARDING_IDS,updated_at:nowIso()});
+          const linked=await env.DB.prepare("UPDATE students SET user_id=? WHERE id=? AND user_id IS NULL").bind(userId,st.id).run();
+          if(Number(linked?.meta?.changes||0)!==1){
+            await env.DB.prepare("DELETE FROM users WHERE id=?").bind(userId).run();
+            skipped.push({student_id:st.id,name:st.display_name,reason:"already_linked"});
+            continue;
+          }
+          credentials.push({student_id:st.id,name:st.display_name,group_id:st.group_id,username:identity,password,linked_existing:false});
+          created++;
+          unlinkedRoster=unlinkedRoster.filter(x=>x.id!==st.id);
         }catch(error){
           await env.DB.prepare("UPDATE students SET user_id=NULL WHERE id=? AND user_id=?").bind(st.id,userId).run().catch(()=>{});
           await env.DB.prepare("DELETE FROM users WHERE id=?").bind(userId).run().catch(()=>{});
-          skipped.push({student_id:studentId,reason:"creation_failed"});
-          console.error("Ihsan bulk student onboarding failed",{student_id:studentId,message:String(error?.message||error)});
+          skipped.push({student_id:st.id,name:st.display_name,reason:"creation_failed"});
+          console.error("Ihsan bulk student onboarding failed",{student_id:st.id,message:String(error?.message||error)});
         }
       }
-      const completed=BULK_STUDENT_ONBOARDING_IDS.every(id=>completedIds.has(id));
-      await saveRecord(env,"platform_settings",{id:markerId,owner_user_id:user.id,completed,completed_student_ids:[...completedIds],target_student_ids:BULK_STUDENT_ONBOARDING_IDS,completed_at:completed?nowIso():null,updated_at:nowIso()});
-      await log(env,user.id,"student_bulk_onboarding",{created,reset_existing:reset,skipped:skipped.length,completed});
-      return json({ok:true,created,reset,skipped:skipped.length,completed,completed_count:completedIds.size,total:BULK_STUDENT_ONBOARDING_IDS.length,credentials,skipped_rows:skipped.map(x=>({student_id:x.student_id,reason:x.reason}))},201);
+      const remainingRow=await env.DB.prepare("SELECT COUNT(*) AS remaining FROM students WHERE active=1 AND user_id IS NULL AND group_id IS NOT NULL").first();
+      const remaining=Number(remainingRow?.remaining||0),completed=remaining===0;
+      await log(env,user.id,"student_bulk_onboarding",{created,linked_existing:linkedExisting,skipped:skipped.length,remaining});
+      return json({ok:true,created,linked_existing:linkedExisting,reset:0,skipped:skipped.length,completed,remaining,processed:studentRows.length,credentials,skipped_rows:skipped},201);
     }
     const studentMatch=path.match(/^\/api\/students\/([^/]+)$/);
     if(studentMatch&&method==="PATCH"){
