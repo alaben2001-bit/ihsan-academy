@@ -10,6 +10,9 @@ assert(server.includes('activity:kind,date:day'), "each daily Quran activity mus
 assert(server.includes("streak-auto:"), "automatic milestone points must use an idempotency key");
 assert(server.includes("if (old?.last_date === date)"), "duplicate same-day entries must not advance a streak");
 assert(server.includes("old?.last_date && old.last_date > date"), "backdated entries must not rewrite the current streak");
+assert(server.includes('if(status==="done")await recordAutomaticActivityStreak'), "completed daily effort categories must update streaks automatically");
+assert(server.includes("const yesterday=addCalendarDays(academyDate(),-1)"), "streaks older than yesterday must be shown as ended");
+assert(server.includes("'asr','adhkar','mandatory_classes','quran_classes','bring'"), "daily effort categories must be supported as streak activities");
 assert(app.includes("سلسلة المواظبة والأوسمة"), "student profile must display streaks and badges");
 assert(app.includes('/points/streak'), "student profile must load automatic streaks and badges");
 console.log("Automatic streaks static checks passed.");
