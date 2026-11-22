@@ -1996,15 +1996,15 @@ async function staffCardsPage(v){
  await loadCards();
 }
 
-// ---- برنامج الثمانية أشهر: خطط الحفظ الثلاث + التثبيت بحسب المحفوظ + الورد المستقل ----
+// ---- التصور التجريبي لخطط الحفظ والتثبيت والورد المستقل ----
 function quranEightMonthMarkup(pathData){
  const plans=pathData?.thabit_plans||{};
  const cats=pathData?.categories||{};
  const ward=pathData?.ward_options||{};
- const planCards=Object.entries(plans).map(([id,p])=>'<article class="quran-eight-plan"><span class="quran-eight-num">'+esc(String(p.thumns))+'</span><strong>'+esc(p.label||id)+'</strong><small>ضمن برنامج الثمانية أشهر · بالقدر الأسبوعي من الأثمان · خمسة أيام في الأسبوع مع يوم استراحة</small></article>').join("");
+ const planCards=Object.entries(plans).map(([id,p])=>'<article class="quran-eight-plan"><span class="quran-eight-num">'+esc(String(p.thumns))+'</span><strong>'+esc(p.label||id)+'</strong><small>مقدار تجريبي قابل للمراجعة · خمسة أيام عمل مع يوم استراحة</small></article>').join("");
  const catRows=Object.entries(cats).map(([id,c])=>'<tr><th>'+esc(c.label||id)+'</th><td>'+esc(c.thabitLabel||"")+' يوميًا</td><td>'+Number(c.workDays||5)+' أيام أسبوعيًا</td></tr>').join("");
  const wardChips=Object.entries(ward).map(([id,label])=>'<span class="world-chip"><b>الورد</b> '+esc(label)+'</span>').join("");
- return '<section class="card quran-plans-eight"><div class="section-head"><div><span class="eyebrow">برنامج الثمانية أشهر</span><h3>خطط الحفظ الثلاث</h3><p>ثلاثة مقادير أسبوعية ضمن برنامج الثمانية أشهر؛ يعتمد الشيخ ما يناسب وقتك وقدرتك. أرقام التثبيت معتمدة من الشيخ، ولا تتغير خطتك تلقائيًا.</p></div></div>'
+ return '<section class="card quran-plans-eight"><div class="section-head"><div><span class="eyebrow">نموذج تجريبي · قيد المراجعة</span><h3>مقترحات الحفظ والتثبيت والورد</h3><p>هذه المقادير والجداول تجريبية وليست اعتمادًا نهائيًا. لا تُفرض على الطالب ولا تتغير خطته تلقائيًا؛ يراجع الشيخ ما يناسبه ويعتمده قبل التكليف.</p></div></div>'
   +'<div class="quran-eight-grid">'+planCards+'</div>'
   +'<h4>التثبيت بحسب مقدار المحفوظ</h4><div class="table-wrap"><table><thead><tr><th>مقدار المحفوظ</th><th>التثبيت اليومي</th><th>أيام العمل</th></tr></thead><tbody>'+catRows+'</tbody></table></div>'
   +'<h4>الورد اليومي (مستقل عن الحفظ والتثبيت)</h4><div class="quran-path-chips">'+wardChips+'</div><p class="muted small">الورد قراءة يومية مستقلة لا تُغني عن الحفظ الجديد ولا عن التثبيت، ولا يُحسب إنجازه بدلًا عنهما. تُسجّل الثلاثة مفصولة في حسابك، ولا تُخلط نقاطها بعضها ببعض.</p></section>';
@@ -2096,7 +2096,7 @@ function quranScheduleMarkup(pathData, todayData, summary, monthLogs){
   for(let i=0;i<trailing;i++)cells+='<div class="qcal-cell is-empty" aria-hidden="true"></div>';
   return '<section class="card quran-program-card"><div class="section-head"><div><span class="eyebrow">جدولي</span><h3>بطاقة برنامجي</h3><p>ملخص مسارك كما هو سارٍ الآن؛ اطبعه وعلّقه حتى يبقى أمام عينيك.</p></div><div class="student-actions"><button class="btn" type="button" data-sch-print="all">طباعة جدولي كاملًا</button></div></div>'
    +chips+totalsRow+'</section>'
-   +'<section class="card quran-eight-journey"><div class="section-head"><div><span class="eyebrow">مسيرة الثمانية أشهر</span><h3>خارطة الطريق من الآن إلى الختم</h3><p>المحطات 15 و30 و45 و60 حزبًا يعتمدها الشيخ؛ وأنت تمشي على إيقاع خطتك نفسها شهرًا شهرًا.</p></div><button class="btn secondary" type="button" data-sch-print="all">طباعة المسيرة</button></div>'
+   +'<section class="card quran-eight-journey"><div class="section-head"><div><span class="eyebrow">تصور تجريبي للمسيرة</span><h3>مراحل مقترحة من الآن إلى الختم</h3><p>المدد والمحطات هنا تصورية قابلة للتعديل، وليست برنامجًا معتمدًا. اعتماد الحفظ ومحطاته يكون من الشيخ بعد التسميع.</p></div><button class="btn secondary" type="button" data-sch-print="all">طباعة المسيرة</button></div>'
    +'<div class="table-wrap"><table><thead><tr><th>الشهر</th><th>المطلوب</th><th>المحطة</th></tr></thead><tbody>'+journeyRows+'</tbody></table></div></section>'
    +'<section class="card quran-month-plan"><div class="section-head"><div><span class="eyebrow">الجدول الشهري</span><h3>خطة '+esc(monthName)+'</h3><p>كل أسبوع = خمسة أيام عمل بحسب خطتك، والسبت والجمعة بحسب يوم راحتك.</p></div><button class="btn secondary" type="button" data-sch-print="month">طباعة الجدول الشهري</button></div>'
    +'<div class="table-wrap"><table><thead><tr><th>الأسبوع</th><th>النطاق</th><th>المهام اليومية</th></tr></thead><tbody>'+monthRows+'</tbody></table></div></section>'
@@ -2143,7 +2143,7 @@ function quranSchedulePrintSheet(info, summary, monthLogs, monthStr, name){
     return '<tr><th>'+esc(n)+(rest?' — استدراك':"")+'</th><td>'+(rest?'راحة محددة في خطتك':tasks.map(t=>'• '+esc(t.label)).join("<br>"))+'</td><td class="tafew">'+(rest?"—":"☐")+'</td></tr>';
   }).join("");
   win.document.write('<!doctype html><html lang="ar" dir="rtl"><head><meta charset="utf-8"><title>جدولي — '+esc(name||"")+'</title><style>'+quranPhCardStyles()+'</style></head><body>'
-    +'<div class="page"><h1>أكاديمية الإحسان — جدولي القرآني</h1><p class="meta">الطالب: <strong>'+esc(name||"")+'</strong> · التاريخ: '+esc(todayStr)+'</p>'
+    +'<div class="page"><h1>أكاديمية الإحسان — جدولي القرآني</h1><p class="meta">الطالب: <strong>'+esc(name||"")+'</strong> · التاريخ: '+esc(todayStr)+'</p><p class="meta"><strong>تنبيه:</strong> هذه الخطة نموذج تجريبي قابل للمراجعة، ولا تصبح تكليفًا معتمدًا إلا بعد اعتماد الشيخ.</p>'
     +'<h2>بطاقة البرنامج</h2><table><tbody>'
     +'<tr><th>المسار</th><td>'+esc(infoSafe.hifz_plan_label||"—")+' ('+esc(infoSafe.hifz_category_label||"")+')</td></tr>'
     +'<tr><th>الحفظ اليومي</th><td>'+esc(infoSafe.hifz_amount||"—")+' '+esc(infoSafe.hifz_unit||"")+'</td></tr>'
@@ -2152,7 +2152,7 @@ function quranSchedulePrintSheet(info, summary, monthLogs, monthStr, name){
     +'<tr><th>يوم الاستدراك</th><td>'+esc(restName||"بلا يوم محدد")+'</td></tr>'
     +'<tr><th>التقدم</th><td>أيام الحفظ: '+Number(totals.hifz?.days||0)+' · أيام التثبيت: '+Number(totals.thabit?.days||0)+' · أيام الورد: '+Number(totals.ward?.days||0)+'</td></tr>'
     +'</tbody></table><h2>التوقيع</h2><p>الطالب: <span class="blank"></span> &nbsp;&nbsp; الشيخ: <span class="blank"></span></p></div>'
-    +'<div class="page"><h2>مسيرة الثمانية أشهر</h2><table><thead><tr><th>الشهر</th><th>المطلوب</th><th>المحطة</th></tr></thead><tbody>'+journeyRows+'</tbody></table><p class="muted small">أرقام التثبيت المرجعية (15←ثمن، 30←ربع، 45←ثلاثة أثمان، 60←نصف) مقترحة وتنتظر اعتماد الشيخ.</p></div>'
+    +'<div class="page"><h2>تصور تجريبي لمسيرة الثمانية أشهر</h2><table><thead><tr><th>الشهر</th><th>المطلوب</th><th>المحطة</th></tr></thead><tbody>'+journeyRows+'</tbody></table><p class="muted small">أرقام التثبيت المرجعية (15←ثمن، 30←ربع، 45←ثلاثة أثمان، 60←نصف) مقترحة وتنتظر اعتماد الشيخ.</p></div>'
     +'<div class="page"><h2>الجدول الشهري</h2><table><thead><tr><th>الأسبوع</th><th>النطاق</th><th>المهام اليومية</th></tr></thead><tbody>'+weeks.join("")+'</tbody></table></div>'
     +'<div class="page"><h2>الجدول الأسبوعي</h2><table><thead><tr><th>اليوم</th><th>المهام</th><th>✓</th></tr></thead><tbody>'+weekRows+'</tbody></table></div>'
     +'<div class="page"><h2>تقويم الشهر ('+esc(monthStr)+')</h2><table><thead><tr><th>الأحد</th><th>الإثنين</th><th>الثلاثاء</th><th>الأربعاء</th><th>الخميس</th><th>الجمعة</th><th>السبت</th></tr></thead><tbody><tr>'+calCells+'</tr></tbody></table><p class="muted small">✓ تعني مُسجَّلة ذلك اليوم.</p></div>'
@@ -3739,7 +3739,7 @@ async function roadmapPage(v){
  if(!isAdmin){v.innerHTML=head("خريطة الإنجاز","هذه الصفحة مخصصة للمدير العام.");return}
  const stages=[
   {name:"السياق والأدوار والصلاحيات",status:"منجز ومختبر",detail:"RBAC، managedGroupIds، supervisor staff، global chief"},
-  {name:"خطط الحفظ (مبتدئ/متوسط/عالٍ + تمهيدي)",status:"معتمدة",detail:"البيانات 15/30/45/60؛ برنامج الثمانية أشهر معتمد بخطط 4/8/12 ثُمنًا أسبوعيًا"},
+  {name:"خطط الحفظ (مبتدئ/متوسط/عالٍ + تمهيدي)",status:"تجريبية",detail:"المقادير والجداول 15/30/45/60 وبرنامج الثمانية أشهر تصورات تجريبية تنتظر مراجعة الشيخ واعتمادها"},
   {name:"الورد «فمي بشوق» (7 أجزاء)",status:"مخطط",detail:"توضيح تلاوة من المصحف vs استماع vs حفظ vs تسميع"},
   {name:"الثبات 8 أشهر",status:"مخطط",detail:"تصنيفات Thabit + 2.5/5/7.5 مُعلَّمة كاقتراح"},
   {name:"QCM تفاعلي",status:"مخطط",detail:"شرح ← مثال ← سؤال ← تصحيح ← إعادة"},
