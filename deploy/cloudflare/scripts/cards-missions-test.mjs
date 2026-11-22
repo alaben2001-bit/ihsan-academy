@@ -129,9 +129,9 @@ async function main() {
 
   // Renaming must validate student-file uniqueness without mutating login identity.
   const duplicateName = "اسم مكرر للاختبار " + RUN;
-  const duplicateRoster = await call("/api/admin/roster-add", { method: "POST", token: admin, body: { group_id: groupId, names: [duplicateName] } });
-  const duplicateStudentId = duplicateRoster.data?.added?.[0]?.id;
-  check("create a second student file for duplicate-name protection", duplicateRoster.status === 201 && Boolean(duplicateStudentId), JSON.stringify(duplicateRoster.data));
+  const duplicateGroup = await call("/api/groups", { method: "POST", token: admin, body: { name: "فوج الاسم المكرر " + RUN } });
+  const duplicateRoster = duplicateGroup.data?.id ? await call("/api/admin/roster-add", { method: "POST", token: admin, body: { group_id: duplicateGroup.data.id, names: [duplicateName] } }) : { status: 0, data: null };
+  check("create a second student file for duplicate-name protection", duplicateGroup.status === 201 && duplicateRoster.status === 201 && duplicateRoster.data?.created === 1, JSON.stringify(duplicateRoster.data));
   const duplicateRename = await call("/api/students/" + encodeURIComponent(student.id), { method: "PATCH", token: admin, body: { name: duplicateName } });
   check("renaming to another active student's name is rejected", duplicateRename.status === 409, JSON.stringify(duplicateRename.data));
   const unchangedName = await call("/api/students/" + encodeURIComponent(student.id), { method: "PATCH", token: admin, body: { name: student.name } });
@@ -289,8 +289,10 @@ async function main() {
     writeFileSync(outputPath, JSON.stringify(report, null, 2), "utf8");
   }
   // Deactivation preserves the card record but revokes every QR secret.
-  const disposableRoster = await call("/api/admin/roster-add", { method: "POST", token: admin, body: { group_id: groupId, names: ["طالب إلغاء البطاقة " + RUN] } });
-  const disposableId = disposableRoster.data?.added?.[0]?.id;
+  const disposableName = "طالب إلغاء البطاقة " + RUN;
+  const disposableRoster = await call("/api/admin/roster-add", { method: "POST", token: admin, body: { group_id: groupId, names: [disposableName] } });
+  const disposableList = await call("/api/students?group_id=" + encodeURIComponent(groupId), { token: admin });
+  const disposableId = (disposableList.data || []).find(row => row.name === disposableName)?.id;
   const disposableCard = disposableId ? await call("/api/student-cards", { method: "POST", token: admin, body: { student_id: disposableId } }) : { status: 0, data: null };
   const disposableLogin = parseScanLink(disposableCard.data?.links?.login);
   const deactivated = disposableId ? await call("/api/students/" + encodeURIComponent(disposableId), { method: "DELETE", token: admin }) : { status: 0, data: null };
