@@ -3122,11 +3122,23 @@ function quranLogCard(kind,pathInfo,logged){
     :kind==="ward"?{amount:pathInfo.ward_ahzab,unit:"حزب",reps:0,link:""}
     :{amount:"",unit:pathInfo.hifz_unit||"سطر",reps:0,link:""};
   const units=kind==="hifz"?["سطر","صفحة","آية","وجه"]:["حزب","ثمن حزب","ربع حزب"];
-  const done=logged?'<div class="quran-log-done"><strong>تم تسجيل '+meta.label+' اليوم</strong><small>'+esc(quranFmtAmount(logged.amount,logged.unit))+(Number(logged.repetitions)?' · '+Number(logged.repetitions)+' تكرار':'')+'</small>'+(logged.notes?'<small>'+esc(logged.notes)+'</small>':"")+'</div>'
-    :'<form class="quran-log-form" data-quran-log="'+kind+'"><div class="quran-log-fields"><label class="field">المقدار<input type="number" step="0.01" min="0" max="1000" name="amount" required value="'+esc(defaults.amount)+'"></label><label class="field">الوحدة<select name="unit">'+units.map(u=>'<option '+(u===defaults.unit?"selected":"")+'>'+u+'</option>').join("")+'</select></label>'+(kind==="hifz"?'':'<label class="field">التكرارات<input type="number" min="0" max="100" name="repetitions" value="'+defaults.reps+'"></label>')+'</div>'+
-      (kind==="hifz"?'<label class="field">الربط التراكمي<input name="linked_scope" maxlength="120" placeholder="مثال: ربط آخر وجه بما قبله"></label>':'')+
-      '<label class="field">ملاحظة<textarea name="notes" rows="2" maxlength="600" placeholder="موضع خطأ أو ملاحظة قصيرة…"></textarea></label><button class="btn" type="submit">تسجيل '+meta.label+'</button></form>';
-  return '<article class="card quran-log-card '+(logged?"is-done":"")+'"><div class="section-head"><div><span class="eyebrow">'+meta.eyebrow+'</span><h3>'+meta.label+'</h3><p>'+meta.hint+'</p></div><span class="pill">'+(logged?"سُجّل":"لم يُسجّل")+'</span></div>'+done+'</article>';
+  const pending=logged?.approval_status==="pending",rejected=logged?.approval_status==="rejected";
+  const formMarkup='<form class="quran-log-form" data-quran-log="'+kind+'"><div class="quran-log-fields"><label class="field">المقدار<input type="number" step="0.01" min="0" max="1000" name="amount" required value="'+esc(rejected?logged.amount:defaults.amount)+'"></label><label class="field">الوحدة<select name="unit">'+units.map(u=>'<option '+(u===(rejected?logged.unit:defaults.unit)?"selected":"")+'>'+u+'</option>').join("")+'</select></label>'+(kind==="hifz"?'':'<label class="field">التكرارات<input type="number" min="0" max="100" name="repetitions" value="'+(rejected?Number(logged.repetitions||0):defaults.reps)+'"></label>')+'</div>'+
+      (kind==="hifz"?'<label class="field">الربط التراكمي<input name="linked_scope" maxlength="120" placeholder="مثال: ربط آخر وجه بما قبله" value="'+esc(rejected?logged.linked_scope||"":"")+'"></label>':'')+
+      '<label class="field">ملاحظة<textarea name="notes" rows="2" maxlength="600" placeholder="موضع خطأ أو ملاحظة قصيرة…">'+esc(rejected?logged.notes||"":"")+'</textarea></label><button class="btn" type="submit">'+(rejected?"إعادة إرسال للشيخ":"تسجيل "+meta.label)+'</button></form>';
+  let content="";
+  if(pending){
+    content='<div class="notice">سجّلت '+meta.label+' بمقدار '+esc(quranFmtAmount(logged.amount,logged.unit))+'؛ وهو الآن بانتظار مراجعة الشيخ. لا تُضاف نقاط الإنجاز أو الاستمرارية قبل الاعتماد.</div>';
+  }else if(rejected){
+    content='<div class="notice error"><strong>لم يُعتمد هذا السجل.</strong> '+esc(logged.approval_note||"راجع ملاحظة الشيخ ثم أعد الإرسال.")+'</div>'+formMarkup;
+  }else if(logged){
+    content='<div class="quran-log-done"><strong>اعتمد الشيخ '+meta.label+' اليوم</strong><small>'+esc(quranFmtAmount(logged.amount,logged.unit))+(Number(logged.repetitions)?' · '+Number(logged.repetitions)+' تكرار':'')+'</small>'+(logged.notes?'<small>'+esc(logged.notes)+'</small>':"")+'</div>';
+  }else{
+    content=formMarkup;
+  }
+  const state=pending?"is-pending":rejected?"is-rejected":logged?"is-done":"";
+  const label=pending?"بانتظار الشيخ":rejected?"يحتاج تصحيحًا":logged?"معتمد":"لم يُسجّل";
+  return '<article class="card quran-log-card '+state+'"><div class="section-head"><div><span class="eyebrow">'+meta.eyebrow+'</span><h3>'+meta.label+'</h3><p>'+meta.hint+'</p></div><span class="pill">'+label+'</span></div>'+content+'</article>';
 }
 function quranJourneyMarkup(summary,pathInfo,stations){
   const totals=summary?.totals||{},makeups=summary?.makeups||{};
