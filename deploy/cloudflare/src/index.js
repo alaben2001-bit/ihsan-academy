@@ -1140,6 +1140,15 @@ async function ensureCompetitionSchema(env) {
   if (competitionSchemaReady) return competitionSchemaReady;
   competitionSchemaReady = (async () => {
     for (const statement of COMPETITION_SCHEMA_STATEMENTS) await env.DB.prepare(statement).run();
+    // Existing installations may have created this table before result review metadata was added.
+    for (const column of [
+      "ALTER TABLE competition_results ADD COLUMN award_achievement INTEGER NOT NULL DEFAULT 0",
+      "ALTER TABLE competition_results ADD COLUMN award_store INTEGER NOT NULL DEFAULT 0",
+      "ALTER TABLE competition_results ADD COLUMN award_event_achievement_id TEXT",
+      "ALTER TABLE competition_results ADD COLUMN award_event_store_id TEXT",
+      "ALTER TABLE competition_results ADD COLUMN reviewed_by TEXT",
+      "ALTER TABLE competition_results ADD COLUMN reviewed_at TEXT"
+    ]) { try { await env.DB.prepare(column).run(); } catch {} }
     const marker = await env.DB.prepare("SELECT id FROM academy_records WHERE collection='platform_settings' AND id='competition_legacy_import_v1'").first();
     if (!marker) {
       // Best-effort import of the previous JSON-shaped competitions. The old
@@ -5873,6 +5882,8 @@ export default {
       if(users.some(x=>currentIdentity.has(x.identity_normalized)&&currentIdentity.get(x.identity_normalized)!==x.id))return fail(409,"يوجد حساب حالي بالبريد/اسم الدخول نفسه ومعرّف مختلف؛ لم تبدأ الاستعادة");
       const currentStudentUsers=new Map((existingStudents.results||[]).filter(x=>x.user_id).map(x=>[x.user_id,x.id]));
       const currentGoogleBySub=new Map((existingGoogle.results||[]).map(x=>[x.google_sub,x.user_id]));
+      const restoreRows={users,googleIdentities,groups,students,schools,records,audit,pointRules,pointEvents,storeItems,storeRedemptions,quranPaths,quranDaily,quranPairs,quranPairSessions,quranStations,quranMakeups,competitionCategories,competitions,competitionRegistrations,competitionJudges,competitionScores,competitionResults,competitionEvents,competitionTerms};
+      for(const [name,rows] of Object.entries(restoreRows)){const badIndex=rows.findIndex(row=>row&&Object.entries(row).some(([,value])=>value===undefined));if(badIndex>=0){const fields=Object.entries(rows[badIndex]).filter(([,value])=>value===undefined).map(([key])=>key);return fail(400,"حقل مفقود في النسخة: "+name+"["+badIndex+"] "+fields.join(","));}}
       const currentGoogleByUser=new Map((existingGoogle.results||[]).map(x=>[x.user_id,x.google_sub]));
       if(googleIdentities.some(x=>(currentGoogleBySub.has(x.google_sub)&&currentGoogleBySub.get(x.google_sub)!==x.user_id)||(currentGoogleByUser.has(x.user_id)&&currentGoogleByUser.get(x.user_id)!==x.google_sub)))return fail(409,"يوجد تعارض مع ربط Google محفوظ حاليًا؛ لم تبدأ الاستعادة.");
       if(students.some(x=>x.user_id&&currentStudentUsers.has(x.user_id)&&currentStudentUsers.get(x.user_id)!==x.id))return fail(409,"يوجد حساب طالب مرتبط بسجل طالب مختلف؛ لم تبدأ الاستعادة");
