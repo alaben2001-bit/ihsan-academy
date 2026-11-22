@@ -151,7 +151,6 @@ async function main() {
   const pointsBeforeJourney = await call("/api/points/summary", { token: studentA.token });
   check("student starts with no journey points", pointsBeforeJourney.status === 200 && Number(pointsBeforeJourney.data?.totals?.achievement || 0) === 0 && Number(pointsBeforeJourney.data?.totals?.store || 0) === 0, JSON.stringify(pointsBeforeJourney.data?.totals));
   check("existing balance mode stays legacy until the explicit opening snapshot", pointsBeforeJourney.data?.totals?.mode === "legacy", JSON.stringify(pointsBeforeJourney.data?.totals));
-  check("existing balance mode stays legacy until the explicit opening snapshot", pointsBeforeJourney.data?.totals?.mode === "legacy", JSON.stringify(pointsBeforeJourney.data?.totals));
 
   // 2) An honest, empty store: no invented catalog
   const emptyStore = await call("/api/store/items", { token: studentA.token });
