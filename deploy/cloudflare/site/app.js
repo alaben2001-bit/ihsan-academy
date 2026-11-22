@@ -2893,7 +2893,7 @@ $("#bulk-onboard-students")?.addEventListener("click",async()=>{
   }
   await load();shell();await page();
   renderResults(false);
-  document.querySelector(".roster-actions")?.remove();
+  if(aggregate.completed)document.querySelector(".roster-actions")?.remove();
   toast("تم تجهيز الحسابات: "+aggregate.created+" جديد، و"+aggregate.linked_existing+" ربط آمن، و"+aggregate.skipped+" للمراجعة.");
  }catch(err){
   renderResults(true);
