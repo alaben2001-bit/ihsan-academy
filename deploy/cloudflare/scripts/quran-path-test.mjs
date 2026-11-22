@@ -106,7 +106,8 @@ async function main() {
   const futureStart = await call("/api/quran/path", { method: "POST", token: studentA.token, body: { hifz_plan: "plan_a", hifz_category: "15", hifz_amount: "5", ward_ahzab: 1, start_date: academyDate(5) } });
   check("future start date is rejected", futureStart.status === 400, JSON.stringify(futureStart.data));
 
-  const enroll = await call("/api/quran/path", { method: "POST", token: studentA.token, body: { hifz_plan: "plan_b", hifz_category: "30", hifz_amount: "5", hifz_unit: "سطر", ward_ahzab: 2, rest_day: 5, start_date: today } });
+  const plannedRestDay = new Date(academyDate(-2) + "T12:00:00Z").getUTCDay();
+  const enroll = await call("/api/quran/path", { method: "POST", token: studentA.token, body: { hifz_plan: "plan_b", hifz_category: "30", hifz_amount: "5", hifz_unit: "سطر", ward_ahzab: 2, rest_day: plannedRestDay, start_date: today } });
   check("student enrolls in the Quran path", enroll.status === 200 && enroll.data?.path?.hifz_plan === "plan_b", JSON.stringify(enroll.data));
   check("category 30 derives quarter-hizb consolidation", enroll.data?.path?.thabit_amount === 0.25 && enroll.data?.path?.thabit_label === "ربع حزب", JSON.stringify(enroll.data?.path));
 
@@ -135,8 +136,12 @@ async function main() {
   const resolveMakeup = await call("/api/quran/makeups/update", { method: "POST", token: admin, body: { id: makeupId, status: "done" } });
   check("staff resolves the makeup", resolveMakeup.status === 200, JSON.stringify(resolveMakeup.data));
 
+  const priorHifzWorkday = await call("/api/quran/daily", { method: "POST", token: studentA.token, body: { kind: "hifz", day: academyDate(-3), amount: 2, unit: "سطر" } });
+  check("student logs memorization before the planned rest day", priorHifzWorkday.status === 201, JSON.stringify(priorHifzWorkday.data));
+  const afterRestHifzWorkday = await call("/api/quran/daily", { method: "POST", token: studentA.token, body: { kind: "hifz", day: academyDate(-1), amount: 2, unit: "سطر" } });
+  check("student logs memorization after the planned rest day", afterRestHifzWorkday.status === 201 && afterRestHifzWorkday.data?.streak?.days === 2, JSON.stringify(afterRestHifzWorkday.data));
   const hifz = await call("/api/quran/daily", { method: "POST", token: studentA.token, body: { kind: "hifz", amount: 5, unit: "سطر", notes: "اختبار الحفظ" } });
-  check("student logs memorization after resolving makeup", hifz.status === 201 && hifz.data?.entry?.kind === "hifz", JSON.stringify(hifz.data));
+  check("student logs memorization after resolving makeup", hifz.status === 201 && hifz.data?.entry?.kind === "hifz" && hifz.data?.streak?.days === 3, JSON.stringify(hifz.data));
 
   const duplicate = await call("/api/quran/daily", { method: "POST", token: studentA.token, body: { kind: "hifz", amount: 5, unit: "سطر", notes: "اختبار الحفظ" } });
   check("identical daily log is idempotent", duplicate.status === 200 && duplicate.data?.duplicate === true, JSON.stringify(duplicate.data));
@@ -211,7 +216,7 @@ async function main() {
 
   // 7) Summary aggregates the day's work
   const summary = await call("/api/quran/summary", { token: studentA.token });
-  check("summary counts the three daily kinds", summary.status === 200 && Number(summary.data?.totals?.hifz?.days) === 1 && Number(summary.data?.totals?.thabit?.days) === 1 && Number(summary.data?.totals?.ward?.days) === 5, JSON.stringify(summary.data?.totals));
+  check("summary counts the three daily kinds", summary.status === 200 && Number(summary.data?.totals?.hifz?.days) === 3 && Number(summary.data?.totals?.thabit?.days) === 1 && Number(summary.data?.totals?.ward?.days) === 5, JSON.stringify(summary.data?.totals));
   check("summary reports the approved station", Number(summary.data?.stations?.approved) === 1, JSON.stringify(summary.data?.stations));
   check("summary reports the completed makeup", Number(summary.data?.makeups?.done) === 1, JSON.stringify(summary.data?.makeups));
   check("summary reports an active streak", Number(summary.data?.streak) >= 1, JSON.stringify(summary.data?.streak));

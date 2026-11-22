@@ -1656,7 +1656,17 @@ async function recordAutomaticActivityStreak(env, { studentId, groupId, activity
   if (old?.last_date === date) return { counted: false, duplicate: true, days: Number(old.current_days || 0) };
   // Backdated entries remain in the daily ledger but must not rewrite today's live streak.
   if (old?.last_date && old.last_date > date) return { counted: false, backdated: true, days: Number(old.current_days || 0) };
-  const consecutive = old?.last_date === addCalendarDays(date, -1);
+  let expectedDate = old?.last_date ? addCalendarDays(old.last_date, 1) : date;
+  if (old?.last_date && ["hifz", "thabit", "ward"].includes(activity)) {
+    const path = await quranPathRow(env, studentId);
+    const restDay = path?.rest_day === null || path?.rest_day === undefined ? null : Number(path.rest_day);
+    if (restDay !== null) {
+      while (expectedDate < date && new Date(expectedDate + "T12:00:00Z").getUTCDay() === restDay) {
+        expectedDate = addCalendarDays(expectedDate, 1);
+      }
+    }
+  }
+  const consecutive = Boolean(old?.last_date) && expectedDate === date;
   const days = consecutive ? Number(old.current_days || 0) + 1 : 1;
   const startDate = consecutive ? old.start_date : date;
   const milestones = { 3: 5, 5: 10, 7: 15, 14: 25, 30: 50, 60: 75, 90: 100, 180: 200, 365: 500 };
