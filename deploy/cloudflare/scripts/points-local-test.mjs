@@ -148,6 +148,8 @@ async function main() {
   // -------------------------------------------------------------------------
   const today = academyDate(0);
   const attendanceBody = { group_id: groupId, date: today, items: [{ student_id: student.id, status: "present" }] };
+  const futureAttendance = await call("/api/attendance", { method: "POST", token: admin, body: { ...attendanceBody, date: academyDate(1) } });
+  check("future attendance date is rejected", futureAttendance.status === 400, JSON.stringify(futureAttendance.data));
   const attendance1 = await call("/api/attendance", { method: "POST", token: admin, body: attendanceBody });
   check("attendance save succeeds", attendance1.status === 200, JSON.stringify(attendance1.data));
   const afterAttendance = await call("/api/points/summary?student_id=" + encodeURIComponent(student.id), { token: admin });
