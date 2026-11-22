@@ -4951,25 +4951,41 @@ export default {
       const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
       const resolved=await resolvePointStudent(env,user,clean(b.student_id,80));
       if(resolved.error)return resolved.error;
-      const s=resolved.row,reason=clean(b.reason,500);
+      const student=resolved.row,reason=clean(b.reason,500);
       const ruleId=clean(b.rule_id,80);
       const rule=ruleId?await env.DB.prepare("SELECT * FROM point_rules WHERE id=?").bind(ruleId).first():null;
       if(ruleId&&!rule)return fail(404,"قاعدة النقاط غير موجودة");
       if(!rule&&reason.length<3)return fail(400,"اكتب سبب منح النقاط (3 أحرف على الأقل)");
-      const basePoints=Number(b.base_points??b.points??Math.max(Number(b.achievement_points)||0,Number(b.store_points)||0,Number(rule?.achievement_points)||0,Number(rule?.store_points)||0));
+      const hasAchievement=Object.prototype.hasOwnProperty.call(b,"achievement_points");
+      const hasStore=Object.prototype.hasOwnProperty.call(b,"store_points");
+      const hasShared=(b.base_points!==undefined&&b.base_points!==null)||(b.points!==undefined&&b.points!==null);
+      let achievementBase=0,storeBase=0;
+      if(hasAchievement||hasStore){
+        achievementBase=hasAchievement?Number(b.achievement_points):0;
+        storeBase=hasStore?Number(b.store_points):0;
+      }else if(hasShared){
+        const shared=Number(b.base_points??b.points);
+        achievementBase=shared;storeBase=shared;
+      }else if(rule){
+        achievementBase=Number(rule.achievement_points||0);
+        storeBase=Number(rule.store_points||0);
+      }else return fail(400,"حدد نقاط الإنجاز أو نقاط المتجر أو مقدارًا عامًا");
       const bonusPercent=Number(rule?.bonus_percent||0);
-      const points=bonusPercent>0?Math.round(basePoints*(1+bonusPercent/100)):basePoints;
-      if(!Number.isInteger(points)||points<=0||points>MAX_MANUAL_POINTS)return fail(400,"النقاط الممنوحة بعد المكافأة يجب أن تكون عددًا صحيحًا بين 1 و1000");
+      const applyBonus=value=>bonusPercent>0?Math.round(value*(1+bonusPercent/100)):value;
+      const achievementPoints=applyBonus(achievementBase),storePoints=applyBonus(storeBase);
+      if(!Number.isInteger(achievementPoints)||!Number.isInteger(storePoints)||achievementPoints<0||storePoints<0||achievementPoints>MAX_MANUAL_POINTS||storePoints>MAX_MANUAL_POINTS||achievementPoints+storePoints<=0)return fail(400,"يجب أن تكون نقاط كل رصيد عددًا صحيحًا بين 0 و1000، مع قيمة موجبة لأحدهما على الأقل");
       const requestId=clean(b.request_id,80);
       if(!/^[a-zA-Z0-9_-]{6,80}$/.test(requestId))return fail(400,"معرّف الحركة مطلوب لمنع تكرار المنح");
       const eventKey="manual:"+requestId;
       const date=academyDate(),events=[];
       for(const kind of POINT_KINDS){
-        const inserted=await insertPointEvent(env,{student_id:s.id,group_id:s.group_id,rule_id:rule?.id||null,event_type:"manual",kind,points,reason:reason||rule.name,event_key:eventKey,awarded_date:date,awarded_by:user.id});
+        const points=kind==="achievement"?achievementPoints:storePoints;
+        if(points<=0){events.push({kind,points:0,status:"skipped"});continue;}
+        const inserted=await insertPointEvent(env,{student_id:student.id,group_id:student.group_id,rule_id:rule?.id||null,event_type:"manual",kind,points,reason:reason||rule.name,event_key:eventKey,awarded_date:date,awarded_by:user.id});
         events.push({kind,points,status:inserted.inserted?"awarded":"duplicate",id:inserted.id});
       }
-      await log(env,user.id,"points_manual_award",{student_id:s.id,points,rule_id:rule?.id||null,event_key:eventKey});
-      return json({ok:true,events,totals:await pointsTotals(env,s.id)},201);
+      await log(env,user.id,"points_manual_award",{student_id:student.id,achievement_points:achievementPoints,store_points:storePoints,rule_id:rule?.id||null,event_key:eventKey});
+      return json({ok:true,events,totals:await pointsTotals(env,student.id)},201);
     }
     if(path==="/api/points/adjust"&&method==="POST"){
       if(user.role!=="admin")return fail(403,"الإضافة والخصم العام متاحان للشيخ وحده");
