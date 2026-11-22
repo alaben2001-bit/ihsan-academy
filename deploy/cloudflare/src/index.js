@@ -2080,6 +2080,7 @@ export default {
     // شيخ/معلم -> حساب «visitor» + طلب انضمام بصفة شيخ/معلم؛ لا تُمنح الصلاحية إلا باعتماد مسؤول مخوّل.
     // لا يوجد مسار يمنح صلاحيات إدارية أو إشرافية عند التسجيل.
     if (path === "/api/signup" && method === "POST") {
+      if(env.DISABLE_LEGACY_PASSWORD_SIGNUP==="true")return fail(410,"إنشاء الحساب يتم عبر Google الموثّق فقط؛ استخدم زر «إنشاء حساب باستخدام Google».");
       const limited=await rateLimit(env,"signup",rateLimitKey(request),10,3600);
       if(!limited.allowed)return fail(429,"طلبات إنشاء حسابات كثيرة خلال وقت قصير. انتظر قليلًا ثم أعد المحاولة.");
       const parsed=await parseBody(request); if(parsed.error)return parsed.error; const b=parsed.value;
@@ -2123,6 +2124,63 @@ export default {
     if (path === "/api/auth/google/config" && method === "GET") {
       const clientId=clean(env.GOOGLE_CLIENT_ID,300),enabled=!!clientId&&clientId.endsWith(".apps.googleusercontent.com");
       return json({enabled,client_id:enabled?clientId:null});
+    }
+    // Create accounts only from a server-verified Google identity.
+    if (path === "/api/auth/google/signup" && method === "POST") {
+      const limited=await rateLimit(env,"google-signup",rateLimitKey(request),8,3600);
+      if(!limited.allowed)return fail(429,"طلبات إنشاء الحساب كثيرة خلال وقت قصير. انتظر قليلًا ثم أعد المحاولة.");
+      const clientId=clean(env.GOOGLE_CLIENT_ID,300);
+      if(!clientId.endsWith(".apps.googleusercontent.com"))return fail(503,"إنشاء الحساب بجوجل غير مهيأ بعد.");
+      const parsed=await parseBody(request,18000);if(parsed.error)return parsed.error;
+      const b=parsed.value,credential=String(b.credential||""),nonce=String(b.nonce||"");
+      if(!credential||!/^[a-f0-9]{48,96}$/i.test(nonce))return fail(400,"تعذر بدء التحقق من حساب Google. أعد المحاولة.");
+      let claims;try{claims=await verifyGoogleIdToken(credential,nonce,clientId)}catch(error){
+        if(String(error&&(error.message||error))==="google_keys_unavailable")return fail(503,"تعذر الاتصال بخدمة التحقق من Google. أعد المحاولة.");
+        return fail(401,"لم نستطع التحقق من حساب Google. أعد المحاولة.");
+      }
+      const name=clean(b.name,120),kind=clean(b.kind,20),schoolId=clean(b.school_id,80),note=clean(b.note,500);
+      const identity=clean(claims.email,200).toLowerCase();
+      if(name.length<2)return fail(400,"أدخل الاسم الكامل قبل المتابعة بجوجل.");
+      if(!["student","teacher"].includes(kind))return fail(400,"نوع الحساب غير صحيح.");
+      if(kind==="student"){
+        const duplicateStudent=await findDuplicateStudentByName(env,name);
+        if(duplicateStudent)return fail(409,"يوجد ملف طالب بهذا الاسم بالفعل. لا تنشئ ملفًا جديدًا؛ اطلب من الشيخ ربط حساب Google بملفك الموجود بعد التحقق من هويتك.");
+      }
+      let school=null;
+      if(kind==="student"&&schoolId){
+        school=await env.DB.prepare("SELECT id FROM quran_schools WHERE id=? AND active=1").bind(schoolId).first();
+        if(!school)return fail(400,"المدرسة المختارة غير موجودة أو غير نشطة.");
+      }
+      const existingUser=await env.DB.prepare("SELECT id FROM users WHERE identity_normalized=? LIMIT 1").bind(identity).first();
+      if(existingUser)return fail(409,"هذا الحساب موجود بالفعل. سجّل الدخول أولًا، ثم اربط Google من الإعدادات إذا لم يكن مربوطًا.");
+      const existingGoogle=await env.DB.prepare("SELECT user_id FROM google_identities WHERE google_sub=? LIMIT 1").bind(claims.sub).first();
+      if(existingGoogle)return fail(409,"حساب Google مرتبط بحساب أكاديمية موجود. سجّل الدخول بدل إنشاء حساب مكرر.");
+      const id=uuid(),studentId=kind==="student"?uuid():null,role=kind==="student"?"student":"visitor";
+      const randomPassword=hex(crypto.getRandomValues(new Uint8Array(32))),passwordHashValue=await passwordHash(randomPassword);
+      const token=hex(crypto.getRandomValues(new Uint8Array(32)));
+      const statements=[
+        env.DB.prepare("INSERT INTO users (id,display_name,identity_normalized,password_hash,role,active,must_change_password) VALUES (?,?,?,?,?,1,0)").bind(id,name,identity,passwordHashValue,role),
+        env.DB.prepare("INSERT INTO google_identities (google_sub,user_id,email,linked_at) VALUES (?,?,?,?)").bind(claims.sub,id,identity,nowIso())
+      ];
+      if(studentId)statements.push(env.DB.prepare("INSERT INTO students (id,user_id,display_name,group_id,active) VALUES (?,?,?,NULL,1)").bind(studentId,id,name));
+      if(kind==="student"&&school)statements.push(env.DB.prepare("INSERT INTO join_requests (id,user_id,kind,school_id,requested_note,status) VALUES (?,?,'school_join',?,?,'pending')").bind(uuid(),id,school.id,note));
+      if(kind==="teacher")statements.push(env.DB.prepare("INSERT INTO join_requests (id,user_id,kind,requested_note,status) VALUES (?,?,'teacher_request',?,'pending')").bind(uuid(),id,note));
+      statements.push(env.DB.prepare("INSERT INTO sessions(token_hash,user_id,expires_at) VALUES(?,?,?)").bind(await hashToken(token),id,new Date(Date.now()+12*60*60*1000).toISOString()));
+      try{await env.DB.batch(statements)}catch(error){
+        const message=String(error?.message||error);
+        if(/unique|identity_normalized|google_sub/i.test(message))return fail(409,"هذا الحساب مرتبط أو مسجّل بالفعل. سجّل الدخول بدل إنشاء حساب مكرر.");
+        throw error;
+      }
+      if(studentId){
+        try{await ensureStudentCard(env,{id:studentId,name,group_id:null},id)}
+        catch(error){console.error("Ihsan Google signup card creation deferred",{student_id:studentId,message:String(error?.message||error)})}
+      }
+      try{await log(env,id,"google_signup",{kind,school_id:school?.id||null,google_verified:true})}
+      catch(error){console.error("Ihsan Google signup audit log failed",{user_id:id,message:String(error?.message||error)})}
+      const joinNote=kind==="student"
+        ?(school?"تم إنشاء حسابك بجوجل، وطلب انضمامك قيد الاعتماد.":"تم إنشاء حسابك بجوجل. يمكنك تقديم طلب الانضمام إلى المدرسة من ملفك.")
+        :"تم إنشاء حسابك بجوجل. طلب انضمامك بصفة شيخ/معلم قيد المراجعة؛ لا تُفعّل الصلاحية إلا باعتماد الإدارة.";
+      return sessionResponse({user:safeUser({id,name,email:identity,role,must_change_password:0,student_id:studentId,group_id:null}),join_note:joinNote},token,false,201);
     }
     if (path === "/api/admin/bootstrap" && method === "POST") {
       if (!env.BOOTSTRAP_SECRET) return fail(503,"setup_not_configured");
@@ -2168,6 +2226,33 @@ export default {
       const student=user.role==="student"?await env.DB.prepare("SELECT id,group_id FROM students WHERE user_id=? AND active=1").bind(user.id).first():null;
       await log(env,user.id,"google_login");
       return sessionResponse({user:safeUser({id:user.id,name:user.display_name,email:user.identity_normalized,role:user.role,must_change_password:user.must_change_password===1,student_id:student&&student.id,group_id:student&&student.group_id})},token,remember);
+    }
+    // Password recovery is granted only after proving the Google identity linked to this account.
+    if (path === "/api/auth/google/reset-password" && method === "POST") {
+      const limited=await rateLimit(env,"google-password-reset",rateLimitKey(request),5,3600);
+      if(!limited.allowed)return fail(429,"محاولات استرداد كثيرة. انتظر قليلًا ثم أعد المحاولة.");
+      const clientId=clean(env.GOOGLE_CLIENT_ID,300);
+      if(!clientId.endsWith(".apps.googleusercontent.com"))return fail(503,"استرداد كلمة المرور بجوجل غير مهيأ بعد.");
+      const parsed=await parseBody(request,18000);if(parsed.error)return parsed.error;
+      const b=parsed.value,credential=String(b.credential||""),nonce=String(b.nonce||""),newPassword=String(b.new_password||"");
+      if(!credential||!/^[a-f0-9]{48,96}$/i.test(nonce))return fail(400,"تعذر بدء التحقق من حساب Google. أعد المحاولة.");
+      if(newPassword.length<10||newPassword.length>256)return fail(400,"كلمة المرور الجديدة يجب أن تكون 10 أحرف على الأقل.");
+      let claims;try{claims=await verifyGoogleIdToken(credential,nonce,clientId)}catch(error){
+        if(String(error&&(error.message||error))==="google_keys_unavailable")return fail(503,"تعذر الاتصال بخدمة التحقق من Google. أعد المحاولة.");
+        return fail(401,"لم نستطع التحقق من حساب Google. أعد المحاولة.");
+      }
+      const account=await env.DB.prepare("SELECT u.id,u.display_name,u.identity_normalized,u.role,u.active FROM google_identities gi JOIN users u ON u.id=gi.user_id WHERE gi.google_sub=? AND u.active=1 LIMIT 1").bind(claims.sub).first();
+      if(!account)return fail(403,"هذا الحساب لا يملك ربط Google سابقًا. تواصل مع إدارة الأكاديمية للتحقق من هويتك واستعادة الدخول.");
+      const token=hex(crypto.getRandomValues(new Uint8Array(32))),passwordHashValue=await passwordHash(newPassword);
+      await env.DB.batch([
+        env.DB.prepare("UPDATE users SET password_hash=?,must_change_password=0 WHERE id=? AND active=1").bind(passwordHashValue,account.id),
+        env.DB.prepare("DELETE FROM sessions WHERE user_id=?").bind(account.id),
+        env.DB.prepare("INSERT INTO sessions(token_hash,user_id,expires_at) VALUES(?,?,?)").bind(await hashToken(token),account.id,new Date(Date.now()+12*60*60*1000).toISOString())
+      ]);
+      const student=account.role==="student"?await env.DB.prepare("SELECT id,group_id FROM students WHERE user_id=? AND active=1").bind(account.id).first():null;
+      try{await log(env,account.id,"google_password_recovery",{})}
+      catch(error){console.error("Ihsan Google password recovery audit log failed",{user_id:account.id,message:String(error?.message||error)})}
+      return sessionResponse({user:safeUser({id:account.id,name:account.display_name,email:account.identity_normalized,role:account.role,must_change_password:0,student_id:student?.id||null,group_id:student?.group_id||null})},token,false);
     }
     if (path === "/api/login" && method === "POST") {
       const parsed=await parseBody(request); if(parsed.error)return parsed.error; const b=parsed.value;

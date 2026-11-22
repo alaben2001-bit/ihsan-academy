@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 import { validDateOnly, academyDate, addCalendarDays } from "../src/index.js";
 
-const [backend, app, index, serviceWorker, migration, initialMigration, style, about, privacy, robots, sitemap, redirects, competitionsMigration, rateLimitsMigration, qrScript] = await Promise.all([
+const [backend, app, index, serviceWorker, migration, initialMigration, style, about, privacy, robots, sitemap, redirects, competitionsMigration, rateLimitsMigration, qrScript, taysirIndex, taysirRobots, taysirSitemap] = await Promise.all([
   readFile("src/index.js", "utf8"),
   readFile("site/app.js", "utf8"),
   readFile("site/index.html", "utf8"),
@@ -18,6 +18,9 @@ const [backend, app, index, serviceWorker, migration, initialMigration, style, a
   readFile("migrations/0006_competitions.sql", "utf8"),
   readFile("migrations/0008_rate_limits.sql", "utf8"),
   readFile("site/qr.js", "utf8"),
+  readFile("../taysir/site/index.html", "utf8"),
+  readFile("../taysir/site/robots.txt", "utf8"),
+  readFile("../taysir/site/sitemap.xml", "utf8"),
 ]);
 
 assert.equal(validDateOnly("2024-02-29"), true, "valid leap-day due dates must be accepted");
@@ -80,7 +83,7 @@ assert.match(backend, /__Host-ihsan_csrf=/, "sessions must issue a separate CSRF
 assert.match(backend, /csrfIsValid\(request\)/, "cookie-authenticated mutations must validate CSRF");
 assert.match(backend, /X-CSRF-Token/, "the backend must explicitly allow the CSRF header");
 assert.match(backend, /const requestSessionToken = request => bearerSessionToken\(request\) \|\| cookieSessionToken\(request\)/, "authenticated requests must accept cookie sessions");
-assert.equal((backend.match(/return sessionResponse\(/g)||[]).length, 3, "password, Google and self-signup must all issue cookie sessions");
+assert.equal((backend.match(/return sessionResponse\(/g)||[]).length, 5, "password, Google login/signup/recovery and legacy self-signup must all issue cookie sessions");
 assert.doesNotMatch(backend, /return json\(\{token,user:safeUser/, "raw session tokens must not be returned to the browser");
 assert.doesNotMatch(app, /safeStore\.set\(["']ihsan_token["']/, "the UI must not store reusable bearer tokens");
 assert.match(app, /credentials:"same-origin"/, "API requests must send same-origin cookies");
@@ -646,3 +649,27 @@ assert.match(app, /الفجر · 30/, "the Sheikh scan panel must expose the new
 assert.match(index, /ihsan-rules\.html/, "the Cloudflare entry page must link to the printable Ihsan rules");
 
 assert.doesNotMatch(app, /points_awarded\|\|0/, "badge UI must not show zero-point labels");
+
+assert.match(backend, /path === "\/api\/auth\/google\/signup"/, "new account creation must use the dedicated Google-verified endpoint");
+assert.match(backend, /claims\.email_verified===true\|\|claims\.email_verified==="true"/, "Google identities must have a verified email claim");
+assert.match(backend, /INSERT INTO google_identities \(google_sub,user_id,email,linked_at\)/, "Google signup must persist the verified subject-to-account link");
+assert.match(backend, /findDuplicateStudentByName\(env,name\)/, "Google signup must not create duplicate student profiles");
+assert.match(backend, /path === "\/api\/auth\/google\/reset-password"/, "password recovery must use a separate Google proof endpoint");
+assert.match(backend, /rateLimit\(env,"google-password-reset"/, "Google password recovery must be rate limited");
+assert.match(backend, /DISABLE_LEGACY_PASSWORD_SIGNUP==="true"/, "production must reject unverified manual signup requests");
+assert.match(app, /id="google-signup"/, "signup must provide a Google identity button");
+assert.match(app, /\/auth\/google\/signup/, "signup UI must submit the Google credential to the verified endpoint");
+assert.doesNotMatch(app, /<label class="field">البريد الإلكتروني<input name="email" type="email" required maxlength="200"/, "signup must not ask users to type an unverified email");
+assert.doesNotMatch(app, /<label class="field">كلمة المرور \(10 أحرف على الأقل\)<input name="password"/, "signup must not create password-only accounts with unverified identities");
+assert.match(app, /id="forgot-password"/, "login must expose account recovery");
+assert.match(app, /\/auth\/google\/reset-password/, "account recovery UI must call the Google-verified reset endpoint");
+assert.match(app, /function showGooglePasswordRecovery\(\)/, "account recovery must require a Google identity and new password");
+assert.match(index, /name="robots" content="noindex, nofollow, noarchive"/, "the private student platform must remain excluded from public indexing");
+assert.match(serviceWorker, /"\/manifest\.json"/, "the installable PWA manifest must remain in the offline shell");
+assert.match(taysirIndex, /rel="canonical" href="https:\/\/a-taysir\.pages\.dev\//, "the public Taysir portal must declare its canonical Pages URL");
+assert.match(taysirIndex, /name="robots" content="index,follow/, "the public Taysir portal must be indexable");
+assert.doesNotMatch(taysirIndex, /at-taysir\.alaben2001\.workers\.dev/, "the public portal must not advertise the historical workers.dev URL");
+assert.match(taysirRobots, /Sitemap: https:\/\/a-taysir\.pages\.dev\/sitemap\.xml/, "robots.txt must point to the canonical Taysir sitemap");
+assert.match(taysirSitemap, /<loc>https:\/\/a-taysir\.pages\.dev\//, "the sitemap must list the canonical Taysir homepage");
+assert.doesNotMatch(taysirSitemap, /at-taysir\.alaben2001\.workers\.dev/, "the sitemap must not list the historical workers.dev URL");
+

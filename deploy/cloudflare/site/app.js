@@ -54,6 +54,70 @@ async function initGoogleSignIn(){
   setNote("استخدم بريد Google نفسه المسجل لحسابك في الأكاديمية.");
  }catch{setNote("تعذر تحميل Google. يمكنك الدخول باسم المستخدم وكلمة المرور.",true)}
 }
+async function initGoogleSignup(){
+ const host=$("#google-signup"),note=$("#google-signup-note");if(!host)return;
+ const setNote=(text,error=false)=>{if(note){note.textContent=text;note.classList.toggle("google-note-error",error)}};
+ host.innerHTML='<span class="muted small">جار تجهيز إنشاء الحساب بجوجل…</span>';
+ try{
+  const cfg=await api("/auth/google/config");
+  if(!cfg.enabled||!cfg.client_id){setNote("إنشاء الحساب بجوجل غير مهيأ بعد؛ يلزم تفعيل Google OAuth في إعدادات Cloudflare.",true);return}
+  await loadGoogleIdentityLibrary();
+  const nonce=Array.from(crypto.getRandomValues(new Uint8Array(24)),b=>b.toString(16).padStart(2,"0")).join("");
+  window.google.accounts.id.initialize({client_id:cfg.client_id,nonce,callback:async response=>{
+   const form=$("#signup-form"),error=$("#signup-error");if(!form)return;
+   const values=new FormData(form),name=String(values.get("name")||"").trim(),kind=String(values.get("kind")||"student");
+   if(name.length<2){setNote("اكتب اسمك الكامل أولًا، ثم اختر حساب Google.",true);return}
+   setNote("جار التحقق من Google وإنشاء الحساب…");
+   const controls=form.querySelectorAll("input,select");controls.forEach(x=>x.disabled=true);
+   try{
+    const data=await api("/auth/google/signup",{method:"POST",body:JSON.stringify({credential:response.credential,nonce,name,kind,school_id:kind==="student"?String(values.get("school_id")||""):"",note:String(values.get("note")||"")})});
+    S.token="";clearSessionToken();S.user=data.user;toast(data.join_note||"تم إنشاء حسابك وربطه بجوجل.");renderTopActions();await start();
+   }catch(problem){
+    const message=String(problem?.message||"تعذر إنشاء الحساب بجوجل.");
+    if(error){error.textContent=message;error.classList.remove("hidden")}
+    setNote(message,true);
+   }finally{controls.forEach(x=>x.disabled=false)}
+  }});
+  host.innerHTML="";
+  window.google.accounts.id.renderButton(host,{type:"standard",theme:"outline",size:"large",shape:"rectangular",text:"signup_with",locale:"ar",width:300});
+  setNote("اختر حساب Google؛ سيُستخدم بريده الموثّق بدل بريد تكتبه يدويًا.");
+ }catch(error){host.innerHTML="";setNote(error.message||"تعذر تحميل خدمة Google.",true)}
+}
+function showGooglePasswordRecovery(){
+ const old=$("#google-recovery-dialog");if(old)old.remove();
+ document.body.insertAdjacentHTML("beforeend",'<dialog id="google-recovery-dialog" class="password-dialog"><form id="google-recovery-form" class="stack"><h2>استرداد كلمة المرور</h2><p class="muted small">أثبت هويتك بحساب Google المرتبط مسبقًا، ثم اختر كلمة مرور جديدة. لا نرسل رمزًا إلى بريد غير موثّق.</p><label class="field">كلمة المرور الجديدة<input name="new_password" type="password" required minlength="10" maxlength="256" autocomplete="new-password"></label><label class="field">تأكيد كلمة المرور<input name="confirm_password" type="password" required minlength="10" maxlength="256" autocomplete="new-password"></label><div id="google-recovery-error" class="notice error hidden"></div><div id="google-recovery-button"></div><p id="google-recovery-note" class="muted small">جار تجهيز التحقق من Google…</p><button class="btn secondary" type="button" id="google-recovery-close">إلغاء</button></form></dialog>');
+ const dialog=$("#google-recovery-dialog"),form=$("#google-recovery-form"),error=$("#google-recovery-error"),note=$("#google-recovery-note"),host=$("#google-recovery-button");
+ const close=()=>{try{if(dialog.open)dialog.close()}catch{}dialog.remove();initGoogleSignIn()};
+ $("#google-recovery-close")?.addEventListener("click",close);
+ dialog.addEventListener("cancel",e=>e.preventDefault());
+ dialog.addEventListener("click",e=>{if(e.target===dialog)close()});
+ const setNote=(value,isError=false)=>{note.textContent=value;note.classList.toggle("google-note-error",isError)};
+ (async()=>{
+  try{
+   const cfg=await api("/auth/google/config");
+   if(!cfg.enabled||!cfg.client_id){setNote("خدمة Google غير مهيأة؛ تواصل مع الإدارة لاستعادة الدخول.",true);return}
+   await loadGoogleIdentityLibrary();
+   const nonce=Array.from(crypto.getRandomValues(new Uint8Array(24)),b=>b.toString(16).padStart(2,"0")).join("");
+   window.google.accounts.id.initialize({client_id:cfg.client_id,nonce,callback:async response=>{
+    const values=new FormData(form),password=String(values.get("new_password")||"");
+    error.classList.add("hidden");
+    if(password.length<10||password.length>256){error.textContent="كلمة المرور الجديدة يجب أن تكون 10 أحرف على الأقل.";error.classList.remove("hidden");return}
+    if(password!==values.get("confirm_password")){error.textContent="كلمتا المرور غير متطابقتين.";error.classList.remove("hidden");return}
+    setNote("جار التحقق من حساب Google وتحديث كلمة المرور…");
+    form.querySelectorAll("input").forEach(x=>x.disabled=true);
+    try{
+     const data=await api("/auth/google/reset-password",{method:"POST",body:JSON.stringify({credential:response.credential,nonce,new_password:password})});
+     S.token="";clearSessionToken();S.user=data.user;S.user=await api("/me");close();toast("استُعيدت كلمة المرور بنجاح.");await start();
+    }catch(problem){const message=String(problem?.message||"تعذر استرداد كلمة المرور.");error.textContent=message;error.classList.remove("hidden");setNote(message,true)}
+    finally{form.querySelectorAll("input").forEach(x=>x.disabled=false)}
+   }});
+   host.innerHTML="";
+   window.google.accounts.id.renderButton(host,{type:"standard",theme:"outline",size:"large",shape:"rectangular",text:"continue_with",locale:"ar",width:280});
+   setNote("اختر حساب Google الذي سبق ربطه بحساب الأكاديمية.");
+  }catch(problem){setNote(problem.message||"تعذر تحميل Google.",true)}
+ })();
+ if(typeof dialog.showModal==="function")dialog.showModal();else dialog.setAttribute("open","");
+}
 function showInstallGuide(){
  const old=$("#install-help-dialog");if(old)old.remove();const ua=navigator.userAgent||"";
  const isIphone=/iPhone|iPad|iPod/i.test(ua)||(/Macintosh/i.test(ua)&&navigator.maxTouchPoints>1);
@@ -539,15 +603,14 @@ const authBenefits=[
 
 const scanNotice=(()=>{try{const text=safeStore.getSession("ihsan_scan_notice");if(text)safeStore.removeSession("ihsan_scan_notice");return String(text||"")}catch{return ""}})();
 const authTabs=setup?'':'<div class="auth-tabs" role="tablist" aria-label="تسجيل الدخول أو إنشاء حساب"><button type="button" class="auth-tab is-active" id="tab-login" role="tab" aria-selected="true">تسجيل الدخول</button><button type="button" class="auth-tab" id="tab-signup" role="tab" aria-selected="false">إنشاء حساب</button></div>';
-const loginPane='<div id="login-pane" role="tabpanel">'+'<form id="auth-form" class="stack" autocomplete="off">'+(setup?'<label class="field">رمز الإعداد<input name="code" type="password" required autocomplete="off"></label><label class="field">الاسم الكامل<input name="name" required maxlength="120"></label><label class="field">البريد الإلكتروني<input name="email" type="email" required></label><label class="field">كلمة مرور المدير (14 حرفًا على الأقل)<input name="password" type="password" minlength="14" required autocomplete="new-password"></label>':'<label class="field">الاسم الكامل أو اسم الدخول<input name="username" id="login-identity" type="text" required autocomplete="off" spellcheck="false" autocapitalize="off"></label><label class="field">كلمة المرور<span class="password-input-wrap"><input name="password" id="login-password" type="password" required autocomplete="off"><button type="button" class="password-visibility" id="toggle-login-password" aria-label="إظهار كلمة المرور" aria-pressed="false">إظهار</button></span></label>')+'<div id="auth-error" class="notice error hidden"></div><button class="btn" type="submit">'+(setup?"إنشاء حساب المدير":"تسجيل الدخول")+'</button></form>'+(!setup?'<div class="login-divider"><span>أو</span></div><section class="google-login-section" aria-label="تسجيل الدخول باستخدام Google"><div id="google-signin"></div><p id="google-login-note" class="muted small">جارٍ التحقق من إعدادات الدخول بجوجل…</p></section><p class="muted small auth-taysir-link">زائر أو محسن؟ التعرّف على الأكاديمية والمساهمة في <a href="'+esc(TAYSIR_URL)+'" rel="noopener" target="_blank">بوابة التيسير</a>؛ هذا الفضاء داخلي للطلاب والشيوخ المسجلين.</p>':'')+'</div>';
+const loginPane='<div id="login-pane" role="tabpanel">'+'<form id="auth-form" class="stack" autocomplete="off">'+(setup?'<label class="field">رمز الإعداد<input name="code" type="password" required autocomplete="off"></label><label class="field">الاسم الكامل<input name="name" required maxlength="120"></label><label class="field">البريد الإلكتروني<input name="email" type="email" required></label><label class="field">كلمة مرور المدير (14 حرفًا على الأقل)<input name="password" type="password" minlength="14" required autocomplete="new-password"></label>':'<label class="field">الاسم الكامل أو اسم الدخول<input name="username" id="login-identity" type="text" required autocomplete="off" spellcheck="false" autocapitalize="off"></label><label class="field">كلمة المرور<span class="password-input-wrap"><input name="password" id="login-password" type="password" required autocomplete="off"><button type="button" class="password-visibility" id="toggle-login-password" aria-label="إظهار كلمة المرور" aria-pressed="false">إظهار</button></span></label>')+'<div id="auth-error" class="notice error hidden"></div><button class="btn" type="submit">'+(setup?"إنشاء حساب المدير":"تسجيل الدخول")+'</button></form>'+(!setup?'<button type="button" class="btn secondary" id="forgot-password">نسيت كلمة المرور؟ استردادها عبر Google</button><div class="login-divider"><span>أو</span></div><section class="google-login-section" aria-label="تسجيل الدخول باستخدام Google"><div id="google-signin"></div><p id="google-login-note" class="muted small">جارٍ التحقق من إعدادات الدخول بجوجل…</p></section><p class="muted small auth-taysir-link">زائر أو محسن؟ التعرّف على الأكاديمية والمساهمة في <a href="'+esc(TAYSIR_URL)+'" rel="noopener" target="_blank">بوابة التيسير</a>؛ هذا الفضاء داخلي للطلاب والشيوخ المسجلين.</p>':'')+'</div>';
 const signupPane=setup?'':'<div id="signup-pane" role="tabpanel" hidden><form id="signup-form" class="stack" autocomplete="off">'
  +'<div class="signup-kind" role="radiogroup" aria-label="نوع الحساب">'
  +'<label class="signup-kind-option"><input type="radio" name="kind" value="student" checked><span class="signup-kind-card"><strong>طالب</strong><small>أنشئ حسابك ثم اطلب الانضمام إلى المدرسة؛ يبقى طلبك قيد الاعتماد حتى يوافق الشيخ أو الإدارة</small></span></label>'
  +'<label class="signup-kind-option"><input type="radio" name="kind" value="teacher"><span class="signup-kind-card"><strong>شيخ / معلم</strong><small>طلب الانضمام بصفة شيخ أو معلم؛ لا تُفعّل الصلاحية إلا باعتماد الإدارة</small></span></label>'
  +'</div>'
  +'<label class="field">الاسم الكامل<input name="name" required maxlength="120" autocomplete="off"></label>'
- +'<label class="field">البريد الإلكتروني<input name="email" type="email" required maxlength="200" autocomplete="off" spellcheck="false" autocapitalize="off"></label>'
- +'<label class="field">كلمة المرور (10 أحرف على الأقل)<input name="password" type="password" minlength="10" maxlength="256" required autocomplete="new-password"></label>'
+ +'<section class="google-login-section" aria-label="إنشاء الحساب باستخدام Google"><div id="google-signup"></div><p id="google-signup-note" class="muted small">سيُنشأ حسابك ببريد موثّق من Google؛ لا تكتب بريدًا يدويًا.</p></section>'
  +'<label class="field" id="signup-school-field">المدرسة التي تريد الانضمام إليها<select id="signup-school" name="school_id"><option value="">جار تحميل المدارس…</option></select><small class="muted">يُسند طلبك إلى هذه المدرسة ويبقى قيد الاعتماد حتى يوافق الشيخ أو الإدارة.</small></label>'
  +'<label class="field" id="signup-note-field">ملاحظة للإدارة (اختياري)<input name="note" maxlength="500" placeholder="مثال: أحفظ عدة أجزاء من القرآن"></label>'
  +'<div id="signup-error" class="notice error hidden"></div>'
@@ -563,17 +626,17 @@ if(!setup){
   let signupSchoolsPromise=null;
   const loadSchools=()=>{if(!signupSchoolsPromise){signupSchoolsPromise=api("/public/signup-options").then(d=>{const select=$("#signup-school");if(!select)return d;const schools=(d&&d.schools)||[];select.innerHTML=schools.length?'<option value="">اختر المدرسة…</option>'+schools.map(s=>'<option value="'+esc(s.id)+'">'+esc(s.name)+'</option>').join(""):'<option value="">لا توجد مدارس نشطة حاليًا</option>';return d}).catch(error=>{signupSchoolsPromise=null;const select=$("#signup-school");if(select)select.innerHTML='<option value="">تعذر تحميل المدارس — أعد فتح التبويب للمحاولة</option>';throw error})}return signupSchoolsPromise};
   const syncSignupKind=()=>{const kind=($('#signup-form input[name="kind"]:checked')||{}).value||"student";$("#signup-school-field")?.classList.toggle("hidden",kind!=="student");const noteField=$("#signup-note-field");if(noteField)noteField.querySelector("input").placeholder=kind==="teacher"?"مثال: حافظ لكتاب الله وخبرة في تدريس الصغار":"مثال: أحفظ عدة أجزاء من القرآن";if(kind==="student")loadSchools().catch(()=>{})};
-  const setAuthTab=tab=>{const isSignup=tab==="signup";$("#login-pane")&&($("#login-pane").hidden=isSignup);$("#signup-pane")&&($("#signup-pane").hidden=!isSignup);$("#tab-login")?.classList.toggle("is-active",!isSignup);$("#tab-signup")?.classList.toggle("is-active",isSignup);$("#tab-login")?.setAttribute("aria-selected",String(!isSignup));$("#tab-signup")?.setAttribute("aria-selected",String(isSignup));$("#auth-title")&&($("#auth-title").textContent=isSignup?"إنشاء حساب جديد":"تسجيل الدخول");if(isSignup)syncSignupKind()};
+  const setAuthTab=(tab,initialize=true)=>{const isSignup=tab==="signup";$("#login-pane")&&($("#login-pane").hidden=isSignup);$("#signup-pane")&&($("#signup-pane").hidden=!isSignup);$("#tab-login")?.classList.toggle("is-active",!isSignup);$("#tab-signup")?.classList.toggle("is-active",isSignup);$("#tab-login")?.setAttribute("aria-selected",String(!isSignup));$("#tab-signup")?.setAttribute("aria-selected",String(isSignup));$("#auth-title")&&($("#auth-title").textContent=isSignup?"إنشاء حساب جديد":"تسجيل الدخول");if(initialize){if(isSignup){syncSignupKind();initGoogleSignup()}else initGoogleSignIn()}};
   $("#tab-login")?.addEventListener("click",()=>setAuthTab("login"));
   $("#tab-signup")?.addEventListener("click",()=>setAuthTab("signup"));
   document.querySelectorAll('#signup-form input[name="kind"]').forEach(radio=>radio.addEventListener("change",syncSignupKind));
   const signupForm=$("#signup-form");
-  if(signupForm)signupForm.onsubmit=async e=>{e.preventDefault();const f=new FormData(e.currentTarget),b=e.currentTarget.querySelector("button[type=submit]"),err=$("#signup-error");b.disabled=true;err.classList.add("hidden");const kind=String(f.get("kind")||"student");try{const d=await api("/signup",{method:"POST",body:JSON.stringify({name:f.get("name"),email:f.get("email"),password:f.get("password"),kind,school_id:kind==="student"?String(f.get("school_id")||""):"",note:f.get("note")||""})});S.token="";clearSessionToken();S.user=d.user;toast(d.join_note||"تم إنشاء حسابك");renderTopActions();await start()}catch(x){const msg=String(x?.message||"");const validation=/^(أدخل|هذا البريد|كلمة المرور|اختر|المدرسة|هذا الحساب|هذا الطلب|التسجيل للطلاب|تم )/.test(msg);err.textContent=validation?msg:"تعذّر إنشاء الحساب حاليًا بسبب قيد تقني مؤقت؛ يجري تجهيز التسجيل الأولي. حاول بعد قليل أو تواصل مع إدارة الأكاديمية.";err.classList.remove("hidden");err.title=msg;b.disabled=false}};
-  try{const match=/#signup=(student|teacher)/.exec(location.hash||"");if(match){const wanted=match[1];const radio=document.querySelector('#signup-form input[name="kind"][value="'+wanted+'"]');if(radio){radio.checked=true;setAuthTab("signup")}}}catch{}
+  if(signupForm)signupForm.addEventListener("submit",e=>e.preventDefault());
+  try{const match=/#signup=(student|teacher)/.exec(location.hash||"");if(match){const wanted=match[1];const radio=document.querySelector('#signup-form input[name="kind"][value="'+wanted+'"]');if(radio){radio.checked=true;setAuthTab("signup",false)}}}catch{}
  }
   rotateKnowledgeVerses();
  $("#about-open-welcome")?.addEventListener("click",showAcademyAbout);
- if(!setup)initGoogleSignIn();
+ if(!setup){if(!$("#signup-pane")?.hidden)initGoogleSignup();else initGoogleSignIn();$("#forgot-password")?.addEventListener("click",showGooglePasswordRecovery);}
 }
 function isOfflineNetworkError(error){
  const message=String(error?.message||error||"");
