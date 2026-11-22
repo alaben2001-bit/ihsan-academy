@@ -681,7 +681,7 @@ assert.match(app, /إعادة إرسال للشيخ/, "students must be able to 
 assert.match(backend, /approval_status:x\.approval_status===undefined\?"approved":x\.approval_status/, "older backups must restore Quran logs as legacy approved records");
 assert.match(backend, /approval_status=excluded\.approval_status/, "backup restore must preserve Quran approval states");
 assert.match(backend, /source_collection='quran_progress'/, "teacher-entered Quran progress must participate in the same continuity ledger");
-assert.match(backend, /const dailyKind=activity==="memorization"\?"hifz":"thabit"/, "teacher progress must map to the matching daily Quran approval record");
+assert.match(backend, /const dailyKind=activity==="memorization"\?"hifz":activity==="revision"\?"thabit"/, "teacher progress must map to the matching daily Quran approval record");
 assert.match(backend, /priorProgress/, "teacher progress and student daily approval must not award the same work twice");
 
 assert.match(backend, /SELECT kind,COUNT\(\*\) AS days,COALESCE\(SUM\(amount\),0\) AS total FROM quran_daily WHERE student_id=\? AND approval_status='approved'/, "Quran progress totals must exclude pending self-reports");
