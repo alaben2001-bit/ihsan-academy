@@ -2983,16 +2983,22 @@ export default {
         groupIds=[groupId];
       }else if(scope==="team"){
         if(!groupId||!studentId)return fail(400,"بيانات الفوج والطالب مطلوبة لترتيب الفرقة");
+        if(user.role==="student"&&user.student_id!==studentId)return fail(403,"يمكنك عرض ترتيب فرقتك أنت فقط");
         if(!await canManageGroup(env,user,groupId)&&!(user.role==="student"&&user.group_id===groupId&&user.student_id===studentId))return fail(403,"هذا الفوج خارج نطاق صلاحيتك");
         const memberRow=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='student_team_memberships' AND id=? AND group_id=?").bind(studentId,groupId).first();
         if(memberRow){try{const membership=JSON.parse(memberRow.payload_json);teamId=clean(membership.team_id,100);teamName=clean(membership.team_name,80)||null;}catch{}}
         if(!teamId)return json({scope,scope_label:"ترتيب الفرقة",team_id:null,team_name:null,period,from_date:null,to_date:null,previous_from_date:null,previous_to_date:null,metrics:["attendance","wird","thabit","bring","memorization"],rows:[]});
         groupIds=[groupId];scopeLabel="الفرقة";
       }else{
-        if(user.role==="student")return fail(403,"الترتيب العام للأكاديمية غير متاح من حساب الطالب");
-        const managed=await managedGroupIds(env,user);
-        if(managed===null){const all=await env.DB.prepare("SELECT id FROM groups WHERE active=1 ORDER BY name").all();groupIds=(all.results||[]).map(x=>x.id);scopeLabel="الأكاديمية";}
-        else{groupIds=managed;scopeLabel="الترتيب العام ضمن نطاق صلاحيتك";}
+        if(user.role==="student"){
+          if(!user.student_id||studentId!==user.student_id)return fail(403,"يمكنك طلب ترتيبك العام أنت فقط");
+          const all=await env.DB.prepare("SELECT id FROM groups WHERE active=1 ORDER BY name").all();
+          groupIds=(all.results||[]).map(x=>x.id);scopeLabel="ترتيب الأكاديمية";
+        }else{
+          const managed=await managedGroupIds(env,user);
+          if(managed===null){const all=await env.DB.prepare("SELECT id FROM groups WHERE active=1 ORDER BY name").all();groupIds=(all.results||[]).map(x=>x.id);scopeLabel="الأكاديمية";}
+          else{groupIds=managed;scopeLabel="الترتيب العام ضمن نطاق صلاحيتك";}
+        }
       }
       const [year,month,day]=today.split("-").map(Number);
       let fromDate,toDate=today,previousFrom,previousTo;
@@ -3044,7 +3050,9 @@ export default {
         return rows.map((row,index)=>({...row,rank:index+1}));
       };
       const rows=makeRows(fromDate,toDate,currentMap),previousRows=makeRows(previousFrom,previousTo,previousMap),previousRanks=new Map(previousRows.map(row=>[row.student_id,row.rank]));
-      return json({scope,scope_label:scopeLabel,group_id:groupId||null,team_id:teamId,team_name:teamName,period,from_date:fromDate,to_date:toDate,previous_from_date:previousFrom,previous_to_date:previousTo,metrics,rows:rows.map(row=>({...row,previous_rank:previousRanks.get(row.student_id)||null,rank_change:previousRanks.has(row.student_id)?previousRanks.get(row.student_id)-row.rank:null}))});
+      const rankedRows=rows.map(row=>({...row,previous_rank:previousRanks.get(row.student_id)||null,rank_change:previousRanks.has(row.student_id)?previousRanks.get(row.student_id)-row.rank:null}));
+      const visibleRows=user.role==="student"?rankedRows.filter(row=>row.student_id===user.student_id):rankedRows;
+      return json({scope,scope_label:scopeLabel,group_id:groupId||null,team_id:teamId,team_name:teamName,period,from_date:fromDate,to_date:toDate,previous_from_date:previousFrom,previous_to_date:previousTo,total_count:rankedRows.length,metrics,rows:visibleRows});
     }
     if(path==="/api/attendance"&&method==="GET"){
       const date=clean(url.searchParams.get("date"),10)||academyDate(),groupId=clean(url.searchParams.get("group_id"),80),history=url.searchParams.get("history")==="1",studentId=clean(url.searchParams.get("student_id"),80);
