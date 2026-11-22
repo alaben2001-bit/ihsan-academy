@@ -4969,24 +4969,7 @@ export default {
     }
     if(path==="/api/points/streak"&&method==="POST"){
       if(user.role!=="admin")return fail(403,"اعتماد الاستمرارية ومكافآتها للشيخ وحده");
-      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
-      const studentId=clean(b.student_id,80),activity=clean(b.activity,20),date=quranDateISO(b.date)||academyDate();
-      if(!["hifz","fajr","shuruq"].includes(activity))return fail(400,"المسار يجب أن يكون الحفظ أو الفجر أو الشروق");
-      if(date>academyDate())return fail(400,"لا يمكن تسجيل استمرارية مستقبلية");
-      const student=await env.DB.prepare("SELECT id,group_id FROM students WHERE id=? AND active=1").bind(studentId).first();if(!student)return fail(404,"الطالب غير موجود");
-      const base=Number(b.base_points);if(!Number.isInteger(base)||base<1||base>1000)return fail(400,"أدخل نقاط الإنجاز الأساسية الصحيحة");
-      const old=await env.DB.prepare("SELECT * FROM student_point_streaks WHERE student_id=? AND activity=?").bind(studentId,activity).first();
-      if(old&&old.last_date===date)return fail(409,"سُجل هذا اليوم في سلسلة الاستمرارية بالفعل");
-      let days=old&&old.last_date===addCalendarDays(date,-1)?Number(old.current_days)+1:1;
-      let milestones=[];try{milestones=JSON.parse(old?.awarded_milestones||"[]")}catch{}
-      const due=[5,10,20,30].includes(days)&&!milestones.includes(days);
-      const now=nowIso();
-      if(due)milestones.push(days);
-      await env.DB.prepare("INSERT INTO student_point_streaks(student_id,activity,current_days,last_date,awarded_milestones,updated_at) VALUES(?,?,?,?,?,?) ON CONFLICT(student_id,activity) DO UPDATE SET current_days=excluded.current_days,last_date=excluded.last_date,awarded_milestones=excluded.awarded_milestones,updated_at=excluded.updated_at").bind(studentId,activity,days,date,JSON.stringify(milestones),now).run();
-      let bonus=0;
-      if(due){bonus=Math.round(base*.5);for(const kind of POINT_KINDS)await insertPointEvent(env,{student_id:studentId,group_id:student.group_id,rule_id:null,event_type:"streak_bonus",kind,points:bonus,reason:"مكافأة استمرارية "+days+" يومًا — "+activity,event_key:"streak:"+studentId+":"+activity+":"+days,awarded_date:date,awarded_by:user.id});}
-      await log(env,user.id,"points_streak_record",{student_id:studentId,activity,date,days,bonus});
-      return json({ok:true,days,milestone:due?days:null,bonus,totals:await pointsTotals(env,studentId)});
+      return fail(410,"تم إيقاف الاعتماد اليدوي للاستمرارية؛ تُحتسب المكافأة تلقائيًا من سجلات النشاط اليومية.");
     }
     if(path==="/api/points/ethics"&&method==="GET"){
       const studentId=user.role==="student"?user.student_id:clean(url.searchParams.get("student_id"),80);
