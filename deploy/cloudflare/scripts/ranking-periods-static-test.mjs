@@ -58,7 +58,7 @@ const adjustEnd = server.indexOf('if(path==="/api/points/streak"&&method==="GET"
 assert(adjustStart >= 0 && adjustEnd > adjustStart, "general points adjustment route must exist");
 const adjustment = server.slice(adjustStart, adjustEnd);
 assert(adjustment.includes("request_id"), "manual adjustment must require an idempotency key");
-assert(adjustment.includes("totals.balance||0)+delta<0"), "manual adjustment must prevent negative balances");
+assert(adjustment.includes("totals.store||0)+delta<0") && adjustment.includes("totals.achievement||0)+delta<0"), "manual adjustment must prevent either balance from becoming negative");
 assert(adjustment.includes("event_type:\"general_adjustment\""), "manual adjustment must use its own event type");
 assert(!adjustment.includes('saveRecord(env,"quran_progress"'), "manual adjustment must not modify Quran progress history");
 
