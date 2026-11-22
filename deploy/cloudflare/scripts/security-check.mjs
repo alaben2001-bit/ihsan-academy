@@ -668,6 +668,17 @@ assert.match(backend, /claims\.email_verified===true\|\|claims\.email_verified==
 assert.match(backend, /INSERT INTO google_identities \(google_sub,user_id,email,linked_at\)/, "Google signup must persist the verified subject-to-account link");
 assert.match(backend, /findDuplicateStudentByName\(env,name\)/, "Google signup must not create duplicate student profiles");
 assert.match(backend, /path === "\/api\/auth\/google\/reset-password"/, "password recovery must use a separate Google proof endpoint");
+
+assert.match(backend, /approval_status TEXT NOT NULL DEFAULT 'approved'/, "legacy Quran records must remain approved when the additive approval fields are introduced");
+assert.match(backend, /requiresApproval=user\.role==="student"&&\(kind==="hifz"\|\|kind==="thabit"\)/, "student self-reports of memorization and consolidation must wait for Sheikh approval");
+assert.match(backend, /path===["']\/api\/quran\/daily\/decision["']&&method==="POST"/, "Sheikh approval must use a dedicated decision endpoint");
+assert.match(backend, /path===["']\/api\/quran\/daily\/pending["']&&method==="GET"/, "authorized supervisors must be able to see pending Quran work");
+assert.match(backend, /approval_status='approved'/, "official Quran totals and streaks must exclude pending self-reports");
+assert.match(app, /بانتظار مراجعة الشيخ/, "students must see that unapproved Quran work is pending");
+assert.match(app, /اعتماد الشيخ/, "Quran supervision must expose a Sheikh approval queue");
+assert.match(app, /\/quran\/daily\/decision/, "Sheikh approval buttons must call the protected decision endpoint");
+assert.match(app, /إعادة إرسال للشيخ/, "students must be able to correct and resubmit rejected Quran work");
+
 assert.match(backend, /rateLimit\(env,"google-password-reset"/, "Google password recovery must be rate limited");
 assert.match(backend, /DISABLE_LEGACY_PASSWORD_SIGNUP==="true"/, "production must reject unverified manual signup requests");
 assert.match(app, /id="google-signup"/, "signup must provide a Google identity button");
