@@ -164,8 +164,30 @@ async function main() {
   const wardStreak = (streakView.data?.streaks || []).find(row => row.activity === "ward");
   const fiveDayBadge = (streakView.data?.badges || []).find(row => row.activity === "ward" && Number(row.milestone_days) === 5);
   check("student sees a five-day ward streak and badge", streakView.status === 200 && wardStreak?.current_days === 5 && fiveDayBadge?.points_awarded === 0, JSON.stringify(streakView.data));
+  // Exercise the real 30-point Fajr ledger over four consecutive days.
+  const fajrDays = [];
+  for (const offset of [-5, -4, -3]) {
+    const award = await call("/api/points/activity", { method: "POST", token: admin, body: { student_id: studentA.id, activity: "fajr", date: academyDate(offset) } });
+    fajrDays.push(award);
+    check("Fajr day " + (offset + 6) + " is awarded once", award.status === 201 && award.data?.streak?.days === offset + 6, JSON.stringify(award.data?.streak));
+  }
+  const fajrThirdDay = fajrDays[2];
+  check("three 30-point Fajr days equal 90 base plus 45 streak bonus", Number(fajrThirdDay.data?.streak?.base_points) === 90 && Number(fajrThirdDay.data?.streak?.streak_bonus) === 45 && Number(fajrThirdDay.data?.streak?.base_points) + Number(fajrThirdDay.data?.streak?.streak_bonus) === 135 && fajrThirdDay.data?.streak?.bonus_rate === 0.5, JSON.stringify(fajrThirdDay.data?.streak));
+
+  const fajrFourthDay = await call("/api/points/activity", { method: "POST", token: admin, body: { student_id: studentA.id, activity: "fajr", date: academyDate(-2) } });
+  check("fourth Fajr day adds only 15 bonus points", fajrFourthDay.status === 201 && fajrFourthDay.data?.streak?.days === 4 && Number(fajrFourthDay.data?.streak?.base_points) === 120 && Number(fajrFourthDay.data?.streak?.streak_bonus) === 15, JSON.stringify(fajrFourthDay.data?.streak));
+
+  const duplicateFajr = await call("/api/points/activity", { method: "POST", token: admin, body: { student_id: studentA.id, activity: "fajr", date: academyDate(-2) } });
+  check("duplicate Fajr entry cannot award the same base points or streak bonus twice", duplicateFajr.status === 201 && duplicateFajr.data?.streak?.duplicate === true && (duplicateFajr.data?.awards || []).every(row => row.status === "duplicate"), JSON.stringify(duplicateFajr.data));
+
   const fajrAward = await call("/api/points/activity", { method: "POST", token: admin, body: { student_id: studentA.id, activity: "fajr", date: today } });
-  check("Fajr activity automatically starts its own streak", fajrAward.status === 201 && fajrAward.data?.streak?.days === 1, JSON.stringify(fajrAward.data?.streak));
+  check("a missed calendar day resets Fajr to a new one-day streak", fajrAward.status === 201 && fajrAward.data?.streak?.days === 1 && Number(fajrAward.data?.streak?.base_points) === 30 && Number(fajrAward.data?.streak?.streak_bonus) === 0, JSON.stringify(fajrAward.data?.streak));
+
+  const lateFajr = await call("/api/points/activity", { method: "POST", token: admin, body: { student_id: studentA.id, activity: "fajr", date: academyDate(-1) } });
+  check("late Fajr record does not rewrite the current streak or grant retroactive streak bonus", lateFajr.status === 201 && lateFajr.data?.streak?.backdated === true && lateFajr.data?.streak?.days === 1 && !Number(lateFajr.data?.streak?.streak_bonus || 0), JSON.stringify(lateFajr.data?.streak));
+
+  const futureFajr = await call("/api/points/activity", { method: "POST", token: admin, body: { student_id: studentA.id, activity: "fajr", date: academyDate(1) } });
+  check("future Fajr activity is rejected", futureFajr.status === 400, JSON.stringify(futureFajr.data));
   const attendanceSave = await call("/api/attendance", { method: "POST", token: admin, body: { group_id: groupId, date: today, items: [{ student_id: studentA.id, status: "present" }] } });
   check("present attendance automatically starts an attendance streak", attendanceSave.status === 200, JSON.stringify(attendanceSave.data));
   const attendanceStreakView = await call("/api/points/streak", { token: studentA.token });
