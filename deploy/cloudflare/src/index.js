@@ -890,6 +890,10 @@ const QURAN_SCHEMA_STATEMENTS = [
     repetitions INTEGER NOT NULL DEFAULT 0 CHECK (repetitions >= 0 AND repetitions <= 100),
     linked_scope TEXT NOT NULL DEFAULT '',
     notes TEXT NOT NULL DEFAULT '',
+    approval_status TEXT NOT NULL DEFAULT 'approved' CHECK (approval_status IN ('pending','approved','rejected')),
+    approved_by TEXT REFERENCES users(id) ON DELETE SET NULL,
+    approved_at TEXT,
+    approval_note TEXT NOT NULL DEFAULT '',
     created_by TEXT REFERENCES users(id) ON DELETE SET NULL,
     created_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now'))
   )`,
@@ -969,6 +973,13 @@ async function ensureQuranSchema(env) {
   if (quranSchemaReady) return quranSchemaReady;
   quranSchemaReady = (async () => {
     for (const statement of QURAN_SCHEMA_STATEMENTS) await env.DB.prepare(statement).run();
+    const dailyColumns=await env.DB.prepare("PRAGMA table_info(quran_daily)").all();
+    const dailyNames=new Set((dailyColumns.results||[]).map(column=>column.name));
+    if(!dailyNames.has("approval_status"))await env.DB.prepare("ALTER TABLE quran_daily ADD COLUMN approval_status TEXT NOT NULL DEFAULT 'approved' CHECK (approval_status IN ('pending','approved','rejected'))").run();
+    if(!dailyNames.has("approved_by"))await env.DB.prepare("ALTER TABLE quran_daily ADD COLUMN approved_by TEXT REFERENCES users(id) ON DELETE SET NULL").run();
+    if(!dailyNames.has("approved_at"))await env.DB.prepare("ALTER TABLE quran_daily ADD COLUMN approved_at TEXT").run();
+    if(!dailyNames.has("approval_note"))await env.DB.prepare("ALTER TABLE quran_daily ADD COLUMN approval_note TEXT NOT NULL DEFAULT ''").run();
+    await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_quran_daily_approval ON quran_daily(approval_status,day)").run();
     return true;
   })().catch(error => { quranSchemaReady = null; throw error; });
   return quranSchemaReady;
@@ -1775,7 +1786,7 @@ async function recordAutomaticActivityStreak(env, { studentId, groupId, activity
 }
 
 async function quranStreak(env, studentId) {
-  const rows = await env.DB.prepare("SELECT DISTINCT day FROM quran_daily WHERE student_id=? ORDER BY day DESC LIMIT 400").bind(studentId).all();
+  const rows = await env.DB.prepare("SELECT DISTINCT day FROM quran_daily WHERE student_id=? AND approval_status='approved' ORDER BY day DESC LIMIT 400").bind(studentId).all();
   const days = (rows.results || []).map(row => row.day).filter(Boolean);
   if (!days.length) return 0;
   const today = academyDate();
