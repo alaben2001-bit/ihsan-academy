@@ -678,6 +678,10 @@ assert.match(app, /بانتظار مراجعة الشيخ/, "students must see t
 assert.match(app, /اعتماد الشيخ/, "Quran supervision must expose a Sheikh approval queue");
 assert.match(app, /\/quran\/daily\/decision/, "Sheikh approval buttons must call the protected decision endpoint");
 assert.match(app, /إعادة إرسال للشيخ/, "students must be able to correct and resubmit rejected Quran work");
+assert.match(backend, /approval_status:x\.approval_status===undefined\?"approved":x\.approval_status/, "older backups must restore Quran logs as legacy approved records");
+assert.match(backend, /approval_status=excluded\.approval_status/, "backup restore must preserve Quran approval states");
+assert.match(backend, /SELECT kind,COUNT\(\*\) AS days,COALESCE\(SUM\(amount\),0\) AS total FROM quran_daily WHERE student_id=\? AND approval_status='approved'/, "Quran progress totals must exclude pending self-reports");
+
 
 assert.match(backend, /rateLimit\(env,"google-password-reset"/, "Google password recovery must be rate limited");
 assert.match(backend, /DISABLE_LEGACY_PASSWORD_SIGNUP==="true"/, "production must reject unverified manual signup requests");
