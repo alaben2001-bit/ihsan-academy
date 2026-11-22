@@ -173,6 +173,7 @@ async function main() {
   }
   const fajrThirdDay = fajrDays[2];
   check("three 30-point Fajr days equal 90 base plus 45 streak bonus", Number(fajrThirdDay.data?.streak?.base_points) === 90 && Number(fajrThirdDay.data?.streak?.streak_bonus) === 45 && Number(fajrThirdDay.data?.streak?.base_points) + Number(fajrThirdDay.data?.streak?.streak_bonus) === 135 && fajrThirdDay.data?.streak?.bonus_rate === 0.5, JSON.stringify(fajrThirdDay.data?.streak));
+  check("new student uses separate balance mode after local cutover snapshot", fajrThirdDay.data?.totals?.mode === "separate", JSON.stringify(fajrThirdDay.data?.totals));
   const firstFajrTotals = fajrDays[0].data?.totals || {};
   const thirdFajrTotals = fajrThirdDay.data?.totals || {};
   check("the 45-point streak bonus is excluded from the store balance", Number(thirdFajrTotals.achievement) - Number(firstFajrTotals.achievement) - (Number(thirdFajrTotals.store) - Number(firstFajrTotals.store)) === 45, JSON.stringify({ firstFajrTotals, thirdFajrTotals }));
