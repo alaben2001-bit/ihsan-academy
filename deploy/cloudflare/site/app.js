@@ -1190,7 +1190,8 @@ async function pointsPage(v){
  });
  $("#points-award-form")?.addEventListener("submit",async e=>{
   e.preventDefault();const form=e.currentTarget,data=new FormData(form);
-  try{await api("/points/award",{method:"POST",body:JSON.stringify({student_id:studentId,points:Number(data.get("points")||0),reason:data.get("reason")})});toast("تم منح النقاط");await pointsPage(v)}catch(error){toast(error.message,true)}
+  const requestId=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():String(Date.now())+"-"+Math.random().toString(36).slice(2);
+  try{await api("/points/award",{method:"POST",body:JSON.stringify({student_id:studentId,points:Number(data.get("points")||0),reason:data.get("reason"),request_id:requestId})});toast("تم منح النقاط");await pointsPage(v)}catch(error){toast(error.message,true)}
  });
   // لوحة الشيخ: ترقية المستوى، خصم الجزاء، ورد سريع.
   if(canManage){

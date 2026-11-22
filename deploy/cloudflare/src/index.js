@@ -4914,7 +4914,8 @@ export default {
       const points=bonusPercent>0?Math.round(basePoints*(1+bonusPercent/100)):basePoints;
       if(!Number.isInteger(points)||points<=0||points>MAX_MANUAL_POINTS)return fail(400,"النقاط الممنوحة بعد المكافأة يجب أن تكون عددًا صحيحًا بين 1 و1000");
       const requestId=clean(b.request_id,80);
-      const eventKey="manual:"+(/^[a-zA-Z0-9_-]{6,80}$/.test(requestId)?requestId:uuid());
+      if(!/^[a-zA-Z0-9_-]{6,80}$/.test(requestId))return fail(400,"معرّف الحركة مطلوب لمنع تكرار المنح");
+      const eventKey="manual:"+requestId;
       const date=academyDate(),events=[];
       for(const kind of POINT_KINDS){
         const inserted=await insertPointEvent(env,{student_id:s.id,group_id:s.group_id,rule_id:rule?.id||null,event_type:"manual",kind,points,reason:reason||rule.name,event_key:eventKey,awarded_date:date,awarded_by:user.id});
