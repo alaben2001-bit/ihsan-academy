@@ -1137,15 +1137,17 @@ function storeItemFacts(item,balance){
  if(state.max!==null)parts.push("الحد لكل طالب: "+state.max+(state.used?" · استخدمت: "+state.used:""));
  return parts.join(" · ");
 }
-function storeTermsMarkup(){
- return '<details class="store-terms"><summary>شروط الصرف قبل أن تطلب</summary><ul><li>طلبك يُراجع من الشيخ أو الإدارة قبل التنفيذ، ولا يُسلَّم تلقائيًا.</li><li>يُحجز مبلغ المكافأة من رصيد النقاط فور الطلب، ويُعاد تلقائيًا إذا رُفض الطلب.</li><li>بعد تنفيذ الطلب لا يمكن إلغاؤه؛ تأكد من اختيارك.</li><li>رصيدك هو مجموع نقاطك، وتستخدم النقاط نفسها لطلب المكافآت من المتجر.</li><li>لا نعرض مكافأة نفدت كميتها أو بلغت حدّها؛ ونُحدّث المتاح فور الطلب.</li></ul></details>';
+function storeTermsMarkup(summary){
+ const balanceNote=summary?.totals?.mode==="separate"?"رصيد المتجر مستقل عن نقاط الإنجاز، ويُستخدم للاستبدال فقط.":"الرصيد الحالي موحّد تاريخيًا؛ سيظهر رصيد المتجر منفصلًا بعد اكتمال الفصل الآمن وحفظ الأرصدة السابقة.";
+ return '<details class="store-terms"><summary>شروط الصرف قبل أن تطلب</summary><ul><li>طلبك يُراجع من الشيخ أو الإدارة قبل التنفيذ، ولا يُسلَّم تلقائيًا.</li><li>يُحجز مبلغ المكافأة من الرصيد المتاح فور الطلب، ويُعاد تلقائيًا إذا رُفض الطلب.</li><li>بعد تنفيذ الطلب لا يمكن إلغاؤه؛ تأكد من اختيارك.</li><li>'+balanceNote+'</li><li>لا نعرض مكافأة نفدت كميتها أو بلغت حدّها؛ ونُحدّث المتاح فور الطلب.</li></ul></details>';
 }
 function storeStudentMarkup(store,summary){
  const reco=store?.recommendations||null;
  const balance=Number(reco?.balance??store?.balance??summary?.totals?.store??0);
- let html='<section class="card store-student"><div class="section-head"><div><span class="eyebrow">متجر المكافآت</span><h3>مكافآت حقيقية، لا وهم</h3><p>نعرض فقط ما اعتمدته الإدارة ومتوفر فعليًا. رصيد النقاط الحالي: <strong>'+balance+'</strong>.</p></div></div>';
+ const balanceLabel=summary?.totals?.mode==="separate"?"رصيد المتجر":"الرصيد الحالي المتاح";
+ let html='<section class="card store-student"><div class="section-head"><div><span class="eyebrow">متجر المكافآت</span><h3>مكافآت حقيقية، لا وهم</h3><p>نعرض فقط ما اعتمدته الإدارة ومتوفر فعليًا. '+balanceLabel+': <strong>'+balance+'</strong>.</p></div></div>';
  if(!reco||reco.empty){
-  html+='<div class="store-empty-honest"><strong>المتجر فارغ بصدق.</strong><p>لم تعتمد الإدارة مكافآت حقيقية بعد، ولن نعرض لك منتجات وهمية أو صورًا تجريبية. سيظهر هنا كل ما يُعتمد فعليًا مع تكلفته ومخزونه وشروطه.</p><small>رصيدك محفوظ ولا ينقص بانتظار إضافة المكافآت.</small></div>'+storeTermsMarkup()+'</section>';
+  html+='<div class="store-empty-honest"><strong>المتجر فارغ بصدق.</strong><p>لم تعتمد الإدارة مكافآت حقيقية بعد، ولن نعرض لك منتجات وهمية أو صورًا تجريبية. سيظهر هنا كل ما يُعتمد فعليًا مع تكلفته ومخزونه وشروطه.</p><small>رصيدك محفوظ ولا ينقص بانتظار إضافة المكافآت.</small></div>'+storeTermsMarkup(summary)+'</section>';
   return html;
  }
  if(reco.affordable.length){
@@ -1168,7 +1170,7 @@ function storeStudentMarkup(store,summary){
  if((reco.sold_out||[]).length)exhausted.push("نفدت كميتها: "+reco.sold_out.join("، "));
  if((reco.maxed||[]).length)exhausted.push("بلغت حدّها لك: "+reco.maxed.join("، "));
  if(exhausted.length)html+='<p class="muted small store-exhausted">'+esc(exhausted.join(" · "))+'</p>';
- html+=storeTermsMarkup()+'</section>';
+ html+=storeTermsMarkup(summary)+'</section>';
  return html;
 }
 function storeStaffMarkup(store,canEdit){
@@ -1218,8 +1220,11 @@ async function pointsPage(v){
  const eventRows=(summary.recent||[]).map(e=>'<div class="list-row"><div><strong>'+esc(e.reason||e.event_type)+'</strong><small>'+esc(e.kind_label)+' · '+pointsDate(e.created_at)+(e.reversed?' · معكوسة: '+esc(e.reversal_reason||""):"")+'</small></div><div style="display:flex;gap:8px;align-items:center"><span class="pill">'+(Number(e.points)>0?"+":"")+Number(e.points)+'</span>'+(S.user.role==="admin"&&!e.reversed&&e.event_type!=="store_redemption"?'<button class="btn secondary" type="button" data-reverse="'+esc(e.id)+'">عكس</button>':"")+'</div></div>').join("");
  let html=head("النقاط والمتجر",isStudent?"رصيدك وسجل حركاتك وطلبات الصرف.":"متابعة نقاط الطالب وإدارة المتجر وقواعد المنح.");
  if(!isStudent)html+='<div class="card"><label class="field">اختر الطالب<select id="points-student-select">'+students.map(st=>'<option value="'+esc(st.id)+'"'+(st.id===studentId?" selected":"")+'>'+esc(st.name||st.display_name||"طالب")+'</option>').join("")+'</select></label><p class="muted small">الفوج: '+esc(summary.student.group_name||"—")+'</p></div>';
- html+='<div class="stats"><div class="stat"><small>نقاط الإنجاز</small><strong>'+Number(summary.totals.achievement||0)+'</strong></div><div class="stat"><small>رصيد المتجر</small><strong>'+Number(summary.totals.store??summary.totals.balance??0)+'</strong></div><div class="stat"><small>طلبات قيد المراجعة</small><strong>'+Number(summary.pending_redemptions)+'</strong></div></div>';
- html+='<div class="notice">نقاط الإنجاز توثّق التعلم والمواظبة، ورصيد المتجر مخصص للجوائز. مكافآت الاستمرارية تُضاف إلى نقاط الإنجاز ولا تُضاف إلى رصيد المتجر.'+(summary.totals.mode==="legacy"?' الرصيد الحالي محفوظ كما هو حتى اعتماد فصل الحسابات.':'')+'</div>';
+ const balanceStats=summary.totals.mode==="separate"
+  ?'<div class="stat"><small>نقاط الإنجاز</small><strong>'+Number(summary.totals.achievement||0)+'</strong></div><div class="stat"><small>رصيد المتجر</small><strong>'+Number(summary.totals.store??summary.totals.balance??0)+'</strong></div>'
+  :'<div class="stat"><small>الرصيد الحالي</small><strong>'+Number(summary.totals.balance??summary.totals.store??0)+'</strong></div>';
+ html+='<div class="stats">'+balanceStats+'<div class="stat"><small>طلبات قيد المراجعة</small><strong>'+Number(summary.pending_redemptions)+'</strong></div></div>';
+ html+='<div class="notice">'+(summary.totals.mode==="separate"?'نقاط الإنجاز توثّق التعلم والمواظبة، ورصيد المتجر مخصص للاستبدال، ومكافآت الاستمرارية لا تزيد رصيد المتجر.':'الرصيد الحالي تاريخي موحّد ومحفوظ كما هو؛ لا نعرضه كرصدين منفصلين حتى يكتمل فصل الحسابات الآمن. لن تُحذف أي حركة أو يُعاد احتساب تاريخ الطالب.')+'</div>';
  html+=isStudent?storeStudentMarkup(store,summary):storeStaffMarkup(store,S.user.role==="admin");
  html+='<section class="card"><h3>طلبات الصرف</h3><div class="list">'+(redemptionRows||'<p class="muted">لا توجد طلبات صرف بعد.</p>')+'</div></section>';
  if(S.user.role==="admin")html+='<section class="card"><h3>منح النقاط — الشيخ فقط</h3><form id="points-award-form" class="form-grid"><label class="field">عدد النقاط<input name="points" type="number" min="1" max="1000" required value="10"></label><label class="field">سبب المنح (إلزامي)<input name="reason" required minlength="3" maxlength="500"></label><button class="btn" type="submit">اعتماد النقاط</button></form></section>';
