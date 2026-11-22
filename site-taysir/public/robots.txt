@@ -1,0 +1,5 @@
+# بوابة التيسير العامة — قابلة للفهرسة.
+User-agent: *
+Allow: /
+
+Sitemap: https://a-taysir.pages.dev/sitemap.xml
