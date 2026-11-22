@@ -557,7 +557,9 @@ assert.match(backend, /collection='student_cards'/, "student cards must reuse th
 assert.doesNotMatch(backend, /CREATE TABLE IF NOT EXISTS student_cards/, "student cards must not add a duplicate table");
 assert.match(backend, /async function ensureStudentCard\(env, student, actorId = null\)/, "every student must have an idempotent card ensure function");
 assert.match(backend, /id: student\.id, student_id: student\.id/, "the canonical card id and student_id must both use the immutable student id");
-assert.match(backend, /ORDER BY CASE WHEN id=\? THEN 0 ELSE 1 END LIMIT 1/, "legacy card lookup must prefer the canonical student id and recover mislinked cards");
+assert.match(backend, /ORDER BY CASE WHEN id=\? THEN 0 ELSE 1 END LIMIT 2/, "card lookup must inspect enough matches to detect duplicate records");
+assert.match(backend, /if \(matches\.length > 1\) throw new Error\("student_card_duplicate_records"\)/, "duplicate cards must fail closed instead of choosing an arbitrary QR identity");
+assert.match(backend, /card\.id !== card\.student_id \|\| card\.id !== matches\[0\]\.id/, "card id and student id must match the immutable canonical student identity");
 assert.match(backend, /const CARD_KINDS = \{/, "card QR kinds must be declared explicitly");
 assert.match(backend, /add_points: \{ label: "إضافة نقاط", ttlDays: 90, requiresAuth: true \}/, "the add-points QR must expire after 90 days");
 assert.match(backend, /profile: \{ label: "الملف الشخصي", ttlDays: 365, requiresAuth: true \}/, "the profile QR must expire after 365 days");
