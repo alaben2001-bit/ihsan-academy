@@ -1146,6 +1146,7 @@ async function pointsPage(v){
  html+=isStudent?storeStudentMarkup(store,summary):storeStaffMarkup(store,S.user.role==="admin");
  html+='<section class="card"><h3>طلبات الصرف</h3><div class="list">'+(redemptionRows||'<p class="muted">لا توجد طلبات صرف بعد.</p>')+'</div></section>';
  if(S.user.role==="admin")html+='<section class="card"><h3>منح النقاط — الشيخ فقط</h3><form id="points-award-form" class="form-grid"><label class="field">عدد النقاط<input name="points" type="number" min="1" max="1000" required value="10"></label><label class="field">سبب المنح (إلزامي)<input name="reason" required minlength="3" maxlength="500"></label><button class="btn" type="submit">اعتماد النقاط</button></form></section>';
+ if(S.user.role==="admin")html+='<section class="card"><h3>إضافة / خصم عام</h3><p class="muted small">حركة مستقلة عن بطاقات الحفظ والمراجعة؛ لا تعدّل سجل الحفظ. كل حركة تحفظ بسببها ولا تتكرر عند إعادة الطلب.</p><form id="points-adjust-form" class="form-grid"><label class="field">نوع الحركة<select name="direction"><option value="add">إضافة</option><option value="subtract">خصم</option></select></label><label class="field">عدد النقاط<input name="amount" type="number" min="1" max="1000" step="1" required></label><label class="field wide">السبب (إلزامي)<input name="reason" minlength="3" maxlength="500" required></label><button class="btn" type="submit">حفظ الحركة العامة</button></form></section>';
  if(S.user.role==="admin"){
   const qp=(t)=>'<button class="btn secondary" type="button" data-quick-reason="'+t+'">'+t+'</button>';
   html+='<section class="card sheikh-panel" id="sheikh-panel"><h3>لوحة الشيخ — إجراءات بعد مسح البطاقة</h3><p class="muted small">ترقية المستوى، خصم جزاء، ورد سريع للمكافآت الشائعة.</p>';
@@ -1178,6 +1179,12 @@ async function pointsPage(v){
   const reason=($("#points-reverse-reason")?.value||"").trim();
   if(reason.length<3){toast("اكتب سبب عكس الحركة (3 أحرف على الأقل)",true);$("#points-reverse-reason")?.focus();return}
   try{await api("/points/events/"+encodeURIComponent(btn.dataset.reverse)+"/reverse",{method:"POST",body:JSON.stringify({reason})});toast("تم عكس الحركة مع إبقاء سجلها");await pointsPage(v)}catch(error){toast(error.message,true)}
+ });
+ $("#points-adjust-form")?.addEventListener("submit",async e=>{
+  e.preventDefault();const form=e.currentTarget,data=new FormData(form),amount=Number(data.get("amount")),delta=data.get("direction")==="subtract"?-amount:amount,button=form.querySelector('button[type="submit"]');
+  if(!Number.isInteger(amount)||amount<1||amount>1000)return toast("أدخل عددًا صحيحًا بين 1 و1000",true);
+  button.disabled=true;
+  try{const result=await api("/points/adjust",{method:"POST",body:JSON.stringify({student_id:studentId,points:delta,reason:data.get("reason"),request_id:crypto.randomUUID()})});toast((delta>0?"أُضيفت ":"خُصمت ")+amount+" نقطة. الرصيد الآن: "+Number(result.totals.balance||0));await pointsPage(v)}catch(error){toast(error.message,true);button.disabled=false}
  });
  $("#points-award-form")?.addEventListener("submit",async e=>{
   e.preventDefault();const form=e.currentTarget,data=new FormData(form);
@@ -3334,25 +3341,23 @@ async function effortPage(v){
 }
 async function effortRankingPage(v){
  const groups=assignedGroups().slice().sort((a,b)=>compareStudentNames(a.name,b.name));
- v.innerHTML=head("الترتيب الأسبوعي/الشهري","المعدل العام = رصيد نقاط الإنجاز التراكمي التي يمنحها الشيخ أو المشرف؛ والنسب لكل معيار من السجلات المسجّلة، وقيم «—» تعني عدم وجود سجل.")+
- '<section class="card"><div class="form-grid"><label class="field">الفوج<select id="ranking-group"><option value="">اختر الفوج</option>'+groups.map(g=>'<option value="'+esc(g.id)+'">'+esc(g.name)+'</option>').join("")+'</select></label><label class="field">الفترة<select id="ranking-period"><option value="weekly">أسبوعي</option><option value="monthly">شهري</option></select></label><div class="wide"><button type="button" class="btn" id="ranking-load">إنشاء التقرير</button></div></div><div id="ranking-result" class="muted small">اختر الفوج والفترة.</div></section>';
+ v.innerHTML=head("الترتيب الأسبوعي/الشهري/السنوي","نقاط كل فترة مستقلة، مع مقارنة بالمدة السابقة. الحفظ وسجلاته لا تتغير بهذا الترتيب.")+
+ '<section class="card"><div class="form-grid"><label class="field">الفوج<select id="ranking-group"><option value="">اختر الفوج</option>'+groups.map(g=>'<option value="'+esc(g.id)+'">'+esc(g.name)+'</option>').join("")+'</select></label><label class="field">الفترة<select id="ranking-period"><option value="weekly">أسبوعي</option><option value="monthly">شهري</option><option value="yearly">سنوي</option></select></label><div class="wide"><button type="button" class="btn" id="ranking-load">عرض الترتيب</button></div></div><div id="ranking-result" class="muted small">اختر الفوج والفترة.</div></section>';
  const groupSel=$("#ranking-group"),periodSel=$("#ranking-period"),host=$("#ranking-result");
  const saved=safeStore.getSession("ihsan_effort_group");if(saved&&groups.some(g=>String(g.id)===saved))groupSel.value=saved;else if(groups.length)groupSel.value=String(groups[0].id);
  $("#ranking-load").onclick=async()=>{
-  if(!groupSel.value)return toast("لا يوجد فوج متاح لعرض التقرير",true);
-  safeStore.setSession("ihsan_effort_group",String(groupSel.value));
-  host.innerHTML='<div class="loading">جار حساب الترتيب من السجلات المحفوظة…</div>';
+  if(!groupSel.value)return toast("اختر الفوج أولًا",true);
+  safeStore.setSession("ihsan_effort_group",String(groupSel.value));host.innerHTML='<div class="loading">جار حساب نقاط الفترة ومقارنتها…</div>';
   try{
    const data=await api("/effort/ranking?group_id="+encodeURIComponent(groupSel.value)+"&period="+encodeURIComponent(periodSel.value));
-   
    const groupName=(groups.find(g=>String(g.id)===groupSel.value)||{}).name||"الفوج";
-   const periodLabel=periodSel.value==="monthly"?"شهري":"أسبوعي";
-   const reportTitle="الترتيب "+periodLabel+" — "+groupName;
-   const subtitle=groupName+" · "+data.from_date+" إلى "+data.to_date;
-   const metrics=[["attendance","الحضور","الحضور"],["mandatory_classes","الإجبارية","الحصص الإجبارية"],["asr","العصر","صلاة العصر"],["adhkar","الأذكار","الأذكار"],["wird","الورد","الورد"],["thabit","التثبيت","التثبيت"],["bring","الإحضار","الإحضار"],["quran_classes","القرآن","حصص القرآن"],["memorization","الحفظ","الحفظ"],["revision","المراجعة","المراجعة"]];
-   const tableHtml='<div class="table-wrap ranking-table-wrap"><table class="ranking-table"><thead><tr class="ranking-head-main"><th rowspan="2" scope="col">الترتيب</th><th rowspan="2" scope="col">الطالب</th><th rowspan="2" scope="col">النقاط</th><th colspan="10" scope="colgroup">النسب خلال الفترة</th></tr><tr class="ranking-head-sub">'+metrics.map(metric=>'<th scope="col" abbr="'+esc(metric[2])+'">'+esc(metric[1])+'</th>').join("")+'</tr></thead><tbody>'+data.rows.map(row=>'<tr><td><span class="rank-badge'+(row.rank===1?' is-first':row.rank===2?' is-second':row.rank===3?' is-third':'')+'">'+(row.rank===null?"—":row.rank)+'</span></td><td class="ranking-student">'+esc(row.name)+'</td><td class="ranking-score"><strong>'+(row.score===null?"—":String(row.score))+'</strong>'+(row.score===null?'':' <small>نقطة</small>')+'</td>'+metrics.map(metric=>'<td class="ranking-metric'+(row.metrics[metric[0]]===null?' is-empty':'')+'">'+(row.metrics[metric[0]]===null?"—":row.metrics[metric[0]]+'<small>%</small>')+'</td>').join("")+'</tr>').join("")+'</tbody></table></div>';
-   host.innerHTML='<div class="section-head"><p class="muted small ranking-meta">'+esc(subtitle)+'</p><div class="report-actions"><button type="button" class="btn secondary" id="ranking-print">طباعة / حفظ PDF</button></div></div>'+tableHtml+'<p class="muted small ranking-note">«النقاط» هي رصيد الإنجاز التراكمي الذي يمنحه الشيخ أو المشرف. الأعمدة المتبقية نسب خلال الفترة المختارة؛ «—» تعني عدم وجود سجل لهذا المعيار، ولا تعني صفرًا. مرّر الجدول أفقيًا لرؤية باقي النسب.</p>';
-   $("#ranking-print")?.addEventListener("click",()=>printReportWindow(reportTitle,tableHtml,subtitle+" · «النقاط» رصيد الإنجاز التراكمي، والنسب خلال الفترة المختارة",{landscape:true}));
+   const periodLabel={weekly:"الأسبوعي",monthly:"الشهري",yearly:"السنوي"}[periodSel.value];
+   const metrics=[["attendance","الحضور"],["wird","الورد"],["thabit","التثبيت"],["bring","الإحضار"],["memorization","الحفظ"]];
+   const change=row=>row.rank_change===null||row.rank_change===undefined?'<span class="muted">—</span>':row.rank_change>0?'<strong style="color:#16834a">↑ '+row.rank_change+'</strong>':row.rank_change<0?'<strong style="color:#c0392b">↓ '+Math.abs(row.rank_change)+'</strong>':'<span class="muted">— ثابت</span>';
+   const tableHtml='<div class="table-wrap ranking-table-wrap"><table class="ranking-table"><thead><tr><th>الترتيب</th><th>الطالب</th><th>نقاط الفترة</th><th>التغير</th>'+metrics.map(m=>'<th>'+m[1]+'</th>').join("")+'</tr></thead><tbody>'+data.rows.map(row=>'<tr><td><span class="rank-badge'+(row.rank===1?' is-first':row.rank===2?' is-second':row.rank===3?' is-third':'')+'">'+row.rank+'</span></td><td class="ranking-student">'+esc(row.name)+'</td><td class="ranking-score"><strong>'+Number(row.score||0)+'</strong></td><td>'+change(row)+'</td>'+metrics.map(m=>'<td class="ranking-metric'+(row.metrics[m[0]]===null?' is-empty':'')+'">'+(row.metrics[m[0]]===null?'—':row.metrics[m[0]]+'%')+'</td>').join("")+'</tr>').join("")+'</tbody></table></div>';
+   const subtitle=groupName+' · '+data.from_date+' إلى '+data.to_date;
+   host.innerHTML='<div class="section-head"><p class="muted small ranking-meta">'+esc(subtitle)+' · المقارنة السابقة: '+esc(data.previous_from_date)+' إلى '+esc(data.previous_to_date)+'</p><button type="button" class="btn secondary" id="ranking-print">طباعة / حفظ PDF</button></div>'+tableHtml+'<p class="muted small ranking-note">↑ صعود بعدد المراكز · ↓ تراجع بعدد المراكز · — ثبات أو عدم توفر فترة سابقة. النقاط هي صافي نقاط الإنجاز المسجلة داخل الفترة فقط، ولا تشمل رصيد المتجر.</p>';
+   $("#ranking-print")?.addEventListener("click",()=>printReportWindow("الترتيب "+periodLabel+" — "+groupName,tableHtml,subtitle,{landscape:true}));
   }catch(e){host.innerHTML='<div class="notice error">'+esc(e.message)+'</div>'}
  };
  groupSel.addEventListener("change",()=>{safeStore.setSession("ihsan_effort_group",String(groupSel.value||""));if(groupSel.value)$("#ranking-load").click()});
