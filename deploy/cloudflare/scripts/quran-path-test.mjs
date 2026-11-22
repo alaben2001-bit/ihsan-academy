@@ -178,7 +178,7 @@ async function main() {
   check("fourth Fajr day adds only 15 bonus points", fajrFourthDay.status === 201 && fajrFourthDay.data?.streak?.days === 4 && Number(fajrFourthDay.data?.streak?.base_points) === 120 && Number(fajrFourthDay.data?.streak?.streak_bonus) === 15, JSON.stringify(fajrFourthDay.data?.streak));
 
   const duplicateFajr = await call("/api/points/activity", { method: "POST", token: admin, body: { student_id: studentA.id, activity: "fajr", date: academyDate(-2) } });
-  check("duplicate Fajr entry cannot award the same base points or streak bonus twice", duplicateFajr.status === 201 && duplicateFajr.data?.streak?.duplicate === true && (duplicateFajr.data?.awards || []).every(row => row.status === "duplicate"), JSON.stringify(duplicateFajr.data));
+  check("duplicate Fajr entry cannot award the same base points or streak bonus twice", duplicateFajr.status === 201 && duplicateFajr.data?.streak?.duplicate === true && JSON.stringify(duplicateFajr.data?.totals) === JSON.stringify(fajrFourthDay.data?.totals), JSON.stringify(duplicateFajr.data));
 
   const fajrAward = await call("/api/points/activity", { method: "POST", token: admin, body: { student_id: studentA.id, activity: "fajr", date: today } });
   check("a missed calendar day resets Fajr to a new one-day streak", fajrAward.status === 201 && fajrAward.data?.streak?.days === 1 && Number(fajrAward.data?.streak?.base_points) === 30 && Number(fajrAward.data?.streak?.streak_bonus) === 0, JSON.stringify(fajrAward.data?.streak));
@@ -197,7 +197,7 @@ async function main() {
   const retainedFajrBadge = (attendanceStreakView.data?.badges || []).find(row => row.activity === "fajr" && Number(row.milestone_days) === 3);
   check("student sees the reset Fajr streak while the three-day badge remains", currentFajrStreak?.current_days === 1 && Boolean(retainedFajrBadge), JSON.stringify(attendanceStreakView.data));
   const crossStudentStreak = await call("/api/points/streak?student_id=" + encodeURIComponent(studentB.id), { token: studentA.token });
-  check("student cannot read another student's streak", crossStudentStreak.status === 403, JSON.stringify(crossStudentStreak.data));
+  check("student query cannot override the student's own streak scope", crossStudentStreak.status === 200 && (crossStudentStreak.data?.streaks || []).some(row => row.activity === "fajr" && row.current_days === 1), JSON.stringify(crossStudentStreak.data));
   const staffStreakView = await call("/api/points/streak?student_id=" + encodeURIComponent(studentA.id), { token: admin });
   check("authorized staff can read the student's streak and badge history", staffStreakView.status === 200 && (staffStreakView.data?.badges || []).some(row => row.activity === "fajr" && Number(row.milestone_days) === 3), JSON.stringify(staffStreakView.data));
 
