@@ -146,6 +146,8 @@ async function main() {
   check("student self-reports today's memorization pending Sheikh approval", hifz.status === 201 && hifz.data?.entry?.kind === "hifz" && hifz.data?.entry?.approval_status === "pending" && hifz.data?.awards?.length === 0, JSON.stringify(hifz.data));
   const selfApproval = await call("/api/quran/daily/decision", { method: "POST", token: studentA.token, body: { student_id: studentA.id, entry_id: hifz.data?.entry?.id, decision: "approved" } });
   check("student cannot approve their own memorization", selfApproval.status === 403, JSON.stringify(selfApproval.data));
+  const quranPointRules = await call("/api/points/rules", { token: admin });
+  console.log("QURAN_APPROVAL_RULE_DIAGNOSTIC", JSON.stringify((quranPointRules.data||[]).filter(rule=>rule.event_type==="quran_daily_approved"||rule.event_type==="quran_entry")));
   const pendingQueue = await call("/api/quran/daily/pending?group_id=" + encodeURIComponent(groupId), { token: admin });
   check("Sheikh queue lists all pending memorization entries", pendingQueue.status === 200 && pendingQueue.data?.length === 3, JSON.stringify(pendingQueue.data));
   const approvePriorHifz = await call("/api/quran/daily/decision", { method: "POST", token: admin, body: { student_id: studentA.id, entry_id: priorHifzWorkday.data.entry.id, decision: "approved" } });
