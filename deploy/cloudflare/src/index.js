@@ -2987,13 +2987,12 @@ export default {
         const memberRow=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='student_team_memberships' AND id=? AND group_id=?").bind(studentId,groupId).first();
         if(memberRow){try{const membership=JSON.parse(memberRow.payload_json);teamId=clean(membership.team_id,100);teamName=clean(membership.team_name,80)||null;}catch{}}
         if(!teamId)return json({scope,scope_label:"ترتيب الفرقة",team_id:null,team_name:null,period,from_date:null,to_date:null,previous_from_date:null,previous_to_date:null,metrics:["attendance","wird","thabit","bring","memorization"],rows:[]});
-        scopeLabel="الفرقة";
+        groupIds=[groupId];scopeLabel="الفرقة";
       }else{
         if(user.role==="student")return fail(403,"الترتيب العام للأكاديمية غير متاح من حساب الطالب");
         const managed=await managedGroupIds(env,user);
-        if(managed===null){const all=await env.DB.prepare("SELECT id FROM groups WHERE active=1 ORDER BY name").all();groupIds=(all.results||[]).map(x=>x.id);}
-        else groupIds=managed;
-        scopeLabel="الأكاديمية";
+        if(managed===null){const all=await env.DB.prepare("SELECT id FROM groups WHERE active=1 ORDER BY name").all();groupIds=(all.results||[]).map(x=>x.id);scopeLabel="الأكاديمية";}
+        else{groupIds=managed;scopeLabel="الترتيب العام ضمن نطاق صلاحيتك";}
       }
       const [year,month,day]=today.split("-").map(Number);
       let fromDate,toDate=today,previousFrom,previousTo;
