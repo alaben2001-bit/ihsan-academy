@@ -38,6 +38,15 @@ for (const period of ['value="weekly"', 'value="monthly"', 'value="yearly"']) {
 }
 assert(profile.includes("rank_change"), "student profile must show previous-period rank movement");
 
+const rankingPageStart = app.indexOf("async function effortRankingPage");
+const rankingPageEnd = app.indexOf("\\nasync function bulkRosterPage", rankingPageStart);
+assert(rankingPageStart >= 0 && rankingPageEnd > rankingPageStart, "ranking page must exist");
+const rankingPage = app.slice(rankingPageStart, rankingPageEnd);
+for (const scope of ['value="academy"', 'value="group"', 'value="team"']) {
+  assert(rankingPage.includes(scope), `ranking page scope selector missing: ${scope}`);
+}
+assert(rankingPage.includes("URLSearchParams"), "ranking page must build encoded scope queries");
+
 const adjustStart = server.indexOf('if(path==="/api/points/adjust"&&method==="POST")');
 const adjustEnd = server.indexOf('if(path==="/api/points/streak"&&method==="GET")', adjustStart);
 assert(adjustStart >= 0 && adjustEnd > adjustStart, "general points adjustment route must exist");
