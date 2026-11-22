@@ -159,6 +159,8 @@ async function main() {
   const wardStreak = (streakView.data?.streaks || []).find(row => row.activity === "ward");
   const fiveDayBadge = (streakView.data?.badges || []).find(row => row.activity === "ward" && Number(row.milestone_days) === 5);
   check("student sees a five-day ward streak and badge", streakView.status === 200 && wardStreak?.current_days === 5 && fiveDayBadge?.points_awarded === 10, JSON.stringify(streakView.data));
+  const fajrAward = await call("/api/points/activity", { method: "POST", token: admin, body: { student_id: studentA.id, activity: "fajr", date: today } });
+  check("Fajr activity automatically starts its own streak", fajrAward.status === 201 && fajrAward.data?.streak?.days === 1, JSON.stringify(fajrAward.data?.streak));
 
   const futureLog = await call("/api/quran/daily", { method: "POST", token: studentA.token, body: { kind: "ward", day: academyDate(2), amount: 1 } });
   check("future daily log is rejected", futureLog.status === 400, JSON.stringify(futureLog.data));
