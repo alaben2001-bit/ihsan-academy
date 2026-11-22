@@ -65,3 +65,6 @@ check("store catalog remains owner-entered through the real item form", /id=\"st
 const failed = checks.filter(item => !item.ok);
 console.log("\\n" + (checks.length - failed.length) + "/" + checks.length + " points-system checks passed.");
 if (failed.length) process.exitCode = 1;
+
+check("pointsTotals preserves old balances until cutover", /if\(Number\(cutover\?\.active\)!==1\) return legacyTotals\(\)/.test(server) && /mode: "legacy"/.test(server));
+check("pointsTotals separates achievement and store after snapshot activation", /mode: "separate"/.test(server) && /AS achievement/.test(server) && /AS store/.test(server));
