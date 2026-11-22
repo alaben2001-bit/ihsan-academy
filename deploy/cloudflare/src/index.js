@@ -973,12 +973,18 @@ async function ensureQuranSchema(env) {
   if (quranSchemaReady) return quranSchemaReady;
   quranSchemaReady = (async () => {
     for (const statement of QURAN_SCHEMA_STATEMENTS) await env.DB.prepare(statement).run();
-    const dailyColumns=await env.DB.prepare("PRAGMA table_info(quran_daily)").all();
-    const dailyNames=new Set((dailyColumns.results||[]).map(column=>column.name));
-    if(!dailyNames.has("approval_status"))await env.DB.prepare("ALTER TABLE quran_daily ADD COLUMN approval_status TEXT NOT NULL DEFAULT 'approved' CHECK (approval_status IN ('pending','approved','rejected'))").run();
-    if(!dailyNames.has("reviewed_by"))await env.DB.prepare("ALTER TABLE quran_daily ADD COLUMN reviewed_by TEXT REFERENCES users(id) ON DELETE SET NULL").run();
-    if(!dailyNames.has("reviewed_at"))await env.DB.prepare("ALTER TABLE quran_daily ADD COLUMN reviewed_at TEXT").run();
-    if(!dailyNames.has("approval_note"))await env.DB.prepare("ALTER TABLE quran_daily ADD COLUMN approval_note TEXT NOT NULL DEFAULT ''").run();
+    const ensureDailyColumn=async(name,sql)=>{
+      const current=await env.DB.prepare("PRAGMA table_info(quran_daily)").all();
+      if((current.results||[]).some(column=>column.name===name))return;
+      try{await env.DB.prepare(sql).run()}catch(error){
+        const refreshed=await env.DB.prepare("PRAGMA table_info(quran_daily)").all();
+        if(!(refreshed.results||[]).some(column=>column.name===name))throw error;
+      }
+    };
+    await ensureDailyColumn("approval_status","ALTER TABLE quran_daily ADD COLUMN approval_status TEXT NOT NULL DEFAULT 'approved' CHECK (approval_status IN ('pending','approved','rejected'))");
+    await ensureDailyColumn("reviewed_by","ALTER TABLE quran_daily ADD COLUMN reviewed_by TEXT REFERENCES users(id) ON DELETE SET NULL");
+    await ensureDailyColumn("reviewed_at","ALTER TABLE quran_daily ADD COLUMN reviewed_at TEXT");
+    await ensureDailyColumn("approval_note","ALTER TABLE quran_daily ADD COLUMN approval_note TEXT NOT NULL DEFAULT ''");
     await env.DB.prepare("CREATE INDEX IF NOT EXISTS idx_quran_daily_approval ON quran_daily(approval_status,day)").run();
     return true;
   })().catch(error => { quranSchemaReady = null; throw error; });
