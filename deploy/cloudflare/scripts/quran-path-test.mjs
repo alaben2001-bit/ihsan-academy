@@ -156,8 +156,15 @@ async function main() {
   check("Sheikh approval awards today's memorization and reaches three days", approveHifz.status === 200 && approveHifz.data?.streak?.days === 3 && approveHifz.data?.awards?.length > 0, JSON.stringify(approveHifz.data));
   const duplicateApproval = await call("/api/quran/daily/decision", { method: "POST", token: admin, body: { student_id: studentA.id, entry_id: hifz.data.entry.id, decision: "approved" } });
   check("repeated Sheikh approval is idempotent", duplicateApproval.status === 200 && duplicateApproval.data?.duplicate === true, JSON.stringify(duplicateApproval.data));
+  const pointsBeforeProgressDuplicate = await call("/api/points/summary", { token: studentA.token });
+  const progressAfterApproval = await call("/api/quran/progress", { method: "POST", token: admin, body: { student_id: studentA.id, date: today, activity: "memorization", memorized: "خمسة أسطر", notes: "متابعة الشيخ بعد اعتماد السجل اليومي" } });
+  const pointsAfterProgressDuplicate = await call("/api/points/summary", { token: studentA.token });
+  check("teacher progress does not award twice after daily approval", progressAfterApproval.status === 201 && pointsAfterProgressDuplicate.data?.totals?.achievement === pointsBeforeProgressDuplicate.data?.totals?.achievement && pointsAfterProgressDuplicate.data?.totals?.store === pointsBeforeProgressDuplicate.data?.totals?.store, JSON.stringify({before:pointsBeforeProgressDuplicate.data?.totals,after:pointsAfterProgressDuplicate.data?.totals,progress:progressAfterApproval.data}));
   const queueAfterApproval = await call("/api/quran/daily/pending?group_id=" + encodeURIComponent(groupId), { token: admin });
   check("approved memorization entries leave the pending queue", queueAfterApproval.status === 200 && queueAfterApproval.data?.length === 0, JSON.stringify(queueAfterApproval.data));
+  const progressBeforeDaily = await call("/api/quran/progress", { method: "POST", token: admin, body: { student_id: studentB.id, date: today, activity: "memorization", memorized: "سطران موثقان", notes: "اعتماد الشيخ قبل تسجيل الطالب" } });
+  check("teacher can record verified memorization before the student self-report", progressBeforeDaily.status === 201, JSON.stringify(progressBeforeDaily.data));
+  const pointsBeforeResubmissionApproval = await call("/api/points/summary", { token: studentB.token });
   const rejectedHifz = await call("/api/quran/daily", { method: "POST", token: studentB.token, body: { kind: "hifz", amount: 2, unit: "سطر" } });
   check("second student self-report is pending", rejectedHifz.status === 201 && rejectedHifz.data?.entry?.approval_status === "pending" && rejectedHifz.data?.awards?.length === 0, JSON.stringify(rejectedHifz.data));
   const rejectHifz = await call("/api/quran/daily/decision", { method: "POST", token: admin, body: { student_id: studentB.id, entry_id: rejectedHifz.data.entry.id, decision: "rejected", note: "راجع موضع الخطأ قبل إعادة العرض" } });
@@ -167,7 +174,8 @@ async function main() {
   const resubmittedHifz = await call("/api/quran/daily", { method: "POST", token: studentB.token, body: { kind: "hifz", amount: 3, unit: "سطر", notes: "تم التصحيح" } });
   check("student can resubmit a rejected entry without creating a duplicate", resubmittedHifz.status === 200 && resubmittedHifz.data?.entry?.id === rejectedHifz.data.entry.id && resubmittedHifz.data?.entry?.approval_status === "pending", JSON.stringify(resubmittedHifz.data));
   const approveResubmitted = await call("/api/quran/daily/decision", { method: "POST", token: admin, body: { student_id: studentB.id, entry_id: rejectedHifz.data.entry.id, decision: "approved" } });
-  check("corrected entry can be approved once", approveResubmitted.status === 200 && approveResubmitted.data?.entry?.approval_status === "approved" && approveResubmitted.data?.awards?.length > 0, JSON.stringify(approveResubmitted.data));
+  const pointsAfterResubmissionApproval = await call("/api/points/summary", { token: studentB.token });
+  check("corrected entry can be approved without duplicating prior teacher points", approveResubmitted.status === 200 && approveResubmitted.data?.entry?.approval_status === "approved" && (approveResubmitted.data?.awards||[]).length === 0 && pointsAfterResubmissionApproval.data?.totals?.achievement === pointsBeforeResubmissionApproval.data?.totals?.achievement && pointsAfterResubmissionApproval.data?.totals?.store === pointsBeforeResubmissionApproval.data?.totals?.store, JSON.stringify({decision:approveResubmitted.data, before:pointsBeforeResubmissionApproval.data?.totals, after:pointsAfterResubmissionApproval.data?.totals}));
 
   const duplicate = await call("/api/quran/daily", { method: "POST", token: studentA.token, body: { kind: "hifz", amount: 5, unit: "سطر", notes: "اختبار الحفظ" } });
   check("identical daily log is idempotent", duplicate.status === 200 && duplicate.data?.duplicate === true, JSON.stringify(duplicate.data));
