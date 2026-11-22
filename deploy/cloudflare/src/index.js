@@ -753,7 +753,7 @@ const LEARNING_SCHEMA_STATEMENTS = [
   )`,
   `CREATE TABLE IF NOT EXISTS student_activity_streaks (
     student_id TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
-    activity TEXT NOT NULL CHECK(activity IN ('hifz','thabit','ward')),
+    activity TEXT NOT NULL CHECK(activity IN ('hifz','thabit','ward','wird','asr','adhkar','mandatory_classes','quran_classes','bring')),
     current_days INTEGER NOT NULL DEFAULT 0,
     start_date TEXT NOT NULL,
     last_date TEXT NOT NULL,
@@ -1651,7 +1651,7 @@ async function quranDayState(env, studentId, day) {
   return byKind;
 }
 async function recordAutomaticActivityStreak(env, { studentId, groupId, activity, date, awardedBy }) {
-  if (!["hifz", "thabit", "ward"].includes(activity)) return { counted: false };
+  if (!["hifz", "thabit", "ward", "wird", "asr", "adhkar", "mandatory_classes", "quran_classes", "bring"].includes(activity)) return { counted: false };
   const old = await env.DB.prepare("SELECT current_days,start_date,last_date FROM student_activity_streaks WHERE student_id=? AND activity=?").bind(studentId, activity).first();
   if (old?.last_date === date) return { counted: false, duplicate: true, days: Number(old.current_days || 0) };
   // Backdated entries remain in the daily ledger but must not rewrite today's live streak.
@@ -3042,8 +3042,14 @@ export default {
         }
       }
       if(!saved)return fail(400,"لم تختر أي حالات للحفظ");
-      await env.DB.batch(statements);await log(env,user.id,"effort_save",{group_id:groupId,date,count:saved});
-      return json({ok:true,saved});
+      await env.DB.batch(statements);
+      for(const item of items){
+        for(const [category,status] of Object.entries(item.checks||{})){
+          if(status==="done")await recordAutomaticActivityStreak(env,{studentId:String(item.student_id),groupId,activity:category,date,awardedBy:user.id});
+        }
+      }
+      await log(env,user.id,"effort_save",{group_id:groupId,date,count:saved});
+      return json({ok:true,saved,streaks_updated:true});
     }
     if(path==="/api/effort/ranking"&&method==="GET"){
       if(!["admin","teacher","director","supervisor","student"].includes(user.role))return fail(403,"الترتيب غير متاح لهذا الحساب");
