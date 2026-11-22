@@ -8,7 +8,7 @@ on:
       - "index.html"
       - "manifest.json"
   push:
-    branches: ["migration/cloudflare-student-platform"]
+    branches: ["migration/cloudflare-student-platform", "feat/unified-student-onboarding"]
     paths:
       - "deploy/cloudflare/**"
       - "assets/**"
