@@ -193,6 +193,13 @@ async function main() {
   const attendanceStreakView = await call("/api/points/streak", { token: studentA.token });
   const attendanceStreak = (attendanceStreakView.data?.streaks || []).find(row => row.activity === "attendance");
   check("student can see the automatic attendance streak", attendanceStreakView.status === 200 && attendanceStreak?.current_days === 1, JSON.stringify(attendanceStreakView.data));
+  const currentFajrStreak = (attendanceStreakView.data?.streaks || []).find(row => row.activity === "fajr");
+  const retainedFajrBadge = (attendanceStreakView.data?.badges || []).find(row => row.activity === "fajr" && Number(row.milestone_days) === 3);
+  check("student sees the reset Fajr streak while the three-day badge remains", currentFajrStreak?.current_days === 1 && Boolean(retainedFajrBadge), JSON.stringify(attendanceStreakView.data));
+  const crossStudentStreak = await call("/api/points/streak?student_id=" + encodeURIComponent(studentB.id), { token: studentA.token });
+  check("student cannot read another student's streak", crossStudentStreak.status === 403, JSON.stringify(crossStudentStreak.data));
+  const staffStreakView = await call("/api/points/streak?student_id=" + encodeURIComponent(studentA.id), { token: admin });
+  check("authorized staff can read the student's streak and badge history", staffStreakView.status === 200 && (staffStreakView.data?.badges || []).some(row => row.activity === "fajr" && Number(row.milestone_days) === 3), JSON.stringify(staffStreakView.data));
 
   const futureLog = await call("/api/quran/daily", { method: "POST", token: studentA.token, body: { kind: "ward", day: academyDate(2), amount: 1 } });
   check("future daily log is rejected", futureLog.status === 400, JSON.stringify(futureLog.data));
