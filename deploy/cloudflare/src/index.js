@@ -3381,6 +3381,7 @@ export default {
       const st=await env.DB.prepare("SELECT group_id FROM students WHERE id=? AND active=1").bind(studentId).first();
       if(!st||!await canManageGroup(env,user,st.group_id))return fail(403,"لا تملك صلاحية هذا الطالب");
       if(!allowedActivities.includes(activity))return fail(400,"اختر نوع متابعة صحيحًا");
+      if(["memorization","revision"].includes(activity)&&!["admin","teacher"].includes(user.role))return fail(403,"اعتماد الحفظ والمراجعة من صلاحية الشيخ أو الإدارة فقط");
       if(!memorized&&!reviewed&&!recitation&&!notes&&!feedback&&!nextAssignment)return fail(400,"أدخل الحفظ أو المراجعة أو التسميع أو ملاحظة");
       if(!Number.isInteger(errors)||errors<0||errors>200)return fail(400,"عدد الأخطاء يجب أن يكون بين 0 و200");
       if(grade!==null&&(!Number.isFinite(grade)||grade<0||grade>10))return fail(400,"التقدير يجب أن يكون بين 0 و10");
@@ -4677,6 +4678,7 @@ export default {
       const repetitions=Number.isInteger(Number(b.repetitions))?Number(b.repetitions):0;
       if(repetitions<0||repetitions>100)return fail(400,"عدد التكرارات يجب أن يكون بين 0 و100");
       const unit=clean(b.unit,20),linkedScope=clean(b.linked_scope,120),notes=clean(b.notes,600);
+      if((kind==="hifz"||kind==="thabit")&&user.role!=="student"&&!["admin","teacher"].includes(user.role))return fail(403,"اعتماد الحفظ والتثبيت من صلاحية الشيخ أو الإدارة فقط");
       const requiresApproval=user.role==="student"&&(kind==="hifz"||kind==="thabit");
       const approvalStatus=requiresApproval?"pending":"approved";
       const existing=await env.DB.prepare("SELECT * FROM quran_daily WHERE student_id=? AND day=? AND kind=?").bind(resolved.student.id,day,kind).first();
