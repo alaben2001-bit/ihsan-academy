@@ -2028,7 +2028,7 @@ export default {
       const now=nowIso(), attempt=await env.DB.prepare("SELECT failures,locked_until FROM login_attempts WHERE identity_normalized=?").bind(loginKey).first();
       if(attempt?.locked_until && attempt.locked_until>now)return fail(429,"محاولات كثيرة. انتظر 15 دقيقة ثم أعد المحاولة.");
       let user=await env.DB.prepare("SELECT id,display_name,identity_normalized,password_hash,role,active,must_change_password FROM users WHERE identity_normalized=? LIMIT 1").bind(identity).first();
-      if(!user && /\\s/.test(identity)){
+      if(!user && /\s/.test(identity)){
         const students=await env.DB.prepare("SELECT u.id,u.display_name,u.identity_normalized,u.password_hash,u.role,u.active,u.must_change_password,s.display_name AS student_name FROM students s JOIN users u ON u.id=s.user_id WHERE s.active=1 AND u.active=1 AND u.role='student'").all();
         const matches=(students.results||[]).filter(row=>normalizeStudentName(row.student_name)===loginKey);
         if(matches.length===1)user=matches[0];
