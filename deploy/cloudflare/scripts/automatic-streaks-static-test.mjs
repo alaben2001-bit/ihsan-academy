@@ -29,3 +29,7 @@ const attendanceStart = server.indexOf('if(path==="/api/attendance"&&method==="P
 const attendanceEnd = server.indexOf('if(path==="/api/quran/progress"&&method==="GET")', attendanceStart);
 const attendanceRoute = server.slice(attendanceStart, attendanceEnd);
 assert(attendanceRoute.includes("date>academyDate()"), "future attendance dates must be rejected before points or streaks are recorded");
+
+assert(server.includes('return fail(410,"تم إيقاف الاعتماد اليدوي للاستمرارية'), "legacy manual streak endpoint must be disabled");
+assert(server.includes('kind:"achievement",points:bonus'), "automatic streak bonus must not increase the store balance");
+assert(!app.includes('id="scan-streak-form"'), "the manual streak award form must be removed from the Sheikh interface");
