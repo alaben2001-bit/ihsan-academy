@@ -12,6 +12,8 @@ assert(server.includes("if (old?.last_date === date)"), "duplicate same-day entr
 assert(server.includes("old?.last_date && old.last_date > date"), "backdated entries must not rewrite the current streak");
 assert(server.includes('if(status==="done")await recordAutomaticActivityStreak'), "completed daily effort categories must update streaks automatically");
 assert(server.includes("const yesterday=addCalendarDays(academyDate(),-1)"), "streaks older than yesterday must be shown as ended");
+assert(server.includes('fajr:"fajr",shuruq:"shuruq",maghrib:"maghrib"'), "prayer activity awards must update their matching streaks");
+assert(server.includes("const streakActivity="), "existing point activity awards must trigger streak tracking automatically");
 assert(server.includes("'asr','adhkar','mandatory_classes','quran_classes','bring'"), "daily effort categories must be supported as streak activities");
 assert(app.includes("سلسلة المواظبة والأوسمة"), "student profile must display streaks and badges");
 assert(app.includes('/points/streak'), "student profile must load automatic streaks and badges");
