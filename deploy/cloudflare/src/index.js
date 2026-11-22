@@ -3159,6 +3159,7 @@ export default {
       if(stmts.length)await env.DB.batch(stmts);
       const presentStudentIds=items.filter(item=>item.status==="present").map(item=>String(item.student_id));
       await awardAttendancePoints(env,{groupId,date,studentIds:presentStudentIds,awardedBy:user.id});
+      for(const studentId of presentStudentIds)await recordAutomaticActivityStreak(env,{studentId,groupId,activity:"attendance",date,awardedBy:user.id});
       await log(env,user.id,"attendance_save",{group_id:groupId,date,count:items.length});return json({ok:true,saved:items.length});
     }
     if(path==="/api/quran/progress"&&method==="GET"){
