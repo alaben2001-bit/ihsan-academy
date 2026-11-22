@@ -127,3 +127,46 @@ p{margin:0}
   .cta-row .btn{width:100%;justify-content:center}
 }
 @media (prefers-reduced-motion: reduce){html{scroll-behavior:auto}*{animation:none!important;transition:none!important}}
+
+
+/* ===== لوحة المساهمات ===== */
+.campaign-heading{display:grid;grid-template-columns:1fr minmax(260px,340px);gap:1.4rem;align-items:center;margin-bottom:1.2rem}
+.campaign-heading .section-lead{margin:0;max-width:48rem}
+.campaign-total{background:linear-gradient(145deg,#123a2d,#1c5a45);color:#fff;border-radius:20px;padding:1.2rem 1.35rem;box-shadow:var(--shadow);display:grid;gap:.35rem}
+.campaign-total>span{color:#d9e8dd;font-size:.85rem}
+.campaign-total>strong{font-family:'Reem Kufi',sans-serif;font-size:1.7rem;color:#fff;line-height:1.5}
+.campaign-total>strong small{font-size:.8rem;color:var(--gold-soft)}
+.campaign-total>b{color:var(--gold-soft);font-size:.9rem}
+.campaign-total>small{color:#bdd2c4}
+.impact-strip{display:grid;grid-template-columns:repeat(3,1fr);gap:.8rem;margin:1.2rem 0 1.4rem}
+.impact-strip>div{background:#fff;border:1px solid var(--line);border-radius:16px;padding:.9rem 1rem;display:flex;align-items:center;gap:.8rem}
+.impact-strip strong{font-family:'Reem Kufi',sans-serif;font-size:1.65rem;color:var(--green);white-space:nowrap}
+.impact-strip span{color:var(--muted);font-size:.88rem;line-height:1.5}
+.campaign-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:1rem}
+.campaign-card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:1.1rem 1.15rem;display:flex;flex-direction:column;gap:.55rem;min-width:0;box-shadow:0 5px 18px rgba(18,58,45,.045)}
+.campaign-card h3{font-size:1.02rem}
+.campaign-card-top{display:flex;align-items:center;justify-content:space-between;gap:.5rem}
+.campaign-icon{width:40px;height:40px;display:grid;place-items:center;border-radius:13px;background:#edf5ee;font-size:1.25rem}
+.campaign-tag{font-size:.7rem;font-weight:700;color:#536b5c;background:#f0f4ef;border-radius:99px;padding:.22rem .65rem}
+.campaign-numbers{display:flex;justify-content:space-between;align-items:baseline;gap:.4rem;flex-wrap:wrap}
+.campaign-numbers strong{font-family:'Reem Kufi',sans-serif;color:var(--deep);font-size:1.1rem}
+.campaign-numbers strong small{font:600 .72rem 'IBM Plex Sans Arabic',sans-serif;color:var(--muted)}
+.campaign-numbers>span{font-size:.76rem;color:var(--muted)}
+.progress-track{height:9px;background:#e8eee8;border-radius:99px;overflow:hidden;margin:.25rem 0}
+.progress-track>span{height:100%;display:block;border-radius:inherit;background:linear-gradient(90deg,#b58b45,#e2c47e);min-width:0;animation:progress-rise 1.1s ease-out both}
+.progress-track.large{height:12px}
+.progress-foot{display:flex;justify-content:space-between;gap:.5rem;align-items:center;flex-wrap:wrap;font-size:.75rem;color:var(--muted)}
+.progress-foot b{color:var(--green)}
+.campaign-featured{border-color:#d6bd86;box-shadow:0 8px 26px rgba(158,123,59,.12)}
+.campaign-featured .campaign-icon{background:#f7f0df}
+.campaign-featured .campaign-tag{background:#f7f0df;color:#7b5a22}
+.campaign-desc{color:var(--muted);font-size:.88rem;line-height:1.75;min-height:3.1rem}
+.campaign-store{background:linear-gradient(160deg,#fff,#fbf7ec);border-color:#e5d5ae}
+.campaign-store .campaign-icon{background:#f5ebd4}
+.store-prize-pills{display:flex;gap:.35rem;flex-wrap:wrap;margin:.1rem 0}
+.store-prize-pills span{font-size:.7rem;color:#6d562e;background:#f4ead4;border-radius:99px;padding:.2rem .55rem}
+.campaign-note{display:flex;gap:.8rem;align-items:center;background:#e3eee5;border:1px solid #d1e1d4;border-radius:14px;padding:.9rem 1rem;margin-top:1.1rem;color:#385345;font-size:.83rem}
+.campaign-note strong{white-space:nowrap;color:var(--deep)}
+@keyframes progress-rise{from{width:0}to{width:var(--progress-width,100%)}}
+@media(max-width:900px){.campaign-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.campaign-heading{grid-template-columns:1fr minmax(230px,300px)}}
+@media(max-width:640px){.campaign-heading{grid-template-columns:1fr}.impact-strip{gap:.45rem}.impact-strip>div{padding:.7rem .55rem;display:grid;gap:.1rem;text-align:center}.impact-strip strong{font-size:1.35rem}.impact-strip span{font-size:.7rem}.campaign-grid{grid-template-columns:1fr}.campaign-note{align-items:flex-start;flex-direction:column;gap:.2rem}.campaign-numbers>span{font-size:.72rem}}
