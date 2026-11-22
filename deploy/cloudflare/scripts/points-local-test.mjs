@@ -346,6 +346,12 @@ async function main() {
   const studentOtherTeamRanking = await call("/api/effort/ranking?scope=team&group_id=" + encodeURIComponent(groupId) + "&student_id=" + encodeURIComponent(otherStudent.id) + "&period=weekly", { token: studentToken });
   check("student cannot request another student's team ranking", studentOtherTeamRanking.status === 403, JSON.stringify(studentOtherTeamRanking.data));
 
+  const beforeStoreOnly = await call("/api/points/summary?student_id=" + encodeURIComponent(student.id), { token: admin });
+  const storeOnlyAward = await call("/api/points/award", { method: "POST", token: admin, body: { student_id: student.id, achievement_points: 0, store_points: 10, reason: "اختبار فصل رصيد المتجر", request_id: "test-store-only-001" } });
+  check("store-only award changes only the store balance", storeOnlyAward.status === 201 && storeOnlyAward.data?.totals?.achievement === beforeStoreOnly.data?.totals?.achievement && storeOnlyAward.data?.totals?.store === beforeStoreOnly.data?.totals?.store + 10, JSON.stringify(storeOnlyAward.data));
+  const achievementOverdraw = await call("/api/points/adjust", { method: "POST", token: admin, body: { student_id: student.id, points: -(Number(beforeStoreOnly.data?.totals?.achievement || 0) + 1), reason: "اختبار منع سالب الإنجاز", request_id: "test-achievement-overdraw-001" } });
+  check("adjustment cannot make achievement negative even when store can cover it", achievementOverdraw.status === 409, JSON.stringify(achievementOverdraw.data));
+
   const report = { base: BASE, failures, passed: results.filter(row => row.ok).length, total: results.length, results };
   const outputPath = process.env.POINTS_TEST_REPORT || "";
   if (outputPath) {
