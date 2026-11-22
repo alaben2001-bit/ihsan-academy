@@ -646,3 +646,21 @@ assert.match(app, /الفجر · 30/, "the Sheikh scan panel must expose the new
 assert.match(index, /ihsan-rules\.html/, "the Cloudflare entry page must link to the printable Ihsan rules");
 
 assert.doesNotMatch(app, /points_awarded\|\|0/, "badge UI must not show zero-point labels");
+
+assert.match(backend, /path === "\/api\/auth\/google\/signup"/, "new account creation must use the dedicated Google-verified endpoint");
+assert.match(backend, /claims\.email_verified===true\|\|claims\.email_verified==="true"/, "Google identities must have a verified email claim");
+assert.match(backend, /INSERT INTO google_identities \(google_sub,user_id,email,linked_at\)/, "Google signup must persist the verified subject-to-account link");
+assert.match(backend, /findDuplicateStudentByName\(env,name\)/, "Google signup must not create duplicate student profiles");
+assert.match(backend, /path === "\/api\/auth\/google\/reset-password"/, "password recovery must use a separate Google proof endpoint");
+assert.match(backend, /rateLimit\(env,"google-password-reset"/, "Google password recovery must be rate limited");
+assert.match(backend, /DISABLE_LEGACY_PASSWORD_SIGNUP==="true"/, "production must reject unverified manual signup requests");
+assert.match(app, /id="google-signup"/, "signup must provide a Google identity button");
+assert.match(app, /\/auth\/google\/signup/, "signup UI must submit the Google credential to the verified endpoint");
+assert.doesNotMatch(app, /<label class="field">البريد الإلكتروني<input name="email" type="email" required maxlength="200"/, "signup must not ask users to type an unverified email");
+assert.doesNotMatch(app, /<label class="field">كلمة المرور \(10 أحرف على الأقل\)<input name="password"/, "signup must not create password-only accounts with unverified identities");
+assert.match(app, /id="forgot-password"/, "login must expose account recovery");
+assert.match(app, /\/auth\/google\/reset-password/, "account recovery UI must call the Google-verified reset endpoint");
+assert.match(app, /function showGooglePasswordRecovery\(\)/, "account recovery must require a Google identity and new password");
+assert.match(index, /name="robots" content="noindex, nofollow, noarchive"/, "the private student platform must remain excluded from public indexing");
+assert.match(serviceWorker, /"\/manifest\.json"/, "the installable PWA manifest must remain in the offline shell");
+
