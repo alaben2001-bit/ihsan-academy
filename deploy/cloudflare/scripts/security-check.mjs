@@ -644,3 +644,5 @@ assert.match(backend, /bonus_percent/, "the 30% support bonus must be configurab
 assert.match(app, /رصيد النقاط الموحد/, "students must see one unified points balance");
 assert.match(app, /الفجر · 30/, "the Sheikh scan panel must expose the new point activities");
 assert.match(index, /ihsan-rules\.html/, "the Cloudflare entry page must link to the printable Ihsan rules");
+
+assert.doesNotMatch(app, /points_awarded\|\|0/, "badge UI must not show zero-point labels");
