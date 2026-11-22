@@ -3889,6 +3889,7 @@ function liveUserSignature(user){
  return JSON.stringify({id:user.id,role:user.role,group_id:user.group_id||null,school_id:user.school_id||null,must_change_password:Boolean(user.must_change_password),status:user.status||null});
 }
 function startLiveSync(){
+ if(!ihsanLiveUserSignature)ihsanLiveUserSignature=liveUserSignature(S.user);
  if(ihsanLiveSyncTimer)return;
  ihsanLiveSyncTimer=window.setInterval(async()=>{
   if(document.hidden||!S.user||ihsanLiveSyncBusy||!navigator.onLine)return;
@@ -3933,7 +3934,7 @@ function startLiveSync(){
  },18000);
 }
 window.addEventListener("online",()=>{if(S.user)startLiveSync()});
-window.addEventListener("visibilitychange",()=>{if(!document.hidden&&S.user&&ihsanLiveSyncTimer===null)startLiveSync()});
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&S.user&&ihsanLiveSyncTimer===null)startLiveSync()});
 
 boot();
 // Deploy trigger: keep the student entry/exit prayer dialogs in the latest Pages build.
