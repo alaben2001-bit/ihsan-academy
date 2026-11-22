@@ -431,9 +431,16 @@ const cardActive = token => Boolean(token) && !token.revoked_at && (!token.expir
 async function cardRecord(env, cardId) {
   const id = clean(cardId, 80);
   if (!id) return null;
-  const row = await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='student_cards' AND (id=? OR student_id=?) ORDER BY CASE WHEN id=? THEN 0 ELSE 1 END LIMIT 1").bind(id,id,id).first();
-  if (!row) return null;
-  try { return JSON.parse(row.payload_json); } catch { return null; }
+  const rows = await env.DB.prepare("SELECT id,payload_json FROM academy_records WHERE collection='student_cards' AND (id=? OR student_id=?) ORDER BY CASE WHEN id=? THEN 0 ELSE 1 END LIMIT 2").bind(id,id,id).all();
+  const matches = rows.results || [];
+  if (!matches.length) return null;
+  // Fail closed: never choose arbitrarily between multiple cards for one student.
+  if (matches.length > 1) throw new Error("student_card_duplicate_records");
+  let card;
+  try { card = JSON.parse(matches[0].payload_json); }
+  catch { throw new Error("student_card_identity_mismatch"); }
+  if (!card || card.id !== card.student_id || card.id !== matches[0].id) throw new Error("student_card_identity_mismatch");
+  return card;
 }
 async function ensureStudentCard(env, student, actorId = null) {
   if (!student?.id) throw new Error("student_card_requires_student_id");
@@ -2902,6 +2909,10 @@ export default {
       const password=String(b.password||"");
       if(!name||!nextGroup)return fail(400,"اسم الطالب والفوج مطلوبان");
       if(!await canManageGroup(env,user,nextGroup))return fail(403,"لا تملك صلاحية الفوج الجديد");
+      if(b.name!==undefined&&normalizeStudentName(name)!==normalizeStudentName(s.display_name)){
+        const duplicateStudent=await findDuplicateStudentByName(env,name,s.id);
+        if(duplicateStudent)return fail(409,"يوجد ملف طالب آخر بهذا الاسم. راجع الملفين قبل التعديل حتى لا تختلط النقاط أو البطاقات.");
+      }
       if(identity!==null&&(!s.user_id||!identity||identity.length>120))return fail(400,"لا يمكن تعديل اسم الدخول قبل إنشاء حساب للطالب");
       if(password&&(!s.user_id||password.length<8||password.length>256))return fail(400,"كلمة المرور يجب أن تكون 8 أحرف على الأقل ولحساب موجود");
       if(identity!==null){
@@ -2915,12 +2926,23 @@ export default {
       }else if(s.user_id&&b.name!==undefined){
         await env.DB.prepare("UPDATE users SET display_name=? WHERE id=?").bind(name,s.user_id).run();
       }
-      await log(env,user.id,password?"student_password_reset":"student_update",{student_id:s.id,name,old_group_id:s.group_id,new_group_id:nextGroup,force_change:!!password});
+      const existingCard=await cardRecord(env,s.id);
+      if(existingCard){
+        const updatedCard={...existingCard,name,group_id:nextGroup,updated_at:nowIso()};
+        await saveRecord(env,"student_cards",updatedCard);
+      }
+      await log(env,user.id,password?"student_password_reset":"student_update",{student_id:s.id,name,old_group_id:s.group_id,new_group_id:nextGroup,card_identity_preserved:true});
       return json({ok:true,name,group_id:nextGroup});
     }
     if(studentMatch&&method==="DELETE"){
       if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"غير مسموح");const s=await env.DB.prepare("SELECT id,user_id,group_id FROM students WHERE id=? AND active=1").bind(studentMatch[1]).first();if(!s)return fail(404,"الطالب غير موجود");if(!await canManageGroup(env,user,s.group_id))return fail(403,"لا تملك صلاحية هذا الطالب");
-      await env.DB.prepare("UPDATE students SET active=0 WHERE id=?").bind(s.id).run();if(s.user_id)await env.DB.prepare("UPDATE users SET active=0 WHERE id=?").bind(s.user_id).run();await log(env,user.id,"student_deactivate",{student_id:s.id});return json({ok:true});
+      const card=await cardRecord(env,s.id);
+      if(card){
+        const now=nowIso(),tokens={...(card.tokens||{})};
+        for(const kind of CARD_KIND_ORDER)if(tokens[kind])tokens[kind]={...tokens[kind],revoked_at:now,revoked_reason:"student_deactivated"};
+        await saveRecord(env,"student_cards",{...card,tokens,updated_at:now});
+      }
+      await env.DB.prepare("UPDATE students SET active=0 WHERE id=?").bind(s.id).run();if(s.user_id)await env.DB.prepare("UPDATE users SET active=0 WHERE id=?").bind(s.user_id).run();await log(env,user.id,"student_deactivate",{student_id:s.id,card_tokens_revoked:!!card});return json({ok:true,card_tokens_revoked:!!card});
     }
     const effortCategories=["mandatory_classes","asr","adhkar","wird","thabit","bring","quran_classes"];
     if(path==="/api/students/roster-bulk"&&method==="POST"){
@@ -5474,6 +5496,7 @@ export default {
     return fail(404,"المسار غير موجود");
     } catch (error) {
       console.error("Ihsan API request failed", { path, method, message: String(error?.message || error) });
+      if (error?.message === "student_card_duplicate_records" || error?.message === "student_card_identity_mismatch") return fail(409, "توجد بطاقات متعارضة لهذا الطالب. أوقفنا العملية حمايةً للنقاط والرموز؛ راجع البطاقات قبل المتابعة.");
       if (path.startsWith("/api/")) return fail(500, "حدث خطأ داخلي أثناء معالجة الطلب. تم تسجيل الخطأ للتشخيص؛ أعد المحاولة.");
       return new Response("Internal Server Error", { status: 500 });
     }

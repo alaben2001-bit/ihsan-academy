@@ -126,6 +126,25 @@ async function main() {
 
   const student = await makeStudent(admin, groupId, "طالب البطاقات " + RUN, "cards-student-" + RUN, "CardsStudent#2026");
   check("student session is active", student.token.length === 64);
+
+  // Renaming must validate student-file uniqueness without mutating login identity.
+  const duplicateName = "اسم مكرر للاختبار " + RUN;
+  const duplicateGroup = await call("/api/groups", { method: "POST", token: admin, body: { name: "فوج الاسم المكرر " + RUN } });
+  const duplicateRoster = duplicateGroup.data?.id ? await call("/api/admin/roster-add", { method: "POST", token: admin, body: { group_id: duplicateGroup.data.id, names: [duplicateName] } }) : { status: 0, data: null };
+  check("create a second student file for duplicate-name protection", duplicateGroup.status === 201 && duplicateRoster.status === 201 && duplicateRoster.data?.created === 1, JSON.stringify(duplicateRoster.data));
+  const duplicateRename = await call("/api/students/" + encodeURIComponent(student.id), { method: "PATCH", token: admin, body: { name: duplicateName } });
+  check("renaming to another active student's name is rejected", duplicateRename.status === 409, JSON.stringify(duplicateRename.data));
+  const unchangedName = await call("/api/students/" + encodeURIComponent(student.id), { method: "PATCH", token: admin, body: { name: student.name } });
+  check("saving an unchanged name remains allowed", unchangedName.status === 200, JSON.stringify(unchangedName.data));
+  const renamed = "اسم الطالب بعد التعديل " + RUN;
+  const renameResponse = await call("/api/students/" + encodeURIComponent(student.id), { method: "PATCH", token: admin, body: { name: renamed } });
+  check("a unique display-name change succeeds", renameResponse.status === 200 && renameResponse.data?.name === renamed, JSON.stringify(renameResponse.data));
+  const loginAfterRename = await login("cards-student-" + RUN, "CardsStudent#2026b");
+  check("display-name change preserves the original login identity", loginAfterRename.status === 200 && Boolean(loginAfterRename.token), JSON.stringify(loginAfterRename.data));
+  const restoreName = await call("/api/students/" + encodeURIComponent(student.id), { method: "PATCH", token: admin, body: { name: student.name } });
+  check("restore the test student's display name", restoreName.status === 200, JSON.stringify(restoreName.data));
+  const duplicateUsername = await call("/api/students/" + encodeURIComponent(student.id), { method: "PATCH", token: admin, body: { username: ADMIN.email } });
+  check("changing username to an occupied identity is still rejected", duplicateUsername.status === 409, JSON.stringify(duplicateUsername.data));
   const teacherInside = await makeTeacher(admin, "شيخ فوج البطاقات " + RUN, "cards-teacher-in-" + RUN, "CardsTeacher#2026", groupId, group.data.name);
   const teacherOutside = await makeTeacher(admin, "شيخ خارج فوج البطاقات " + RUN, "cards-teacher-out-" + RUN, "CardsTeacher#2026");
   check("teacher inside the group can log in", teacherInside.token.length === 64);
@@ -269,6 +288,18 @@ async function main() {
     const { writeFileSync } = await import("node:fs");
     writeFileSync(outputPath, JSON.stringify(report, null, 2), "utf8");
   }
+  // Deactivation preserves the card record but revokes every QR secret.
+  const disposableName = "طالب إلغاء البطاقة " + RUN;
+  const disposableRoster = await call("/api/admin/roster-add", { method: "POST", token: admin, body: { group_id: groupId, names: [disposableName] } });
+  const disposableList = await call("/api/students?group_id=" + encodeURIComponent(groupId), { token: admin });
+  const disposableId = (disposableList.data || []).find(row => row.name === disposableName)?.id;
+  const disposableCard = disposableId ? await call("/api/student-cards", { method: "POST", token: admin, body: { student_id: disposableId } }) : { status: 0, data: null };
+  const disposableLogin = parseScanLink(disposableCard.data?.links?.login);
+  const deactivated = disposableId ? await call("/api/students/" + encodeURIComponent(disposableId), { method: "DELETE", token: admin }) : { status: 0, data: null };
+  check("deactivating a student revokes card QR tokens", deactivated.status === 200 && deactivated.data?.card_tokens_revoked === true, JSON.stringify(deactivated.data));
+  const staleQr = disposableLogin ? await resolveCard("login", disposableLogin.cardId, disposableLogin.secret) : { status: 0, data: null };
+  check("a QR from a deactivated student is rejected", staleQr.status === 404, JSON.stringify(staleQr.data));
+
   console.log("RESULT " + JSON.stringify({ failures, passed: report.passed, total: report.total }));
   if (failures) process.exitCode = 1;
 }
