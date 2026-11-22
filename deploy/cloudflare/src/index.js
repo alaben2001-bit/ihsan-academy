@@ -770,6 +770,16 @@ const LEARNING_SCHEMA_STATEMENTS = [
     awarded_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
     UNIQUE(student_id,activity,streak_start_date,milestone_days)
   )`,
+  `CREATE TABLE IF NOT EXISTS student_activity_badges (
+    id TEXT PRIMARY KEY,
+    student_id TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    activity TEXT NOT NULL,
+    streak_start_date TEXT NOT NULL,
+    milestone_days INTEGER NOT NULL,
+    points_awarded INTEGER NOT NULL DEFAULT 0,
+    awarded_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    UNIQUE(student_id,activity,streak_start_date,milestone_days)
+  )`,
   `CREATE TABLE IF NOT EXISTS student_ethics (
     student_id TEXT PRIMARY KEY REFERENCES students(id) ON DELETE CASCADE,
     warnings INTEGER NOT NULL DEFAULT 0 CHECK(warnings >= 0),
@@ -1651,45 +1661,70 @@ async function quranDayState(env, studentId, day) {
   return byKind;
 }
 async function recordAutomaticActivityStreak(env, { studentId, groupId, activity, date, awardedBy }) {
-  if (!["hifz", "thabit", "ward", "wird", "asr", "adhkar", "mandatory_classes", "quran_classes", "bring", "fajr", "shuruq", "maghrib", "attendance"].includes(activity)) return { counted: false };
+  const supported = ["hifz", "thabit", "ward", "wird", "asr", "adhkar", "mandatory_classes", "quran_classes", "bring", "fajr", "shuruq", "maghrib", "attendance"];
+  if (!supported.includes(activity)) return { counted: false };
   const old = await env.DB.prepare("SELECT current_days,start_date,last_date FROM student_activity_streaks WHERE student_id=? AND activity=?").bind(studentId, activity).first();
   if (old?.last_date === date) return { counted: false, duplicate: true, days: Number(old.current_days || 0) };
-  // Backdated entries remain in the daily ledger but must not rewrite today's live streak.
   if (old?.last_date && old.last_date > date) return { counted: false, backdated: true, days: Number(old.current_days || 0) };
   let expectedDate = old?.last_date ? addCalendarDays(old.last_date, 1) : date;
+  // Only a student's explicitly selected Quran rest day is exempt; all other gaps break the streak.
   if (old?.last_date && ["hifz", "thabit", "ward"].includes(activity)) {
     const path = await quranPathRow(env, studentId);
     const restDay = path?.rest_day === null || path?.rest_day === undefined ? null : Number(path.rest_day);
-    if (restDay !== null) {
-      while (expectedDate < date && new Date(expectedDate + "T12:00:00Z").getUTCDay() === restDay) {
-        expectedDate = addCalendarDays(expectedDate, 1);
-      }
-    }
+    if (restDay !== null && expectedDate < date && new Date(expectedDate + "T12:00:00Z").getUTCDay() === restDay) expectedDate = addCalendarDays(expectedDate, 1);
   }
   const consecutive = Boolean(old?.last_date) && expectedDate === date;
   const days = consecutive ? Number(old.current_days || 0) + 1 : 1;
   const startDate = consecutive ? old.start_date : date;
-  const milestones = { 3: 5, 5: 10, 7: 15, 14: 25, 30: 50, 60: 75, 90: 100, 180: 200, 365: 500 };
-  const points = milestones[days] || 0;
   await env.DB.prepare("INSERT INTO student_activity_streaks(student_id,activity,current_days,start_date,last_date,updated_at) VALUES(?,?,?,?,?,?) ON CONFLICT(student_id,activity) DO UPDATE SET current_days=excluded.current_days,start_date=excluded.start_date,last_date=excluded.last_date,updated_at=excluded.updated_at")
     .bind(studentId, activity, days, startDate, date, nowIso()).run();
-  let badge = null;
-  if (points) {
-    const badgeId = uuid();
-    const inserted = await env.DB.prepare("INSERT OR IGNORE INTO student_streak_badges(id,student_id,activity,streak_start_date,milestone_days,points_awarded) VALUES(?,?,?,?,?,?)")
-      .bind(badgeId, studentId, activity, startDate, days, points).run();
-    if (Number(inserted?.meta?.changes || 0) > 0) {
+
+  // One activity's base points are counted once even though the ledger stores achievement/store views.
+  const eventTypes = {
+    attendance: ["attendance_present"], fajr: ["fajr"], shuruq: ["shuruq"], maghrib: ["maghrib"],
+    ward: ["quran_reading"], hifz: ["hifz_no_errors", "hifz_tajweed"], thabit: [],
+    asr: ["asr"], adhkar: ["adhkar"], wird: ["wird"], mandatory_classes: ["mandatory_classes"],
+    quran_classes: ["quran_classes"], bring: ["bring"]
+  }[activity] || [];
+  const clauses = [];
+  const binds = [studentId, startDate, date];
+  if (eventTypes.length) {
+    clauses.push("event_type IN (" + eventTypes.map(() => "?").join(",") + ")");
+    binds.push(...eventTypes);
+  }
+  if (activity === "hifz" || activity === "thabit" || activity === "ward") {
+    const kind = activity === "ward" ? "ward" : activity;
+    clauses.push("(event_type IN ('quran_entry','quran_reading') AND source_collection='quran_daily' AND source_id IN (SELECT id FROM quran_daily WHERE student_id=? AND kind=? AND day BETWEEN ? AND ?))");
+    binds.push(studentId, kind, startDate, date);
+  }
+  const baseRows = clauses.length ? await env.DB.prepare(
+    "SELECT event_key,MAX(points) AS points FROM point_events WHERE student_id=? AND awarded_date BETWEEN ? AND ? AND reversed_at IS NULL AND (" + clauses.join(" OR ") + ") GROUP BY event_key"
+  ).bind(...binds).all() : { results: [] };
+  const baseTotal = (baseRows.results || []).reduce((sum, row) => sum + Math.max(0, Number(row.points || 0)), 0);
+  let bonus = 0;
+  if (days >= 3 && baseTotal > 0) {
+    const earnedTarget = Math.floor(baseTotal / 2);
+    const prefix = "streak-half:" + studentId + ":" + activity + ":" + startDate + ":";
+    const prior = await env.DB.prepare("SELECT COALESCE(SUM(points),0) AS points FROM point_events WHERE student_id=? AND event_type='streak_bonus' AND kind='achievement' AND event_key LIKE ? AND reversed_at IS NULL")
+      .bind(studentId, prefix + "%").first();
+    bonus = Math.max(0, earnedTarget - Number(prior?.points || 0));
+    if (bonus > 0) {
       await insertPointEvent(env, {
         student_id: studentId, group_id: groupId || null, rule_id: null,
-        event_type: "streak_bonus", kind: "achievement", points,
-        reason: "وسام المواظبة: " + days + " أيام متتابعة — " + activity,
-        event_key: "streak-auto:" + studentId + ":" + activity + ":" + startDate + ":" + days,
-        awarded_date: date, awarded_by: awardedBy || null
+        event_type: "streak_bonus", kind: "achievement", points: bonus,
+        reason: "مكافأة الاستمرارية: نصف نقاط " + days + " أيام متتابعة — " + activity,
+        event_key: prefix + date, awarded_date: date, awarded_by: awardedBy || null
       });
-      badge = { milestone_days: days, points_awarded: points };
     }
   }
-  return { counted: true, days, milestone: badge };
+  const milestones = [3, 5, 7, 14, 30, 60, 90, 180, 365];
+  let badge = null;
+  if (milestones.includes(days)) {
+    const inserted = await env.DB.prepare("INSERT OR IGNORE INTO student_activity_badges(id,student_id,activity,streak_start_date,milestone_days,points_awarded) VALUES(?,?,?,?,?,0)")
+      .bind(uuid(), studentId, activity, startDate, days).run();
+    if (Number(inserted?.meta?.changes || 0) > 0) badge = { milestone_days: days, points_awarded: 0 };
+  }
+  return { counted: true, days, base_points: baseTotal, streak_bonus: bonus, bonus_rate: days >= 3 ? 0.5 : 0, milestone: badge };
 }
 
 async function quranStreak(env, studentId) {
@@ -4919,7 +4954,7 @@ export default {
       }
       const [streakRows,badgeRows]=await Promise.all([
         env.DB.prepare("SELECT activity,current_days,start_date,last_date,updated_at FROM student_activity_streaks WHERE student_id=? ORDER BY activity").bind(studentId).all(),
-        env.DB.prepare("SELECT activity,streak_start_date,milestone_days,points_awarded,awarded_at FROM student_streak_badges WHERE student_id=? ORDER BY awarded_at DESC LIMIT 100").bind(studentId).all()
+        env.DB.prepare("SELECT activity,streak_start_date,milestone_days,points_awarded,awarded_at FROM student_streak_badges WHERE student_id=? UNION ALL SELECT activity,streak_start_date,milestone_days,points_awarded,awarded_at FROM student_activity_badges WHERE student_id=? ORDER BY awarded_at DESC LIMIT 100").bind(studentId,studentId).all()
       ]);
       const yesterday=addCalendarDays(academyDate(),-1);
       const streaks=(streakRows.results||[]).map(row=>({...row,active:String(row.last_date||"")>=yesterday,current_days:String(row.last_date||"")>=yesterday?Number(row.current_days||0):0}));
