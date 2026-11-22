@@ -3341,29 +3341,57 @@ async function effortPage(v){
 }
 async function effortRankingPage(v){
  const groups=assignedGroups().slice().sort((a,b)=>compareStudentNames(a.name,b.name));
+ const isStudent=S.user.role==="student";
+ const initialScope=isStudent?"group":(safeStore.getSession("ihsan_effort_scope")||"group");
  v.innerHTML=head("الترتيب الأسبوعي/الشهري/السنوي","نقاط كل فترة مستقلة، مع مقارنة بالمدة السابقة. الحفظ وسجلاته لا تتغير بهذا الترتيب.")+
- '<section class="card"><div class="form-grid"><label class="field">الفوج<select id="ranking-group"><option value="">اختر الفوج</option>'+groups.map(g=>'<option value="'+esc(g.id)+'">'+esc(g.name)+'</option>').join("")+'</select></label><label class="field">الفترة<select id="ranking-period"><option value="weekly">أسبوعي</option><option value="monthly">شهري</option><option value="yearly">سنوي</option></select></label><div class="wide"><button type="button" class="btn" id="ranking-load">عرض الترتيب</button></div></div><div id="ranking-result" class="muted small">اختر الفوج والفترة.</div></section>';
- const groupSel=$("#ranking-group"),periodSel=$("#ranking-period"),host=$("#ranking-result");
+ '<section class="card"><div class="form-grid"><label class="field">نطاق الترتيب<select id="ranking-scope"><option value="academy">الأكاديمية</option><option value="group">الفوج</option><option value="team">الفرقة</option></select></label><label class="field" id="ranking-group-wrap">الفوج<select id="ranking-group"><option value="">اختر الفوج</option>'+groups.map(g=>'<option value="'+esc(g.id)+'">'+esc(g.name)+'</option>').join("")+'</select></label><label class="field" id="ranking-student-wrap" hidden>طالب من الفرقة<select id="ranking-student"><option value="">اختر طالبًا من الفرقة</option></select></label><label class="field">الفترة<select id="ranking-period"><option value="weekly">أسبوعي</option><option value="monthly">شهري</option><option value="yearly">سنوي</option></select></label><div class="wide"><button type="button" class="btn" id="ranking-load">عرض الترتيب</button></div></div><div id="ranking-result" class="muted small">اختر نطاق الترتيب والفترة.</div></section>';
+ const scopeSel=$("#ranking-scope"),groupSel=$("#ranking-group"),studentSel=$("#ranking-student"),periodSel=$("#ranking-period"),host=$("#ranking-result");
+ if(!["academy","group","team"].includes(initialScope))scopeSel.value="group";else scopeSel.value=initialScope;
+ if(isStudent){scopeSel.value="group";scopeSel.querySelector('option[value="academy"]').disabled=true;}
  const saved=safeStore.getSession("ihsan_effort_group");if(saved&&groups.some(g=>String(g.id)===saved))groupSel.value=saved;else if(groups.length)groupSel.value=String(groups[0].id);
- $("#ranking-load").onclick=async()=>{
-  if(!groupSel.value)return toast("اختر الفوج أولًا",true);
-  safeStore.setSession("ihsan_effort_group",String(groupSel.value));host.innerHTML='<div class="loading">جار حساب نقاط الفترة ومقارنتها…</div>';
+ const refreshStudents=()=>{
+  const roster=(S.students||[]).filter(st=>String(st.group_id)===String(groupSel.value)).slice().sort((x,y)=>compareStudentNames(x.name,y.name));
+  studentSel.innerHTML='<option value="">اختر طالبًا من الفرقة</option>'+roster.map(st=>'<option value="'+esc(st.id)+'">'+esc(st.name)+'</option>').join("");
+  if(isStudent&&S.user.student_id)studentSel.value=S.user.student_id;
+ };
+ const updateControls=()=>{
+  $("#ranking-group-wrap").hidden=scopeSel.value==="academy";
+  $("#ranking-student-wrap").hidden=scopeSel.value!=="team";
+  if(scopeSel.value==="team")refreshStudents();
+ };
+ updateControls();
+ const render=async()=>{
+  const scope=scopeSel.value,groupId=groupSel.value,studentId=studentSel.value;
+  if((scope==="group"||scope==="team")&&!groupId)return toast("اختر الفوج أولًا",true);
+  if(scope==="team"&&!studentId)return toast("اختر طالبًا مسندًا إلى الفرقة",true);
+  safeStore.setSession("ihsan_effort_scope",scope);
+  if(groupId)safeStore.setSession("ihsan_effort_group",String(groupId));
+  host.innerHTML='<div class="loading">جار حساب نقاط الفترة ومقارنتها…</div>';
   try{
-   const data=await api("/effort/ranking?group_id="+encodeURIComponent(groupSel.value)+"&period="+encodeURIComponent(periodSel.value));
-   const groupName=(groups.find(g=>String(g.id)===groupSel.value)||{}).name||"الفوج";
+   const query=new URLSearchParams({scope,period:periodSel.value});
+   if(scope!=="academy")query.set("group_id",groupId);
+   if(scope==="team"||isStudent&&scope==="academy")query.set("student_id",studentId||S.user.student_id||"");
+   const data=await api("/effort/ranking?"+query.toString());
+   const scopeName=scope==="academy"?"الأكاديمية":scope==="group"?((groups.find(g=>String(g.id)===String(groupId))||{}).name||"الفوج"):(data.team_name||"الفرقة");
    const periodLabel={weekly:"الأسبوعي",monthly:"الشهري",yearly:"السنوي"}[periodSel.value];
    const metrics=[["attendance","الحضور"],["wird","الورد"],["thabit","التثبيت"],["bring","الإحضار"],["memorization","الحفظ"]];
    const change=row=>row.rank_change===null||row.rank_change===undefined?'<span class="muted">—</span>':row.rank_change>0?'<strong style="color:#16834a">↑ '+row.rank_change+'</strong>':row.rank_change<0?'<strong style="color:#c0392b">↓ '+Math.abs(row.rank_change)+'</strong>':'<span class="muted">— ثابت</span>';
+   if(!data.rows.length){host.innerHTML='<div class="empty">'+(scope==="team"?"لم تُسند عضوية فرقة لهذا الطالب بعد.":"لا توجد بيانات كافية لهذه الفترة.")+'</div>';return;}
    const tableHtml='<div class="table-wrap ranking-table-wrap"><table class="ranking-table"><thead><tr><th>الترتيب</th><th>الطالب</th><th>نقاط الفترة</th><th>التغير</th>'+metrics.map(m=>'<th>'+m[1]+'</th>').join("")+'</tr></thead><tbody>'+data.rows.map(row=>'<tr><td><span class="rank-badge'+(row.rank===1?' is-first':row.rank===2?' is-second':row.rank===3?' is-third':'')+'">'+row.rank+'</span></td><td class="ranking-student">'+esc(row.name)+'</td><td class="ranking-score"><strong>'+Number(row.score||0)+'</strong></td><td>'+change(row)+'</td>'+metrics.map(m=>'<td class="ranking-metric'+(row.metrics[m[0]]===null?' is-empty':'')+'">'+(row.metrics[m[0]]===null?'—':row.metrics[m[0]]+'%')+'</td>').join("")+'</tr>').join("")+'</tbody></table></div>';
-   const subtitle=groupName+' · '+data.from_date+' إلى '+data.to_date;
-   host.innerHTML='<div class="section-head"><p class="muted small ranking-meta">'+esc(subtitle)+' · المقارنة السابقة: '+esc(data.previous_from_date)+' إلى '+esc(data.previous_to_date)+'</p><button type="button" class="btn secondary" id="ranking-print">طباعة / حفظ PDF</button></div>'+tableHtml+'<p class="muted small ranking-note">↑ صعود بعدد المراكز · ↓ تراجع بعدد المراكز · — ثبات أو عدم توفر فترة سابقة. النقاط هي صافي نقاط الإنجاز المسجلة داخل الفترة فقط، ولا تشمل رصيد المتجر.</p>';
-   $("#ranking-print")?.addEventListener("click",()=>printReportWindow("الترتيب "+periodLabel+" — "+groupName,tableHtml,subtitle,{landscape:true}));
+   const subtitle=scopeName+' · '+data.from_date+' إلى '+data.to_date+' · '+Number(data.total_count||data.rows.length)+' طالبًا';
+   host.innerHTML='<div class="section-head"><p class="muted small ranking-meta">'+esc(subtitle)+' · المقارنة السابقة: '+esc(data.previous_from_date||"—")+' إلى '+esc(data.previous_to_date||"—")+'</p><button type="button" class="btn secondary" id="ranking-print">طباعة / حفظ PDF</button></div>'+tableHtml+'<p class="muted small ranking-note">↑ صعود بعدد المراكز · ↓ تراجع بعدد المراكز · — ثبات أو عدم توفر فترة سابقة. النقاط هي صافي نقاط الإنجاز المسجلة داخل الفترة فقط، ولا تشمل رصيد المتجر.</p>';
+   $("#ranking-print")?.addEventListener("click",()=>printReportWindow("الترتيب "+periodLabel+" — "+scopeName,tableHtml,subtitle,{landscape:true}));
   }catch(e){host.innerHTML='<div class="notice error">'+esc(e.message)+'</div>'}
  };
- groupSel.addEventListener("change",()=>{safeStore.setSession("ihsan_effort_group",String(groupSel.value||""));if(groupSel.value)$("#ranking-load").click()});
- periodSel.addEventListener("change",()=>{if(groupSel.value)$("#ranking-load").click()});
- if(groupSel.value)$("#ranking-load").click();
+ scopeSel.addEventListener("change",()=>{updateControls();render()});
+ groupSel.addEventListener("change",()=>{refreshStudents();safeStore.setSession("ihsan_effort_group",String(groupSel.value||""));if(scopeSel.value!=="academy")render()});
+ studentSel.addEventListener("change",()=>{if(scopeSel.value==="team"&&studentSel.value)render()});
+ periodSel.addEventListener("change",render);
+ $("#ranking-load").onclick=render;
+ if(isStudent){refreshStudents();studentSel.value=S.user.student_id||"";}
+ if((scopeSel.value==="academy")||groupSel.value)render();
 }
+
 async function bulkRosterPage(v){
  const groups=assignedGroups().slice().sort((a,b)=>compareStudentNames(a.name,b.name));
  v.innerHTML=head("إضافة أسماء الطلبة","إضافة سجلات طلاب بلا حسابات دخول، مع منع التكرار داخل الفوج والحفاظ على السجلات الحالية.")+
