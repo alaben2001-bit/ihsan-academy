@@ -3392,6 +3392,8 @@ export default {
       await saveRecord(env,"quran_progress",row);
       const dailyKind=activity==="memorization"?"hifz":activity==="revision"?"thabit":null;
       const dailyEntry=dailyKind?await env.DB.prepare("SELECT id,approval_status,amount FROM quran_daily WHERE student_id=? AND day=? AND kind=?").bind(studentId,date,dailyKind).first():null;
+      const activePath=dailyKind?await env.DB.prepare("SELECT 1 AS active FROM quran_paths WHERE student_id=? AND active=1").bind(studentId).first():null;
+      const approvedQuranContext=Boolean(dailyEntry||activePath);
       let pointsSource="quran_progress",pointsSourceId=row.id,pointsEventKey="quran:"+row.id,alreadyAwarded=false;
       if(dailyEntry?.approval_status==="pending"){
         await env.DB.prepare("UPDATE quran_daily SET approval_status='approved',reviewed_by=?,reviewed_at=?,approval_note='' WHERE id=? AND approval_status='pending'").bind(user.id,nowIso(),dailyEntry.id).run();
@@ -3399,12 +3401,12 @@ export default {
       }else if(dailyEntry?.approval_status==="approved"){
         const activeDailyEvent=await env.DB.prepare("SELECT id FROM point_events WHERE student_id=? AND event_type IN ('quran_entry','quran_daily_approved') AND source_collection='quran_daily' AND source_id=? AND reversed_at IS NULL LIMIT 1").bind(studentId,dailyEntry.id).first();
         const progressActivity=activity;
-        const activeProgressEvent=await env.DB.prepare("SELECT pe.id FROM academy_records ar JOIN point_events pe ON pe.source_collection='quran_progress' AND pe.source_id=ar.id AND pe.student_id=? AND pe.event_type='quran_entry' AND pe.reversed_at IS NULL WHERE ar.collection='quran_progress' AND json_extract(ar.payload_json,'$.student_id')=? AND json_extract(ar.payload_json,'$.date')=? AND json_extract(ar.payload_json,'$.activity')=? LIMIT 1").bind(studentId,studentId,date,progressActivity).first();
+        const activeProgressEvent=await env.DB.prepare("SELECT pe.id FROM academy_records ar JOIN point_events pe ON pe.source_collection='quran_progress' AND pe.source_id=ar.id AND pe.student_id=? AND pe.event_type IN ('quran_entry','quran_daily_approved') AND pe.reversed_at IS NULL WHERE ar.collection='quran_progress' AND json_extract(ar.payload_json,'$.student_id')=? AND json_extract(ar.payload_json,'$.date')=? AND json_extract(ar.payload_json,'$.activity')=? LIMIT 1").bind(studentId,studentId,date,progressActivity).first();
         alreadyAwarded=Boolean(activeDailyEvent||activeProgressEvent);
       }
-      if(!alreadyAwarded){
-        await awardPointsForEvent(env,{studentId,groupId:st.group_id,eventType:dailyKind?"quran_daily_approved":"quran_entry",eventKey:pointsEventKey,date,reason:"متابعة قرآنية ("+activity+")",sourceCollection:pointsSource,sourceId:pointsSourceId,awardedBy:user.id});
-        if(dailyKind)await recordAutomaticActivityStreak(env,{studentId,groupId:st.group_id,activity:dailyKind,date,awardedBy:user.id});
+      if(!alreadyAwarded&&dailyKind&&approvedQuranContext){
+        await awardPointsForEvent(env,{studentId,groupId:st.group_id,eventType:"quran_daily_approved",eventKey:pointsEventKey,date,reason:"متابعة قرآنية معتمدة ("+activity+")",sourceCollection:pointsSource,sourceId:pointsSourceId,awardedBy:user.id});
+        await recordAutomaticActivityStreak(env,{studentId,groupId:st.group_id,activity:dailyKind,date,awardedBy:user.id});
       }
       await log(env,user.id,"quran_progress_add",{student_id:studentId,activity,errors,grade,linked_daily_id:dailyEntry?.id||null});
       return json(row,201);
@@ -4734,7 +4736,7 @@ export default {
       let awards=[],streak={counted:false};
       if(decision==="approved"&&Number(entry.amount)>0){
         const progressActivity=entry.kind==="hifz"?"memorization":"revision";
-        const priorProgress=await env.DB.prepare("SELECT ar.id FROM academy_records ar JOIN point_events pe ON pe.source_collection='quran_progress' AND pe.source_id=ar.id AND pe.student_id=? AND pe.event_type='quran_entry' AND pe.reversed_at IS NULL WHERE ar.collection='quran_progress' AND json_extract(ar.payload_json,'$.student_id')=? AND json_extract(ar.payload_json,'$.date')=? AND json_extract(ar.payload_json,'$.activity')=? LIMIT 1").bind(studentId,studentId,entry.day,progressActivity).first();
+        const priorProgress=await env.DB.prepare("SELECT ar.id FROM academy_records ar JOIN point_events pe ON pe.source_collection='quran_progress' AND pe.source_id=ar.id AND pe.student_id=? AND pe.event_type IN ('quran_entry','quran_daily_approved') AND pe.reversed_at IS NULL WHERE ar.collection='quran_progress' AND json_extract(ar.payload_json,'$.student_id')=? AND json_extract(ar.payload_json,'$.date')=? AND json_extract(ar.payload_json,'$.activity')=? LIMIT 1").bind(studentId,studentId,entry.day,progressActivity).first();
         if(!priorProgress){
           const activityReason=entry.kind==="hifz"?"حفظ قرآني معتمد (الحفظ الجديد)":"تثبيت محفوظ معتمد";
           awards=await awardPointsForEvent(env,{studentId,groupId:student.group_id,eventType:"quran_daily_approved",eventKey:"quran_daily:"+entryId,date:entry.day,reason:activityReason,sourceCollection:"quran_daily",sourceId:entryId,awardedBy:user.id});
