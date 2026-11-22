@@ -73,3 +73,7 @@
 .support-action p{margin:0;color:#e2e7dc;font-size:13px}
 @media(max-width:900px){.campaign-heading{grid-template-columns:1fr minmax(240px,300px)}.campaign-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.campaign-store{grid-column:span 2}}
 @media(max-width:680px){.campaign-heading{grid-template-columns:1fr;gap:20px}.impact-numbers{gap:7px}.impact-numbers>div{padding:10px 7px;display:grid;gap:0;text-align:center}.impact-numbers strong{font-size:23px}.impact-numbers span{font-size:9px}.campaign-grid{grid-template-columns:1fr}.campaign-store{grid-column:auto}.campaign-item{padding:16px}.campaign-desc{min-height:0}.support-action{align-items:stretch}.support-action .button{width:100%}}
+
+
+/* وضوح التنقل بلوحة المفاتيح */
+a:focus-visible,button:focus-visible,.interest-form input:focus-visible,.interest-form select:focus-visible,.interest-form textarea:focus-visible{outline:3px solid var(--gold2);outline-offset:3px}
