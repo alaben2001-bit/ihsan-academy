@@ -3888,53 +3888,55 @@ function liveUserSignature(user){
  if(!user)return "";
  return JSON.stringify({id:user.id,role:user.role,group_id:user.group_id||null,school_id:user.school_id||null,must_change_password:Boolean(user.must_change_password),status:user.status||null});
 }
+async function syncLiveData(){
+ if(document.hidden||!S.user||ihsanLiveSyncBusy||!navigator.onLine)return;
+ ihsanLiveSyncBusy=true;
+ try{
+  const [freshUser,notices]=await Promise.all([api("/me"),api("/notifications")]);
+  const signature=liveUserSignature(freshUser);
+  if(!ihsanLiveUserSignature)ihsanLiveUserSignature=signature;
+  else if(signature!==ihsanLiveUserSignature){
+   const previous=S.user;S.user=freshUser;ihsanLiveUserSignature=signature;
+   if(freshUser.must_change_password&&!previous?.must_change_password){renderTopActions();showPasswordChange(true)}
+   else{toast("تحدّثت صلاحيات حسابك وبياناته تلقائيًا.");await start();return}
+  }
+  if(Array.isArray(notices)){
+   const ids=notices.map(n=>String(n.id||n.created_at||n.title||"")).filter(Boolean);
+   if(ihsanLiveKnownNotices===null)ihsanLiveKnownNotices=new Set(ids);
+   else{
+    const fresh=notices.filter(n=>{const id=String(n.id||n.created_at||n.title||"");return id&&!ihsanLiveKnownNotices.has(id)});
+    ids.forEach(id=>ihsanLiveKnownNotices.add(id));
+    if(ihsanLiveKnownNotices.size>150)ihsanLiveKnownNotices=new Set([...ihsanLiveKnownNotices].slice(-100));
+    if(fresh.length){
+     const latest=fresh[fresh.length-1],title=String(latest.title||"تنبيه جديد").slice(0,90);
+     toast(fresh.length>1?"وصلت "+fresh.length+" تنبيهات جديدة؛ أحدثها: "+title:"تنبيه جديد: "+title);
+     if(S.tab==="notifications")await page();
+    }
+   }
+  }
+  if(S.user.role==="student"&&S.mode==="school"){
+   try{
+    const wallet=await api("/points/summary"),value=Number(wallet.totals?.store||0);
+    if(ihsanLiveWalletValue===null)ihsanLiveWalletValue=value;
+    else if(value!==ihsanLiveWalletValue){
+     const delta=value-ihsanLiveWalletValue;ihsanLiveWalletValue=value;
+     toast(delta>0?"أُضيف إلى رصيدك "+delta+" نقطة.":"تحدّث رصيدك بمقدار "+Math.abs(delta)+" نقطة.");
+     await refreshWallet();
+     if(S.tab==="points")await page();
+    }
+   }catch{}
+  }
+ }catch{}
+ finally{ihsanLiveSyncBusy=false}
+}
 function startLiveSync(){
  if(!ihsanLiveUserSignature)ihsanLiveUserSignature=liveUserSignature(S.user);
  if(ihsanLiveSyncTimer)return;
- ihsanLiveSyncTimer=window.setInterval(async()=>{
-  if(document.hidden||!S.user||ihsanLiveSyncBusy||!navigator.onLine)return;
-  ihsanLiveSyncBusy=true;
-  try{
-   const [freshUser,notices]=await Promise.all([api("/me"),api("/notifications")]);
-   const signature=liveUserSignature(freshUser);
-   if(!ihsanLiveUserSignature)ihsanLiveUserSignature=signature;
-   else if(signature!==ihsanLiveUserSignature){
-    const previous=S.user;S.user=freshUser;ihsanLiveUserSignature=signature;
-    if(freshUser.must_change_password&&!previous?.must_change_password){renderTopActions();showPasswordChange(true)}
-    else{toast("تحدّثت صلاحيات حسابك وبياناته تلقائيًا.");await start();return}
-   }
-   if(Array.isArray(notices)){
-    const ids=notices.map(n=>String(n.id||n.created_at||n.title||"")).filter(Boolean);
-    if(ihsanLiveKnownNotices===null)ihsanLiveKnownNotices=new Set(ids);
-    else{
-     const fresh=notices.filter(n=>{const id=String(n.id||n.created_at||n.title||"");return id&&!ihsanLiveKnownNotices.has(id)});
-     for(const n of fresh.slice(0,3).reverse()){
-      const title=String(n.title||"تنبيه جديد").slice(0,100);
-      toast("تنبيه جديد: "+title);
-     }
-     ids.forEach(id=>ihsanLiveKnownNotices.add(id));
-     if(ihsanLiveKnownNotices.size>150)ihsanLiveKnownNotices=new Set([...ihsanLiveKnownNotices].slice(-100));
-     if(fresh.length&&S.tab==="notifications")await page();
-    }
-   }
-   if(S.user.role==="student"&&S.mode==="school"){
-    try{
-     const wallet=await api("/points/summary"),value=Number(wallet.totals?.store||0);
-     if(ihsanLiveWalletValue===null)ihsanLiveWalletValue=value;
-     else if(value!==ihsanLiveWalletValue){
-      const delta=value-ihsanLiveWalletValue;ihsanLiveWalletValue=value;
-      toast(delta>0?"أُضيف إلى رصيدك "+delta+" نقطة.":"تحدّث رصيدك بمقدار "+Math.abs(delta)+" نقطة.");
-      await refreshWallet();
-      if(S.tab==="points")await page();
-     }
-    }catch{}
-   }
-  }catch{}
-  finally{ihsanLiveSyncBusy=false}
- },18000);
+ syncLiveData();
+ ihsanLiveSyncTimer=window.setInterval(syncLiveData,18000);
 }
-window.addEventListener("online",()=>{if(S.user)startLiveSync()});
-document.addEventListener("visibilitychange",()=>{if(!document.hidden&&S.user&&ihsanLiveSyncTimer===null)startLiveSync()});
+window.addEventListener("online",()=>{if(S.user)syncLiveData()});
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&S.user)syncLiveData()});
 
 boot();
 // Deploy trigger: keep the student entry/exit prayer dialogs in the latest Pages build.
