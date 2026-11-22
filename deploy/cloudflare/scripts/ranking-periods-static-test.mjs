@@ -37,6 +37,12 @@ for (const period of ['value="weekly"', 'value="monthly"', 'value="yearly"']) {
   assert(profile.includes(period), `student profile period missing: ${period}`);
 }
 assert(profile.includes("rank_change"), "student profile must show previous-period rank movement");
+assert(profile.includes('/quran/summary'), "student profile must load the dedicated daily Quran log");
+assert(profile.includes("سجل الحفظ اليومي"), "student profile must show daily memorization, تثبيت and ورد history");
+const quranSummaryStart = server.indexOf('if(path==="/api/quran/summary"&&method==="GET")');
+const quranSummaryEnd = server.indexOf('if(path==="/api/curriculum"&&method==="GET")', quranSummaryStart);
+assert(quranSummaryStart >= 0 && quranSummaryEnd > quranSummaryStart, "daily Quran summary endpoint must exist");
+assert(server.slice(quranSummaryStart, quranSummaryEnd).includes("FROM quran_daily"), "daily Quran summary must read the dedicated quran_daily ledger");
 
 const rankingPageStart = app.indexOf("async function effortRankingPage");
 const rankingPageEnd = app.indexOf("function bulkRosterPage", rankingPageStart);
