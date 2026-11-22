@@ -19,6 +19,7 @@
       'السلام عليكم ورحمة الله وبركاته،',
       'أرغب في التواصل مع أكاديمية الإحسان.',
       'نوع الاهتمام: ' + String(data.get('interest') || ''),
+      data.get('method') ? 'طريقة المساهمة: ' + String(data.get('method')) : '',
       data.get('name') ? 'الاسم: ' + String(data.get('name')) : '',
       data.get('message') ? 'التفاصيل: ' + String(data.get('message')) : '',
       'أرجو إرشادي إلى الخطوة التالية. جزاكم الله خيراً.'
