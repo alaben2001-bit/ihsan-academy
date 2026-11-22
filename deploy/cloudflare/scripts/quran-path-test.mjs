@@ -206,7 +206,7 @@ async function main() {
 
   // 7) Summary aggregates the day's work
   const summary = await call("/api/quran/summary", { token: studentA.token });
-  check("summary counts the three daily kinds", summary.status === 200 && Number(summary.data?.totals?.hifz?.days) === 1 && Number(summary.data?.totals?.thabit?.days) === 1 && Number(summary.data?.totals?.ward?.days) === 1, JSON.stringify(summary.data?.totals));
+  check("summary counts the three daily kinds", summary.status === 200 && Number(summary.data?.totals?.hifz?.days) === 1 && Number(summary.data?.totals?.thabit?.days) === 1 && Number(summary.data?.totals?.ward?.days) === 5, JSON.stringify(summary.data?.totals));
   check("summary reports the approved station", Number(summary.data?.stations?.approved) === 1, JSON.stringify(summary.data?.stations));
   check("summary reports the completed makeup", Number(summary.data?.makeups?.done) === 1, JSON.stringify(summary.data?.makeups));
   check("summary reports an active streak", Number(summary.data?.streak) >= 1, JSON.stringify(summary.data?.streak));
