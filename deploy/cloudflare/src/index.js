@@ -2080,6 +2080,7 @@ export default {
     // شيخ/معلم -> حساب «visitor» + طلب انضمام بصفة شيخ/معلم؛ لا تُمنح الصلاحية إلا باعتماد مسؤول مخوّل.
     // لا يوجد مسار يمنح صلاحيات إدارية أو إشرافية عند التسجيل.
     if (path === "/api/signup" && method === "POST") {
+      if(env.DISABLE_LEGACY_PASSWORD_SIGNUP==="true")return fail(410,"إنشاء الحساب يتم عبر Google الموثّق فقط؛ استخدم زر «إنشاء حساب باستخدام Google».");
       const limited=await rateLimit(env,"signup",rateLimitKey(request),10,3600);
       if(!limited.allowed)return fail(429,"طلبات إنشاء حسابات كثيرة خلال وقت قصير. انتظر قليلًا ثم أعد المحاولة.");
       const parsed=await parseBody(request); if(parsed.error)return parsed.error; const b=parsed.value;
