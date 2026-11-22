@@ -4656,20 +4656,60 @@ export default {
       const repetitions=Number.isInteger(Number(b.repetitions))?Number(b.repetitions):0;
       if(repetitions<0||repetitions>100)return fail(400,"عدد التكرارات يجب أن يكون بين 0 و100");
       const unit=clean(b.unit,20),linkedScope=clean(b.linked_scope,120),notes=clean(b.notes,600);
+      const requiresApproval=user.role==="student"&&(kind==="hifz"||kind==="thabit");
+      const approvalStatus=requiresApproval?"pending":"approved";
       const existing=await env.DB.prepare("SELECT * FROM quran_daily WHERE student_id=? AND day=? AND kind=?").bind(resolved.student.id,day,kind).first();
       if(existing){
-        if(Number(existing.amount)===amount&&existing.unit===unit&&Number(existing.repetitions)===repetitions&&existing.notes===notes)return json({ok:true,duplicate:true,entry:existing});
+        if(existing.approval_status==="rejected"&&user.role==="student"){
+          await env.DB.prepare("UPDATE quran_daily SET amount=?,unit=?,repetitions=?,linked_scope=?,notes=?,approval_status='pending',reviewed_by=NULL,reviewed_at=NULL,approval_note='' WHERE id=?").bind(amount,unit,repetitions,linkedScope,notes,existing.id).run();
+          const entry=await env.DB.prepare("SELECT * FROM quran_daily WHERE id=?").bind(existing.id).first();
+          await log(env,user.id,"quran_daily_resubmit",{student_id:resolved.student.id,day,kind});
+          return json({ok:true,entry,awards:[],streak:{counted:false,pending_approval:true},requires_approval:true,totals:await pointsTotals(env,resolved.student.id)},200);
+        }
+        if(Number(existing.amount)===amount&&existing.unit===unit&&Number(existing.repetitions)===repetitions&&existing.notes===notes)return json({ok:true,duplicate:true,entry:existing,requires_approval:existing.approval_status==="pending",awards:[],streak:{counted:false}});
         return fail(409,"سجّلت هذا القسم اليوم بمقدار مختلف. راجع سجل اليوم قبل إعادة التسجيل.");
       }
-      const id=uuid();
-      await env.DB.prepare("INSERT INTO quran_daily (id,student_id,day,kind,amount,unit,repetitions,linked_scope,notes,created_by) VALUES (?,?,?,?,?,?,?,?,?,?)")
-        .bind(id,resolved.student.id,day,kind,amount,unit,repetitions,linkedScope,notes,user.id).run();
-      await log(env,user.id,"quran_daily_save",{student_id:resolved.student.id,day,kind,amount});
+      const id=uuid(),reviewedBy=approvalStatus==="approved"&&user.role!=="student"?user.id:null,reviewedAt=reviewedBy?nowIso():null;
+      await env.DB.prepare("INSERT INTO quran_daily (id,student_id,day,kind,amount,unit,repetitions,linked_scope,notes,approval_status,reviewed_by,reviewed_at,approval_note,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)")
+        .bind(id,resolved.student.id,day,kind,amount,unit,repetitions,linkedScope,notes,approvalStatus,reviewedBy,reviewedAt,"",user.id).run();
+      await log(env,user.id,"quran_daily_save",{student_id:resolved.student.id,day,kind,amount,approval_status:approvalStatus});
       const entry=await env.DB.prepare("SELECT * FROM quran_daily WHERE id=?").bind(id).first();
-      const activityReason=kind==="hifz"?"حفظ قرآني (الحفظ الجديد)":kind==="thabit"?"تثبيت محفوظ":"ورد يومي";
-      const awards=await awardPointsForEvent(env,{studentId:resolved.student.id,groupId:resolved.student.group_id,eventType:kind==="ward"?"quran_reading":"quran_entry",eventKey:"quran_daily:"+id,date:day,reason:activityReason,sourceCollection:"quran_daily",sourceId:id,awardedBy:user.id});
-      const streak=amount>0?await recordAutomaticActivityStreak(env,{studentId:resolved.student.id,groupId:resolved.student.group_id,activity:kind,date:day,awardedBy:user.id}):{counted:false};
-      return json({ok:true,entry,awards,streak,totals:await pointsTotals(env,resolved.student.id)},201);
+      let awards=[],streak={counted:false};
+      if(approvalStatus==="approved"){
+        const activityReason=kind==="hifz"?"حفظ قرآني (الحفظ الجديد)":kind==="thabit"?"تثبيت محفوظ":"ورد يومي";
+        awards=await awardPointsForEvent(env,{studentId:resolved.student.id,groupId:resolved.student.group_id,eventType:kind==="ward"?"quran_reading":"quran_entry",eventKey:"quran_daily:"+id,date:day,reason:activityReason,sourceCollection:"quran_daily",sourceId:id,awardedBy:user.id});
+        streak=amount>0?await recordAutomaticActivityStreak(env,{studentId:resolved.student.id,groupId:resolved.student.group_id,activity:kind,date:day,awardedBy:user.id}):{counted:false};
+      }else{
+        streak={counted:false,pending_approval:true};
+      }
+      return json({ok:true,entry,awards,streak,requires_approval:requiresApproval,totals:await pointsTotals(env,resolved.student.id)},201);
+    }
+    if(path==="/api/quran/daily/decision"&&method==="POST"){
+      if(!["admin","teacher"].includes(user.role))return fail(403,"اعتماد الحفظ والتثبيت من صلاحية الشيخ أو الإدارة");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      const studentId=clean(b.student_id,80),entryId=clean(b.entry_id,80),decision=clean(b.decision,12),note=clean(b.note,500);
+      if(!studentId||!entryId||!["approved","rejected"].includes(decision))return fail(400,"بيانات الاعتماد غير مكتملة");
+      if(decision==="rejected"&&note.length<3)return fail(400,"اكتب سبب الرفض ليعرف الطالب ما الذي يصححه");
+      const student=await env.DB.prepare("SELECT id,group_id FROM students WHERE id=? AND active=1").bind(studentId).first();
+      if(!student||!await canManageGroup(env,user,student.group_id))return fail(403,"لا تملك صلاحية اعتماد هذا الطالب");
+      const entry=await env.DB.prepare("SELECT * FROM quran_daily WHERE id=? AND student_id=?").bind(entryId,studentId).first();
+      if(!entry)return fail(404,"سجل القرآن غير موجود");
+      if(!["hifz","thabit"].includes(entry.kind))return fail(400,"هذا النوع لا يحتاج اعتمادًا من الشيخ");
+      if(entry.approval_status!=="pending"){
+        if(entry.approval_status===decision)return json({ok:true,duplicate:true,entry});
+        return fail(409,"سبق اتخاذ قرار على هذا السجل؛ لا يمكن تغييره من هنا");
+      }
+      const reviewedAt=nowIso();
+      await env.DB.prepare("UPDATE quran_daily SET approval_status=?,reviewed_by=?,reviewed_at=?,approval_note=? WHERE id=? AND approval_status='pending'").bind(decision,user.id,reviewedAt,decision==="rejected"?note:"",entryId).run();
+      let awards=[],streak={counted:false};
+      if(decision==="approved"){
+        const activityReason=entry.kind==="hifz"?"حفظ قرآني معتمد (الحفظ الجديد)":"تثبيت محفوظ معتمد";
+        awards=await awardPointsForEvent(env,{studentId,groupId:student.group_id,eventType:"quran_entry",eventKey:"quran_daily:"+entryId,date:entry.day,reason:activityReason,sourceCollection:"quran_daily",sourceId:entryId,awardedBy:user.id});
+        streak=Number(entry.amount)>0?await recordAutomaticActivityStreak(env,{studentId,groupId:student.group_id,activity:entry.kind,date:entry.day,awardedBy:user.id}):{counted:false};
+      }
+      await log(env,user.id,"quran_daily_decision",{student_id:studentId,entry_id:entryId,decision,note:decision==="rejected"?note:""});
+      const updated=await env.DB.prepare("SELECT * FROM quran_daily WHERE id=?").bind(entryId).first();
+      return json({ok:true,entry:updated,awards,streak,totals:await pointsTotals(env,studentId)});
     }
     if(path==="/api/quran/companion"&&method==="GET"){
       const resolved=await resolveQuranStudent(env,user,url.searchParams.get("student_id"));
