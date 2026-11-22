@@ -83,7 +83,7 @@ assert.match(backend, /__Host-ihsan_csrf=/, "sessions must issue a separate CSRF
 assert.match(backend, /csrfIsValid\(request\)/, "cookie-authenticated mutations must validate CSRF");
 assert.match(backend, /X-CSRF-Token/, "the backend must explicitly allow the CSRF header");
 assert.match(backend, /const requestSessionToken = request => bearerSessionToken\(request\) \|\| cookieSessionToken\(request\)/, "authenticated requests must accept cookie sessions");
-assert.equal((backend.match(/return sessionResponse\(/g)||[]).length, 3, "password, Google and self-signup must all issue cookie sessions");
+assert.equal((backend.match(/return sessionResponse\(/g)||[]).length, 5, "password, Google login/signup/recovery and legacy self-signup must all issue cookie sessions");
 assert.doesNotMatch(backend, /return json\(\{token,user:safeUser/, "raw session tokens must not be returned to the browser");
 assert.doesNotMatch(app, /safeStore\.set\(["']ihsan_token["']/, "the UI must not store reusable bearer tokens");
 assert.match(app, /credentials:"same-origin"/, "API requests must send same-origin cookies");
