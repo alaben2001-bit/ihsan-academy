@@ -176,6 +176,8 @@ async function main() {
   const progress = await call("/api/quran/progress", { method: "POST", token: admin, body: { student_id: s1.id, date: today, activity: "recitation", recitation: "سورة الملك 1-5" } });
   check("baseline attendance and Quran progress save", attendance.status === 200 && progress.status === 201, JSON.stringify({ attendance: attendance.data, progress: progress.data }));
   const baseline = await call("/api/points/summary?student_id=" + encodeURIComponent(s1.id), { token: admin });
+  const baselineHistory = await call("/api/points/history?student_id=" + encodeURIComponent(s1.id) + "&limit=50", { token: admin });
+  console.log("COMPETITION_BASELINE_HISTORY_DIAGNOSTIC", JSON.stringify(baselineHistory.data));
   check("baseline is represented as one unified balance", baseline.data?.totals?.achievement === 30 && baseline.data?.totals?.store === 30, JSON.stringify(baseline.data?.totals));
 
   // -------------------------------------------------------------------------
