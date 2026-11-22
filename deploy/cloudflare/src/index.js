@@ -4902,7 +4902,9 @@ export default {
         env.DB.prepare("SELECT activity,current_days,start_date,last_date,updated_at FROM student_activity_streaks WHERE student_id=? ORDER BY activity").bind(studentId).all(),
         env.DB.prepare("SELECT activity,streak_start_date,milestone_days,points_awarded,awarded_at FROM student_streak_badges WHERE student_id=? ORDER BY awarded_at DESC LIMIT 100").bind(studentId).all()
       ]);
-      return json({streaks:streakRows.results||[],badges:badgeRows.results||[]});
+      const yesterday=addCalendarDays(academyDate(),-1);
+      const streaks=(streakRows.results||[]).map(row=>({...row,active:String(row.last_date||"")>=yesterday,current_days:String(row.last_date||"")>=yesterday?Number(row.current_days||0):0}));
+      return json({streaks,badges:badgeRows.results||[]});
     }
     if(path==="/api/points/referrals"&&method==="GET"){
       if(user.role!=="admin")return fail(403,"قائمة الإحالات للشيخ وحده");
