@@ -8,7 +8,7 @@ on:
       - "index.html"
       - "manifest.json"
   push:
-    branches: ["migration/cloudflare-student-platform", "fix/full-name-student-login"]
+    branches: ["migration/cloudflare-student-platform"]
     paths:
       - "deploy/cloudflare/**"
       - "assets/**"
