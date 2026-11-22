@@ -3134,7 +3134,8 @@ function quranLogCard(kind,pathInfo,logged){
   }else if(rejected){
     content='<div class="notice error"><strong>لم يُعتمد هذا السجل.</strong> '+esc(logged.approval_note||"راجع ملاحظة الشيخ ثم أعد الإرسال.")+'</div>'+formMarkup;
   }else if(logged){
-    content='<div class="quran-log-done"><strong>اعتمد الشيخ '+meta.label+' اليوم</strong><small>'+esc(quranFmtAmount(logged.amount,logged.unit))+(Number(logged.repetitions)?' · '+Number(logged.repetitions)+' تكرار':'')+'</small>'+(logged.notes?'<small>'+esc(logged.notes)+'</small>':"")+'</div>';
+    const reviewed=Boolean(logged.reviewed_by),doneTitle=kind==="ward"?"سجّلت وردك اليوم":reviewed?"اعتمد الشيخ "+meta.label+" اليوم":"سجل محفوظ سابقًا";
+    content='<div class="quran-log-done"><strong>'+doneTitle+'</strong><small>'+esc(quranFmtAmount(logged.amount,logged.unit))+(Number(logged.repetitions)?' · '+Number(logged.repetitions)+' تكرار':'')+'</small>'+(logged.notes?'<small>'+esc(logged.notes)+'</small>':"")+'</div>';
   }else{
     content=formMarkup;
   }
