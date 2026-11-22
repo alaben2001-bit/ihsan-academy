@@ -115,6 +115,40 @@ async function main() {
   check("summary reports one unified 30-point balance", summaryAfterAward.data?.totals?.achievement === 30 && summaryAfterAward.data?.totals?.store === 30, JSON.stringify(summaryAfterAward.data?.totals));
 
   // -------------------------------------------------------------------------
+  // 3b) General adjustment is idempotent and independent of Quran history
+  // -------------------------------------------------------------------------
+  const adjustNoReason = await call("/api/points/adjust", { method: "POST", token: admin, body: { student_id: student.id, points: 5, request_id: "test-adjust-no-reason" } });
+  check("general adjustment requires a reason", adjustNoReason.status === 400, JSON.stringify(adjustNoReason.data));
+
+  const adjustmentBody = { student_id: student.id, points: 7, reason: "اختبار إضافة عامة", request_id: "test-general-adjust-001" };
+  const adjustment1 = await call("/api/points/adjust", { method: "POST", token: admin, body: adjustmentBody });
+  check("general adjustment adds points", adjustment1.status === 201 && adjustment1.data?.totals?.balance === 37, JSON.stringify(adjustment1.data));
+
+  const adjustment2 = await call("/api/points/adjust", { method: "POST", token: admin, body: adjustmentBody });
+  check("repeated general adjustment does not duplicate", adjustment2.status === 201 && (adjustment2.data?.events || []).every(event => event.status === "duplicate") && adjustment2.data?.totals?.balance === 37, JSON.stringify(adjustment2.data));
+
+  const adjustmentSubtract = await call("/api/points/adjust", { method: "POST", token: admin, body: { student_id: student.id, points: -2, reason: "اختبار خصم عام", request_id: "test-general-adjust-002" } });
+  check("general adjustment subtracts points once", adjustmentSubtract.status === 201 && adjustmentSubtract.data?.totals?.balance === 35, JSON.stringify(adjustmentSubtract.data));
+
+  const adjustmentOverdraw = await call("/api/points/adjust", { method: "POST", token: admin, body: { student_id: student.id, points: -999, reason: "اختبار منع الرصيد السالب", request_id: "test-general-adjust-003" } });
+  check("general adjustment prevents a negative balance", adjustmentOverdraw.status === 409, JSON.stringify(adjustmentOverdraw.data));
+
+  for (const period of ["weekly", "monthly", "yearly"]) {
+    const ranking = await call("/api/effort/ranking?scope=group&group_id=" + encodeURIComponent(groupId) + "&period=" + period, { token: admin });
+    const own = (ranking.data?.rows || []).find(row => row.student_id === student.id);
+    check("group ranking supports " + period + " period and current points", ranking.status === 200 && ranking.data?.total_count === 2 && own?.score === 35, JSON.stringify(ranking.data));
+  }
+
+  const studentGroupRanking = await call("/api/effort/ranking?scope=group&group_id=" + encodeURIComponent(groupId) + "&period=weekly", { token: studentToken });
+  check("student ranking exposes only their own row", studentGroupRanking.status === 200 && studentGroupRanking.data?.rows?.length === 1 && studentGroupRanking.data.rows[0]?.student_id === student.id && studentGroupRanking.data?.total_count === 2, JSON.stringify(studentGroupRanking.data));
+
+  const studentAcademyRanking = await call("/api/effort/ranking?scope=academy&student_id=" + encodeURIComponent(student.id) + "&period=weekly", { token: studentToken });
+  check("student can see own academy position without other student records", studentAcademyRanking.status === 200 && studentAcademyRanking.data?.rows?.length === 1 && studentAcademyRanking.data.rows[0]?.student_id === student.id, JSON.stringify(studentAcademyRanking.data));
+
+  const studentOtherTeamRanking = await call("/api/effort/ranking?scope=team&group_id=" + encodeURIComponent(groupId) + "&student_id=" + encodeURIComponent(otherStudent.id) + "&period=weekly", { token: studentToken });
+  check("student cannot request another student's team ranking", studentOtherTeamRanking.status === 403, JSON.stringify(studentOtherTeamRanking.data));
+
+  // -------------------------------------------------------------------------
   // 4) Store item, student redemption, rejection refunds balance
   // -------------------------------------------------------------------------
   const item = await call("/api/store/items", { method: "POST", token: admin, body: { name: "هدية اختبار", description: "مادة اختبار محلية", cost: 20, stock: 2, max_per_student: 1 } });
