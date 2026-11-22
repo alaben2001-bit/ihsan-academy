@@ -3971,3 +3971,11 @@ html:root:root .ranking-note{margin:10px 0 0;color:#b99aa2!important;line-height
   .settings-rail-copy strong{font-size:12.5px}
 }
 
+
+
+/* Calm, quick feedback for live updates and polished UI sounds. */
+.toast{animation:ihsan-toast-in .22s cubic-bezier(.2,.8,.2,1) both;box-shadow:0 12px 34px #0005;border:1px solid #ffffff24;backdrop-filter:blur(12px)}
+.toast.error{background:#642b31}
+@keyframes ihsan-toast-in{from{opacity:0;transform:translateY(12px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
+.ihsan-module-transition .shell{will-change:opacity,transform}
+@media(prefers-reduced-motion:reduce){.toast{animation:none!important}.ihsan-module-transition .shell{will-change:auto}}

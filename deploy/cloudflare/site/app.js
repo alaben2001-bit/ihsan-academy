@@ -331,15 +331,16 @@ function playUiSound(kind="click"){
   const Ctx=window.AudioContext||window.webkitAudioContext;if(!Ctx)return;
   const ctx=playUiSound.ctx||(playUiSound.ctx=new Ctx());
   if(ctx.state==="suspended")ctx.resume().catch(()=>{});
-  const duration=kind==="success"?.055:kind==="error"?.045:.022;
-  const length=Math.max(1,Math.floor(ctx.sampleRate*duration));
-  const buffer=ctx.createBuffer(1,length,ctx.sampleRate),data=buffer.getChannelData(0);
-  for(let i=0;i<length;i++){const fade=1-i/length;data[i]=(Math.random()*2-1)*fade*fade;}
-  const source=ctx.createBufferSource(),filter=ctx.createBiquadFilter(),gain=ctx.createGain();
-  filter.type="lowpass";filter.frequency.value=kind==="error"?650:kind==="success"?1700:2400;filter.Q.value=.35;
-  gain.gain.setValueAtTime(kind==="success"?.055:kind==="error"?.045:.035,ctx.currentTime);
-  gain.gain.exponentialRampToValueAtTime(.0001,ctx.currentTime+duration);
-  source.buffer=buffer;source.connect(filter);filter.connect(gain);gain.connect(ctx.destination);source.start();source.stop(ctx.currentTime+duration);
+  const patterns=kind==="success"?[{f:659.25,t:0,d:.12},{f:830.61,t:.105,d:.14},{f:987.77,t:.23,d:.22}]:kind==="error"?[{f:392,t:0,d:.12},{f:311.13,t:.12,d:.18}]:[{f:740,t:0,d:.045},{f:988,t:.035,d:.055}];
+  for(const note of patterns){
+   const osc=ctx.createOscillator(),gain=ctx.createGain(),tone=ctx.createBiquadFilter();
+   osc.type=kind==="click"?"sine":"triangle";osc.frequency.setValueAtTime(note.f,ctx.currentTime+note.t);
+   tone.type="lowpass";tone.frequency.value=kind==="click"?2600:1900;
+   const start=ctx.currentTime+note.t,end=start+note.d;
+   gain.gain.setValueAtTime(.0001,start);gain.gain.exponentialRampToValueAtTime(kind==="click"?.018:.045,start+.012);
+   gain.gain.exponentialRampToValueAtTime(.0001,end);
+   osc.connect(tone);tone.connect(gain);gain.connect(ctx.destination);osc.start(start);osc.stop(end+.015);
+  }
  }catch{}
 }
 function toast(t,err=false){const old=$(".toast");if(old)old.remove();const e=document.createElement("div");e.className="toast"+(err?" error":"");e.textContent=t;document.body.append(e);if(err)playUiSound("error");else if(/تم|نجاح|حُفظ|نُشر|أُضيف|اكتمل|تفعيل|تثبيت/.test(t))playUiSound("success");setTimeout(()=>e.remove(),3500)}
@@ -778,6 +779,7 @@ async function ihsanPrayerDialog({title,text,source="",icon="✦",primary="مت�
  yes.focus()
 }
 function start(){
+ startLiveSync();
  rememberOfflineUser();flushOfflineQueue(true);
  renderTopActions();
  const pending=pendingScan();
@@ -3878,6 +3880,65 @@ async function notificationsPage(v){
 }
 
 
+
+
+/* Lightweight live sync: no page reloads, no form interruption. */
+let ihsanLiveSyncTimer=null,ihsanLiveSyncBusy=false,ihsanLiveKnownNotices=null,ihsanLiveUserSignature="",ihsanLiveWalletValue=null;
+function liveUserSignature(user){
+ if(!user)return "";
+ return JSON.stringify({id:user.id,role:user.role,group_id:user.group_id||null,school_id:user.school_id||null,must_change_password:Boolean(user.must_change_password),status:user.status||null});
+}
+async function syncLiveData(){
+ if(document.hidden||!S.user||ihsanLiveSyncBusy||!navigator.onLine)return;
+ ihsanLiveSyncBusy=true;
+ try{
+  const [freshUser,notices]=await Promise.all([api("/me"),api("/notifications")]);
+  const signature=liveUserSignature(freshUser);
+  if(!ihsanLiveUserSignature)ihsanLiveUserSignature=signature;
+  else if(signature!==ihsanLiveUserSignature){
+   const previous=S.user;S.user=freshUser;ihsanLiveUserSignature=signature;
+   if(freshUser.must_change_password&&!previous?.must_change_password){renderTopActions();showPasswordChange(true)}
+   else{toast("تم تحديث صلاحيات حسابك وبياناته تلقائيًا.");await start();return}
+  }
+  if(Array.isArray(notices)){
+   const ids=notices.map(n=>String(n.id||n.created_at||n.title||"")).filter(Boolean);
+   if(ihsanLiveKnownNotices===null)ihsanLiveKnownNotices=new Set(ids);
+   else{
+    const fresh=notices.filter(n=>{const id=String(n.id||n.created_at||n.title||"");return id&&!ihsanLiveKnownNotices.has(id)});
+    ids.forEach(id=>ihsanLiveKnownNotices.add(id));
+    if(ihsanLiveKnownNotices.size>150)ihsanLiveKnownNotices=new Set([...ihsanLiveKnownNotices].slice(-100));
+    if(fresh.length){
+     const latest=fresh[fresh.length-1],title=String(latest.title||"تنبيه جديد").slice(0,90);
+     toast(fresh.length>1?"وصلت "+fresh.length+" تنبيهات جديدة؛ أحدثها: "+title:"تنبيه جديد: "+title);playUiSound("success");
+     if(S.tab==="notifications")await page();
+    }
+   }
+  }
+  if(S.user.role==="student"&&S.mode==="school"){
+   try{
+    const wallet=await api("/points/summary"),value=Number(wallet.totals?.store||0);
+    if(ihsanLiveWalletValue===null)ihsanLiveWalletValue=value;
+    else if(value!==ihsanLiveWalletValue){
+     const delta=value-ihsanLiveWalletValue;ihsanLiveWalletValue=value;
+     toast(delta>0?"أُضيف إلى رصيدك "+delta+" نقطة.":"تحدّث رصيدك بمقدار "+Math.abs(delta)+" نقطة.");
+     await refreshWallet();
+     if(S.tab==="points")await page();
+    }
+   }catch{}
+  }
+ }catch{}
+ finally{ihsanLiveSyncBusy=false}
+}
+function startLiveSync(){
+ const currentSignature=liveUserSignature(S.user);
+ if(ihsanLiveUserSignature&&currentSignature!==ihsanLiveUserSignature){ihsanLiveKnownNotices=null;ihsanLiveWalletValue=null;}
+ ihsanLiveUserSignature=currentSignature;
+ if(ihsanLiveSyncTimer)return;
+ syncLiveData();
+ ihsanLiveSyncTimer=window.setInterval(syncLiveData,18000);
+}
+window.addEventListener("online",()=>{if(S.user)syncLiveData()});
+document.addEventListener("visibilitychange",()=>{if(!document.hidden&&S.user)syncLiveData()});
 
 boot();
 // Deploy trigger: keep the student entry/exit prayer dialogs in the latest Pages build.
