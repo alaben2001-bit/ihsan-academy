@@ -70,7 +70,7 @@ assert.match(backend, /competition_categories:competitionCategories\.length,comp
 
 assert.match(app, /const localDateISO=/, "browser date inputs must use the local calendar date");
 assert.match(app, /const head=\(a,b\)=>.*esc\(a\).*esc\(b\)/, "shared section headings must escape dynamic text before inserting HTML");
-assert.match(app, /field\("كلمة مرور مؤقتة \(اختيارية\)","password","password","","اتركها فارغة للتوليد الآمن"\)/, "the optional student password field must use a real placeholder, not an invalid minlength value");
+assert.match(app, /كلمة المرور الأولية الموحدة 12345678/, "student account creation must clearly show the agreed unified first-login password");
 assert.match(app, /timeZone:"Africa\/Algiers"/, "browser date helpers must use the same Algeria timezone as the backend");
 
 
@@ -119,7 +119,9 @@ assert.ok(style.includes(".mobile-primary-nav") && style.includes(".mobile-more-
 assert.ok(style.includes("prefers-reduced-motion:reduce"), "new animations must respect reduced-motion preferences");
 
 // These are static regression guardrails, not a replacement for live role-by-role acceptance tests.
-assert.ok(backend.includes('const temporaryPassword=()=>"Ih!"+hex(crypto.getRandomValues(new Uint8Array(10)))'), "temporary passwords must be randomly generated");
+assert.match(backend, /const INITIAL_STUDENT_PASSWORD = "12345678"/, "student onboarding must use the agreed initial password");
+assert.match(backend, /reason:"already_linked"/, "bulk onboarding must not reset accounts already linked to student records");
+assert.match(backend, /ambiguous_existing_account/, "ambiguous orphan accounts must be skipped rather than linked to the wrong student");
 assert.match(backend, /uniqueStudentIdentity\(env,st\.display_name/, "onboarding must resolve unique student usernames");
 assert.match(backend, /must_change_password=1/, "new/reset accounts must be marked for a first-login password change");
 assert.match(backend, /VALUES\(\?,\?,\?,\?, 'teacher',1,1\)/, "new teacher accounts must require a first-login password change");
@@ -190,7 +192,7 @@ assert.match(backend, /a\.day\|\|\(a\.submitted_at\?academyDate\(new Date\(a\.su
 
 assert.match(app, /function showPasswordChange\(forced=false\)/, "the UI must support a forced password-change dialog");
 assert.match(app, /if\(S\.user\?\.must_change_password\)\{renderTopActions\(\);showPasswordChange\(true\)\}/, "the UI must open the mandatory dialog after login");
-assert.doesNotMatch(app, /12345678/, "the interface must not encourage a shared student password");
+assert.match(app, /12345678/, "the interface must communicate the agreed shared first-login password");
 assert.match(migration, /must_change_password INTEGER NOT NULL DEFAULT 0/, "the D1 migration must add the password-change flag");
 const appVersion = index.match(/app\.js\?v=([\w-]+)/)?.[1];
 assert.ok(appVersion, "the app asset must have a versioned URL");
@@ -350,8 +352,8 @@ assert.match(app, /data-transfer-decision="approve"/, "the chief supervisor must
 
 
 
-assert.match(app, /crypto\.getRandomValues\(new Uint8Array\(18\)\)/, "blank student password fields must generate a strong random temporary password");
-assert.doesNotMatch(app, /12345678/, "a universal student password must never be shown or submitted");
+assert.match(app, /اسم الدخول للطالب \(الاسم الكامل افتراضيًا\)/, "individual student account creation must use the full name by default");
+assert.match(backend, /INITIAL_STUDENT_PASSWORD/, "the shared initial password must be enforced by the backend rather than a browser-generated random value");
 assert.match(app, /id="admin-focus-toggle"/, "the director account must be able to switch between daily teaching and administration");
 assert.match(app, /makeGroup\("الرئيسية والطلاب"/, "admin daily focus must present a concise administration entry point");
 assert.match(app, /makeGroup\("الترتيب الأسبوعي\/الشهري"/, "admin navigation must expose one weekly/monthly ranking entry");
