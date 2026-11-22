@@ -113,6 +113,8 @@ async function main() {
 
   const pathRead = await call("/api/quran/path", { token: studentA.token });
   check("path read reports enrollment", pathRead.status === 200 && pathRead.data?.enrolled === true && pathRead.data?.path?.ward_ahzab === 2, JSON.stringify(pathRead.data));
+  const enrollB = await call("/api/quran/path", { method: "POST", token: studentB.token, body: { hifz_plan: "plan_a", hifz_category: "15", hifz_amount: "3", hifz_unit: "سطر", ward_ahzab: 1, start_date: today } });
+  check("second student can enroll for isolated approval tests", enrollB.status === 200 && enrollB.data?.path?.hifz_plan === "plan_a", JSON.stringify(enrollB.data));
 
   const todayRead = await call("/api/quran/today", { token: studentA.token });
   check("today read reports rest day and empty logs", todayRead.status === 200 && todayRead.data?.enrolled === true && todayRead.data?.logs?.hifz === null, JSON.stringify(todayRead.data));
@@ -156,6 +158,16 @@ async function main() {
   check("repeated Sheikh approval is idempotent", duplicateApproval.status === 200 && duplicateApproval.data?.duplicate === true, JSON.stringify(duplicateApproval.data));
   const queueAfterApproval = await call("/api/quran/daily/pending?group_id=" + encodeURIComponent(groupId), { token: admin });
   check("approved memorization entries leave the pending queue", queueAfterApproval.status === 200 && queueAfterApproval.data?.length === 0, JSON.stringify(queueAfterApproval.data));
+  const rejectedHifz = await call("/api/quran/daily", { method: "POST", token: studentB.token, body: { kind: "hifz", amount: 2, unit: "سطر" } });
+  check("second student self-report is pending", rejectedHifz.status === 201 && rejectedHifz.data?.entry?.approval_status === "pending" && rejectedHifz.data?.awards?.length === 0, JSON.stringify(rejectedHifz.data));
+  const rejectHifz = await call("/api/quran/daily/decision", { method: "POST", token: admin, body: { student_id: studentB.id, entry_id: rejectedHifz.data.entry.id, decision: "rejected", note: "راجع موضع الخطأ قبل إعادة العرض" } });
+  check("Sheikh can return a daily Quran entry with a reason", rejectHifz.status === 200 && rejectHifz.data?.entry?.approval_status === "rejected", JSON.stringify(rejectHifz.data));
+  const rejectedToday = await call("/api/quran/today", { token: studentB.token });
+  check("student sees the rejection reason", rejectedToday.status === 200 && rejectedToday.data?.logs?.hifz?.approval_status === "rejected" && rejectedToday.data?.logs?.hifz?.approval_note?.includes("راجع موضع الخطأ"), JSON.stringify(rejectedToday.data?.logs?.hifz));
+  const resubmittedHifz = await call("/api/quran/daily", { method: "POST", token: studentB.token, body: { kind: "hifz", amount: 3, unit: "سطر", notes: "تم التصحيح" } });
+  check("student can resubmit a rejected entry without creating a duplicate", resubmittedHifz.status === 200 && resubmittedHifz.data?.entry?.id === rejectedHifz.data.entry.id && resubmittedHifz.data?.entry?.approval_status === "pending", JSON.stringify(resubmittedHifz.data));
+  const approveResubmitted = await call("/api/quran/daily/decision", { method: "POST", token: admin, body: { student_id: studentB.id, entry_id: rejectedHifz.data.entry.id, decision: "approved" } });
+  check("corrected entry can be approved once", approveResubmitted.status === 200 && approveResubmitted.data?.entry?.approval_status === "approved" && approveResubmitted.data?.awards?.length > 0, JSON.stringify(approveResubmitted.data));
 
   const duplicate = await call("/api/quran/daily", { method: "POST", token: studentA.token, body: { kind: "hifz", amount: 5, unit: "سطر", notes: "اختبار الحفظ" } });
   check("identical daily log is idempotent", duplicate.status === 200 && duplicate.data?.duplicate === true, JSON.stringify(duplicate.data));
@@ -284,6 +296,8 @@ async function main() {
   check("teacher outside the group cannot read the path", teacherRead.status === 403, JSON.stringify(teacherRead.data));
   const teacherDaily = await call("/api/quran/daily", { method: "POST", token: teacher, body: { student_id: studentA.id, kind: "ward", amount: 1 } });
   check("teacher outside the group cannot log a portion", teacherDaily.status === 403, JSON.stringify(teacherDaily.data));
+  const teacherApproval = await call("/api/quran/daily/decision", { method: "POST", token: teacher, body: { student_id: studentA.id, entry_id: hifz.data.entry.id, decision: "approved" } });
+  check("teacher outside the group cannot approve another student's Quran work", teacherApproval.status === 403, JSON.stringify(teacherApproval.data));
 
   const report = { base: BASE, failures, passed: results.filter(row => row.ok).length, total: results.length, results };
   const outputPath = process.env.QURAN_TEST_REPORT || "";
