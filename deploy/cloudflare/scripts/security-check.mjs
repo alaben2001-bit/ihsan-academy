@@ -625,6 +625,9 @@ assert.match(app, /store-reco-card--locked/, "locked rewards must retain visual 
 assert.match(app, /safeUrl=\/\^\(https:/, "external reward imagery must use HTTPS");
 assert.doesNotMatch(app, /promote-level|sheikh-level|\/students\/level/, "level progression must stay deferred until the academy approves a levels system");
 assert.match(app, /نموذج تجريبي قيد المراجعة · غير معتمد نهائيًا/, "Quran plan preview must be clearly marked experimental");
+assert.match(app, /نموذج تجريبي · قيد المراجعة/, "Quran path choices must be marked experimental");
+assert.match(app, /هذه الخطة نموذج تجريبي قابل للمراجعة/, "printed Quran schedules must carry the experimental warning");
+assert.match(app, /status:"تجريبية"/, "development history must not claim the Quran plans are approved");
 assert.match(app, /سلسلة المواظبة والأوسمة/, "existing achievement badges and streaks must remain available");
 
 console.log("Security regression guardrails passed.");
