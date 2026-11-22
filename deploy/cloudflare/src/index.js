@@ -2812,7 +2812,7 @@ export default {
     }
     if(path==="/api/admin/students/bulk-onboarding/status"&&method==="GET"){
       if(user.role!=="admin")return fail(403,"تهيئة حسابات الطلاب الجماعية للمدير العام فقط");
-      const row=await env.DB.prepare("SELECT COUNT(*) AS total,SUM(CASE WHEN user_id IS NULL AND group_id IS NOT NULL THEN 1 ELSE 0 END) AS remaining FROM students WHERE active=1").first();
+      const row=await env.DB.prepare("SELECT COUNT(*) AS total,SUM(CASE WHEN s.user_id IS NULL THEN 1 ELSE 0 END) AS remaining FROM students s JOIN groups g ON g.id=s.group_id WHERE s.active=1 AND g.active=1").first();
       const total=Number(row?.total||0),remaining=Number(row?.remaining||0);
       return json({completed:remaining===0,completed_count:total-remaining,total,remaining});
     }
@@ -2882,7 +2882,7 @@ export default {
           console.error("Ihsan bulk student onboarding failed",{student_id:st.id,message:String(error?.message||error)});
         }
       }
-      const remainingRow=await env.DB.prepare("SELECT COUNT(*) AS remaining FROM students WHERE active=1 AND user_id IS NULL AND group_id IS NOT NULL").first();
+      const remainingRow=await env.DB.prepare("SELECT COUNT(*) AS remaining FROM students s JOIN groups g ON g.id=s.group_id WHERE s.active=1 AND s.user_id IS NULL AND g.active=1").first();
       const remaining=Number(remainingRow?.remaining||0),completed=remaining===0;
       await log(env,user.id,"student_bulk_onboarding",{created,linked_existing:linkedExisting,skipped:skipped.length,remaining});
       return json({ok:true,created,linked_existing:linkedExisting,reset:0,skipped:skipped.length,completed,remaining,processed:studentRows.length,credentials,skipped_rows:skipped},201);
