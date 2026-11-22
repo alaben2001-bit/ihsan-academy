@@ -117,6 +117,32 @@ async function main() {
   check("two student sessions are active", studentA.token.length === 64 && studentB.token.length === 64);
   const fullNameLogin = await login(studentA.name, "JourneyStudent#2026b");
   check("student can log in with their unique full name", fullNameLogin.status === 200 && fullNameLogin.token.length === 64, JSON.stringify(fullNameLogin.data));
+
+  // New student accounts use the agreed shared initial password and must change it.
+  const initialName = "طالب كلمة المرور الموحدة " + RUN;
+  const initialRoster = await call("/api/admin/roster-add", { method: "POST", token: admin, body: { group_id: groupId, names: [initialName] } });
+  const initialRows = await call("/api/students?group_id=" + encodeURIComponent(groupId), { token: admin });
+  const initialStudent = (initialRows.data || []).find(row => row.name === initialName);
+  const initialAccount = initialStudent ? await call("/api/students/" + encodeURIComponent(initialStudent.id) + "/account", { method: "POST", token: admin, body: { username: initialName } }) : { status: 0, data: null };
+  check("new student account receives the unified initial password", initialRoster.status === 201 && initialAccount.status === 201 && initialAccount.data?.initial_password === "12345678", JSON.stringify(initialAccount.data));
+  const initialLogin = await login(initialName, "12345678");
+  check("unified initial password forces change at first login", initialLogin.status === 200 && initialLogin.token.length === 64 && initialLogin.data?.user?.must_change_password === true, JSON.stringify(initialLogin.data));
+
+  // Bulk onboarding never resets an already-linked account.
+  const linkedBulk = await call("/api/admin/students/bulk-onboarding", { method: "POST", token: admin, body: { student_ids: [studentA.id], reset_existing: true } });
+  const preservedLogin = await login("journey-student-1-" + RUN, "JourneyStudent#2026b");
+  check("bulk onboarding preserves passwords of already-linked accounts", linkedBulk.status === 201 && linkedBulk.data?.skipped === 1 && preservedLogin.status === 200 && preservedLogin.token.length === 64, JSON.stringify(linkedBulk.data));
+
+  // Bulk onboarding creates a missing student with the same first-login password.
+  const bulkName = "طالب تجهيز جماعي " + RUN;
+  await call("/api/admin/roster-add", { method: "POST", token: admin, body: { group_id: groupId, names: [bulkName] } });
+  const bulkRows = await call("/api/students?group_id=" + encodeURIComponent(groupId), { token: admin });
+  const bulkStudent = (bulkRows.data || []).find(row => row.name === bulkName);
+  const bulkResult = bulkStudent ? await call("/api/admin/students/bulk-onboarding", { method: "POST", token: admin, body: { student_ids: [bulkStudent.id] } }) : { status: 0, data: null };
+  check("bulk onboarding provisions missing student with shared password", bulkResult.status === 201 && bulkResult.data?.created === 1 && bulkResult.data?.credentials?.[0]?.password === "12345678", JSON.stringify(bulkResult.data));
+  const bulkLogin = await login(bulkName, "12345678");
+  check("bulk-created student must change the initial password", bulkLogin.status === 200 && bulkLogin.data?.user?.must_change_password === true, JSON.stringify(bulkLogin.data));
+
   const teacherInside = await makeTeacher(admin, "شيخ فوج الرحلة " + RUN, "journey-teacher-in-" + RUN, "JourneyTeacher#2026", groupId);
   const teacherOutside = await makeTeacher(admin, "شيخ خارج الفوج " + RUN, "journey-teacher-out-" + RUN, "JourneyTeacher#2026");
   check("teacher inside the group is assigned and can log in", teacherInside.token.length === 64);
