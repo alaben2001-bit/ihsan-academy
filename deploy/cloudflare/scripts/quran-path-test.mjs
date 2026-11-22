@@ -17,7 +17,7 @@ function check(name, condition, detail = "") {
   const ok = Boolean(condition);
   if (!ok) failures += 1;
   results.push({ name, ok, detail: ok ? "" : String(detail).slice(0, 800) });
-  console.log((ok ? "PASS " : "FAIL ") + name + (ok ? "" : " :: " + String(detail).slice(0, 300)));
+  console.log((ok ? "PASS " : "FAIL ") + name + (ok ? "" : " :: " + String(detail).slice(0, 5000)));
 }
 
 function academyDate(offsetDays = 0) {
