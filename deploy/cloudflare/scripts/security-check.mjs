@@ -665,6 +665,7 @@ assert.match(app, /id="forgot-password"/, "login must expose account recovery");
 assert.match(app, /\/auth\/google\/reset-password/, "account recovery UI must call the Google-verified reset endpoint");
 assert.match(app, /function showGooglePasswordRecovery\(\)/, "account recovery must require a Google identity and new password");
 assert.match(index, /name="robots" content="noindex, nofollow, noarchive"/, "the private student platform must remain excluded from public indexing");
+assert.doesNotMatch(index, /sObKcBBXNx3f__ZPHnJQH0djiKetyoydU9aI3QOG6oc/, "a failed verification token for the obsolete preview host must not remain in the production platform");
 assert.match(serviceWorker, /"\/manifest\.json"/, "the installable PWA manifest must remain in the offline shell");
 assert.match(taysirIndex, /rel="canonical" href="https:\/\/a-taysir\.pages\.dev\//, "the public Taysir portal must declare its canonical Pages URL");
 assert.match(taysirIndex, /name="robots" content="index,follow/, "the public Taysir portal must be indexable");
