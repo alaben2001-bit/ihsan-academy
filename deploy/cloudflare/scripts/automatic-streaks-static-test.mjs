@@ -22,3 +22,8 @@ assert(server.includes("'asr','adhkar','mandatory_classes','quran_classes','brin
 assert(app.includes("سلسلة المواظبة والأوسمة"), "student profile must display streaks and badges");
 assert(app.includes('/points/streak'), "student profile must load automatic streaks and badges");
 console.log("Automatic streaks static checks passed.");
+
+const attendanceStart = server.indexOf('if(path==="/api/attendance"&&method==="POST")');
+const attendanceEnd = server.indexOf('if(path==="/api/quran/progress"&&method==="GET")', attendanceStart);
+const attendanceRoute = server.slice(attendanceStart, attendanceEnd);
+assert(attendanceRoute.includes("date>academyDate()"), "future attendance dates must be rejected before points or streaks are recorded");
