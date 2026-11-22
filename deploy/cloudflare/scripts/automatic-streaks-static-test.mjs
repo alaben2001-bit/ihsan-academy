@@ -11,6 +11,8 @@ assert(server.includes("streak-half:"), "half-points streak bonuses must use an 
 assert(server.includes("Math.floor(baseTotal / 2)"), "streak bonus must equal half of the underlying points earned");
 assert(server.includes("expectedDate === date"), "a streak only advances on the next consecutive calendar day");
 assert(server.includes("student_activity_badges"), "all activity types must retain their own streak badges");
+assert(server.includes("const milestones = [3, 5, 7, 14, 30, 60, 90, 180, 365]"), "streak badges must use the approved milestone sequence");
+assert(server.includes("MAX(points) AS points") && server.includes("GROUP BY event_key"), "base points must count one event once across ledger kinds");
 assert(server.includes("bonus_rate: days >= 3 ? 0.5 : 0"), "the 50 percent bonus begins only after three consecutive days");
 assert(server.includes("if (old?.last_date === date)"), "duplicate same-day entries must not advance a streak");
 assert(server.includes("old?.last_date && old.last_date > date"), "backdated entries must not rewrite the current streak");
