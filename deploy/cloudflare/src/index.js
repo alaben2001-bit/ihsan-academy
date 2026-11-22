@@ -2226,6 +2226,33 @@ export default {
       await log(env,user.id,"google_login");
       return sessionResponse({user:safeUser({id:user.id,name:user.display_name,email:user.identity_normalized,role:user.role,must_change_password:user.must_change_password===1,student_id:student&&student.id,group_id:student&&student.group_id})},token,remember);
     }
+    // Password recovery is granted only after proving the Google identity linked to this account.
+    if (path === "/api/auth/google/reset-password" && method === "POST") {
+      const limited=await rateLimit(env,"google-password-reset",rateLimitKey(request),5,3600);
+      if(!limited.allowed)return fail(429,"محاولات استرداد كثيرة. انتظر قليلًا ثم أعد المحاولة.");
+      const clientId=clean(env.GOOGLE_CLIENT_ID,300);
+      if(!clientId.endsWith(".apps.googleusercontent.com"))return fail(503,"استرداد كلمة المرور بجوجل غير مهيأ بعد.");
+      const parsed=await parseBody(request,18000);if(parsed.error)return parsed.error;
+      const b=parsed.value,credential=String(b.credential||""),nonce=String(b.nonce||""),newPassword=String(b.new_password||"");
+      if(!credential||!/^[a-f0-9]{48,96}$/i.test(nonce))return fail(400,"تعذر بدء التحقق من حساب Google. أعد المحاولة.");
+      if(newPassword.length<10||newPassword.length>256)return fail(400,"كلمة المرور الجديدة يجب أن تكون 10 أحرف على الأقل.");
+      let claims;try{claims=await verifyGoogleIdToken(credential,nonce,clientId)}catch(error){
+        if(String(error&&(error.message||error))==="google_keys_unavailable")return fail(503,"تعذر الاتصال بخدمة التحقق من Google. أعد المحاولة.");
+        return fail(401,"لم نستطع التحقق من حساب Google. أعد المحاولة.");
+      }
+      const account=await env.DB.prepare("SELECT u.id,u.display_name,u.identity_normalized,u.role,u.active FROM google_identities gi JOIN users u ON u.id=gi.user_id WHERE gi.google_sub=? AND u.active=1 LIMIT 1").bind(claims.sub).first();
+      if(!account)return fail(403,"هذا الحساب لا يملك ربط Google سابقًا. تواصل مع إدارة الأكاديمية للتحقق من هويتك واستعادة الدخول.");
+      const token=hex(crypto.getRandomValues(new Uint8Array(32))),passwordHashValue=await passwordHash(newPassword);
+      await env.DB.batch([
+        env.DB.prepare("UPDATE users SET password_hash=?,must_change_password=0 WHERE id=? AND active=1").bind(passwordHashValue,account.id),
+        env.DB.prepare("DELETE FROM sessions WHERE user_id=?").bind(account.id),
+        env.DB.prepare("INSERT INTO sessions(token_hash,user_id,expires_at) VALUES(?,?,?)").bind(await hashToken(token),account.id,new Date(Date.now()+12*60*60*1000).toISOString())
+      ]);
+      const student=account.role==="student"?await env.DB.prepare("SELECT id,group_id FROM students WHERE user_id=? AND active=1").bind(account.id).first():null;
+      try{await log(env,account.id,"google_password_recovery",{})}
+      catch(error){console.error("Ihsan Google password recovery audit log failed",{user_id:account.id,message:String(error?.message||error)})}
+      return sessionResponse({user:safeUser({id:account.id,name:account.display_name,email:account.identity_normalized,role:account.role,must_change_password:0,student_id:student?.id||null,group_id:student?.group_id||null})},token,false);
+    }
     if (path === "/api/login" && method === "POST") {
       const parsed=await parseBody(request); if(parsed.error)return parsed.error; const b=parsed.value;
       const identity=clean(b.identity??b.email,200).toLowerCase(), password=String(b.password||"");
