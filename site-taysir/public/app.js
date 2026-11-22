@@ -26,9 +26,15 @@
     const message = lines.join('\n');
     const feedback = document.querySelector('#form-feedback');
     try {
+      if (navigator.share) {
+        await navigator.share({ title: 'التواصل مع أكاديمية الإحسان', text: message });
+        feedback.textContent = 'فُتحت قائمة المشاركة؛ اختر قناة التواصل المناسبة.';
+        return;
+      }
       await navigator.clipboard.writeText(message);
       feedback.textContent = 'نُسخت الرسالة. أرسلها عبر قناة التواصل الرسمية للأكاديمية.';
-    } catch {
+    } catch (shareError) {
+      if (shareError?.name === 'AbortError') return;
       const area = document.createElement('textarea');
       area.value = message;
       area.setAttribute('readonly', '');
