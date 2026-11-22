@@ -161,6 +161,11 @@ async function main() {
   check("student sees a five-day ward streak and badge", streakView.status === 200 && wardStreak?.current_days === 5 && fiveDayBadge?.points_awarded === 10, JSON.stringify(streakView.data));
   const fajrAward = await call("/api/points/activity", { method: "POST", token: admin, body: { student_id: studentA.id, activity: "fajr", date: today } });
   check("Fajr activity automatically starts its own streak", fajrAward.status === 201 && fajrAward.data?.streak?.days === 1, JSON.stringify(fajrAward.data?.streak));
+  const attendanceSave = await call("/api/attendance", { method: "POST", token: admin, body: { group_id: groupId, date: today, items: [{ student_id: studentA.id, status: "present" }] } });
+  check("present attendance automatically starts an attendance streak", attendanceSave.status === 200, JSON.stringify(attendanceSave.data));
+  const attendanceStreakView = await call("/api/points/streak", { token: studentA.token });
+  const attendanceStreak = (attendanceStreakView.data?.streaks || []).find(row => row.activity === "attendance");
+  check("student can see the automatic attendance streak", attendanceStreakView.status === 200 && attendanceStreak?.current_days === 1, JSON.stringify(attendanceStreakView.data));
 
   const futureLog = await call("/api/quran/daily", { method: "POST", token: studentA.token, body: { kind: "ward", day: academyDate(2), amount: 1 } });
   check("future daily log is rejected", futureLog.status === 400, JSON.stringify(futureLog.data));
