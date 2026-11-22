@@ -33,3 +33,5 @@ assert(attendanceRoute.includes("date>academyDate()"), "future attendance dates 
 assert(server.includes('return fail(410,"تم إيقاف الاعتماد اليدوي للاستمرارية'), "legacy manual streak endpoint must be disabled");
 assert(server.includes('kind:"achievement",points:bonus'), "automatic streak bonus must not increase the store balance");
 assert(!app.includes('id="scan-streak-form"'), "the manual streak award form must be removed from the Sheikh interface");
+
+assert(app.includes("const streakData=res[5]") && app.includes("streakData.streaks") && app.includes("streakData.badges") && app.includes("streakBadgeRows"), "Sheikh panel must render automatic activity badges");
