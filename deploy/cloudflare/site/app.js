@@ -1055,9 +1055,12 @@ v.innerHTML='<div class="loading" role="status" aria-label="تحميل البي�
 function pointsStatusLabel(status){const labels={pending:"قيد المراجعة",approved:"معتمد",rejected:"مرفوض",fulfilled:"منفذ",cancelled:"ملغى"};return labels[status]||status}
 function pointsDate(value){const text=String(value||"");return text?esc(text.replace("T"," ").slice(0,16)):"—"}
 function storeItemImage(item){
- const url=String(item?.image_url||"").trim();
- if(url) return '<img class="store-item-image" src="'+esc(url)+'" alt="'+esc(item.name||"")+'" loading="lazy" onerror="this.style.display=\'none\'">';
- return '<span class="store-reco-icon" aria-hidden="true">'+esc(item?.icon||"??")+'</span>';
+ const raw=String(item?.image_url||"").trim();
+ const safeUrl=/^(https:\/\/|\/[^/])/.test(raw)&&!/[\u0000-\u001f]/.test(raw)?raw:"";
+ return '<div class="store-product-media">'+
+  '<span class="store-reco-icon" aria-hidden="true">'+esc(item?.icon||"🎁")+'</span>'+
+  (safeUrl?'<img class="store-item-image" src="'+esc(safeUrl)+'" alt="'+esc(item.name||"صورة المكافأة")+'" loading="lazy" decoding="async" referrerpolicy="no-referrer" onerror="this.remove()">':"")+
+ '</div>';
 }
 function storeItemState(item,balance){
  const stock=item.stock===null||item.stock===undefined?null:Number(item.stock);
@@ -1085,7 +1088,7 @@ function storeStudentMarkup(store,summary){
  if(reco.affordable.length){
   html+='<div class="store-reco-grid">'+reco.affordable.map(item=>{
    const state=storeItemState(item,balance);
-   return '<article class="store-reco-card"><span class="store-reco-icon" aria-hidden="true">'+esc(item.icon||"🎁")+'</span><span class="eyebrow">متاحة الآن</span><strong>'+esc(item.name)+'</strong><p>'+esc(item.description||"")+'</p><small>'+esc(storeItemFacts(item,balance))+'</small><div class="student-actions"><button class="btn" type="button" data-redeem="'+esc(item.id)+'"'+(state.maxed?" disabled":"")+'>'+(state.maxed?"بلغت الحد الأقصى":"طلب الصرف")+'</button></div></article>';
+   return '<article class="store-reco-card">'+storeItemImage(item)+'<span class="eyebrow">متاحة الآن</span><strong>'+esc(item.name)+'</strong><p>'+esc(item.description||"")+'</p><small>'+esc(storeItemFacts(item,balance))+'</small><div class="student-actions"><button class="btn" type="button" data-redeem="'+esc(item.id)+'"'+(state.maxed?" disabled":"")+'>'+(state.maxed?"بلغت الحد الأقصى":"طلب الصرف")+'</button></div></article>';
   }).join("")+'</div>';
  }else{
   html+='<div class="notice"><strong>لا توجد مكافأة ضمن رصيدك الآن.</strong><p>واصل مهامك؛ كل حركة نقاط مسجلة، ولا نعرض مكافأة لا تستطيع صرفها كأنها متاحة.</p></div>';
@@ -1096,7 +1099,7 @@ function storeStudentMarkup(store,summary){
  }
  const lockedOthers=(reco.locked||[]).filter(item=>String(item.id)!==String(reco.nearest?.id||""));
  if(lockedOthers.length){
-  html+='<div class="store-locked"><span class="eyebrow">مكافآت تحتاج رصيدًا أكبر</span><div class="list">'+lockedOthers.map(item=>'<div class="list-row"><div><strong>'+esc(item.icon||"🎁")+' '+esc(item.name)+'</strong><small>'+esc(storeItemFacts(item,balance))+' · تحتاج '+Math.max(0,Number(item.cost)-balance)+' إضافية</small></div><span class="pill">مقفلة مؤقتًا</span></div>').join("")+'</div></div>';
+  html+='<div class="store-locked"><span class="eyebrow">مكافآت تحتاج رصيدًا أكبر</span><div class="store-reco-grid">'+lockedOthers.map(item=>'<article class="store-reco-card store-reco-card--locked">'+storeItemImage(item)+'<strong>'+esc(item.name)+'</strong><small>'+esc(storeItemFacts(item,balance))+' · تحتاج '+Math.max(0,Number(item.cost)-balance)+' إضافية</small><span class="pill">مقفلة مؤقتًا</span></article>').join("")+'</div></div>';
  }
  const exhausted=[];
  if((reco.sold_out||[]).length)exhausted.push("نفدت كميتها: "+reco.sold_out.join("، "));

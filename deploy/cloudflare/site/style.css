@@ -3979,3 +3979,13 @@ html:root:root .ranking-note{margin:10px 0 0;color:#b99aa2!important;line-height
 @keyframes ihsan-toast-in{from{opacity:0;transform:translateY(12px) scale(.985)}to{opacity:1;transform:translateY(0) scale(1)}}
 .ihsan-module-transition .shell{will-change:opacity,transform}
 @media(prefers-reduced-motion:reduce){.toast{animation:none!important}.ihsan-module-transition .shell{will-change:auto}}
+
+
+/* Product imagery: real, owner-approved rewards only */
+.store-product-media{position:relative;display:grid;place-items:center;width:100%;height:168px;overflow:hidden;border-radius:14px;border:1px solid var(--line);background:linear-gradient(145deg,var(--surface-2),var(--mint));}
+.store-product-media .store-reco-icon{width:100%;height:100%;border:0;border-radius:0;background:transparent;font-size:46px;}
+.store-product-media .store-item-image{position:absolute;inset:0;width:100%;height:100%;object-fit:contain;margin:0;padding:10px;border-radius:0;background:var(--surface);}
+.store-reco-card--locked{opacity:.84}
+.store-reco-card--locked .store-product-media .store-item-image{filter:saturate(.7)}
+@media(max-width:680px){.store-product-media{height:190px}.store-reco-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.store-reco-card{padding:12px}.store-reco-card strong{font-size:14px}.store-reco-card p{font-size:11.5px}}
+@media(max-width:390px){.store-reco-grid{grid-template-columns:minmax(0,1fr)}}
