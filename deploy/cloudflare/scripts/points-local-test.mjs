@@ -103,6 +103,9 @@ async function main() {
   const noReason = await call("/api/points/award", { method: "POST", token: admin, body: { student_id: student.id, achievement_points: 5, store_points: 5 } });
   check("manual award without reason is rejected", noReason.status === 400, JSON.stringify(noReason.data));
 
+  const missingRequestId = await call("/api/points/award", { method: "POST", token: admin, body: { student_id: student.id, points: 5, reason: "اختبار بلا معرّف" } });
+  check("manual award without request_id is rejected", missingRequestId.status === 400, JSON.stringify(missingRequestId.data));
+
   const awardBody = { student_id: student.id, achievement_points: 30, store_points: 30, reason: "اختبار المنح اليدوي", request_id: "test-award-001" };
   const award1 = await call("/api/points/award", { method: "POST", token: admin, body: awardBody });
   check("manual award succeeds", award1.status === 201 && award1.data?.totals?.achievement === 30 && award1.data?.totals?.store === 30, JSON.stringify(award1.data));
