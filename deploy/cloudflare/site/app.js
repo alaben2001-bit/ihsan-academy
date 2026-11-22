@@ -2397,7 +2397,9 @@ async function renderScanPanel(v,studentId){
   today=res[2].status==="fulfilled"?res[2].value:{enrolled:false,logs:{}};
   events=res[3].status==="fulfilled"?res[3].value:[];
   const ethics=res[4]?.status==="fulfilled"?res[4].value:null;
-  const streaks=res[5]?.status==="fulfilled"?res[5].value:[];
+  const streakData=res[5]?.status==="fulfilled"?res[5].value:{streaks:[],badges:[]};
+  const streaks=Array.isArray(streakData)?streakData:(streakData.streaks||[]);
+  const streakBadges=Array.isArray(streakData.badges)?streakData.badges:[];
   const referrals=res[6]?.status==="fulfilled"?res[6].value:[];
   const s=summary.student||{},t=summary.totals||{};
   const info=(pathData&&pathData.path)||null;
@@ -2426,10 +2428,13 @@ async function renderScanPanel(v,studentId){
   const canGrantPoints=S.user.role==="admin";
   const pointsTaskSelected=S.scanTaskType==="points"||S.scanTaskType==="general";
   const referralOptions=(S.students||[]).filter(st=>String(st.id)!==String(studentId)).map(st=>'<option value="'+esc(st.id)+'">'+esc(st.name||st.display_name||"طالب")+'</option>').join("");
-  const streakRows=(streaks||[]).map(x=>'<div class="list-row"><strong>'+esc({hifz:"الحفظ",fajr:"الفجر",shuruq:"الشروق"}[x.activity]||x.activity)+'</strong><span class="pill">'+Number(x.current_days)+' يوم · آخر تسجيل '+esc(x.last_date||"—")+'</span></div>').join("");
+  const streakLabels={hifz:"الحفظ",thabit:"التثبيت",ward:"الورد",wird:"الورد اليومي",asr:"صلاة العصر",adhkar:"الأذكار",mandatory_classes:"الحصص الإلزامية",quran_classes:"حصص القرآن",bring:"إحضار المطلوب",fajr:"صلاة الفجر",shuruq:"الشروق",maghrib:"صلاة المغرب",attendance:"الحضور"};
+  const streakMilestones={3:"بداية موفقة",5:"ثابت خمسة أيام",7:"مواظب أسبوعًا",14:"همة أسبوعين",30:"صاحب الهمة – 30 يومًا",60:"ثبات شهرين",90:"همة 90 يومًا",180:"نصف عام من المواظبة",365:"عام من الثبات"};
+  const streakRows=streaks.map(x=>'<div class="list-row"><strong>'+esc(streakLabels[x.activity]||x.activity)+'</strong><span class="pill">'+Number(x.current_days)+' يوم · آخر تسجيل '+esc(x.last_date||"—")+'</span></div>').join("");
+  const streakBadgeRows=streakBadges.map(x=>'<div class="list-row"><div><strong>🏅 '+esc(streakMilestones[Number(x.milestone_days)]||("وسام "+x.milestone_days+" يوم"))+'</strong><small>'+esc(streakLabels[x.activity]||x.activity)+' · '+esc(x.awarded_at||"")+'</small></div><strong>+'+Number(x.points_awarded||0)+'</strong></div>').join("");
   const referralRows=(referrals||[]).filter(x=>x.status==="pending").map(x=>'<div class="list-row"><div><strong>'+esc(x.invited_name||"الزميل")+'</strong><small>دُعي بواسطة '+esc(x.inviter_name||"")+' · '+pointsDate(x.created_at)+'</small></div><button class="btn secondary" type="button" data-referral-confirm="'+esc(x.id)+'">اعتماد بعد أسبوع</button></div>').join("");
   const adminPointTools=isSheikh
-    ?'<section class="card"><h4>الاستمرارية</h4><p class="muted small">تُحتسب سلاسل الأنشطة ومكافآتها تلقائيًا من سجلات اليوم؛ لا يلزم اعتماد يدوي أو إدخال نقاط أساسية هنا.</p><div class="list">'+(streakRows||'<p class="muted">لم تبدأ سلسلة بعد.</p>')+'</div>'
+    ?'<section class="card"><h4>الاستمرارية</h4><p class="muted small">تُحتسب سلاسل الأنشطة ومكافآتها تلقائيًا من سجلات اليوم؛ لا يلزم اعتماد يدوي أو إدخال نقاط أساسية هنا.</p><div class="list">'+(streakRows||'<p class="muted">لم تبدأ سلسلة بعد.</p>')+'</div><h4>الأوسمة</h4><div class="list">'+(streakBadgeRows||'<p class="muted">لم يحصل الطالب على أوسمة بعد.</p>')+'</div>'
     +'<h4>الأخلاق والتنبيهات</h4><p class="muted small">التنبيهات المعتمدة تُسجّل بسببها. بعد ثلاثة تنبيهات يتوقف امتياز المضاعفة؛ والحرمان النهائي لا يُعاد.</p><div class="notice">التنبيهات: '+Number(ethics?.warnings||0)+' · حالة المضاعفة: '+esc({active:"مفعّلة",suspended:"موقوفة بعد 3 تنبيهات",forfeited:"حرمان نهائي"}[ethics?.multiplier_status||"active"])+'</div><form id="scan-ethics-form" class="form-grid"><label class="field">الإجراء<select name="action"><option value="warning">تسجيل تنبيه</option><option value="award">منح مكافأة الأخلاق</option><option value="forfeit">حرمان نهائي من المضاعفة</option><option value="restore">إعادة الامتياز (إن لم يكن نهائيًا)</option></select></label><label class="field">خصم النقاط بعد التنبيه الثالث<input name="deduction_points" type="number" min="1" max="1000" placeholder="اختياري قبل التنبيه الرابع"></label><label class="field full">السبب (إلزامي)<input name="reason" required minlength="3" maxlength="500"></label><button class="btn danger" type="submit">اعتماد الإجراء</button></form>'
     +'<h4>إحضار زميل</h4><form id="scan-referral-form" class="form-grid"><label class="field">الزميل الجديد<select name="invited_student_id" required><option value="">اختر الطالب</option>'+referralOptions+'</select></label><button class="btn" type="submit">تسجيل الإحالة</button></form><div class="list">'+(referralRows||'<p class="muted">لا توجد إحالات معلّقة.</p>')+'</div></section>'
     :'<div class="notice">اعتماد النقاط والمكافآت والتنبيهات والاستمرارية من صلاحية الشيخ وحده.</div>';
