@@ -4852,15 +4852,18 @@ export default {
       if(resolved.error)return resolved.error;
       const studentId=resolved.student.id;
       const pathRow=await quranPathRow(env,studentId);
-      const totalsRow=await env.DB.prepare("SELECT kind,COUNT(*) AS days,COALESCE(SUM(amount),0) AS total FROM quran_daily WHERE student_id=? GROUP BY kind").bind(studentId).all();
+      const totalsRow=await env.DB.prepare("SELECT kind,COUNT(*) AS days,COALESCE(SUM(amount),0) AS total FROM quran_daily WHERE student_id=? AND approval_status='approved' GROUP BY kind").bind(studentId).all();
+      const pendingRow=await env.DB.prepare("SELECT kind,COUNT(*) AS days FROM quran_daily WHERE student_id=? AND approval_status='pending' GROUP BY kind").bind(studentId).all();
       const byKind={hifz:{days:0,total:0},thabit:{days:0,total:0},ward:{days:0,total:0}};
+      const pending={hifz:0,thabit:0,ward:0};
       for(const row of totalsRow.results||[])if(byKind[row.kind])byKind[row.kind]={days:Number(row.days||0),total:Number(row.total||0)};
+      for(const row of pendingRow.results||[])if(Object.prototype.hasOwnProperty.call(pending,row.kind))pending[row.kind]=Number(row.days||0);
       const stations=await env.DB.prepare("SELECT status,COUNT(*) AS n FROM quran_stations WHERE student_id=? GROUP BY status").bind(studentId).all();
       const stationCounts={};for(const row of stations.results||[])stationCounts[row.status]=Number(row.n||0);
       const makeups=await env.DB.prepare("SELECT status,COUNT(*) AS n FROM quran_makeups WHERE student_id=? GROUP BY status").bind(studentId).all();
       const makeupCounts={};for(const row of makeups.results||[])makeupCounts[row.status]=Number(row.n||0);
-      const recent=await env.DB.prepare("SELECT day,kind,amount,unit FROM quran_daily WHERE student_id=? ORDER BY day DESC LIMIT 30").bind(studentId).all();
-      return json({enrolled:Boolean(pathRow),path:quranPathPayload(pathRow),totals:byKind,stations:stationCounts,makeups:makeupCounts,streak:await quranStreak(env,studentId),recent:recent.results||[]});
+      const recent=await env.DB.prepare("SELECT day,kind,amount,unit,approval_status,approval_note,reviewed_at FROM quran_daily WHERE student_id=? ORDER BY day DESC LIMIT 30").bind(studentId).all();
+      return json({enrolled:Boolean(pathRow),path:quranPathPayload(pathRow),totals:byKind,pending,stations:stationCounts,makeups:makeupCounts,streak:await quranStreak(env,studentId),recent:recent.results||[]});
     }
     if(path==="/api/curriculum"&&method==="GET"){
       const custom=await scopedRecords(env,user,"lessons",user.role==="student");
