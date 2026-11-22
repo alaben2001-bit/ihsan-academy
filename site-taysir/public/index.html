@@ -11,6 +11,7 @@
   <meta property="og:description" content="نتعاون على بناء الإنسان بالقرآن والعلم والتربية.">
   <meta property="og:image" content="/media/hero-social.svg">
   <meta name="color-scheme" content="dark">
+  <meta name="robots" content="noindex,nofollow">
   <link rel="icon" href="/media/mark.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/styles.css">
   <script defer src="/media/hero-inline.js"></script>
@@ -135,9 +136,21 @@
       </div>
     </section>
 
+    <section class="faq-section section-block" id="faq">
+      <div class="section-shell">
+        <div class="section-heading centered"><p class="eyebrow">أسئلة مختصرة</p><h2>قبل أن <em>تبدأ.</em></h2></div>
+        <div class="faq-grid">
+          <article><h3>هل المنصة هي الأكاديمية نفسها؟</h3><p>التيسير بوابة تعريفية وإرشادية، أما متابعة الطالب وبرامجه فتكون عبر منصة الأكاديمية التعليمية.</p></article>
+          <article><h3>هل يستطيع الطالب الانضمام مباشرة؟</h3><p>تعرّف على الرحلة أولاً، ثم تواصل مع إدارة الأكاديمية لتحديد آلية الانضمام المناسبة.</p></article>
+          <article><h3>كيف أساهم؟</h3><p>يمكنك عرض وقتك أو خبرتك أو احتياج عيني أو شراكة، وتُنسق التفاصيل مع إدارة الأكاديمية.</p></article>
+          <article><h3>هل تُنشر صور الطلاب؟</h3><p>نحفظ خصوصية الطلاب؛ ولا تُنشر صورهم أو أسماؤهم أو أصواتهم إلا بإذن مناسب.</p></article>
+        </div>
+      </div>
+    </section>
+
     <section class="contact-section section-block" id="contact">
       <div class="section-shell contact-layout">
-        <div><p class="eyebrow">خطوتك التالية</p><h2>هل تريد الانضمام<br>أو <em>المساهمة؟</em></h2><p>اكتب لنا نوع اهتمامك، وسنجهز لك رسالة مختصرة تنسخها وترسلها عبر قناة التواصل الرسمية للأكاديمية.</p></div>
+        <div><p class="eyebrow">خطوتك التالية</p><h2>هل تريد الانضمام<br>أو <em>المساهمة؟</em></h2><p>اكتب نوع اهتمامك، وسنجهز لك رسالة يمكنك مشاركتها من هاتفك أو نسخها لإرسالها عبر قناة الأكاديمية الرسمية. لا تُرسل هذه الاستمارة بياناتك إلى خادم ولا تحفظها المنصة.</p></div>
         <form id="interest-form" class="interest-form">
           <label>أنا مهتم بـ
             <select name="interest" required><option value="">اختر نوع الاهتمام</option><option>الانضمام طالباً</option><option>التطوع والمساندة</option><option>المساهمة العينية</option><option>الشراكة التجارية</option><option>التواصل العام</option></select>
@@ -145,7 +158,7 @@
           <label>الاسم (اختياري)<input name="name" maxlength="80" autocomplete="name" placeholder="اسمك"></label>
           <label>رسالة مختصرة (اختياري)<textarea name="message" rows="3" maxlength="500" placeholder="كيف ترغب أن تشارك؟"></textarea></label>
           <button class="button button-gold" type="submit">جهّز رسالة التواصل <span aria-hidden="true">←</span></button>
-          <p class="form-feedback" id="form-feedback" role="status" aria-live="polite"></p>
+          <p class="form-feedback" id="form-feedback" role="status" aria-live="polite"></p><p class="form-privacy">لا تكتب بيانات حساسة أو معلومات خاصة بالطلاب في هذه الرسالة.</p>
         </form>
       </div>
     </section>
