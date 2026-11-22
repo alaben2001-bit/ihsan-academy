@@ -436,14 +436,11 @@ async function cardRecord(env, cardId) {
   if (!matches.length) return null;
   // Fail closed: never choose arbitrarily between multiple cards for one student.
   if (matches.length > 1) throw new Error("student_card_duplicate_records");
-  try {
-    const card = JSON.parse(matches[0].payload_json);
-    if (!card || card.id !== card.student_id || card.id !== matches[0].id) throw new Error("student_card_identity_mismatch");
-    return card;
-  } catch (error) {
-    if (error?.message === "student_card_identity_mismatch") throw error;
-    return null;
-  }
+  let card;
+  try { card = JSON.parse(matches[0].payload_json); }
+  catch { throw new Error("student_card_identity_mismatch"); }
+  if (!card || card.id !== card.student_id || card.id !== matches[0].id) throw new Error("student_card_identity_mismatch");
+  return card;
 }
 async function ensureStudentCard(env, student, actorId = null) {
   if (!student?.id) throw new Error("student_card_requires_student_id");
