@@ -1705,8 +1705,8 @@ async function recordAutomaticActivityStreak(env, { studentId, groupId, activity
   if (days >= 3 && baseTotal > 0) {
     const earnedTarget = Math.floor(baseTotal / 2);
     const prefix = "streak-half:" + studentId + ":" + activity + ":" + startDate + ":";
-    const prior = await env.DB.prepare("SELECT COALESCE(SUM(points),0) AS points FROM point_events WHERE student_id=? AND event_type='streak_bonus' AND kind='achievement' AND event_key LIKE ? AND reversed_at IS NULL")
-      .bind(studentId, prefix + "%").first();
+    const prior = await env.DB.prepare("SELECT COALESCE(SUM(points),0) AS points FROM point_events WHERE student_id=? AND event_type='streak_bonus' AND kind='achievement' AND substr(event_key,1,?)=? AND reversed_at IS NULL")
+      .bind(studentId, prefix.length, prefix).first();
     bonus = Math.max(0, earnedTarget - Number(prior?.points || 0));
     if (bonus > 0) {
       await insertPointEvent(env, {
