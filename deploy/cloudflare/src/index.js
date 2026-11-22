@@ -1760,6 +1760,11 @@ async function recordAutomaticActivityStreak(env, { studentId, groupId, activity
     const kind = activity === "ward" ? "ward" : activity;
     clauses.push("(event_type IN ('quran_entry','quran_reading') AND source_collection='quran_daily' AND source_id IN (SELECT id FROM quran_daily WHERE student_id=? AND kind=? AND day BETWEEN ? AND ?))");
     binds.push(studentId, kind, startDate, date);
+    if(activity==="hifz"||activity==="thabit"){
+      const progressActivity=activity==="hifz"?"memorization":"revision";
+      clauses.push("(event_type='quran_entry' AND source_collection='quran_progress' AND source_id IN (SELECT id FROM academy_records WHERE collection='quran_progress' AND json_extract(payload_json,'$.student_id')=? AND json_extract(payload_json,'$.activity')=? AND json_extract(payload_json,'$.date') BETWEEN ? AND ?))");
+      binds.push(studentId,progressActivity,startDate,date);
+    }
   }
   const baseRows = clauses.length ? await env.DB.prepare(
     "SELECT event_key,MAX(points) AS points FROM point_events WHERE student_id=? AND awarded_date BETWEEN ? AND ? AND reversed_at IS NULL AND (" + clauses.join(" OR ") + ") GROUP BY event_key"
@@ -3382,8 +3387,18 @@ export default {
       const requestedRecordId=clean(b.id,80),row={id:requestedRecordId&&/^offline-[a-f0-9-]{20,60}$/i.test(requestedRecordId)?requestedRecordId:uuid(),student_id:studentId,group_id:st.group_id,date,activity,memorized,reviewed,recitation,errors,grade,corrected,feedback,next_assignment:nextAssignment,notes,teacher_id:user.id,created_at:nowIso(),updated_at:nowIso()};
       if(requestedRecordId&&row.id===requestedRecordId){const existing=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='quran_progress' AND id=?").bind(row.id).first();if(existing){let prior;try{prior=JSON.parse(existing.payload_json)}catch{return fail(500,"تعذّرت قراءة سجل محفوظ")};if(prior.student_id!==studentId||prior.teacher_id!==user.id||prior.date!==date)return fail(409,"يتعارض معرّف التسجيل مع سجل آخر؛ لم تُغيّر البيانات");return json(prior,200)}}
       await saveRecord(env,"quran_progress",row);
-      await awardPointsForEvent(env,{studentId,groupId:st.group_id,eventType:"quran_entry",eventKey:"quran:"+row.id,date,reason:"متابعة قرآنية ("+activity+")",sourceCollection:"quran_progress",sourceId:row.id,awardedBy:user.id});
-      await log(env,user.id,"quran_progress_add",{student_id:studentId,activity,errors,grade});
+      const dailyKind=activity==="memorization"?"hifz":activity==="revision"?"thabit":null;
+      const dailyEntry=dailyKind?await env.DB.prepare("SELECT id,approval_status FROM quran_daily WHERE student_id=? AND day=? AND kind=?").bind(studentId,date,dailyKind).first():null;
+      let pointsSource="quran_progress",pointsSourceId=row.id,pointsEventKey="quran:"+row.id;
+      if(dailyEntry?.approval_status==="pending"){
+        await env.DB.prepare("UPDATE quran_daily SET approval_status='approved',reviewed_by=?,reviewed_at=?,approval_note='' WHERE id=? AND approval_status='pending'").bind(user.id,nowIso(),dailyEntry.id).run();
+        pointsSource="quran_daily";pointsSourceId=dailyEntry.id;pointsEventKey="quran_daily:"+dailyEntry.id;
+      }
+      if(dailyEntry?.approval_status!=="approved"){
+        await awardPointsForEvent(env,{studentId,groupId:st.group_id,eventType:"quran_entry",eventKey:pointsEventKey,date,reason:"متابعة قرآنية ("+activity+")",sourceCollection:pointsSource,sourceId:pointsSourceId,awardedBy:user.id});
+        if(dailyKind)await recordAutomaticActivityStreak(env,{studentId,groupId:st.group_id,activity:dailyKind,date,awardedBy:user.id});
+      }
+      await log(env,user.id,"quran_progress_add",{student_id:studentId,activity,errors,grade,linked_daily_id:dailyEntry?.id||null});
       return json(row,201);
     }
     const quranProgressMatch=path.match(/^\/api\/quran\/progress\/([^/]+)$/);
