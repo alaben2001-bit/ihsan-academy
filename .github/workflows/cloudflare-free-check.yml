@@ -61,6 +61,8 @@ jobs:
           done
       - name: Run student journey and store tests
         run: node scripts/journey-store-test.mjs
+      - name: Preview local store balance separation
+        run: npx wrangler d1 execute ihsan-academy-students --local --file scripts/store-balance-cutover-preview.sql
       - name: Snapshot local store balances before separation tests
         run: npx wrangler d1 execute ihsan-academy-students --local --file scripts/store-balance-cutover-snapshot.sql
       - name: Run points economy tests
