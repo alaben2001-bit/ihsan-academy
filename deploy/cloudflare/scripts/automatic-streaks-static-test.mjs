@@ -7,7 +7,11 @@ assert(server.includes("recordAutomaticActivityStreak"), "daily Quran entries mu
 assert(server.includes("student_activity_streaks"), "automatic streak storage must be separate and additive");
 assert(server.includes("student_streak_badges"), "milestone badges must be retained as history");
 assert(server.includes('activity:kind,date:day'), "each daily Quran activity must update its own streak");
-assert(server.includes("streak-auto:"), "automatic milestone points must use an idempotency key");
+assert(server.includes("streak-half:"), "half-points streak bonuses must use an idempotency key");
+assert(server.includes("Math.floor(baseTotal / 2)"), "streak bonus must equal half of the underlying points earned");
+assert(server.includes("expectedDate === date"), "a streak only advances on the next consecutive calendar day");
+assert(server.includes("student_activity_badges"), "all activity types must retain their own streak badges");
+assert(server.includes("bonus_rate: days >= 3 ? 0.5 : 0"), "the 50 percent bonus begins only after three consecutive days");
 assert(server.includes("if (old?.last_date === date)"), "duplicate same-day entries must not advance a streak");
 assert(server.includes("old?.last_date && old.last_date > date"), "backdated entries must not rewrite the current streak");
 assert(server.includes('if(status==="done")await recordAutomaticActivityStreak'), "completed daily effort categories must update streaks automatically");
