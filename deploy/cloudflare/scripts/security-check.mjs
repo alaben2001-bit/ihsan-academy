@@ -650,6 +650,19 @@ assert.match(index, /ihsan-rules\.html/, "the Cloudflare entry page must link to
 
 assert.doesNotMatch(app, /points_awarded\|\|0/, "badge UI must not show zero-point labels");
 
+assert.doesNotMatch(app, /WORLD_STAGES|worldStage\(/, "deferred level progression must not remain in the student UI or guide");
+assert.match(app, /إنجازات تستحق الاعتزاز/, "student world must show earned badges instead of levels");
+assert.match(app, /أوسمة إنجاز/, "the student card must show badges rather than a level label");
+assert.match(app, /رصيدان منفصلان/, "the guide must explain the separate achievement and store balances");
+assert.match(app, /الرصيد الحالي/, "legacy students must see one truthful balance until the safe cutover");
+assert.match(app, /نقاط الإنجاز<\/th><th>رصيد المتجر/, "point rules must display achievement and store amounts separately");
+assert.match(app, /const balanceStats=summary\.totals\.mode==="separate"/, "legacy balance must not be displayed as two separate balances before cutover");
+assert.match(app, /الرصيد الحالي تاريخي موحّد ومحفوظ كما هو/, "legacy students must receive a clear explanation that historical balances are not yet separated");
+assert.match(app, /الرصيد الحالي المتاح/, "the store must not mislabel a legacy combined balance as a separate store balance");
+assert.doesNotMatch(app, /رصيدك هو مجموع نقاطك، وتستخدم النقاط نفسها/, "obsolete one-wallet wording must not remain after the balance separation design");
+
+
+
 assert.match(backend, /path === "\/api\/auth\/google\/signup"/, "new account creation must use the dedicated Google-verified endpoint");
 assert.match(backend, /claims\.email_verified===true\|\|claims\.email_verified==="true"/, "Google identities must have a verified email claim");
 assert.match(backend, /INSERT INTO google_identities \(google_sub,user_id,email,linked_at\)/, "Google signup must persist the verified subject-to-account link");

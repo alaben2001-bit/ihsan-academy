@@ -1137,15 +1137,17 @@ function storeItemFacts(item,balance){
  if(state.max!==null)parts.push("الحد لكل طالب: "+state.max+(state.used?" · استخدمت: "+state.used:""));
  return parts.join(" · ");
 }
-function storeTermsMarkup(){
- return '<details class="store-terms"><summary>شروط الصرف قبل أن تطلب</summary><ul><li>طلبك يُراجع من الشيخ أو الإدارة قبل التنفيذ، ولا يُسلَّم تلقائيًا.</li><li>يُحجز مبلغ المكافأة من رصيد النقاط فور الطلب، ويُعاد تلقائيًا إذا رُفض الطلب.</li><li>بعد تنفيذ الطلب لا يمكن إلغاؤه؛ تأكد من اختيارك.</li><li>رصيدك هو مجموع نقاطك، وتستخدم النقاط نفسها لطلب المكافآت من المتجر.</li><li>لا نعرض مكافأة نفدت كميتها أو بلغت حدّها؛ ونُحدّث المتاح فور الطلب.</li></ul></details>';
+function storeTermsMarkup(summary){
+ const balanceNote=summary?.totals?.mode==="separate"?"رصيد المتجر مستقل عن نقاط الإنجاز، ويُستخدم للاستبدال فقط.":"الرصيد الحالي موحّد تاريخيًا؛ سيظهر رصيد المتجر منفصلًا بعد اكتمال الفصل الآمن وحفظ الأرصدة السابقة.";
+ return '<details class="store-terms"><summary>شروط الصرف قبل أن تطلب</summary><ul><li>طلبك يُراجع من الشيخ أو الإدارة قبل التنفيذ، ولا يُسلَّم تلقائيًا.</li><li>يُحجز مبلغ المكافأة من الرصيد المتاح فور الطلب، ويُعاد تلقائيًا إذا رُفض الطلب.</li><li>بعد تنفيذ الطلب لا يمكن إلغاؤه؛ تأكد من اختيارك.</li><li>'+balanceNote+'</li><li>لا نعرض مكافأة نفدت كميتها أو بلغت حدّها؛ ونُحدّث المتاح فور الطلب.</li></ul></details>';
 }
 function storeStudentMarkup(store,summary){
  const reco=store?.recommendations||null;
  const balance=Number(reco?.balance??store?.balance??summary?.totals?.store??0);
- let html='<section class="card store-student"><div class="section-head"><div><span class="eyebrow">متجر المكافآت</span><h3>مكافآت حقيقية، لا وهم</h3><p>نعرض فقط ما اعتمدته الإدارة ومتوفر فعليًا. رصيد النقاط الحالي: <strong>'+balance+'</strong>.</p></div></div>';
+ const balanceLabel=summary?.totals?.mode==="separate"?"رصيد المتجر":"الرصيد الحالي المتاح";
+ let html='<section class="card store-student"><div class="section-head"><div><span class="eyebrow">متجر المكافآت</span><h3>مكافآت حقيقية، لا وهم</h3><p>نعرض فقط ما اعتمدته الإدارة ومتوفر فعليًا. '+balanceLabel+': <strong>'+balance+'</strong>.</p></div></div>';
  if(!reco||reco.empty){
-  html+='<div class="store-empty-honest"><strong>المتجر فارغ بصدق.</strong><p>لم تعتمد الإدارة مكافآت حقيقية بعد، ولن نعرض لك منتجات وهمية أو صورًا تجريبية. سيظهر هنا كل ما يُعتمد فعليًا مع تكلفته ومخزونه وشروطه.</p><small>رصيدك محفوظ ولا ينقص بانتظار إضافة المكافآت.</small></div>'+storeTermsMarkup()+'</section>';
+  html+='<div class="store-empty-honest"><strong>المتجر فارغ بصدق.</strong><p>لم تعتمد الإدارة مكافآت حقيقية بعد، ولن نعرض لك منتجات وهمية أو صورًا تجريبية. سيظهر هنا كل ما يُعتمد فعليًا مع تكلفته ومخزونه وشروطه.</p><small>رصيدك محفوظ ولا ينقص بانتظار إضافة المكافآت.</small></div>'+storeTermsMarkup(summary)+'</section>';
   return html;
  }
  if(reco.affordable.length){
@@ -1168,7 +1170,7 @@ function storeStudentMarkup(store,summary){
  if((reco.sold_out||[]).length)exhausted.push("نفدت كميتها: "+reco.sold_out.join("، "));
  if((reco.maxed||[]).length)exhausted.push("بلغت حدّها لك: "+reco.maxed.join("، "));
  if(exhausted.length)html+='<p class="muted small store-exhausted">'+esc(exhausted.join(" · "))+'</p>';
- html+=storeTermsMarkup()+'</section>';
+ html+=storeTermsMarkup(summary)+'</section>';
  return html;
 }
 function storeStaffMarkup(store,canEdit){
@@ -1218,8 +1220,11 @@ async function pointsPage(v){
  const eventRows=(summary.recent||[]).map(e=>'<div class="list-row"><div><strong>'+esc(e.reason||e.event_type)+'</strong><small>'+esc(e.kind_label)+' · '+pointsDate(e.created_at)+(e.reversed?' · معكوسة: '+esc(e.reversal_reason||""):"")+'</small></div><div style="display:flex;gap:8px;align-items:center"><span class="pill">'+(Number(e.points)>0?"+":"")+Number(e.points)+'</span>'+(S.user.role==="admin"&&!e.reversed&&e.event_type!=="store_redemption"?'<button class="btn secondary" type="button" data-reverse="'+esc(e.id)+'">عكس</button>':"")+'</div></div>').join("");
  let html=head("النقاط والمتجر",isStudent?"رصيدك وسجل حركاتك وطلبات الصرف.":"متابعة نقاط الطالب وإدارة المتجر وقواعد المنح.");
  if(!isStudent)html+='<div class="card"><label class="field">اختر الطالب<select id="points-student-select">'+students.map(st=>'<option value="'+esc(st.id)+'"'+(st.id===studentId?" selected":"")+'>'+esc(st.name||st.display_name||"طالب")+'</option>').join("")+'</select></label><p class="muted small">الفوج: '+esc(summary.student.group_name||"—")+'</p></div>';
- html+='<div class="stats"><div class="stat"><small>نقاط الإنجاز</small><strong>'+Number(summary.totals.achievement||0)+'</strong></div><div class="stat"><small>رصيد المتجر</small><strong>'+Number(summary.totals.store??summary.totals.balance??0)+'</strong></div><div class="stat"><small>طلبات قيد المراجعة</small><strong>'+Number(summary.pending_redemptions)+'</strong></div></div>';
- html+='<div class="notice">نقاط الإنجاز توثّق التعلم والمواظبة، ورصيد المتجر مخصص للجوائز. مكافآت الاستمرارية تُضاف إلى نقاط الإنجاز ولا تُضاف إلى رصيد المتجر.'+(summary.totals.mode==="legacy"?' الرصيد الحالي محفوظ كما هو حتى اعتماد فصل الحسابات.':'')+'</div>';
+ const balanceStats=summary.totals.mode==="separate"
+  ?'<div class="stat"><small>نقاط الإنجاز</small><strong>'+Number(summary.totals.achievement||0)+'</strong></div><div class="stat"><small>رصيد المتجر</small><strong>'+Number(summary.totals.store??summary.totals.balance??0)+'</strong></div>'
+  :'<div class="stat"><small>الرصيد الحالي</small><strong>'+Number(summary.totals.balance??summary.totals.store??0)+'</strong></div>';
+ html+='<div class="stats">'+balanceStats+'<div class="stat"><small>طلبات قيد المراجعة</small><strong>'+Number(summary.pending_redemptions)+'</strong></div></div>';
+ html+='<div class="notice">'+(summary.totals.mode==="separate"?'نقاط الإنجاز توثّق التعلم والمواظبة، ورصيد المتجر مخصص للاستبدال، ومكافآت الاستمرارية لا تزيد رصيد المتجر.':'الرصيد الحالي تاريخي موحّد ومحفوظ كما هو؛ لا نعرضه كرصدين منفصلين حتى يكتمل فصل الحسابات الآمن. لن تُحذف أي حركة أو يُعاد احتساب تاريخ الطالب.')+'</div>';
  html+=isStudent?storeStudentMarkup(store,summary):storeStaffMarkup(store,S.user.role==="admin");
  html+='<section class="card"><h3>طلبات الصرف</h3><div class="list">'+(redemptionRows||'<p class="muted">لا توجد طلبات صرف بعد.</p>')+'</div></section>';
  if(S.user.role==="admin")html+='<section class="card"><h3>منح النقاط — الشيخ فقط</h3><form id="points-award-form" class="form-grid"><label class="field">عدد النقاط<input name="points" type="number" min="1" max="1000" required value="10"></label><label class="field">سبب المنح (إلزامي)<input name="reason" required minlength="3" maxlength="500"></label><button class="btn" type="submit">اعتماد النقاط</button></form></section>';
@@ -1639,21 +1644,6 @@ async function tasksPage(v){
  v.innerHTML=html;
  document.querySelectorAll("[data-task-go]").forEach(btn=>btn.onclick=()=>go(btn.dataset.taskGo));
 }
-const WORLD_STAGES=[
- {min:0,name:"البذرة",title:"بداية الطريق",icon:"🌱",line:"كل بستان يبدأ ببذرة؛ خطوتك الأولى اليوم هي أصل ما تراه غدًا."},
- {min:80,name:"النبتة",title:"نبتة صاعدة",icon:"🌿",line:"بدأت خطواتك تؤتي أكلها؛ حافظ على الورد ولا تنتظر دفعة واحدة."},
- {min:250,name:"الشجرة",title:"شجرة مثمرة",icon:"🌳",line:"علمك صار شجرة تُظلّك وتُثمر؛ ثبّت الجذور بالمراجعة."},
- {min:600,name:"البستان",title:"بستان الإحسان",icon:"🌺",line:"تفتّحت فيك أبواب الخير؛ اجعل أثر العلم ظاهرًا في خُلقك."},
- {min:1200,name:"النور",title:"نور المعرفة",icon:"✨",line:"صرت علامة على الجدّ والثبات؛ فكن قدوة في الأدب قبل الدرجة."},
- {min:2400,name:"المحراب",title:"محبّ العلم",icon:"🕌",line:"بلغت مرتبة يحبها أهل العلم؛ فازدد تواضعًا وإتقانًا ورفقًا."}
-];
-function worldStage(points){
- const value=Number(points||0);let index=0;
- for(let i=0;i<WORLD_STAGES.length;i++)if(value>=WORLD_STAGES[i].min)index=i;
- const stage=WORLD_STAGES[index],next=WORLD_STAGES[index+1]||null;
- const progress=next?Math.max(0,Math.min(100,Math.round((value-stage.min)/Math.max(1,next.min-stage.min)*100))):100;
- return {index:index+1,count:WORLD_STAGES.length,min:stage.min,name:stage.name,title:stage.title,icon:stage.icon,line:stage.line,next,progress,remaining:next?Math.max(0,next.min-value):0,points:value};
-}
 function passSerial(value){
  let hash=2166136261;for(const ch of String(value||"ihsan")){hash^=ch.charCodeAt(0);hash=Math.imul(hash,16777619)}
  const code=(hash>>>0).toString(36).toUpperCase().padStart(7,"0");
@@ -1858,16 +1848,13 @@ async function worldPage(v){
  const storeData=result[6].status==="fulfilled"?result[6].value:null;
  const missions=result[7].status==="fulfilled"?result[7].value:null;
  const achievement=Number(summary.totals?.achievement||0),store=Number(summary.totals?.store||0);
- const stage=worldStage(achievement);
  const me=board.find(x=>x.is_self);
  const counts=tasks.counts||{};
  const streak=Number(reading?.streak||0);
  const firstName=String(summary.student?.name||S.user.name||"الطالب").trim().split(/\s+/)[0];
  const quest=(title,value,icon,target)=>"<button type=\"button\" class=\"world-quest\" data-world-go=\""+esc(target)+"\"><span class=\"world-quest-icon\" aria-hidden=\"true\">"+icon+"</span><span><strong>"+esc(title)+"</strong><small>"+esc(String(value))+"</small></span><span class=\"world-quest-arrow\" aria-hidden=\"true\">‹</span></button>";
- const garden=WORLD_STAGES.map((item,i)=>{
-  const unlocked=achievement>=item.min,current=stage.index===i+1;
-  return '<article class="world-plot '+(unlocked?"is-grown":"")+(current?" is-current":"")+'"><span class="world-plot-icon" aria-hidden="true">'+(unlocked?item.icon:"🔒")+'</span><strong>'+esc(item.name)+'</strong><small>'+Number(item.min)+' نقطة</small></article>';
- }).join("");
+ const badgeRows=(gam?.badges||[]).map(b=>'<article class="world-plot is-grown"><span class="world-plot-icon" aria-hidden="true">'+esc(b.icon||"✦")+'</span><strong>'+esc(b.name||"وسام")+'</strong><small>'+esc(b.description||"إنجاز موثق")+'</small></article>').join("");
+ const badgesBlock='<section class="card world-garden"><div class="section-head"><div><span class="eyebrow">أوسمتك</span><h3>إنجازات تستحق الاعتزاز</h3><p>تظهر الأوسمة عند تحقق أعمالها المسجلة؛ لا توجد ترقيات مستويات رقمية في هذه المرحلة.</p></div><span class="pill">'+(gam?.badges?.length||0)+' أوسمة</span></div><div class="world-plots">'+(badgeRows||'<div class="empty">لم يظهر وسام بعد؛ ابدأ بخطوة ثابتة وسيظهر إنجازك هنا.</div>')+'</div></section>';
  const recentEntries=(reading?.entries||[]).slice(0,3).map(entry=>'<div class="list-row"><div><strong>'+esc(entry.surah||"ورد")+(entry.portion?' · '+esc(entry.portion):"")+'</strong><small>'+esc(entry.day||"")+(entry.reflection?' · '+esc(entry.reflection):"")+'</small></div><span class="pill">+ورد</span></div>').join("");
  const readingBlock=reading?.logged_today
   ? '<div class="notice world-reading-done"><strong>سجّلت ورد اليوم.</strong> سلسلتك الآن '+Number(streak)+' يومًا. عُد غدًا لتبني عليها.</div>'
@@ -1880,11 +1867,10 @@ async function worldPage(v){
  const collectibles=(missions?.collectibles||[]).map(c=>'<span class="mission-collectible '+(c.unlocked?"is-unlocked":"")+'" title="'+esc(c.title)+'" aria-label="'+esc(c.title)+'">'+esc(c.icon)+'</span>').join("");
  const missionsBlock=missions?'<section class="card world-missions"><div class="section-head"><div><span class="eyebrow">عالم المهام</span><h3>قصص ومهام يومية</h3><p>القصص تُفتح بأعمال سجّلتها فعليًا، والمهام اليومية تُستلم مرة واحدة عبر محرك النقاط نفسه.</p></div><div class="mission-collectibles">'+collectibles+'</div></div><div class="mission-story-grid">'+missionStory+'</div><div class="mission-side-grid">'+missionSide+'</div></section>':"";
  v.innerHTML='<div class="world-page">'+
-  '<section class="world-hero"><div class="world-avatar" style="--world-progress:'+stage.progress+'%"><span class="world-avatar-halo" aria-hidden="true"></span><span class="world-avatar-icon" aria-hidden="true">'+stage.icon+'</span><span class="world-avatar-level">المستوى '+stage.index+'</span></div><div class="world-hero-copy"><span class="eyebrow">عالمك في الإحسان · '+esc(stage.title)+'</span><h2>بستان '+esc(firstName)+'</h2><p>'+esc(stage.line)+'</p><div class="world-progress"><div class="world-progress-head"><span>'+esc(stage.name)+'</span><span>'+(stage.next?Number(stage.remaining)+' نقطة إلى '+esc(stage.next.name):"أعلى مرتبة في العالم")+'</span></div><div class="world-meter"><i style="width:'+stage.progress+'%"></i></div></div><div class="world-chips"><span class="world-chip"><b>★</b> '+Number(achievement)+' إنجاز</span><span class="world-chip"><b>◈</b> '+Number(store)+' رصيد متجر</span><span class="world-chip"><b>🔥</b> '+streak+' يوم قراءة</span><span class="world-chip"><b>#</b> '+(me?Number(me.rank):"—")+' في الفوج</span></div></div></section>'+
-  journeyWorldMarkup(journey,storeData)+'<div class="world-grid"><section class="card world-garden"><div class="section-head"><div><span class="eyebrow">بستانك</span><h3>مراتب تنمو بأعمالك</h3><p>كل مرتبة تفتح بخطوات حقيقية: حضور، حفظ، مراجعة، واجبات، اختبارات، وقراءة.</p></div><span class="pill">'+stage.index+' / '+stage.count+'</span></div><div class="world-plots">'+garden+'</div></section>'+
+  '<section class="world-hero"><div class="world-avatar"><span class="world-avatar-halo" aria-hidden="true"></span><span class="world-avatar-icon" aria-hidden="true">۞</span></div><div class="world-hero-copy"><span class="eyebrow">عالمك في الإحسان</span><h2>بستان '+esc(firstName)+'</h2><p>ازرع عملًا صالحًا كل يوم؛ العلم والأدب والثبات أثمن من رقم أو لقب.</p><div class="world-chips">'+(summary.totals?.mode==="separate"?'<span class="world-chip"><b>★</b> '+Number(achievement)+' نقاط إنجاز</span><span class="world-chip"><b>◈</b> '+Number(store)+' رصيد متجر</span>':'<span class="world-chip"><b>◈</b> '+Number(store)+' الرصيد الحالي</span>')+'<span class="world-chip"><b>🔥</b> '+streak+' يوم قراءة</span><span class="world-chip"><b>#</b> '+(me?Number(me.rank):"—")+' في الفوج</span></div></div></section>'+
+  journeyWorldMarkup(journey,storeData)+'<div class="world-grid">'+badgesBlock+
   '<section class="card world-quests"><div class="section-head"><div><span class="eyebrow">مهام اليوم</span><h3>خطوات صغيرة تبني عالمك</h3><p>ابدأ بأقرب خطوة؛ لا تنتظر يومًا كاملًا لتتحرك.</p></div></div><div class="world-quest-grid">'+quest("ورد القرآن",Number(gam?.stats?.quran_days||0)+" يوم","۞","quran")+quest("الحضور",Number(gam?.stats?.attendance||0)+" مرات","✓","attendance")+quest("المهام المنجزة",Number(counts.done||0)+" مهام","▤","tasks")+quest("الترتيب في الفوج",me?"#"+Number(me.rank):"—","#","leaderboard")+'</div>'+challengeBlock+'</section></div>'+
   missionsBlock+'<section class="card world-reading"><div class="section-head"><div><span class="eyebrow">ورد القراءة</span><h3>سجّل قراءتك اليوم</h3><p>القراءة اليومية تبني سلسلة وتمنحك نقاط إنجاز ورصيد متجر مرة واحدة كل يوم.</p></div><span class="world-streak">🔥 '+streak+'</span></div>'+readingBlock+(recentEntries?'<div class="list world-reading-list">'+recentEntries+'</div>':"")+'</section>'+
-  '<section class="card world-journey"><div class="section-head"><div><span class="eyebrow">الطريق</span><h3>من البذرة إلى المحراب</h3><p>هذه ليست لعبة منفصلة عن الأكاديمية؛ كل مرتبة هنا مبنية على عمل سجّلته فعليًا.</p></div><button class="btn secondary" type="button" data-world-go="guide">دليل الرحلة</button></div><div class="world-journey-track">'+WORLD_STAGES.map((item,i)=>'<div class="world-journey-stop '+(achievement>=item.min?"is-done":"")+(stage.index===i+1?" is-current":"")+'"><span>'+item.icon+'</span><strong>'+esc(item.name)+'</strong><small>'+Number(item.min)+'</small></div>').join("")+'</div></section>'+
   '</div>';
  v.querySelectorAll("[data-world-go]").forEach(btn=>btn.onclick=()=>go(btn.dataset.worldGo));
  wireJourneyWorld(v,journey,storeData);
@@ -1974,13 +1960,14 @@ async function cardPage(v){
   try{cardData=await api("/student-cards",{method:"POST",body:JSON.stringify({student_id:S.user.student_id})})}catch(error){cardData=cardData||null;toast(error.message,true)}
  }
  const links=cardData?.links||{};
- const student=summary.student||{},achievement=Number(summary.totals?.achievement||0),store=Number(summary.totals?.store||0),stage=worldStage(achievement),me=board.find(x=>x.is_self);
+ const student=summary.student||{},achievement=Number(summary.totals?.achievement||0),store=Number(summary.totals?.store||0),me=board.find(x=>x.is_self);
  const serial=passSerial(student.id||S.user.student_id||S.user.id),year=new Date().getFullYear();
  const recent=(summary.recent||[]).slice(0,6).map(event=>'<div class="list-row"><div><strong>'+esc(event.reason||event.event_type)+'</strong><small>'+esc(event.kind_label||"")+' · '+worldDate(event.created_at)+'</small></div><span class="pill">'+(Number(event.points)>0?"+":"")+Number(event.points)+'</span></div>').join("");
  const badges=(gam?.badges||[]).map(badge=>'<span class="pass-badge"><span aria-hidden="true">'+esc(badge.icon||"★")+'</span>'+esc(badge.name)+'</span>').join("");
+ const passBalances=summary.totals?.mode==="separate"?'<div><small>نقاط الإنجاز</small><strong>'+Number(achievement)+'</strong></div><div><small>رصيد المتجر</small><strong>'+Number(store)+'</strong></div>':'<div><small>الرصيد الحالي</small><strong>'+Number(store)+'</strong></div>';
  v.innerHTML='<div class="card-page">'+
-  '<div class="card-page-head"><div><span class="eyebrow">هويتك في الأكاديمية</span><h2>بطاقة الطالب</h2><p>بطاقة شخصية تجمع مستواك ورصيدك وترتيبك ورمزك الفريد في مكان واحد؛ اعرضها أو اطبعها.</p></div><div class="student-actions"><button class="btn secondary" type="button" id="card-qr-reissue">إعادة إصدار الرموز</button><button class="btn secondary" type="button" id="pass-print">طباعة البطاقة</button></div></div>'+
-  '<section class="printable"><section class="student-pass-wrap"><article class="student-pass" aria-label="بطاقة الطالب"><span class="pass-shine" aria-hidden="true"></span><div class="pass-pattern" aria-hidden="true"></div><div class="pass-head"><span class="pass-brand"><span class="pass-brand-mark" aria-hidden="true">إ</span>أكاديمية الإحسان</span><span class="pass-type">بطاقة طالب</span></div><div class="pass-middle"><span class="pass-chip" aria-hidden="true"><i></i><i></i><i></i></span><span class="pass-level">'+esc(stage.name)+' · المستوى '+stage.index+'</span><span class="pass-qr" aria-label="رمز الطالب">'+(links.add_points?qrSvg(links.add_points,144):'<span class="card-qr-missing">—</span>')+'</span></div><div class="pass-name">'+esc(student.name||S.user.name||"الطالب")+'</div><div class="pass-serial" dir="ltr">'+esc(serial)+'</div><div class="pass-grid"><div><small>نقاط الإنجاز</small><strong>'+Number(achievement)+'</strong></div><div><small>رصيد المتجر</small><strong>'+Number(store)+'</strong></div><div><small>ترتيب الفوج</small><strong>'+(me?"#"+Number(me.rank):"—")+'</strong></div><div><small>سلسلة القراءة</small><strong>'+Number(reading?.streak||0)+'</strong></div></div><div class="pass-foot"><span>الفوج: '+esc(student.group_name||"—")+'</span><span>صالحة حتى '+year+'-09</span></div></article></section>'+
+  '<div class="card-page-head"><div><span class="eyebrow">هويتك في الأكاديمية</span><h2>بطاقة الطالب</h2><p>بطاقة شخصية تجمع إنجازاتك ورصيدك وترتيبك ورمزك الفريد في مكان واحد؛ اعرضها أو اطبعها.</p></div><div class="student-actions"><button class="btn secondary" type="button" id="card-qr-reissue">إعادة إصدار الرموز</button><button class="btn secondary" type="button" id="pass-print">طباعة البطاقة</button></div></div>'+
+  '<section class="printable"><section class="student-pass-wrap"><article class="student-pass" aria-label="بطاقة الطالب"><span class="pass-shine" aria-hidden="true"></span><div class="pass-pattern" aria-hidden="true"></div><div class="pass-head"><span class="pass-brand"><span class="pass-brand-mark" aria-hidden="true">إ</span>أكاديمية الإحسان</span><span class="pass-type">بطاقة طالب</span></div><div class="pass-middle"><span class="pass-chip" aria-hidden="true"><i></i><i></i><i></i></span><span class="pass-level">'+Number(gam?.badges?.length||0)+' أوسمة إنجاز</span><span class="pass-qr" aria-label="رمز الطالب">'+(links.add_points?qrSvg(links.add_points,144):'<span class="card-qr-missing">—</span>')+'</span></div><div class="pass-name">'+esc(student.name||S.user.name||"الطالب")+'</div><div class="pass-serial" dir="ltr">'+esc(serial)+'</div><div class="pass-grid">'+passBalances+'<div><small>ترتيب الفوج</small><strong>'+(me?"#"+Number(me.rank):"—")+'</strong></div><div><small>سلسلة القراءة</small><strong>'+Number(reading?.streak||0)+'</strong></div></div><div class="pass-foot"><span>الفوج: '+esc(student.group_name||"—")+'</span><span>صالحة حتى '+year+'-09</span></div></article></section>'+
   '<div class="pass-stats"><div class="stat"><small>أيام القرآن</small><strong>'+Number(gam?.stats?.quran_days||0)+'</strong></div><div class="stat"><small>مرات الحضور</small><strong>'+Number(gam?.stats?.attendance||0)+'</strong></div><div class="stat"><small>الاختبارات</small><strong>'+Number(gam?.stats?.tests||0)+'</strong></div><div class="stat"><small>أيام القراءة</small><strong>'+Number(reading?.total_days||0)+'</strong></div></div>'+
   '<div class="card-page-grid"><section class="card"><div class="section-head"><div><h3>أوسمتك</h3><p>تُفتح تلقائيًا عند تحقق شرطها.</p></div></div><div class="pass-badges">'+(badges||'<p class="muted">لم تُفتح وسام بعد؛ ابدأ بورد اليوم.</p>')+'</div></section><section class="card"><div class="section-head"><div><h3>آخر حركات الرصيد</h3><p>كل حركة مسجّلة ولا تُحذف.</p></div><button class="btn secondary" type="button" data-card-go="points">كل الحركات</button></div><div class="list">'+(recent||'<p class="muted">لا توجد حركات نقاط بعد.</p>')+'</div></section></div>'+
   '</div>';
@@ -2571,10 +2558,10 @@ async function renderScanPanel(v,studentId){
 async function guidePage(v){
  let rules=[];
  try{rules=await api("/points/rules")}catch(error){rules=[]}
- const ruleRows=rules.map(rule=>'<tr><td><strong>'+esc(rule.name)+'</strong><br><small class="muted">'+esc(rule.description||rule.event_type)+'</small></td><td>'+Number(rule.achievement_points||rule.store_points||0)+'</td><td>'+(rule.max_per_day?"مرة كل يوم":"—")+'</td></tr>').join("");
+ const ruleRows=rules.map(rule=>'<tr><td><strong>'+esc(rule.name)+'</strong><br><small class="muted">'+esc(rule.description||rule.event_type)+'</small></td><td>'+Number(rule.achievement_points??0)+'</td><td>'+Number(rule.store_points??0)+'</td><td>'+(rule.max_per_day?"مرة كل يوم":"—")+'</td></tr>').join("");
  const readingRule=rules.find(rule=>rule.event_type==="quran_reading");
  const readingPoints=Number(readingRule?.achievement_points||5),readingStore=Number(readingRule?.store_points||2);
- const stageRows=WORLD_STAGES.map((item,index)=>'<tr><td><strong>'+esc(item.name)+'</strong><br><small class="muted">'+esc(item.title)+'</small></td><td>'+Number(item.min)+'</td><td>'+esc(item.line)+'</td></tr>').join("");
+
  const steps=[
   ["01","احضر حلقتك","سجّل حضورك مع الشيخ؛ المواظبة أول رصيد يبنيه عالمك.","attendance"],
   ["02","احفظ وراجع","سجّل الحفظ والمراجعة اليومية؛ ٣٥٪ من ترتيبك من القرآن.","quran"],
@@ -2585,12 +2572,11 @@ async function guidePage(v){
  ];
  const stepCards=steps.map(step=>'<button type="button" class="guide-step" data-guide-go="'+esc(step[3])+'"><span class="guide-step-number">'+step[0]+'</span><strong>'+esc(step[1])+'</strong><p>'+esc(step[2])+'</p><span class="guide-step-link">افتح ›</span></button>').join("");
  v.innerHTML='<div class="guide-page">'+
-  '<section class="guide-hero"><span class="eyebrow">دليل الرحلة · بأرقام واضحة</span><h2>كيف تنمو في عالم الإحسان؟</h2><p>في كل يوم، اقرأ هذه الجملة كاملة: <strong>احضر حلقتك، واحفظ وراجع وردك، وأتمّ واجبك، واختبر نفسك، وسجّل قراءتك، واستلم تحديك؛ فكل خطوة تُضاف إلى نقاط إنجازك وترتيبك ورصيد متجرك.</strong></p><div class="guide-hero-stats"><span><strong>6</strong> خطوات يومية</span><span><strong>25/35/30/10</strong> وزن الترتيب</span><span><strong>6</strong> مراتب للعالم</span></div></section>'+
-  '<section class="card guide-steps-section"><div class="section-head"><div><span class="eyebrow">دورة النمو</span><h3>ست خطوات، ثم تتحرك مرتبتك</h3><p>اضغط أي خطوة لتنتقل إلى مكان تنفيذها مباشرة.</p></div></div><div class="guide-steps">'+stepCards+'</div></section>'+
-  '<section class="card"><div class="section-head"><div><span class="eyebrow">من أين تأتي النقاط؟</span><h3>قواعد النقاط المعتمدة</h3><p>القيم تُدار من الأكاديمية وليست ثابتة في الكود؛ تُحدّث من لوحة المدير.</p></div></div><div class="table-wrap"><table><thead><tr><th>القاعدة</th><th>النقاط</th><th>السقف</th></tr></thead><tbody>'+(ruleRows||'<tr><td colspan="3">ستظهر القواعد بعد تهيئة الاقتصاد التعليمي في حسابك.</td></tr>')+'</tbody></table></div><div class="notice"><strong>رصيد واحد:</strong> جميع الإنجازات تضيف إلى الرصيد نفسه، وتُستخدم النقاط نفسها في المتجر. كل حركة مسجّلة، والتصحيح بعكس موثّق بسبب.</div></section>'+
+  '<section class="guide-hero"><span class="eyebrow">دليل الرحلة · بأرقام واضحة</span><h2>كيف تنمو في عالم الإحسان؟</h2><p>في كل يوم، اقرأ هذه الجملة كاملة: <strong>احضر حلقتك، واحفظ وراجع وردك، وأتمّ واجبك، واختبر نفسك، وسجّل قراءتك، واستلم تحديك؛ فكل خطوة تُضاف إلى نقاط إنجازك وترتيبك ورصيد متجرك.</strong></p><div class="guide-hero-stats"><span><strong>6</strong> خطوات يومية</span><span><strong>25/35/30/10</strong> وزن الترتيب</span><span><strong>أوسمة</strong> إنجازات موثقة</span></div></section>'+
+  '<section class="card guide-steps-section"><div class="section-head"><div><span class="eyebrow">دورة النمو</span><h3>ست خطوات تُعينك على الثبات</h3><p>اضغط أي خطوة لتنتقل إلى مكان تنفيذها مباشرة؛ وتُعرض الأوسمة بعد تحقق أعمالها.</p></div></div><div class="guide-steps">'+stepCards+'</div></section>'+
+  '<section class="card"><div class="section-head"><div><span class="eyebrow">من أين تأتي النقاط؟</span><h3>قواعد النقاط المعتمدة</h3><p>القيم تُدار من الأكاديمية وليست ثابتة في الكود؛ تُحدّث من لوحة المدير.</p></div></div><div class="table-wrap"><table><thead><tr><th>القاعدة</th><th>نقاط الإنجاز</th><th>رصيد المتجر</th><th>السقف</th></tr></thead><tbody>'+(ruleRows||'<tr><td colspan="4">ستظهر القواعد بعد تهيئة الاقتصاد التعليمي في حسابك.</td></tr>')+'</tbody></table></div><div class="notice"><strong>رصيدان منفصلان:</strong> نقاط الإنجاز للتقدم والترتيب، ورصيد المتجر للاستبدال. تبقى الأرصدة التاريخية محفوظة كما هي حتى يكتمل فصلها الآمن؛ لا يُحوَّل أحد الرصيدين إلى الآخر.</div></section>'+
   '<div class="guide-grid"><section class="card"><div class="section-head"><div><span class="eyebrow">الترتيب</span><h3>كيف يُحسب ترتيب الفوج؟</h3></div></div><div class="guide-formula"><div><strong>25٪</strong><span>المواظبة والحضور</span></div><div><strong>35٪</strong><span>الحفظ والمراجعة</span></div><div><strong>30٪</strong><span>إتقان الاختبارات</span></div><div><strong>10٪</strong><span>التحديات اليومية</span></div></div><p class="muted small">الترتيب تحفيزي لا يقيس قيمة الطالب، ولا يستبدل تقييم الشيخ لجودة الحفظ والتجويد والفهم.</p></section>'+
   '<section class="card"><div class="section-head"><div><span class="eyebrow">منهج السلوك</span><h3>قواعد الإحسان</h3></div></div><ul class="guide-rules"><li>لا تُمنح النقاط اليدوية ولا الخصومات ولا التنبيهات إلا باعتماد الشيخ.</li><li>بعد ثلاثة تنبيهات يتوقف امتياز المضاعفة، ويبدأ الخصم الذي يحدده الشيخ من التنبيه الرابع.</li><li>الحرمان النهائي من المضاعفة لا يُعاد، ولا تمحى محفوظات القرآن أو الإنجازات الموثقة.</li><li>كل إنجاز يُحتسب مرة واحدة، والتصحيح يكون بعكس موثّق بسبب لا بحذف التاريخ.</li></ul></section></div>'+
-  '<section class="card"><div class="section-head"><div><span class="eyebrow">مراتب العالم</span><h3>من البذرة إلى المحراب</h3><p>المرتبة تُفتح برصيد النقاط المتراكمة، لا بالوقت وحده.</p></div></div><div class="table-wrap"><table><thead><tr><th>المرتبة</th><th>تبدأ من</th><th>معناها</th></tr></thead><tbody>'+stageRows+'</tbody></table></div></section>'+
   '<div class="guide-actions"><button class="btn" type="button" data-guide-go="world">العودة إلى عالمي</button><button class="btn secondary" type="button" data-guide-go="card">بطاقتي</button><button class="btn secondary" type="button" data-guide-go="tasks">مهامي</button></div>'+
   '</div>';
  v.querySelectorAll("[data-guide-go]").forEach(btn=>btn.onclick=()=>go(btn.dataset.guideGo));
