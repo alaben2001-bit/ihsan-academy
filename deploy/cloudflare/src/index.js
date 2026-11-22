@@ -2019,17 +2019,28 @@ export default {
     if (path === "/api/login" && method === "POST") {
       const parsed=await parseBody(request); if(parsed.error)return parsed.error; const b=parsed.value;
       const identity=clean(b.identity??b.email,200).toLowerCase(), password=String(b.password||"");
-      if(!identity||!password||password.length>1024)return fail(400,"أدخل اسم الدخول وكلمة المرور");
-      const now=nowIso(), attempt=await env.DB.prepare("SELECT failures,locked_until FROM login_attempts WHERE identity_normalized=?").bind(identity).first();
+      if(!identity||!password||password.length>1024)return fail(400,"أدخل الاسم الكامل أو اسم الدخول وكلمة المرور");
+      // أسماء الطلاب تُطابق بعد توحيد Unicode وإزالة التشكيل؛ لا نسمح بدخول اسم ملتبس.
+      // اختبار هذا المسار مضاف إلى رحلة الطالب المحلية في CI.
+      // اسم الطالب الكامل صالح للدخول فقط إذا كان مرتبطًا بحساب نشط وفريد؛
+      // لا نختار أول نتيجة عند تشابه الأسماء، ولا نكشف هل الاسم مسجل.
+      const loginKey=normalizeStudentName(identity)||identity;
+      const now=nowIso(), attempt=await env.DB.prepare("SELECT failures,locked_until FROM login_attempts WHERE identity_normalized=?").bind(loginKey).first();
       if(attempt?.locked_until && attempt.locked_until>now)return fail(429,"محاولات كثيرة. انتظر 15 دقيقة ثم أعد المحاولة.");
-      const user=await env.DB.prepare("SELECT id,display_name,identity_normalized,password_hash,role,active,must_change_password FROM users WHERE identity_normalized=? LIMIT 1").bind(identity).first();
+      let user=await env.DB.prepare("SELECT id,display_name,identity_normalized,password_hash,role,active,must_change_password FROM users WHERE identity_normalized=? LIMIT 1").bind(identity).first();
+      if(!user && /\s/.test(identity)){
+        const students=await env.DB.prepare("SELECT u.id,u.display_name,u.identity_normalized,u.password_hash,u.role,u.active,u.must_change_password,s.display_name AS student_name FROM students s JOIN users u ON u.id=s.user_id WHERE s.active=1 AND u.active=1 AND u.role='student'").all();
+        const matches=(students.results||[]).filter(row=>normalizeStudentName(row.student_name)===loginKey);
+        if(matches.length===1)user=matches[0];
+        else if(matches.length>1)return fail(409,"الاسم متشابه بين أكثر من طالب؛ استخدم اسم الدخول الخاص لتجنب فتح الحساب الخطأ.");
+      }
       const valid=!!user && user.active===1 && await verifyPassword(password,user.password_hash);
       if(!valid){
         const failures=(attempt?.failures||0)+1, locked=failures>=8?new Date(Date.now()+15*60*1000).toISOString():null;
-        await env.DB.prepare("INSERT INTO login_attempts(identity_normalized,failures,locked_until,updated_at) VALUES(?,?,?,?) ON CONFLICT(identity_normalized) DO UPDATE SET failures=excluded.failures,locked_until=excluded.locked_until,updated_at=excluded.updated_at").bind(identity,locked?0:failures,locked,now).run();
+        await env.DB.prepare("INSERT INTO login_attempts(identity_normalized,failures,locked_until,updated_at) VALUES(?,?,?,?) ON CONFLICT(identity_normalized) DO UPDATE SET failures=excluded.failures,locked_until=excluded.locked_until,updated_at=excluded.updated_at").bind(loginKey,locked?0:failures,locked,now).run();
         return fail(401,"بيانات الدخول غير صحيحة");
       }
-      await env.DB.prepare("DELETE FROM login_attempts WHERE identity_normalized=?").bind(identity).run();
+      await env.DB.prepare("DELETE FROM login_attempts WHERE identity_normalized=?").bind(loginKey).run();
       const token=hex(crypto.getRandomValues(new Uint8Array(32)));
       const remember=b.remember===true;
       const sessionLifetimeMs=(remember?30*24:12)*60*60*1000;
