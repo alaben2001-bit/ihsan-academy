@@ -39,7 +39,7 @@ for (const period of ['value="weekly"', 'value="monthly"', 'value="yearly"']) {
 assert(profile.includes("rank_change"), "student profile must show previous-period rank movement");
 
 const rankingPageStart = app.indexOf("async function effortRankingPage");
-const rankingPageEnd = app.indexOf("\\nasync function bulkRosterPage", rankingPageStart);
+const rankingPageEnd = app.indexOf("function bulkRosterPage", rankingPageStart);
 assert(rankingPageStart >= 0 && rankingPageEnd > rankingPageStart, "ranking page must exist");
 const rankingPage = app.slice(rankingPageStart, rankingPageEnd);
 for (const scope of ['value="academy"', 'value="group"', 'value="team"']) {
