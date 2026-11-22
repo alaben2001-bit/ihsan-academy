@@ -173,9 +173,14 @@ async function main() {
   }
   const fajrThirdDay = fajrDays[2];
   check("three 30-point Fajr days equal 90 base plus 45 streak bonus", Number(fajrThirdDay.data?.streak?.base_points) === 90 && Number(fajrThirdDay.data?.streak?.streak_bonus) === 45 && Number(fajrThirdDay.data?.streak?.base_points) + Number(fajrThirdDay.data?.streak?.streak_bonus) === 135 && fajrThirdDay.data?.streak?.bonus_rate === 0.5, JSON.stringify(fajrThirdDay.data?.streak));
+  const firstFajrTotals = fajrDays[0].data?.totals || {};
+  const thirdFajrTotals = fajrThirdDay.data?.totals || {};
+  check("the 45-point streak bonus is excluded from the store balance", Number(thirdFajrTotals.achievement) - Number(firstFajrTotals.achievement) - (Number(thirdFajrTotals.store) - Number(firstFajrTotals.store)) === 45, JSON.stringify({ firstFajrTotals, thirdFajrTotals }));
 
   const fajrFourthDay = await call("/api/points/activity", { method: "POST", token: admin, body: { student_id: studentA.id, activity: "fajr", date: academyDate(-2) } });
   check("fourth Fajr day adds only 15 bonus points", fajrFourthDay.status === 201 && fajrFourthDay.data?.streak?.days === 4 && Number(fajrFourthDay.data?.streak?.base_points) === 120 && Number(fajrFourthDay.data?.streak?.streak_bonus) === 15, JSON.stringify(fajrFourthDay.data?.streak));
+  const fourthFajrTotals = fajrFourthDay.data?.totals || {};
+  check("the fourth-day 15-point bonus is achievement-only", Number(fourthFajrTotals.achievement) - Number(thirdFajrTotals.achievement) === 45 && Number(fourthFajrTotals.store) - Number(thirdFajrTotals.store) === 30, JSON.stringify({ thirdFajrTotals, fourthFajrTotals }));
 
   const duplicateFajr = await call("/api/points/activity", { method: "POST", token: admin, body: { student_id: studentA.id, activity: "fajr", date: academyDate(-2) } });
   check("duplicate Fajr entry cannot award the same base points or streak bonus twice", duplicateFajr.status === 201 && duplicateFajr.data?.streak?.duplicate === true && JSON.stringify(duplicateFajr.data?.totals) === JSON.stringify(fajrFourthDay.data?.totals), JSON.stringify(duplicateFajr.data));
@@ -188,6 +193,8 @@ async function main() {
 
   const futureFajr = await call("/api/points/activity", { method: "POST", token: admin, body: { student_id: studentA.id, activity: "fajr", date: academyDate(1) } });
   check("future Fajr activity is rejected", futureFajr.status === 400, JSON.stringify(futureFajr.data));
+  const manualStreak = await call("/api/points/streak", { method: "POST", token: admin, body: { student_id: studentA.id, activity: "fajr", base_points: 30, date: today } });
+  check("legacy manual streak award endpoint is disabled", manualStreak.status === 410, JSON.stringify(manualStreak.data));
   const attendanceSave = await call("/api/attendance", { method: "POST", token: admin, body: { group_id: groupId, date: today, items: [{ student_id: studentA.id, status: "present" }] } });
   check("present attendance automatically starts an attendance streak", attendanceSave.status === 200, JSON.stringify(attendanceSave.data));
   const attendanceStreakView = await call("/api/points/streak", { token: studentA.token });
