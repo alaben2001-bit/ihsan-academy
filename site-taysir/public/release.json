@@ -1,0 +1,13 @@
+{
+  "site": "Taysir",
+  "purpose": "public-information-and-contribution",
+  "stage": "preview",
+  "generatedAt": "2026-11-22",
+  "studentData": false,
+  "studentLogin": false,
+  "mediaPolicy": {
+    "faces": false,
+    "music": false,
+    "studentImagesRequirePermission": true
+  }
+}
