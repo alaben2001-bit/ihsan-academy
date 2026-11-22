@@ -673,6 +673,9 @@ assert.match(backend, /approval_status TEXT NOT NULL DEFAULT 'approved'/, "legac
 assert.match(backend, /requiresApproval=user\.role==="student"&&\(kind==="hifz"\|\|kind==="thabit"\)/, "student self-reports of memorization and consolidation must wait for Sheikh approval");
 assert.match(backend, /path===["']\/api\/quran\/daily\/decision["']&&method==="POST"/, "Sheikh approval must use a dedicated decision endpoint");
 assert.match(backend, /path===["']\/api\/quran\/daily\/pending["']&&method==="GET"/, "authorized supervisors must be able to see pending Quran work");
+assert.match(backend, /if\(\(kind==="hifz"\|\|kind==="thabit"\)&&user\.role!=="student"&&!\["admin","teacher"\]\.includes\(user\.role\)\)/, "only the Sheikh or admin may enter approved memorization and consolidation");
+assert.match(backend, /if\(\["memorization","revision"\]\.includes\(activity\)&&!\["admin","teacher"\]\.includes\(user\.role\)\)/, "supervisors cannot bypass Sheikh approval through the teacher progress endpoint");
+
 assert.match(backend, /approval_status='approved'/, "official Quran totals and streaks must exclude pending self-reports");
 assert.match(app, /بانتظار مراجعة الشيخ/, "students must see that unapproved Quran work is pending");
 assert.match(app, /اعتماد الشيخ/, "Quran supervision must expose a Sheikh approval queue");
