@@ -789,6 +789,8 @@ const LEARNING_SCHEMA_STATEMENTS = [
   `UPDATE point_rules SET active=1,auto_award=1,achievement_points=30,store_points=30,max_per_day=1 WHERE event_type='attendance_present'`,
   `UPDATE point_rules SET active=1,auto_award=1,achievement_points=20,store_points=20,max_per_day=1,description='عشرون نقطة للحفظ المعتمد.' WHERE event_type IN ('hifz_no_errors','hifz_tajweed')`,
   `UPDATE point_rules SET active=0,auto_award=0 WHERE event_type='quran_entry'`,
+  `INSERT OR IGNORE INTO point_rules (id,event_type,name,description,achievement_points,store_points,max_per_day,auto_award,active,sort_order) VALUES ('rule-quran-daily-approved','quran_daily_approved','إنجاز قرآني معتمد','تُمنح بعد اعتماد الشيخ للحفظ الجديد أو التثبيت أو متابعة المعلم الموثقة.',10,5,3,1,1,21)`,
+  `UPDATE point_rules SET name='إنجاز قرآني معتمد',description='تُمنح بعد اعتماد الشيخ للحفظ الجديد أو التثبيت أو متابعة المعلم الموثقة.',achievement_points=10,store_points=5,max_per_day=3,auto_award=1,active=1 WHERE event_type='quran_daily_approved'`,
   `CREATE TABLE IF NOT EXISTS student_point_streaks (
     student_id TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
     activity TEXT NOT NULL CHECK(activity IN ('hifz','fajr','shuruq')),
@@ -1746,7 +1748,7 @@ async function recordAutomaticActivityStreak(env, { studentId, groupId, activity
   // One activity's base points are counted once even though the ledger stores achievement/store views.
   const eventTypes = {
     attendance: ["attendance_present"], fajr: ["fajr"], shuruq: ["shuruq"], maghrib: ["maghrib"],
-    ward: ["quran_reading"], hifz: ["hifz_no_errors", "hifz_tajweed"], thabit: [],
+    ward: ["quran_reading"], hifz: ["hifz_no_errors", "hifz_tajweed", "quran_daily_approved"], thabit: ["quran_daily_approved"],
     asr: ["asr"], adhkar: ["adhkar"], wird: ["wird"], mandatory_classes: ["mandatory_classes"],
     quran_classes: ["quran_classes"], bring: ["bring"]
   }[activity] || [];
@@ -1758,11 +1760,11 @@ async function recordAutomaticActivityStreak(env, { studentId, groupId, activity
   }
   if (activity === "hifz" || activity === "thabit" || activity === "ward") {
     const kind = activity === "ward" ? "ward" : activity;
-    clauses.push("(event_type IN ('quran_entry','quran_reading') AND source_collection='quran_daily' AND source_id IN (SELECT id FROM quran_daily WHERE student_id=? AND kind=? AND day BETWEEN ? AND ?))");
+    clauses.push("(event_type IN ('quran_entry','quran_reading','quran_daily_approved') AND source_collection='quran_daily' AND source_id IN (SELECT id FROM quran_daily WHERE student_id=? AND kind=? AND day BETWEEN ? AND ?))");
     binds.push(studentId, kind, startDate, date);
     if(activity==="hifz"||activity==="thabit"){
       const progressActivity=activity==="hifz"?"memorization":"revision";
-      clauses.push("(event_type='quran_entry' AND source_collection='quran_progress' AND source_id IN (SELECT id FROM academy_records WHERE collection='quran_progress' AND json_extract(payload_json,'$.student_id')=? AND json_extract(payload_json,'$.activity')=? AND json_extract(payload_json,'$.date') BETWEEN ? AND ?))");
+      clauses.push("(event_type IN ('quran_entry','quran_daily_approved') AND source_collection='quran_progress' AND source_id IN (SELECT id FROM academy_records WHERE collection='quran_progress' AND json_extract(payload_json,'$.student_id')=? AND json_extract(payload_json,'$.activity')=? AND json_extract(payload_json,'$.date') BETWEEN ? AND ?))");
       binds.push(studentId,progressActivity,startDate,date);
     }
   }
@@ -3395,13 +3397,13 @@ export default {
         await env.DB.prepare("UPDATE quran_daily SET approval_status='approved',reviewed_by=?,reviewed_at=?,approval_note='' WHERE id=? AND approval_status='pending'").bind(user.id,nowIso(),dailyEntry.id).run();
         pointsSource="quran_daily";pointsSourceId=dailyEntry.id;pointsEventKey="quran_daily:"+dailyEntry.id;
       }else if(dailyEntry?.approval_status==="approved"){
-        const activeDailyEvent=await env.DB.prepare("SELECT id FROM point_events WHERE student_id=? AND event_type='quran_entry' AND source_collection='quran_daily' AND source_id=? AND reversed_at IS NULL LIMIT 1").bind(studentId,dailyEntry.id).first();
+        const activeDailyEvent=await env.DB.prepare("SELECT id FROM point_events WHERE student_id=? AND event_type IN ('quran_entry','quran_daily_approved') AND source_collection='quran_daily' AND source_id=? AND reversed_at IS NULL LIMIT 1").bind(studentId,dailyEntry.id).first();
         const progressActivity=activity;
         const activeProgressEvent=await env.DB.prepare("SELECT pe.id FROM academy_records ar JOIN point_events pe ON pe.source_collection='quran_progress' AND pe.source_id=ar.id AND pe.student_id=? AND pe.event_type='quran_entry' AND pe.reversed_at IS NULL WHERE ar.collection='quran_progress' AND json_extract(ar.payload_json,'$.student_id')=? AND json_extract(ar.payload_json,'$.date')=? AND json_extract(ar.payload_json,'$.activity')=? LIMIT 1").bind(studentId,studentId,date,progressActivity).first();
         alreadyAwarded=Boolean(activeDailyEvent||activeProgressEvent);
       }
       if(!alreadyAwarded){
-        await awardPointsForEvent(env,{studentId,groupId:st.group_id,eventType:"quran_entry",eventKey:pointsEventKey,date,reason:"متابعة قرآنية ("+activity+")",sourceCollection:pointsSource,sourceId:pointsSourceId,awardedBy:user.id});
+        await awardPointsForEvent(env,{studentId,groupId:st.group_id,eventType:"quran_daily_approved",eventKey:pointsEventKey,date,reason:"متابعة قرآنية ("+activity+")",sourceCollection:pointsSource,sourceId:pointsSourceId,awardedBy:user.id});
         if(dailyKind)await recordAutomaticActivityStreak(env,{studentId,groupId:st.group_id,activity:dailyKind,date,awardedBy:user.id});
       }
       await log(env,user.id,"quran_progress_add",{student_id:studentId,activity,errors,grade,linked_daily_id:dailyEntry?.id||null});
@@ -4705,7 +4707,7 @@ export default {
       let awards=[],streak={counted:false};
       if(approvalStatus==="approved"&&amount>0){
         const activityReason=kind==="hifz"?"حفظ قرآني (الحفظ الجديد)":kind==="thabit"?"تثبيت محفوظ":"ورد يومي";
-        awards=await awardPointsForEvent(env,{studentId:resolved.student.id,groupId:resolved.student.group_id,eventType:kind==="ward"?"quran_reading":"quran_entry",eventKey:"quran_daily:"+id,date:day,reason:activityReason,sourceCollection:"quran_daily",sourceId:id,awardedBy:user.id});
+        awards=await awardPointsForEvent(env,{studentId:resolved.student.id,groupId:resolved.student.group_id,eventType:kind==="ward"?"quran_reading":"quran_daily_approved",eventKey:"quran_daily:"+id,date:day,reason:activityReason,sourceCollection:"quran_daily",sourceId:id,awardedBy:user.id});
         streak=await recordAutomaticActivityStreak(env,{studentId:resolved.student.id,groupId:resolved.student.group_id,activity:kind,date:day,awardedBy:user.id});
       }else if(requiresApproval){
         streak={counted:false,pending_approval:true};
@@ -4735,7 +4737,7 @@ export default {
         const priorProgress=await env.DB.prepare("SELECT ar.id FROM academy_records ar JOIN point_events pe ON pe.source_collection='quran_progress' AND pe.source_id=ar.id AND pe.student_id=? AND pe.event_type='quran_entry' AND pe.reversed_at IS NULL WHERE ar.collection='quran_progress' AND json_extract(ar.payload_json,'$.student_id')=? AND json_extract(ar.payload_json,'$.date')=? AND json_extract(ar.payload_json,'$.activity')=? LIMIT 1").bind(studentId,studentId,entry.day,progressActivity).first();
         if(!priorProgress){
           const activityReason=entry.kind==="hifz"?"حفظ قرآني معتمد (الحفظ الجديد)":"تثبيت محفوظ معتمد";
-          awards=await awardPointsForEvent(env,{studentId,groupId:student.group_id,eventType:"quran_entry",eventKey:"quran_daily:"+entryId,date:entry.day,reason:activityReason,sourceCollection:"quran_daily",sourceId:entryId,awardedBy:user.id});
+          awards=await awardPointsForEvent(env,{studentId,groupId:student.group_id,eventType:"quran_daily_approved",eventKey:"quran_daily:"+entryId,date:entry.day,reason:activityReason,sourceCollection:"quran_daily",sourceId:entryId,awardedBy:user.id});
         }
         streak=await recordAutomaticActivityStreak(env,{studentId,groupId:student.group_id,activity:entry.kind,date:entry.day,awardedBy:user.id});
       }
