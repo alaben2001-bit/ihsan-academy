@@ -3396,7 +3396,9 @@ export default {
         pointsSource="quran_daily";pointsSourceId=dailyEntry.id;pointsEventKey="quran_daily:"+dailyEntry.id;
       }else if(dailyEntry?.approval_status==="approved"){
         const activeDailyEvent=await env.DB.prepare("SELECT id FROM point_events WHERE student_id=? AND event_type='quran_entry' AND source_collection='quran_daily' AND source_id=? AND reversed_at IS NULL LIMIT 1").bind(studentId,dailyEntry.id).first();
-        alreadyAwarded=Boolean(activeDailyEvent);
+        const progressActivity=activity;
+        const activeProgressEvent=await env.DB.prepare("SELECT pe.id FROM academy_records ar JOIN point_events pe ON pe.source_collection='quran_progress' AND pe.source_id=ar.id AND pe.student_id=? AND pe.event_type='quran_entry' AND pe.reversed_at IS NULL WHERE ar.collection='quran_progress' AND json_extract(ar.payload_json,'$.student_id')=? AND json_extract(ar.payload_json,'$.date')=? AND json_extract(ar.payload_json,'$.activity')=? LIMIT 1").bind(studentId,studentId,date,progressActivity).first();
+        alreadyAwarded=Boolean(activeDailyEvent||activeProgressEvent);
       }
       if(!alreadyAwarded){
         await awardPointsForEvent(env,{studentId,groupId:st.group_id,eventType:"quran_entry",eventKey:pointsEventKey,date,reason:"متابعة قرآنية ("+activity+")",sourceCollection:pointsSource,sourceId:pointsSourceId,awardedBy:user.id});
