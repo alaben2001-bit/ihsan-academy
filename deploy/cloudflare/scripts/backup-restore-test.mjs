@@ -109,7 +109,8 @@ async function main() {
   check("student enrolls in the Quran path", enroll.status === 200, JSON.stringify(enroll.data));
   for (const [kind, amount, unit] of [["hifz", 5, "سطر"], ["thabit", 0.25, "حزب"], ["ward", 2, "حزب"]]) {
     const log = await call("/api/quran/daily", { method: "POST", token: studentA.token, body: { kind, amount, unit, repetitions: kind === "thabit" ? 15 : 0 } });
-    check("student logs " + kind, log.status === 201, JSON.stringify(log.data));
+    const expectedApproval=kind==="ward"?"approved":"pending";
+    check("student logs " + kind + " with correct approval state", log.status === 201 && log.data?.entry?.approval_status===expectedApproval && (kind==="ward"||(log.data?.awards||[]).length===0), JSON.stringify(log.data));
   }
   const pair = await call("/api/quran/companion/pair", { method: "POST", token: admin, body: { student_a: studentA.id, student_b: studentB.id } });
   check("staff pairs the two students", pair.status === 201, JSON.stringify(pair.data));
@@ -178,6 +179,7 @@ async function main() {
   check("restore reverts the plan to the backed-up value", pathAfter.data?.path?.hifz_plan === "plan_b" && pathAfter.data?.path?.ward_ahzab === 2, JSON.stringify(pathAfter.data?.path));
   const dailyAfter = await call("/api/quran/today", { token: studentA.token });
   check("restore keeps the daily logs", Boolean(dailyAfter.data?.logs?.hifz) && Boolean(dailyAfter.data?.logs?.thabit) && Boolean(dailyAfter.data?.logs?.ward), JSON.stringify(dailyAfter.data?.logs));
+  check("restore preserves pending Sheikh approvals and approved reading", dailyAfter.data?.logs?.hifz?.approval_status==="pending" && dailyAfter.data?.logs?.thabit?.approval_status==="pending" && dailyAfter.data?.logs?.ward?.approval_status==="approved", JSON.stringify(dailyAfter.data?.logs));
   const redemptionsAfter = await call("/api/store/redemptions?status=pending", { token: admin });
   check("restore reverts the redemption decision", (redemptionsAfter.data || []).some(x => x.id === redemptionId), JSON.stringify(redemptionsAfter.data));
   const itemsAfterRestore = await call("/api/store/items", { token: admin });

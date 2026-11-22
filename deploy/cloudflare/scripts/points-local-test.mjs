@@ -163,7 +163,7 @@ async function main() {
   const undoAttendanceTest = attendanceEvent ? await call("/api/points/events/" + encodeURIComponent(attendanceEvent.id) + "/reverse", { method: "POST", token: admin, body: { reason: "إعادة تهيئة رصيد اختبار الحضور" } }) : { status: 404 };
   check("attendance test award can be reversed without deleting its record", undoAttendanceTest.status === 200 && undoAttendanceTest.data?.totals?.balance === 30, JSON.stringify(undoAttendanceTest.data));
 
-  const quran = await call("/api/quran/progress", { method: "POST", token: admin, body: { student_id: student.id, date: today, activity: "memorization", memorized: "سورة الملك 1-5" } });
+  const quran = await call("/api/quran/progress", { method: "POST", token: admin, body: { student_id: student.id, date: today, activity: "recitation", recitation: "سورة الملك 1-5" } });
   check("Quran progress save succeeds", quran.status === 201, JSON.stringify(quran.data));
   const afterQuran = await call("/api/points/summary?student_id=" + encodeURIComponent(student.id), { token: admin });
   check("generic Quran progress does not award points without a named approved activity", afterQuran.data?.totals?.achievement === 30 && afterQuran.data?.totals?.store === 30, JSON.stringify(afterQuran.data?.totals));

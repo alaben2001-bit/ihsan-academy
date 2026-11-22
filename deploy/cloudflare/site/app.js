@@ -2110,6 +2110,7 @@ function quranScheduleMarkup(pathData, todayData, summary, monthLogs){
     +'<div><small>أيام التثبيت</small><strong>'+Number(totals.thabit?.days||0)+'</strong></div>'
     +'<div><small>أحزاب التثبيت</small><strong>'+quranFmtAmount(totals.thabit?.total||0,"حزب")+'</strong></div>'
     +'<div><small>أيام الورد</small><strong>'+Number(totals.ward?.days||0)+'</strong></div>'
+    +'<div><small>بانتظار اعتماد الشيخ</small><strong>'+Number((summary?.pending?.hifz||0)+(summary?.pending?.thabit||0))+'</strong></div>'
     +'<div><small>محطات معتمدة</small><strong>'+Number(stations.approved||0)+' / 4</strong></div>'
     +'</div>';
   const journeyRows=nineMonths.map(row=>'<tr><td class="tafew"><strong>الشهر '+row.m+'</strong></td><td><strong>'+esc(row.title)+'</strong><br><small class="muted">'+esc(row.note)+'</small></td><td class="tafew">'+esc(row.gate)+'</td></tr>').join("");
@@ -2139,9 +2140,10 @@ function quranScheduleMarkup(pathData, todayData, summary, monthLogs){
     const wd=new Date(iso+"T12:00:00").getDay();
     const isRest=Number(info.rest_day)===wd;
     const dLogs=done[iso]||{};
-    const doneCount=["hifz","thabit","ward"].filter(k=>dLogs[k]).length;
+    const doneCount=["hifz","thabit","ward"].filter(k=>dLogs[k]&&dLogs[k].approval_status!=="pending"&&dLogs[k].approval_status!=="rejected").length;
+    const pendingCount=["hifz","thabit","ward"].filter(k=>dLogs[k]&&dLogs[k].approval_status==="pending").length;
     const isToday=iso===todayIso;
-    cells+='<button type="button" class="qcal-cell'+(isRest?" is-rest":"")+(isToday?" is-today":"")+(doneCount===3?" is-complete":"")+'" data-qcal-day="'+iso+'" aria-label="'+iso+' — '+doneCount+' من 3"><span class="qcal-daynum">'+d+'</span><span class="qcal-marks">'+(isRest?'<i class="qcal-rest-dot" title="استدراك"></i>':"")+["hifz","thabit","ward"].map(k=>'<i class="qcal-dot qcal-dot-'+k+(dLogs[k]?" is-done":"")+'" title="'+({hifz:"حفظ",thabit:"تثبيت",ward:"ورد"}[k])+'"></i>').join("")+'</span></button>';
+    cells+='<button type="button" class="qcal-cell'+(isRest?" is-rest":"")+(isToday?" is-today":"")+(doneCount===3?" is-complete":"")+'" data-qcal-day="'+iso+'" aria-label="'+iso+' — '+doneCount+' منجز، '+pendingCount+' بانتظار اعتماد الشيخ"><span class="qcal-daynum">'+d+'</span><span class="qcal-marks">'+(isRest?'<i class="qcal-rest-dot" title="استدراك"></i>':"")+["hifz","thabit","ward"].map(k=>'<i class="qcal-dot qcal-dot-'+k+(dLogs[k]?.approval_status==="pending"?" is-pending":dLogs[k]?.approval_status==="rejected"?" is-rejected":dLogs[k]?" is-done":"")+'" title="'+({hifz:"حفظ",thabit:"تثبيت",ward:"ورد"}[k])+(dLogs[k]?.approval_status==="pending"?" · بانتظار الشيخ":dLogs[k]?.approval_status==="rejected"?" · يحتاج تصحيحًا":"")+'"></i>').join("")+'</span></button>';
   }
   for(let i=0;i<trailing;i++)cells+='<div class="qcal-cell is-empty" aria-hidden="true"></div>';
   return '<section class="card quran-program-card"><div class="section-head"><div><span class="eyebrow">جدولي</span><h3>بطاقة برنامجي</h3><p>ملخص مسارك كما هو سارٍ الآن؛ اطبعه وعلّقه حتى يبقى أمام عينيك.</p></div><div class="student-actions"><button class="btn" type="button" data-sch-print="all">طباعة جدولي كاملًا</button></div></div>'
@@ -3122,11 +3124,24 @@ function quranLogCard(kind,pathInfo,logged){
     :kind==="ward"?{amount:pathInfo.ward_ahzab,unit:"حزب",reps:0,link:""}
     :{amount:"",unit:pathInfo.hifz_unit||"سطر",reps:0,link:""};
   const units=kind==="hifz"?["سطر","صفحة","آية","وجه"]:["حزب","ثمن حزب","ربع حزب"];
-  const done=logged?'<div class="quran-log-done"><strong>تم تسجيل '+meta.label+' اليوم</strong><small>'+esc(quranFmtAmount(logged.amount,logged.unit))+(Number(logged.repetitions)?' · '+Number(logged.repetitions)+' تكرار':'')+'</small>'+(logged.notes?'<small>'+esc(logged.notes)+'</small>':"")+'</div>'
-    :'<form class="quran-log-form" data-quran-log="'+kind+'"><div class="quran-log-fields"><label class="field">المقدار<input type="number" step="0.01" min="0" max="1000" name="amount" required value="'+esc(defaults.amount)+'"></label><label class="field">الوحدة<select name="unit">'+units.map(u=>'<option '+(u===defaults.unit?"selected":"")+'>'+u+'</option>').join("")+'</select></label>'+(kind==="hifz"?'':'<label class="field">التكرارات<input type="number" min="0" max="100" name="repetitions" value="'+defaults.reps+'"></label>')+'</div>'+
-      (kind==="hifz"?'<label class="field">الربط التراكمي<input name="linked_scope" maxlength="120" placeholder="مثال: ربط آخر وجه بما قبله"></label>':'')+
-      '<label class="field">ملاحظة<textarea name="notes" rows="2" maxlength="600" placeholder="موضع خطأ أو ملاحظة قصيرة…"></textarea></label><button class="btn" type="submit">تسجيل '+meta.label+'</button></form>';
-  return '<article class="card quran-log-card '+(logged?"is-done":"")+'"><div class="section-head"><div><span class="eyebrow">'+meta.eyebrow+'</span><h3>'+meta.label+'</h3><p>'+meta.hint+'</p></div><span class="pill">'+(logged?"سُجّل":"لم يُسجّل")+'</span></div>'+done+'</article>';
+  const pending=logged?.approval_status==="pending",rejected=logged?.approval_status==="rejected";
+  const formMarkup='<form class="quran-log-form" data-quran-log="'+kind+'"><div class="quran-log-fields"><label class="field">المقدار<input type="number" step="0.01" min="0" max="1000" name="amount" required value="'+esc(rejected?logged.amount:defaults.amount)+'"></label><label class="field">الوحدة<select name="unit">'+units.map(u=>'<option '+(u===(rejected?logged.unit:defaults.unit)?"selected":"")+'>'+u+'</option>').join("")+'</select></label>'+(kind==="hifz"?'':'<label class="field">التكرارات<input type="number" min="0" max="100" name="repetitions" value="'+(rejected?Number(logged.repetitions||0):defaults.reps)+'"></label>')+'</div>'+
+      (kind==="hifz"?'<label class="field">الربط التراكمي<input name="linked_scope" maxlength="120" placeholder="مثال: ربط آخر وجه بما قبله" value="'+esc(rejected?logged.linked_scope||"":"")+'"></label>':'')+
+      '<label class="field">ملاحظة<textarea name="notes" rows="2" maxlength="600" placeholder="موضع خطأ أو ملاحظة قصيرة…">'+esc(rejected?logged.notes||"":"")+'</textarea></label><button class="btn" type="submit">'+(rejected?"إعادة إرسال للشيخ":"تسجيل "+meta.label)+'</button></form>';
+  let content="";
+  if(pending){
+    content='<div class="notice">سجّلت '+meta.label+' بمقدار '+esc(quranFmtAmount(logged.amount,logged.unit))+'؛ وهو الآن بانتظار مراجعة الشيخ. لا تُضاف نقاط الإنجاز أو الاستمرارية قبل الاعتماد.</div>';
+  }else if(rejected){
+    content='<div class="notice error"><strong>لم يُعتمد هذا السجل.</strong> '+esc(logged.approval_note||"راجع ملاحظة الشيخ ثم أعد الإرسال.")+'</div>'+formMarkup;
+  }else if(logged){
+    const reviewed=Boolean(logged.reviewed_by),doneTitle=kind==="ward"?"سجّلت وردك اليوم":reviewed?"اعتمد الشيخ "+meta.label+" اليوم":"سجل محفوظ سابقًا";
+    content='<div class="quran-log-done"><strong>'+doneTitle+'</strong><small>'+esc(quranFmtAmount(logged.amount,logged.unit))+(Number(logged.repetitions)?' · '+Number(logged.repetitions)+' تكرار':'')+'</small>'+(logged.notes?'<small>'+esc(logged.notes)+'</small>':"")+'</div>';
+  }else{
+    content=formMarkup;
+  }
+  const state=pending?"is-pending":rejected?"is-rejected":logged?"is-done":"";
+  const label=pending?"بانتظار الشيخ":rejected?"يحتاج تصحيحًا":logged?"معتمد":"لم يُسجّل";
+  return '<article class="card quran-log-card '+state+'"><div class="section-head"><div><span class="eyebrow">'+meta.eyebrow+'</span><h3>'+meta.label+'</h3><p>'+meta.hint+'</p></div><span class="pill">'+label+'</span></div>'+content+'</article>';
 }
 function quranJourneyMarkup(summary,pathInfo,stations){
   const totals=summary?.totals||{},makeups=summary?.makeups||{};
@@ -3330,8 +3345,21 @@ async function quranSupervisionPage(v){
     if(!gid){host.innerHTML='<div class="empty">اختر فوجًا لعرض طلابه.</div>';return}
     host.innerHTML='<div class="loading">جار تحميل طلاب الفوج…</div>';
     try{
-      const students=await api("/students?group_id="+encodeURIComponent(gid));
-      host.innerHTML='<div class="divider"></div><h4>الرفيق</h4><p class="muted small">اختر طالبين من الفوج نفسه لربطهما كرفيقين. الربط الجديد يوقف الربط السابق لأي منهما.</p><form id="quran-pair-form" class="quran-pair-form"><div class="quran-log-fields"><label class="field">الطالب الأول<select name="student_a">'+students.map(st=>'<option value="'+esc(st.id)+'">'+esc(studentDisplayName(st.name))+'</option>').join("")+'</select></label><label class="field">الطالب الثاني<select name="student_b">'+students.map(st=>'<option value="'+esc(st.id)+'">'+esc(studentDisplayName(st.name))+'</option>').join("")+'</select></label></div><button class="btn" type="submit">ربط الرفيقين</button></form><div class="divider"></div><h4>متابعة طالب</h4><label class="field">الطالب<select id="quran-sup-student"><option value="">اختر طالبًا</option>'+students.map(st=>'<option value="'+esc(st.id)+'">'+esc(studentDisplayName(st.name))+'</option>').join("")+'</select></label><div id="quran-sup-student-body"></div>';
+      const [studentsResult,pendingResult]=await Promise.allSettled([api("/students?group_id="+encodeURIComponent(gid)),api("/quran/daily/pending?group_id="+encodeURIComponent(gid))]);
+      if(studentsResult.status!=="fulfilled")throw studentsResult.reason;
+      const students=studentsResult.value,pendingDaily=pendingResult.status==="fulfilled"?pendingResult.value:[];
+      const pendingWarning=pendingResult.status==="fulfilled"?"":'<div class="notice">تعذر تحميل قائمة الاعتماد مؤقتًا؛ ما زالت متابعة الطلاب متاحة.</div>';
+      const canApproveDaily=["admin","teacher"].includes(S.user.role);
+      const pendingMarkup=(pendingDaily||[]).map(row=>'<div class="list-row"><div><strong>'+esc(studentDisplayName(row.student_name))+' · '+esc(QURAN_KIND_UI[row.kind]?.label||row.kind)+'</strong><small>'+esc(row.day)+' · '+esc(quranFmtAmount(row.amount,row.unit))+(row.repetitions?' · '+Number(row.repetitions)+' تكرار':'')+(row.notes?' · '+esc(row.notes):'')+'</small></div>'+(canApproveDaily?'<span class="quran-sup-actions"><button class="btn secondary" type="button" data-daily-approve="'+esc(row.id)+'" data-daily-student="'+esc(row.student_id)+'">اعتماد</button><button class="btn secondary" type="button" data-daily-reject="'+esc(row.id)+'" data-daily-student="'+esc(row.student_id)+'">رفض</button></span>':'<span class="pill">بانتظار الشيخ</span>')+'</div>').join("");
+      host.innerHTML=pendingWarning+'<div class="divider"></div><section class="quran-daily-approvals"><div class="section-head"><div><span class="eyebrow">اعتماد الشيخ</span><h4>الحفظ والتثبيت بانتظار المراجعة</h4><p class="muted small">لا تُمنح نقاط الحفظ أو التثبيت من تسجيل الطالب لنفسه؛ لا تُضاف النقاط والاستمرارية إلا بعد اعتماد الشيخ.</p></div><span class="pill">'+(pendingDaily||[]).length+' سجلات</span></div><div class="list">'+(pendingMarkup||'<div class="empty">لا توجد سجلات حفظ أو تثبيت بانتظار الاعتماد.</div>')+'</div></section><div class="divider"></div><h4>الرفيق</h4><p class="muted small">اختر طالبين من الفوج نفسه لربطهما كرفيقين. الربط الجديد يوقف الربط السابق لأي منهما.</p><form id="quran-pair-form" class="quran-pair-form"><div class="quran-log-fields"><label class="field">الطالب الأول<select name="student_a">'+students.map(st=>'<option value="'+esc(st.id)+'">'+esc(studentDisplayName(st.name))+'</option>').join("")+'</select></label><label class="field">الطالب الثاني<select name="student_b">'+students.map(st=>'<option value="'+esc(st.id)+'">'+esc(studentDisplayName(st.name))+'</option>').join("")+'</select></label></div><button class="btn" type="submit">ربط الرفيقين</button></form><div class="divider"></div><h4>متابعة طالب</h4><label class="field">الطالب<select id="quran-sup-student"><option value="">اختر طالبًا</option>'+students.map(st=>'<option value="'+esc(st.id)+'">'+esc(studentDisplayName(st.name))+'</option>').join("")+'</select></label><div id="quran-sup-student-body"></div>';
+      host.querySelectorAll("[data-daily-approve],[data-daily-reject]").forEach(btn=>btn.onclick=async()=>{
+        const approve=Boolean(btn.dataset.dailyApprove),entryId=btn.dataset.dailyApprove||btn.dataset.dailyReject,studentId=btn.dataset.dailyStudent;
+        let note="";
+        if(!approve){note=prompt("سبب الرفض الذي سيظهر للطالب:","");if(note===null)return;if(note.trim().length<3){toast("اكتب سببًا واضحًا للرفض",true);return}}
+        btn.disabled=true;
+        try{await api("/quran/daily/decision",{method:"POST",body:JSON.stringify({student_id:studentId,entry_id:entryId,decision:approve?"approved":"rejected",note})});toast(approve?"اعتمدت الحفظ؛ أضيفت نقاطه":"أُعيد السجل للطالب مع سبب التصحيح");await render()}
+        catch(error){btn.disabled=false;toast(error.message,true)}
+      });
       $("#quran-pair-form").onsubmit=async event=>{
         event.preventDefault();const form=event.currentTarget,button=form.querySelector('button[type="submit"]'),f=new FormData(form);button.disabled=true;
         try{await api("/quran/companion/pair",{method:"POST",body:JSON.stringify({student_a:f.get("student_a"),student_b:f.get("student_b")})});toast("تم ربط الرفيقين")}catch(error){toast(error.message,true)}finally{button.disabled=false}

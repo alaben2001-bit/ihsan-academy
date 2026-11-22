@@ -113,6 +113,8 @@ async function main() {
 
   const pathRead = await call("/api/quran/path", { token: studentA.token });
   check("path read reports enrollment", pathRead.status === 200 && pathRead.data?.enrolled === true && pathRead.data?.path?.ward_ahzab === 2, JSON.stringify(pathRead.data));
+  const enrollB = await call("/api/quran/path", { method: "POST", token: studentB.token, body: { hifz_plan: "plan_a", hifz_category: "15", hifz_amount: "3", hifz_unit: "سطر", ward_ahzab: 1, start_date: today } });
+  check("second student can enroll for isolated approval tests", enrollB.status === 200 && enrollB.data?.path?.hifz_plan === "plan_a", JSON.stringify(enrollB.data));
 
   const todayRead = await call("/api/quran/today", { token: studentA.token });
   check("today read reports rest day and empty logs", todayRead.status === 200 && todayRead.data?.enrolled === true && todayRead.data?.logs?.hifz === null, JSON.stringify(todayRead.data));
@@ -137,11 +139,43 @@ async function main() {
   check("staff resolves the makeup", resolveMakeup.status === 200, JSON.stringify(resolveMakeup.data));
 
   const priorHifzWorkday = await call("/api/quran/daily", { method: "POST", token: studentA.token, body: { kind: "hifz", day: academyDate(-3), amount: 2, unit: "سطر" } });
-  check("student logs memorization before the planned rest day", priorHifzWorkday.status === 201, JSON.stringify(priorHifzWorkday.data));
+  check("student self-reports memorization before the planned rest day as pending", priorHifzWorkday.status === 201 && priorHifzWorkday.data?.entry?.approval_status === "pending" && priorHifzWorkday.data?.awards?.length === 0 && priorHifzWorkday.data?.streak?.pending_approval === true, JSON.stringify(priorHifzWorkday.data));
   const afterRestHifzWorkday = await call("/api/quran/daily", { method: "POST", token: studentA.token, body: { kind: "hifz", day: academyDate(-1), amount: 2, unit: "سطر" } });
-  check("student logs memorization after the planned rest day", afterRestHifzWorkday.status === 201 && afterRestHifzWorkday.data?.streak?.days === 2, JSON.stringify(afterRestHifzWorkday.data));
+  check("student self-reports memorization after the planned rest day without points", afterRestHifzWorkday.status === 201 && afterRestHifzWorkday.data?.entry?.approval_status === "pending" && afterRestHifzWorkday.data?.streak?.pending_approval === true, JSON.stringify(afterRestHifzWorkday.data));
   const hifz = await call("/api/quran/daily", { method: "POST", token: studentA.token, body: { kind: "hifz", amount: 5, unit: "سطر", notes: "اختبار الحفظ" } });
-  check("student logs memorization after resolving makeup", hifz.status === 201 && hifz.data?.entry?.kind === "hifz" && hifz.data?.streak?.days === 3, JSON.stringify(hifz.data));
+  check("student self-reports today's memorization pending Sheikh approval", hifz.status === 201 && hifz.data?.entry?.kind === "hifz" && hifz.data?.entry?.approval_status === "pending" && hifz.data?.awards?.length === 0, JSON.stringify(hifz.data));
+  const selfApproval = await call("/api/quran/daily/decision", { method: "POST", token: studentA.token, body: { student_id: studentA.id, entry_id: hifz.data?.entry?.id, decision: "approved" } });
+  check("student cannot approve their own memorization", selfApproval.status === 403, JSON.stringify(selfApproval.data));
+  const pendingQueue = await call("/api/quran/daily/pending?group_id=" + encodeURIComponent(groupId), { token: admin });
+  check("Sheikh queue lists all pending memorization entries", pendingQueue.status === 200 && pendingQueue.data?.length === 3, JSON.stringify(pendingQueue.data));
+  const approvePriorHifz = await call("/api/quran/daily/decision", { method: "POST", token: admin, body: { student_id: studentA.id, entry_id: priorHifzWorkday.data.entry.id, decision: "approved" } });
+  check("Sheikh approval awards the first memorization entry and starts its streak", approvePriorHifz.status === 200 && approvePriorHifz.data?.entry?.approval_status === "approved" && approvePriorHifz.data?.streak?.days === 1, JSON.stringify(approvePriorHifz.data));
+  const approveAfterRestHifz = await call("/api/quran/daily/decision", { method: "POST", token: admin, body: { student_id: studentA.id, entry_id: afterRestHifzWorkday.data.entry.id, decision: "approved" } });
+  check("Sheikh approval continues the streak across the planned rest day", approveAfterRestHifz.status === 200 && approveAfterRestHifz.data?.streak?.days === 2, JSON.stringify(approveAfterRestHifz.data));
+  const approveHifz = await call("/api/quran/daily/decision", { method: "POST", token: admin, body: { student_id: studentA.id, entry_id: hifz.data.entry.id, decision: "approved" } });
+  check("Sheikh approval awards today's memorization and reaches three days", approveHifz.status === 200 && approveHifz.data?.streak?.days === 3 && approveHifz.data?.awards?.length > 0, JSON.stringify(approveHifz.data));
+  const duplicateApproval = await call("/api/quran/daily/decision", { method: "POST", token: admin, body: { student_id: studentA.id, entry_id: hifz.data.entry.id, decision: "approved" } });
+  check("repeated Sheikh approval is idempotent", duplicateApproval.status === 200 && duplicateApproval.data?.duplicate === true, JSON.stringify(duplicateApproval.data));
+  const pointsBeforeProgressDuplicate = await call("/api/points/summary", { token: studentA.token });
+  const progressAfterApproval = await call("/api/quran/progress", { method: "POST", token: admin, body: { student_id: studentA.id, date: today, activity: "memorization", memorized: "خمسة أسطر", notes: "متابعة الشيخ بعد اعتماد السجل اليومي" } });
+  const pointsAfterProgressDuplicate = await call("/api/points/summary", { token: studentA.token });
+  check("teacher progress does not award twice after daily approval", progressAfterApproval.status === 201 && pointsAfterProgressDuplicate.data?.totals?.achievement === pointsBeforeProgressDuplicate.data?.totals?.achievement && pointsAfterProgressDuplicate.data?.totals?.store === pointsBeforeProgressDuplicate.data?.totals?.store, JSON.stringify({before:pointsBeforeProgressDuplicate.data?.totals,after:pointsAfterProgressDuplicate.data?.totals,progress:progressAfterApproval.data}));
+  const queueAfterApproval = await call("/api/quran/daily/pending?group_id=" + encodeURIComponent(groupId), { token: admin });
+  check("approved memorization entries leave the pending queue", queueAfterApproval.status === 200 && queueAfterApproval.data?.length === 0, JSON.stringify(queueAfterApproval.data));
+  const progressBeforeDaily = await call("/api/quran/progress", { method: "POST", token: admin, body: { student_id: studentB.id, date: today, activity: "memorization", memorized: "سطران موثقان", notes: "اعتماد الشيخ قبل تسجيل الطالب" } });
+  check("teacher can record verified memorization before the student self-report", progressBeforeDaily.status === 201, JSON.stringify(progressBeforeDaily.data));
+  const pointsBeforeResubmissionApproval = await call("/api/points/summary", { token: studentB.token });
+  const rejectedHifz = await call("/api/quran/daily", { method: "POST", token: studentB.token, body: { kind: "hifz", amount: 2, unit: "سطر" } });
+  check("second student self-report is pending", rejectedHifz.status === 201 && rejectedHifz.data?.entry?.approval_status === "pending" && rejectedHifz.data?.awards?.length === 0, JSON.stringify(rejectedHifz.data));
+  const rejectHifz = await call("/api/quran/daily/decision", { method: "POST", token: admin, body: { student_id: studentB.id, entry_id: rejectedHifz.data.entry.id, decision: "rejected", note: "راجع موضع الخطأ قبل إعادة العرض" } });
+  check("Sheikh can return a daily Quran entry with a reason", rejectHifz.status === 200 && rejectHifz.data?.entry?.approval_status === "rejected", JSON.stringify(rejectHifz.data));
+  const rejectedToday = await call("/api/quran/today", { token: studentB.token });
+  check("student sees the rejection reason", rejectedToday.status === 200 && rejectedToday.data?.logs?.hifz?.approval_status === "rejected" && rejectedToday.data?.logs?.hifz?.approval_note?.includes("راجع موضع الخطأ"), JSON.stringify(rejectedToday.data?.logs?.hifz));
+  const resubmittedHifz = await call("/api/quran/daily", { method: "POST", token: studentB.token, body: { kind: "hifz", amount: 3, unit: "سطر", notes: "تم التصحيح" } });
+  check("student can resubmit a rejected entry without creating a duplicate", resubmittedHifz.status === 200 && resubmittedHifz.data?.entry?.id === rejectedHifz.data.entry.id && resubmittedHifz.data?.entry?.approval_status === "pending", JSON.stringify(resubmittedHifz.data));
+  const approveResubmitted = await call("/api/quran/daily/decision", { method: "POST", token: admin, body: { student_id: studentB.id, entry_id: rejectedHifz.data.entry.id, decision: "approved" } });
+  const pointsAfterResubmissionApproval = await call("/api/points/summary", { token: studentB.token });
+  check("corrected entry can be approved without duplicating prior teacher points", approveResubmitted.status === 200 && approveResubmitted.data?.entry?.approval_status === "approved" && (approveResubmitted.data?.awards||[]).length === 0 && pointsAfterResubmissionApproval.data?.totals?.achievement === pointsBeforeResubmissionApproval.data?.totals?.achievement && pointsAfterResubmissionApproval.data?.totals?.store === pointsBeforeResubmissionApproval.data?.totals?.store, JSON.stringify({decision:approveResubmitted.data, before:pointsBeforeResubmissionApproval.data?.totals, after:pointsAfterResubmissionApproval.data?.totals}));
 
   const duplicate = await call("/api/quran/daily", { method: "POST", token: studentA.token, body: { kind: "hifz", amount: 5, unit: "سطر", notes: "اختبار الحفظ" } });
   check("identical daily log is idempotent", duplicate.status === 200 && duplicate.data?.duplicate === true, JSON.stringify(duplicate.data));
@@ -150,7 +184,9 @@ async function main() {
   check("different amount for the same day is rejected", conflicting.status === 409, JSON.stringify(conflicting.data));
 
   const thabit = await call("/api/quran/daily", { method: "POST", token: studentA.token, body: { kind: "thabit", amount: 0.25, unit: "حزب", repetitions: 15 } });
-  check("student logs consolidation with repetitions", thabit.status === 201 && Number(thabit.data?.entry?.repetitions) === 15, JSON.stringify(thabit.data));
+  check("student logs consolidation with repetitions pending approval", thabit.status === 201 && Number(thabit.data?.entry?.repetitions) === 15 && thabit.data?.entry?.approval_status === "pending" && thabit.data?.awards?.length === 0, JSON.stringify(thabit.data));
+  const thabitApproval = await call("/api/quran/daily/decision", { method: "POST", token: admin, body: { student_id: studentA.id, entry_id: thabit.data.entry.id, decision: "approved" } });
+  check("Sheikh approval awards consolidation points", thabitApproval.status === 200 && thabitApproval.data?.entry?.approval_status === "approved" && thabitApproval.data?.awards?.length > 0, JSON.stringify(thabitApproval.data));
 
   // Build a five-day ward streak in chronological order, using only test records in local D1.
   for (let offset = -4; offset <= -1; offset += 1) {
@@ -253,7 +289,7 @@ async function main() {
 
   // 7) Summary aggregates the day's work
   const summary = await call("/api/quran/summary", { token: studentA.token });
-  check("summary counts the three daily kinds", summary.status === 200 && Number(summary.data?.totals?.hifz?.days) === 3 && Number(summary.data?.totals?.thabit?.days) === 1 && Number(summary.data?.totals?.ward?.days) === 5, JSON.stringify(summary.data?.totals));
+  check("summary counts only approved Quran work", summary.status === 200 && Number(summary.data?.totals?.hifz?.days) === 3 && Number(summary.data?.totals?.thabit?.days) === 1 && Number(summary.data?.totals?.ward?.days) === 5 && Number(summary.data?.pending?.hifz||0) === 0 && Number(summary.data?.pending?.thabit||0) === 0, JSON.stringify({totals:summary.data?.totals,pending:summary.data?.pending}));
   check("summary reports the approved station", Number(summary.data?.stations?.approved) === 1, JSON.stringify(summary.data?.stations));
   check("summary reports the completed makeup", Number(summary.data?.makeups?.done) === 1, JSON.stringify(summary.data?.makeups));
   check("summary reports an active streak", Number(summary.data?.streak) >= 1, JSON.stringify(summary.data?.streak));
@@ -268,6 +304,8 @@ async function main() {
   check("teacher outside the group cannot read the path", teacherRead.status === 403, JSON.stringify(teacherRead.data));
   const teacherDaily = await call("/api/quran/daily", { method: "POST", token: teacher, body: { student_id: studentA.id, kind: "ward", amount: 1 } });
   check("teacher outside the group cannot log a portion", teacherDaily.status === 403, JSON.stringify(teacherDaily.data));
+  const teacherApproval = await call("/api/quran/daily/decision", { method: "POST", token: teacher, body: { student_id: studentA.id, entry_id: hifz.data.entry.id, decision: "approved" } });
+  check("teacher outside the group cannot approve another student's Quran work", teacherApproval.status === 403, JSON.stringify(teacherApproval.data));
 
   const report = { base: BASE, failures, passed: results.filter(row => row.ok).length, total: results.length, results };
   const outputPath = process.env.QURAN_TEST_REPORT || "";

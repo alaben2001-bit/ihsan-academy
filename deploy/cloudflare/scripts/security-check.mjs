@@ -668,6 +668,28 @@ assert.match(backend, /claims\.email_verified===true\|\|claims\.email_verified==
 assert.match(backend, /INSERT INTO google_identities \(google_sub,user_id,email,linked_at\)/, "Google signup must persist the verified subject-to-account link");
 assert.match(backend, /findDuplicateStudentByName\(env,name\)/, "Google signup must not create duplicate student profiles");
 assert.match(backend, /path === "\/api\/auth\/google\/reset-password"/, "password recovery must use a separate Google proof endpoint");
+
+assert.match(backend, /approval_status TEXT NOT NULL DEFAULT 'approved'/, "legacy Quran records must remain approved when the additive approval fields are introduced");
+assert.match(backend, /requiresApproval=user\.role==="student"&&\(kind==="hifz"\|\|kind==="thabit"\)/, "student self-reports of memorization and consolidation must wait for Sheikh approval");
+assert.match(backend, /path===["']\/api\/quran\/daily\/decision["']&&method==="POST"/, "Sheikh approval must use a dedicated decision endpoint");
+assert.match(backend, /path===["']\/api\/quran\/daily\/pending["']&&method==="GET"/, "authorized supervisors must be able to see pending Quran work");
+assert.match(backend, /if\(\(kind==="hifz"\|\|kind==="thabit"\)&&user\.role!=="student"&&!\["admin","teacher"\]\.includes\(user\.role\)\)/, "only the Sheikh or admin may enter approved memorization and consolidation");
+assert.match(backend, /if\(\["memorization","revision"\]\.includes\(activity\)&&!\["admin","teacher"\]\.includes\(user\.role\)\)/, "supervisors cannot bypass Sheikh approval through the teacher progress endpoint");
+
+assert.match(backend, /approval_status='approved'/, "official Quran totals and streaks must exclude pending self-reports");
+assert.match(app, /بانتظار مراجعة الشيخ/, "students must see that unapproved Quran work is pending");
+assert.match(app, /اعتماد الشيخ/, "Quran supervision must expose a Sheikh approval queue");
+assert.match(app, /\/quran\/daily\/decision/, "Sheikh approval buttons must call the protected decision endpoint");
+assert.match(app, /إعادة إرسال للشيخ/, "students must be able to correct and resubmit rejected Quran work");
+assert.match(backend, /approval_status:x\.approval_status===undefined\?"approved":x\.approval_status/, "older backups must restore Quran logs as legacy approved records");
+assert.match(backend, /approval_status=excluded\.approval_status/, "backup restore must preserve Quran approval states");
+assert.match(backend, /source_collection='quran_progress'/, "teacher-entered Quran progress must participate in the same continuity ledger");
+assert.match(backend, /const dailyKind=activity==="memorization"\?"hifz":activity==="revision"\?"thabit"/, "teacher progress must map to the matching daily Quran approval record");
+assert.match(backend, /priorProgress/, "teacher progress and student daily approval must not award the same work twice");
+
+assert.match(backend, /SELECT kind,COUNT\(\*\) AS days,COALESCE\(SUM\(amount\),0\) AS total FROM quran_daily WHERE student_id=\? AND approval_status='approved'/, "Quran progress totals must exclude pending self-reports");
+
+
 assert.match(backend, /rateLimit\(env,"google-password-reset"/, "Google password recovery must be rate limited");
 assert.match(backend, /DISABLE_LEGACY_PASSWORD_SIGNUP==="true"/, "production must reject unverified manual signup requests");
 assert.match(app, /id="google-signup"/, "signup must provide a Google identity button");

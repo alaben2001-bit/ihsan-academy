@@ -173,7 +173,7 @@ async function main() {
 
   // Baseline academic records: these must survive the competition flow.
   const attendance = await call("/api/attendance", { method: "POST", token: admin, body: { group_id: groupAId, date: today, items: [{ student_id: s1.id, status: "present" }] } });
-  const progress = await call("/api/quran/progress", { method: "POST", token: admin, body: { student_id: s1.id, date: today, activity: "memorization", memorized: "سورة الملك 1-5" } });
+  const progress = await call("/api/quran/progress", { method: "POST", token: admin, body: { student_id: s1.id, date: today, activity: "recitation", recitation: "سورة الملك 1-5" } });
   check("baseline attendance and Quran progress save", attendance.status === 200 && progress.status === 201, JSON.stringify({ attendance: attendance.data, progress: progress.data }));
   const baseline = await call("/api/points/summary?student_id=" + encodeURIComponent(s1.id), { token: admin });
   check("baseline is represented as one unified balance", baseline.data?.totals?.achievement === 30 && baseline.data?.totals?.store === 30, JSON.stringify(baseline.data?.totals));
@@ -515,7 +515,7 @@ async function main() {
   const attendanceRead = await call("/api/attendance?group_id=" + encodeURIComponent(groupAId) + "&date=" + encodeURIComponent(today), { token: admin });
   check("attendance still returns the original present record", attendanceRead.status === 200 && (attendanceRead.data || []).some(row => row.student_id === s1.id && row.status === "present"), JSON.stringify(attendanceRead.data));
   const progressRead = await call("/api/quran/progress?student_id=" + encodeURIComponent(s1.id), { token: admin });
-  check("Quran progress still returns the original memorization record", progressRead.status === 200 && (progressRead.data || []).some(row => row.student_id === s1.id && row.activity === "memorization" && row.memorized.includes("الملك")), JSON.stringify(progressRead.data));
+  check("Quran progress still returns the original memorization record", progressRead.status === 200 && (progressRead.data || []).some(row => row.student_id === s1.id && row.activity === "recitation" && row.recitation.includes("الملك")), JSON.stringify(progressRead.data));
   const rosterRead = await call("/api/students?group_id=" + encodeURIComponent(groupAId), { token: admin });
   check("the student roster is unchanged", rosterRead.status === 200 && [s1.id, s2.id, s3.id].every(id => (rosterRead.data || []).some(row => row.id === id)), JSON.stringify(rosterRead.data));
   const reSaveAttendance = await call("/api/attendance", { method: "POST", token: admin, body: { group_id: groupAId, date: today, items: [{ student_id: s1.id, status: "present" }] } });
