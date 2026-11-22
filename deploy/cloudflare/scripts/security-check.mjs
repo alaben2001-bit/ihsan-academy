@@ -623,6 +623,8 @@ assert.match(app, /request_id:idempotentFormRequestId\(manualForm,payload\)/, "Q
 assert.match(app, /function storeItemImage\(item\)/, "student rewards must support real product imagery");
 assert.match(app, /store-reco-card--locked/, "locked rewards must retain visual product-card presentation");
 assert.match(app, /safeUrl=\/\^\(https:/, "external reward imagery must use HTTPS");
+assert.match(app, /نموذج تجريبي قيد المراجعة · غير معتمد نهائيًا/, "Quran plan preview must be clearly marked experimental");
+assert.match(app, /سلسلة المواظبة والأوسمة/, "existing achievement badges and streaks must remain available");
 
 console.log("Security regression guardrails passed.");
 
