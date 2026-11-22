@@ -77,3 +77,6 @@
 
 /* وضوح التنقل بلوحة المفاتيح */
 a:focus-visible,button:focus-visible,.interest-form input:focus-visible,.interest-form select:focus-visible,.interest-form textarea:focus-visible{outline:3px solid var(--gold2);outline-offset:3px}
+
+.contact-channels{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:24px}.contact-channel{padding:17px;border:1px solid var(--line);border-radius:16px;background:linear-gradient(145deg,#123b30,#0b2b24)}.contact-channel>span{display:block;color:var(--muted);font-size:11px}.contact-channel>strong{display:block;margin:5px 0 13px;color:var(--gold2);font:600 20px var(--sans);letter-spacing:.04em}.contact-channel>div{display:flex;flex-wrap:wrap;gap:8px}.contact-channel .button{min-height:39px;padding:7px 12px;font-size:11px;flex:1}.contact-note{display:block;margin-top:10px;color:var(--muted);font-size:10px;line-height:1.8}
+@media(max-width:680px){.contact-channels{grid-template-columns:1fr}.contact-channel{padding:15px}.contact-channel>div .button{flex:1}}
