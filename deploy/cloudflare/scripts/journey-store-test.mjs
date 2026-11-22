@@ -115,6 +115,8 @@ async function main() {
   const studentA = await makeStudent(admin, groupId, "طالب الرحلة الأولى " + RUN, "journey-student-1-" + RUN, "JourneyStudent#2026");
   const studentB = await makeStudent(admin, groupId, "طالب الرحلة الثانية " + RUN, "journey-student-2-" + RUN, "JourneyStudent#2026");
   check("two student sessions are active", studentA.token.length === 64 && studentB.token.length === 64);
+  const fullNameLogin = await login(studentA.name, "JourneyStudent#2026b");
+  check("student can log in with their unique full name", fullNameLogin.status === 200 && fullNameLogin.token.length === 64, JSON.stringify(fullNameLogin.data));
   const teacherInside = await makeTeacher(admin, "شيخ فوج الرحلة " + RUN, "journey-teacher-in-" + RUN, "JourneyTeacher#2026", groupId);
   const teacherOutside = await makeTeacher(admin, "شيخ خارج الفوج " + RUN, "journey-teacher-out-" + RUN, "JourneyTeacher#2026");
   check("teacher inside the group is assigned and can log in", teacherInside.token.length === 64);
