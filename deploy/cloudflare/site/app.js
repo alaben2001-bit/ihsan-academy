@@ -3930,7 +3930,9 @@ async function syncLiveData(){
  finally{ihsanLiveSyncBusy=false}
 }
 function startLiveSync(){
- if(!ihsanLiveUserSignature)ihsanLiveUserSignature=liveUserSignature(S.user);
+ const currentSignature=liveUserSignature(S.user);
+ if(ihsanLiveUserSignature&&currentSignature!==ihsanLiveUserSignature){ihsanLiveKnownNotices=null;ihsanLiveWalletValue=null;}
+ ihsanLiveUserSignature=currentSignature;
  if(ihsanLiveSyncTimer)return;
  syncLiveData();
  ihsanLiveSyncTimer=window.setInterval(syncLiveData,18000);
