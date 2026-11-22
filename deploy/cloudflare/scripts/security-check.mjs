@@ -34,7 +34,7 @@ assert.equal(addCalendarDays("2026-10-20", 14), "2026-11-03", "two-week test due
 assert.ok(!backend.includes("nowIso().slice(0,10)"), "date-only school workflows must not derive their day from UTC");
 
 // Calendar validation must reject impossible dates in every editable attendance/Quran record.
-assert.match(backend, /if\(!validDateOnly\(date\)\|\|!items\.length\|\|items\.length>200/, "attendance must validate real calendar dates");
+assert.match(backend, /if\(!validDateOnly\(date\)\|\|date>academyDate\(\)\|\|!items\.length\|\|items\.length>200/, "attendance must validate calendar dates and reject future entries");
 assert.match(backend, /if\(!validDateOnly\(date\)\)return fail\(400,"صيغة التاريخ غير صحيحة"\)/, "Quran progress creation must validate real calendar dates");
 assert.match(backend, /if\(date>academyDate\(\)\)return fail\(400,"لا يمكن تسجيل متابعة القرآن بتاريخ مستقبلي"\)/, "Quran progress creation must reject future dates at the API");
 assert.match(app, /if\(day>today\)return toast\("لا يمكن تسجيل متابعة بتاريخ مستقبلي",true\)/, "the active Quran roster page must reject future dates before loading or saving");
