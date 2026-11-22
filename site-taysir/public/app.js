@@ -1,4 +1,5 @@
 (() => {
+  if (window.TAYSIR_HERO_SRC) document.querySelectorAll("[data-ai-hero]").forEach(img => { img.src = window.TAYSIR_HERO_SRC; });
   const toggle = document.querySelector('.menu-toggle');
   const nav = document.querySelector('#site-nav');
   toggle?.addEventListener('click', () => {
