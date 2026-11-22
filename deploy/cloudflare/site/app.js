@@ -1639,21 +1639,6 @@ async function tasksPage(v){
  v.innerHTML=html;
  document.querySelectorAll("[data-task-go]").forEach(btn=>btn.onclick=()=>go(btn.dataset.taskGo));
 }
-const WORLD_STAGES=[
- {min:0,name:"البذرة",title:"بداية الطريق",icon:"🌱",line:"كل بستان يبدأ ببذرة؛ خطوتك الأولى اليوم هي أصل ما تراه غدًا."},
- {min:80,name:"النبتة",title:"نبتة صاعدة",icon:"🌿",line:"بدأت خطواتك تؤتي أكلها؛ حافظ على الورد ولا تنتظر دفعة واحدة."},
- {min:250,name:"الشجرة",title:"شجرة مثمرة",icon:"🌳",line:"علمك صار شجرة تُظلّك وتُثمر؛ ثبّت الجذور بالمراجعة."},
- {min:600,name:"البستان",title:"بستان الإحسان",icon:"🌺",line:"تفتّحت فيك أبواب الخير؛ اجعل أثر العلم ظاهرًا في خُلقك."},
- {min:1200,name:"النور",title:"نور المعرفة",icon:"✨",line:"صرت علامة على الجدّ والثبات؛ فكن قدوة في الأدب قبل الدرجة."},
- {min:2400,name:"المحراب",title:"محبّ العلم",icon:"🕌",line:"بلغت مرتبة يحبها أهل العلم؛ فازدد تواضعًا وإتقانًا ورفقًا."}
-];
-function worldStage(points){
- const value=Number(points||0);let index=0;
- for(let i=0;i<WORLD_STAGES.length;i++)if(value>=WORLD_STAGES[i].min)index=i;
- const stage=WORLD_STAGES[index],next=WORLD_STAGES[index+1]||null;
- const progress=next?Math.max(0,Math.min(100,Math.round((value-stage.min)/Math.max(1,next.min-stage.min)*100))):100;
- return {index:index+1,count:WORLD_STAGES.length,min:stage.min,name:stage.name,title:stage.title,icon:stage.icon,line:stage.line,next,progress,remaining:next?Math.max(0,next.min-value):0,points:value};
-}
 function passSerial(value){
  let hash=2166136261;for(const ch of String(value||"ihsan")){hash^=ch.charCodeAt(0);hash=Math.imul(hash,16777619)}
  const code=(hash>>>0).toString(36).toUpperCase().padStart(7,"0");
@@ -1858,16 +1843,13 @@ async function worldPage(v){
  const storeData=result[6].status==="fulfilled"?result[6].value:null;
  const missions=result[7].status==="fulfilled"?result[7].value:null;
  const achievement=Number(summary.totals?.achievement||0),store=Number(summary.totals?.store||0);
- const stage=worldStage(achievement);
  const me=board.find(x=>x.is_self);
  const counts=tasks.counts||{};
  const streak=Number(reading?.streak||0);
  const firstName=String(summary.student?.name||S.user.name||"الطالب").trim().split(/\s+/)[0];
  const quest=(title,value,icon,target)=>"<button type=\"button\" class=\"world-quest\" data-world-go=\""+esc(target)+"\"><span class=\"world-quest-icon\" aria-hidden=\"true\">"+icon+"</span><span><strong>"+esc(title)+"</strong><small>"+esc(String(value))+"</small></span><span class=\"world-quest-arrow\" aria-hidden=\"true\">‹</span></button>";
- const garden=WORLD_STAGES.map((item,i)=>{
-  const unlocked=achievement>=item.min,current=stage.index===i+1;
-  return '<article class="world-plot '+(unlocked?"is-grown":"")+(current?" is-current":"")+'"><span class="world-plot-icon" aria-hidden="true">'+(unlocked?item.icon:"🔒")+'</span><strong>'+esc(item.name)+'</strong><small>'+Number(item.min)+' نقطة</small></article>';
- }).join("");
+ const badgeRows=(gam?.badges||[]).map(b=>'<article class="world-plot is-grown"><span class="world-plot-icon" aria-hidden="true">'+esc(b.icon||"✦")+'</span><strong>'+esc(b.name||"وسام")+'</strong><small>'+esc(b.description||"إنجاز موثق")+'</small></article>').join("");
+ const badgesBlock='<section class="card world-garden"><div class="section-head"><div><span class="eyebrow">أوسمتك</span><h3>إنجازات تستحق الاعتزاز</h3><p>تظهر الأوسمة عند تحقق أعمالها المسجلة؛ لا توجد ترقيات مستويات رقمية في هذه المرحلة.</p></div><span class="pill">'+(gam?.badges?.length||0)+' أوسمة</span></div><div class="world-plots">'+(badgeRows||'<div class="empty">لم يظهر وسام بعد؛ ابدأ بخطوة ثابتة وسيظهر إنجازك هنا.</div>')+'</div></section>';
  const recentEntries=(reading?.entries||[]).slice(0,3).map(entry=>'<div class="list-row"><div><strong>'+esc(entry.surah||"ورد")+(entry.portion?' · '+esc(entry.portion):"")+'</strong><small>'+esc(entry.day||"")+(entry.reflection?' · '+esc(entry.reflection):"")+'</small></div><span class="pill">+ورد</span></div>').join("");
  const readingBlock=reading?.logged_today
   ? '<div class="notice world-reading-done"><strong>سجّلت ورد اليوم.</strong> سلسلتك الآن '+Number(streak)+' يومًا. عُد غدًا لتبني عليها.</div>'
@@ -1880,11 +1862,10 @@ async function worldPage(v){
  const collectibles=(missions?.collectibles||[]).map(c=>'<span class="mission-collectible '+(c.unlocked?"is-unlocked":"")+'" title="'+esc(c.title)+'" aria-label="'+esc(c.title)+'">'+esc(c.icon)+'</span>').join("");
  const missionsBlock=missions?'<section class="card world-missions"><div class="section-head"><div><span class="eyebrow">عالم المهام</span><h3>قصص ومهام يومية</h3><p>القصص تُفتح بأعمال سجّلتها فعليًا، والمهام اليومية تُستلم مرة واحدة عبر محرك النقاط نفسه.</p></div><div class="mission-collectibles">'+collectibles+'</div></div><div class="mission-story-grid">'+missionStory+'</div><div class="mission-side-grid">'+missionSide+'</div></section>':"";
  v.innerHTML='<div class="world-page">'+
-  '<section class="world-hero"><div class="world-avatar" style="--world-progress:'+stage.progress+'%"><span class="world-avatar-halo" aria-hidden="true"></span><span class="world-avatar-icon" aria-hidden="true">'+stage.icon+'</span><span class="world-avatar-level">المستوى '+stage.index+'</span></div><div class="world-hero-copy"><span class="eyebrow">عالمك في الإحسان · '+esc(stage.title)+'</span><h2>بستان '+esc(firstName)+'</h2><p>'+esc(stage.line)+'</p><div class="world-progress"><div class="world-progress-head"><span>'+esc(stage.name)+'</span><span>'+(stage.next?Number(stage.remaining)+' نقطة إلى '+esc(stage.next.name):"أعلى مرتبة في العالم")+'</span></div><div class="world-meter"><i style="width:'+stage.progress+'%"></i></div></div><div class="world-chips"><span class="world-chip"><b>★</b> '+Number(achievement)+' إنجاز</span><span class="world-chip"><b>◈</b> '+Number(store)+' رصيد متجر</span><span class="world-chip"><b>🔥</b> '+streak+' يوم قراءة</span><span class="world-chip"><b>#</b> '+(me?Number(me.rank):"—")+' في الفوج</span></div></div></section>'+
-  journeyWorldMarkup(journey,storeData)+'<div class="world-grid"><section class="card world-garden"><div class="section-head"><div><span class="eyebrow">بستانك</span><h3>مراتب تنمو بأعمالك</h3><p>كل مرتبة تفتح بخطوات حقيقية: حضور، حفظ، مراجعة، واجبات، اختبارات، وقراءة.</p></div><span class="pill">'+stage.index+' / '+stage.count+'</span></div><div class="world-plots">'+garden+'</div></section>'+
+  '<section class="world-hero"><div class="world-avatar"><span class="world-avatar-halo" aria-hidden="true"></span><span class="world-avatar-icon" aria-hidden="true">۞</span></div><div class="world-hero-copy"><span class="eyebrow">عالمك في الإحسان</span><h2>بستان '+esc(firstName)+'</h2><p>ازرع عملًا صالحًا كل يوم؛ العلم والأدب والثبات أثمن من رقم أو لقب.</p><div class="world-chips"><span class="world-chip"><b>★</b> '+Number(achievement)+' إنجاز</span><span class="world-chip"><b>◈</b> '+Number(store)+' رصيد متجر</span><span class="world-chip"><b>🔥</b> '+streak+' يوم قراءة</span><span class="world-chip"><b>#</b> '+(me?Number(me.rank):"—")+' في الفوج</span></div></div></section>'+
+  journeyWorldMarkup(journey,storeData)+'<div class="world-grid">'+badgesBlock+
   '<section class="card world-quests"><div class="section-head"><div><span class="eyebrow">مهام اليوم</span><h3>خطوات صغيرة تبني عالمك</h3><p>ابدأ بأقرب خطوة؛ لا تنتظر يومًا كاملًا لتتحرك.</p></div></div><div class="world-quest-grid">'+quest("ورد القرآن",Number(gam?.stats?.quran_days||0)+" يوم","۞","quran")+quest("الحضور",Number(gam?.stats?.attendance||0)+" مرات","✓","attendance")+quest("المهام المنجزة",Number(counts.done||0)+" مهام","▤","tasks")+quest("الترتيب في الفوج",me?"#"+Number(me.rank):"—","#","leaderboard")+'</div>'+challengeBlock+'</section></div>'+
   missionsBlock+'<section class="card world-reading"><div class="section-head"><div><span class="eyebrow">ورد القراءة</span><h3>سجّل قراءتك اليوم</h3><p>القراءة اليومية تبني سلسلة وتمنحك نقاط إنجاز ورصيد متجر مرة واحدة كل يوم.</p></div><span class="world-streak">🔥 '+streak+'</span></div>'+readingBlock+(recentEntries?'<div class="list world-reading-list">'+recentEntries+'</div>':"")+'</section>'+
-  '<section class="card world-journey"><div class="section-head"><div><span class="eyebrow">الطريق</span><h3>من البذرة إلى المحراب</h3><p>هذه ليست لعبة منفصلة عن الأكاديمية؛ كل مرتبة هنا مبنية على عمل سجّلته فعليًا.</p></div><button class="btn secondary" type="button" data-world-go="guide">دليل الرحلة</button></div><div class="world-journey-track">'+WORLD_STAGES.map((item,i)=>'<div class="world-journey-stop '+(achievement>=item.min?"is-done":"")+(stage.index===i+1?" is-current":"")+'"><span>'+item.icon+'</span><strong>'+esc(item.name)+'</strong><small>'+Number(item.min)+'</small></div>').join("")+'</div></section>'+
   '</div>';
  v.querySelectorAll("[data-world-go]").forEach(btn=>btn.onclick=()=>go(btn.dataset.worldGo));
  wireJourneyWorld(v,journey,storeData);
