@@ -2862,22 +2862,44 @@ renderRoster();
 $("#bulk-onboard-students")?.addEventListener("click",async()=>{
  const candidateIds=bulkAccountCandidates();
  if(!candidateIds.length)return toast("لا توجد أسماء مكتملة تحتاج إلى حساب دخول.");
- if(!confirm("سيتم تجهيز "+candidateIds.length+" ملفًا لطلاب لا يملكون حساب دخول ضمن الأفواج النشطة. كلمة المرور الأولية 12345678 ويجب تغييرها عند أول دخول. سيُربط الحساب السابق غير المرتبط فقط عند تطابق الاسم بشكل فريد من الطرفين؛ الأسماء الملتبسة ستُترك دون إنشاء حساب مكرر. الحسابات المرتبطة مسبقًا لن تُمس. متابعة؟"))return;
- const button=$("#bulk-onboard-students");if(button){button.disabled=true;button.textContent="جار إنشاء الحسابات…"}
- try{
-  const result=await api("/admin/students/bulk-onboarding",{method:"POST",body:JSON.stringify({student_ids:candidateIds})});
-  const rows=Array.isArray(result.credentials)?result.credentials:[];
-  await load();shell();await page();
+ if(!confirm("سيتم تجهيز "+candidateIds.length+" ملفًا لطلاب لا يملكون حساب دخول ضمن الأفواج النشطة. كلمة المرور الأولية 12345678 ويجب تغييرها عند أول دخول. سيُربط الحساب السابق غير المرتبط فقط عند تطابق الاسم بشكل فريد من الطرفين؛ الأسماء الملتبسة ستُترك دون إنشاء حساب مكرر. الحسابات المرتبطة مسبقًا لن تُمس. سيتم التنفيذ على دفعات صغيرة للحفاظ على استقرار الخدمة. متابعة؟"))return;
+ const button=$("#bulk-onboard-students"),chunks=[];
+ for(let i=0;i<candidateIds.length;i+=10)chunks.push(candidateIds.slice(i,i+10));
+ const aggregate={created:0,linked_existing:0,skipped:0,credentials:[],skipped_rows:[],remaining:candidateIds.length,completed:false,processed:0};
+ const renderResults=(partial=false)=>{
   const host=$("#bulk-onboarding-results");if(!host)return;
-  document.querySelector(".roster-actions")?.remove();
-  host.innerHTML='<section class="card"><h3>بيانات الدخول المهيأة</h3><p class="muted small">نزّل الملف واحفظه بأمان. كلمة المرور الأولية الموحدة هي 12345678، ويُلزم كل طالب بتغييرها عند أول دخول.</p><p>أُنشئت '+Number(result.created||0)+' حسابات جديدة، ورُبطت '+Number(result.linked_existing||0)+' حسابات موجودة غير مرتبطة، وتُركت '+Number(result.skipped||0)+' ملفات للمراجعة دون مساس بها.</p>'+(rows.length?'<div class="table-wrap"><table><thead><tr><th>الطالب</th><th>الفوج</th><th>اسم الدخول</th><th>نوع الحساب</th><th>كلمة المرور الأولية</th></tr></thead><tbody>'+rows.map(r=>'<tr><td>'+esc(r.name)+'</td><td>'+esc((S.groups.find(g=>g.id===r.group_id)||{}).name||"—")+'</td><td dir="ltr">'+esc(r.username)+'</td><td>'+(r.linked_existing?'حساب سابق':'حساب جديد')+'</td><td dir="ltr">'+esc(r.password)+'</td></tr>').join("")+'</tbody></table></div><button id="download-bulk-credentials" class="btn" type="button">تنزيل بيانات الدخول CSV</button> <button id="hide-bulk-credentials" class="btn secondary" type="button">إخفاء كلمات المرور</button>':'')+'</section>';
+  const rows=aggregate.credentials;
+  const reasonLabel={ambiguous_existing_account:"اسم ملتبس مع حساب سابق",missing_group:"بلا فوج",inactive_group:"الفوج غير نشط",already_linked:"مرتبط بحساب مسبقًا",link_race_or_conflict:"تعارض أثناء الربط",link_failed:"تعذر ربط الحساب السابق",creation_failed:"تعذر إنشاء الحساب"};
+  host.innerHTML='<section class="card"><h3>بيانات الدخول المهيأة</h3><p class="muted small">'+(partial?'توقف التنفيذ بعد '+aggregate.processed+' دفعة؛ احتفظ ببيانات الدخول أدناه قبل إعادة المحاولة. ':'')+'كلمة المرور الأولية الموحدة هي 12345678، ويُلزم كل طالب بتغييرها عند أول دخول.</p><p>أُنشئت '+aggregate.created+' حسابات جديدة، ورُبطت '+aggregate.linked_existing+' حسابات موجودة غير مرتبطة، وتُركت '+aggregate.skipped+' ملفات للمراجعة دون مساس بها. المتبقي ضمن الأفواج النشطة: '+aggregate.remaining+'.</p>'+(rows.length?'<div class="table-wrap"><table><thead><tr><th>الطالب</th><th>الفوج</th><th>اسم الدخول</th><th>نوع الحساب</th><th>كلمة المرور الأولية</th></tr></thead><tbody>'+rows.map(r=>'<tr><td>'+esc(r.name)+'</td><td>'+esc((S.groups.find(g=>g.id===r.group_id)||{}).name||"—")+'</td><td dir="ltr">'+esc(r.username)+'</td><td>'+(r.linked_existing?'حساب سابق':'حساب جديد')+'</td><td dir="ltr">'+esc(r.password)+'</td></tr>').join("")+'</tbody></table></div><button id="download-bulk-credentials" class="btn" type="button">تنزيل بيانات الدخول CSV</button> <button id="hide-bulk-credentials" class="btn secondary" type="button">إخفاء كلمات المرور</button>':'')+(aggregate.skipped_rows.length?'<details><summary>الملفات التي تحتاج مراجعة ('+aggregate.skipped_rows.length+')</summary><ul>'+aggregate.skipped_rows.map(x=>'<li>'+esc(x.name||x.student_id)+' — '+esc(reasonLabel[x.reason]||x.reason)+'</li>').join("")+'</ul></details>':'')+'</section>';
   $("#download-bulk-credentials")?.addEventListener("click",()=>{
    const csv="\uFEFF"+[["اسم الطالب","الفوج","اسم الدخول","نوع الحساب","كلمة المرور الأولية"],...rows.map(r=>[r.name,(S.groups.find(g=>g.id===r.group_id)||{}).name||"",r.username,r.linked_existing?"حساب سابق":"حساب جديد",r.password])].map(row=>row.map(v=>'"'+String(v??"").replace(/"/g,'""')+'"').join(",")).join("\r\n");
    const url=URL.createObjectURL(new Blob([csv],{type:"text/csv;charset=utf-8"}));const link=document.createElement("a");link.href=url;link.download="ihsan-student-login-credentials.csv";document.body.append(link);link.click();link.remove();window.setTimeout(()=>URL.revokeObjectURL(url),1500);
   });
   $("#hide-bulk-credentials")?.addEventListener("click",()=>{$("#bulk-onboarding-results").textContent="أُخفيت كلمات المرور من الشاشة؛ احتفظ بملف التنزيل الآمن."});
-  toast("تم إنشاء "+Number(result.created||0)+" حسابًا وربط "+Number(result.linked_existing||0)+" حساب سابق؛ المتبقي للمراجعة "+Number(result.skipped||0)+".");
- }catch(err){toast(err.message,true);const b=$("#bulk-onboard-students");if(b)b.disabled=false}
+ };
+ if(button){button.disabled=true;button.textContent="جار تجهيز 0 / "+chunks.length+"…"}
+ try{
+  for(let i=0;i<chunks.length;i++){
+   if(button)button.textContent="جار تجهيز "+(i+1)+" / "+chunks.length+"…";
+   const result=await api("/admin/students/bulk-onboarding",{method:"POST",body:JSON.stringify({student_ids:chunks[i]})});
+   aggregate.created+=Number(result.created||0);
+   aggregate.linked_existing+=Number(result.linked_existing||0);
+   aggregate.skipped+=Number(result.skipped||0);
+   aggregate.credentials.push(...(Array.isArray(result.credentials)?result.credentials:[]));
+   aggregate.skipped_rows.push(...(Array.isArray(result.skipped_rows)?result.skipped_rows:[]));
+   aggregate.remaining=Number(result.remaining||0);
+   aggregate.completed=result.completed===true;
+   aggregate.processed=i+1;
+  }
+  await load();shell();await page();
+  renderResults(false);
+  document.querySelector(".roster-actions")?.remove();
+  toast("تم تجهيز الحسابات: "+aggregate.created+" جديد، و"+aggregate.linked_existing+" ربط آمن، و"+aggregate.skipped+" للمراجعة.");
+ }catch(err){
+  renderResults(true);
+  const b=$("#bulk-onboard-students");if(b){b.disabled=false;b.textContent="إعادة محاولة الملفات المتبقية"};
+  toast("توقف التجهيز بعد "+aggregate.processed+" من "+chunks.length+" دفعات: "+(err.message||"خطأ غير متوقع"),true);
+ }
 });
 $("#roster-add-form")?.addEventListener("submit",async e=>{
  e.preventDefault();const form=e.currentTarget,button=form.querySelector('button[type="submit"]'),values=new FormData(form),names=String(values.get("names")||"").split(/\r?\n/).map(x=>x.trim()).filter(Boolean),group_id=String(values.get("group_id")||"");
