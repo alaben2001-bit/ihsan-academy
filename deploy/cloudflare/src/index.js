@@ -751,6 +751,25 @@ const LEARNING_SCHEMA_STATEMENTS = [
     updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
     PRIMARY KEY(student_id,activity)
   )`,
+  `CREATE TABLE IF NOT EXISTS student_activity_streaks (
+    student_id TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    activity TEXT NOT NULL CHECK(activity IN ('hifz','thabit','ward')),
+    current_days INTEGER NOT NULL DEFAULT 0,
+    start_date TEXT NOT NULL,
+    last_date TEXT NOT NULL,
+    updated_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    PRIMARY KEY(student_id,activity)
+  )`,
+  `CREATE TABLE IF NOT EXISTS student_streak_badges (
+    id TEXT PRIMARY KEY,
+    student_id TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
+    activity TEXT NOT NULL CHECK(activity IN ('hifz','thabit','ward')),
+    streak_start_date TEXT NOT NULL,
+    milestone_days INTEGER NOT NULL,
+    points_awarded INTEGER NOT NULL DEFAULT 0,
+    awarded_at TEXT NOT NULL DEFAULT (strftime('%Y-%m-%dT%H:%M:%fZ','now')),
+    UNIQUE(student_id,activity,streak_start_date,milestone_days)
+  )`,
   `CREATE TABLE IF NOT EXISTS student_ethics (
     student_id TEXT PRIMARY KEY REFERENCES students(id) ON DELETE CASCADE,
     warnings INTEGER NOT NULL DEFAULT 0 CHECK(warnings >= 0),
@@ -1631,6 +1650,38 @@ async function quranDayState(env, studentId, day) {
   for (const row of rows.results || []) byKind[row.kind] = row;
   return byKind;
 }
+async function recordAutomaticActivityStreak(env, { studentId, groupId, activity, date, awardedBy }) {
+  if (!["hifz", "thabit", "ward"].includes(activity)) return { counted: false };
+  const old = await env.DB.prepare("SELECT current_days,start_date,last_date FROM student_activity_streaks WHERE student_id=? AND activity=?").bind(studentId, activity).first();
+  if (old?.last_date === date) return { counted: false, duplicate: true, days: Number(old.current_days || 0) };
+  // Backdated entries remain in the daily ledger but must not rewrite today's live streak.
+  if (old?.last_date && old.last_date > date) return { counted: false, backdated: true, days: Number(old.current_days || 0) };
+  const consecutive = old?.last_date === addCalendarDays(date, -1);
+  const days = consecutive ? Number(old.current_days || 0) + 1 : 1;
+  const startDate = consecutive ? old.start_date : date;
+  const milestones = { 3: 5, 5: 10, 7: 15, 14: 25, 30: 50, 60: 75, 90: 100, 180: 200, 365: 500 };
+  const points = milestones[days] || 0;
+  await env.DB.prepare("INSERT INTO student_activity_streaks(student_id,activity,current_days,start_date,last_date,updated_at) VALUES(?,?,?,?,?,?) ON CONFLICT(student_id,activity) DO UPDATE SET current_days=excluded.current_days,start_date=excluded.start_date,last_date=excluded.last_date,updated_at=excluded.updated_at")
+    .bind(studentId, activity, days, startDate, date, nowIso()).run();
+  let badge = null;
+  if (points) {
+    const badgeId = uuid();
+    const inserted = await env.DB.prepare("INSERT OR IGNORE INTO student_streak_badges(id,student_id,activity,streak_start_date,milestone_days,points_awarded) VALUES(?,?,?,?,?,?)")
+      .bind(badgeId, studentId, activity, startDate, days, points).run();
+    if (Number(inserted?.meta?.changes || 0) > 0) {
+      await insertPointEvent(env, {
+        student_id: studentId, group_id: groupId || null, rule_id: null,
+        event_type: "streak_bonus", kind: "achievement", points,
+        reason: "وسام المواظبة: " + days + " أيام متتابعة — " + activity,
+        event_key: "streak-auto:" + studentId + ":" + activity + ":" + startDate + ":" + days,
+        awarded_date: date, awarded_by: awardedBy || null
+      });
+      badge = { milestone_days: days, points_awarded: points };
+    }
+  }
+  return { counted: true, days, milestone: badge };
+}
+
 async function quranStreak(env, studentId) {
   const rows = await env.DB.prepare("SELECT DISTINCT day FROM quran_daily WHERE student_id=? ORDER BY day DESC LIMIT 400").bind(studentId).all();
   const days = (rows.results || []).map(row => row.day).filter(Boolean);
@@ -4413,7 +4464,8 @@ export default {
       const entry=await env.DB.prepare("SELECT * FROM quran_daily WHERE id=?").bind(id).first();
       const activityReason=kind==="hifz"?"حفظ قرآني (الحفظ الجديد)":kind==="thabit"?"تثبيت محفوظ":"ورد يومي";
       const awards=await awardPointsForEvent(env,{studentId:resolved.student.id,groupId:resolved.student.group_id,eventType:kind==="ward"?"quran_reading":"quran_entry",eventKey:"quran_daily:"+id,date:day,reason:activityReason,sourceCollection:"quran_daily",sourceId:id,awardedBy:user.id});
-      return json({ok:true,entry,awards,totals:await pointsTotals(env,resolved.student.id)},201);
+      const streak=amount>0?await recordAutomaticActivityStreak(env,{studentId:resolved.student.id,groupId:resolved.student.group_id,activity:kind,date:day,awardedBy:user.id}):{counted:false};
+      return json({ok:true,entry,awards,streak,totals:await pointsTotals(env,resolved.student.id)},201);
     }
     if(path==="/api/quran/companion"&&method==="GET"){
       const resolved=await resolveQuranStudent(env,user,url.searchParams.get("student_id"));
@@ -4840,9 +4892,17 @@ export default {
     if(path==="/api/points/streak"&&method==="GET"){
       const studentId=user.role==="student"?user.student_id:clean(url.searchParams.get("student_id"),80);
       if(!studentId)return fail(400,"حدّد الطالب");
-      if(user.role!=="admin"&&!(user.role==="student"&&user.student_id===studentId))return fail(403,"عرض الاستمرارية متاح للشيخ والطالب نفسه");
-      const rows=await env.DB.prepare("SELECT activity,current_days,last_date,awarded_milestones,updated_at FROM student_point_streaks WHERE student_id=? ORDER BY activity").bind(studentId).all();
-      return json((rows.results||[]).map(row=>({...row,awarded_milestones:(()=>{try{return JSON.parse(row.awarded_milestones||"[]")}catch{return []}})()})));
+      if(user.role==="student"&&user.student_id!==studentId)return fail(403,"لا يمكنك عرض استمرارية طالب آخر");
+      if(user.role!=="student"){
+        const target=await env.DB.prepare("SELECT group_id FROM students WHERE id=? AND active=1").bind(studentId).first();
+        if(!target)return fail(404,"الطالب غير موجود");
+        if(!["admin","teacher","director","supervisor"].includes(user.role)||!await canManageGroup(env,user,target.group_id))return fail(403,"هذا الطالب خارج صلاحيتك");
+      }
+      const [streakRows,badgeRows]=await Promise.all([
+        env.DB.prepare("SELECT activity,current_days,start_date,last_date,updated_at FROM student_activity_streaks WHERE student_id=? ORDER BY activity").bind(studentId).all(),
+        env.DB.prepare("SELECT activity,streak_start_date,milestone_days,points_awarded,awarded_at FROM student_streak_badges WHERE student_id=? ORDER BY awarded_at DESC LIMIT 100").bind(studentId).all()
+      ]);
+      return json({streaks:streakRows.results||[],badges:badgeRows.results||[]});
     }
     if(path==="/api/points/referrals"&&method==="GET"){
       if(user.role!=="admin")return fail(403,"قائمة الإحالات للشيخ وحده");
