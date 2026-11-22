@@ -284,6 +284,7 @@ async function uniqueStudentIdentity(env, value, exceptUserId = null, studentId 
 }
 const INITIAL_STUDENT_PASSWORD = "12345678";
 // Provision in small UI batches; ambiguous or inactive-group students remain untouched.
+// Linked accounts are intentionally excluded from password resets.
 // All newly provisioned students must change this initial password before using the academy.
 function generateStudentTemporaryPassword() {
   return INITIAL_STUDENT_PASSWORD;
