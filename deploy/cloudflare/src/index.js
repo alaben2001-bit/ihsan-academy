@@ -790,7 +790,6 @@ const LEARNING_SCHEMA_STATEMENTS = [
   `UPDATE point_rules SET active=1,auto_award=1,achievement_points=20,store_points=20,max_per_day=1,description='عشرون نقطة للحفظ المعتمد.' WHERE event_type IN ('hifz_no_errors','hifz_tajweed')`,
   `UPDATE point_rules SET active=0,auto_award=0 WHERE event_type='quran_entry'`,
   `INSERT OR IGNORE INTO point_rules (id,event_type,name,description,achievement_points,store_points,max_per_day,auto_award,active,sort_order) VALUES ('rule-quran-daily-approved','quran_daily_approved','إنجاز قرآني معتمد','تُمنح بعد اعتماد الشيخ للحفظ الجديد أو التثبيت أو متابعة المعلم الموثقة.',10,5,3,1,1,21)`,
-  `UPDATE point_rules SET name='إنجاز قرآني معتمد',description='تُمنح بعد اعتماد الشيخ للحفظ الجديد أو التثبيت أو متابعة المعلم الموثقة.',achievement_points=10,store_points=5,max_per_day=3,auto_award=1,active=1 WHERE event_type='quran_daily_approved'`,
   `CREATE TABLE IF NOT EXISTS student_point_streaks (
     student_id TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
     activity TEXT NOT NULL CHECK(activity IN ('hifz','fajr','shuruq')),
