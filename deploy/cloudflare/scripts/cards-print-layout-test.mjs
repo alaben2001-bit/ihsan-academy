@@ -15,8 +15,8 @@ const studentPageStart = app.indexOf("async function cardPage(v)");
 const studentPageEnd = app.indexOf("function staffStudentPassMarkup", studentPageStart);
 const studentPage = app.slice(studentPageStart, studentPageEnd);
 const staffStart = app.indexOf("function staffStudentPassMarkup");
-const staffEnd = app.indexOf("// ---- برنامج الثمانية أشهر", staffStart);
-const staffPage = app.slice(staffStart, staffEnd);
+const staffEnd = app.indexOf("function quranEightMonthMarkup", staffStart);
+const staffPage = staffEnd > staffStart ? app.slice(staffStart, staffEnd) : "";
 
 check("student card contains its own QR inside the pass", /class="pass-qr"[^]*?qrSvg\(links\.add_points,144\)/.test(studentPage));
 check("student card print no longer appends a separate QR sheet", !/cardQrSheet\(links/.test(studentPage));
