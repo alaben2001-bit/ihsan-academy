@@ -35,3 +35,5 @@ assert(server.includes('kind: "achievement", points: bonus'), "automatic streak 
 assert(!app.includes('id="scan-streak-form"'), "the manual streak award form must be removed from the Sheikh interface");
 
 assert(app.includes("const streakData=res[5]") && app.includes("streakData.streaks") && app.includes("streakData.badges") && app.includes("streakBadgeRows"), "Sheikh panel must render automatic activity badges");
+
+assert(!app.includes("points_awarded||0"), "badge UI must not show zero-point labels");
