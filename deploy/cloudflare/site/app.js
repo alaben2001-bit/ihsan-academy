@@ -3898,7 +3898,7 @@ async function syncLiveData(){
   else if(signature!==ihsanLiveUserSignature){
    const previous=S.user;S.user=freshUser;ihsanLiveUserSignature=signature;
    if(freshUser.must_change_password&&!previous?.must_change_password){renderTopActions();showPasswordChange(true)}
-   else{toast("تحدّثت صلاحيات حسابك وبياناته تلقائيًا.");await start();return}
+   else{toast("تم تحديث صلاحيات حسابك وبياناته تلقائيًا.");await start();return}
   }
   if(Array.isArray(notices)){
    const ids=notices.map(n=>String(n.id||n.created_at||n.title||"")).filter(Boolean);
@@ -3909,7 +3909,7 @@ async function syncLiveData(){
     if(ihsanLiveKnownNotices.size>150)ihsanLiveKnownNotices=new Set([...ihsanLiveKnownNotices].slice(-100));
     if(fresh.length){
      const latest=fresh[fresh.length-1],title=String(latest.title||"تنبيه جديد").slice(0,90);
-     toast(fresh.length>1?"وصلت "+fresh.length+" تنبيهات جديدة؛ أحدثها: "+title:"تنبيه جديد: "+title);
+     toast(fresh.length>1?"وصلت "+fresh.length+" تنبيهات جديدة؛ أحدثها: "+title:"تنبيه جديد: "+title);playUiSound("success");
      if(S.tab==="notifications")await page();
     }
    }
