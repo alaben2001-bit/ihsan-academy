@@ -68,3 +68,10 @@ if (failed.length) process.exitCode = 1;
 
 check("pointsTotals preserves old balances until cutover", /if\(Number\(cutover\?\.active\)!==1\) return legacyTotals\(\)/.test(server) && /mode: "legacy"/.test(server));
 check("pointsTotals separates achievement and store after snapshot activation", /mode: "separate"/.test(server) && /AS achievement/.test(server) && /AS store/.test(server));
+
+const manualAwardStart = server.indexOf('if(path==="/api/points/award"&&method==="POST"){');
+const manualAwardEnd = server.indexOf('if(path==="/api/points/adjust"&&method==="POST"){', manualAwardStart);
+const manualAwardRoute = server.slice(manualAwardStart, manualAwardEnd);
+check("manual award supports separate achievement and store amounts", manualAwardRoute.includes("hasAchievement") && manualAwardRoute.includes("hasStore") && manualAwardRoute.includes("achievementPoints") && manualAwardRoute.includes("storePoints"));
+const cutoverSnapshotSql = fs.readFileSync(path.join(root, "scripts/store-balance-cutover-snapshot.sql"), "utf8");
+check("store balance snapshot is additive and idempotent", cutoverSnapshotSql.includes("INSERT OR IGNORE") && cutoverSnapshotSql.includes("point_balance_cutovers") && !/^\s*(?:DELETE|UPDATE|DROP)\b/im.test(cutoverSnapshotSql));
