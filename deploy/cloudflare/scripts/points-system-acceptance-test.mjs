@@ -62,9 +62,6 @@ check("referral reward is 20 points and idempotent", /points:20/.test(referral) 
 check("no invented sample rewards remain in the store UI", !app.includes("STORE_SUGGESTIONS") && !app.includes("data-store-suggest"));
 check("store catalog remains owner-entered through the real item form", /id=\"store-item-form\"/.test(app) && /كتالوج الأكاديمية المعتمد فقط/.test(app));
 
-const failed = checks.filter(item => !item.ok);
-console.log("\\n" + (checks.length - failed.length) + "/" + checks.length + " points-system checks passed.");
-if (failed.length) process.exitCode = 1;
 
 check("pointsTotals preserves old balances until cutover", /if\(Number\(cutover\?\.active\)!==1\) return legacyTotals\(\)/.test(server) && /mode: "legacy"/.test(server));
 check("pointsTotals separates achievement and store after snapshot activation", /mode: "separate"/.test(server) && /AS achievement/.test(server) && /AS store/.test(server));
@@ -75,3 +72,7 @@ const manualAwardRoute = server.slice(manualAwardStart, manualAwardEnd);
 check("manual award supports separate achievement and store amounts", manualAwardRoute.includes("hasAchievement") && manualAwardRoute.includes("hasStore") && manualAwardRoute.includes("achievementPoints") && manualAwardRoute.includes("storePoints"));
 const cutoverSnapshotSql = fs.readFileSync(path.join(root, "scripts/store-balance-cutover-snapshot.sql"), "utf8");
 check("store balance snapshot is additive and idempotent", cutoverSnapshotSql.includes("INSERT OR IGNORE") && cutoverSnapshotSql.includes("point_balance_cutovers") && !/^\s*(?:DELETE|UPDATE|DROP)\b/im.test(cutoverSnapshotSql));
+
+const failed = checks.filter(item => !item.ok);
+console.log("\\n" + (checks.length - failed.length) + "/" + checks.length + " points-system checks passed.");
+if (failed.length) process.exitCode = 1;
