@@ -18,6 +18,9 @@ const [backend, app, index, serviceWorker, migration, initialMigration, style, a
   readFile("migrations/0006_competitions.sql", "utf8"),
   readFile("migrations/0008_rate_limits.sql", "utf8"),
   readFile("site/qr.js", "utf8"),
+  readFile("../taysir/site/index.html", "utf8"),
+  readFile("../taysir/site/robots.txt", "utf8"),
+  readFile("../taysir/site/sitemap.xml", "utf8"),
 ]);
 
 assert.equal(validDateOnly("2024-02-29"), true, "valid leap-day due dates must be accepted");
@@ -663,4 +666,10 @@ assert.match(app, /\/auth\/google\/reset-password/, "account recovery UI must ca
 assert.match(app, /function showGooglePasswordRecovery\(\)/, "account recovery must require a Google identity and new password");
 assert.match(index, /name="robots" content="noindex, nofollow, noarchive"/, "the private student platform must remain excluded from public indexing");
 assert.match(serviceWorker, /"\/manifest\.json"/, "the installable PWA manifest must remain in the offline shell");
+assert.match(taysirIndex, /rel="canonical" href="https:\/\/a-taysir\.pages\.dev\//, "the public Taysir portal must declare its canonical Pages URL");
+assert.match(taysirIndex, /name="robots" content="index,follow/, "the public Taysir portal must be indexable");
+assert.doesNotMatch(taysirIndex, /at-taysir\.alaben2001\.workers\.dev/, "the public portal must not advertise the historical workers.dev URL");
+assert.match(taysirRobots, /Sitemap: https:\/\/a-taysir\.pages\.dev\/sitemap\.xml/, "robots.txt must point to the canonical Taysir sitemap");
+assert.match(taysirSitemap, /<loc>https:\/\/a-taysir\.pages\.dev\//, "the sitemap must list the canonical Taysir homepage");
+assert.doesNotMatch(taysirSitemap, /at-taysir\.alaben2001\.workers\.dev/, "the sitemap must not list the historical workers.dev URL");
 
