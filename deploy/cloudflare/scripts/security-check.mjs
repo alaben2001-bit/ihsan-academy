@@ -615,6 +615,12 @@ assert.match(qrScript, /global\.IhsanQR = \{ matrix/, "the dependency-free QR en
 assert.ok(index.includes("/qr.js?v=" + releaseVersion), "the QR encoder must be loaded with the current asset version");
 assert.ok(serviceWorker.includes("/qr.js?v="), "the QR encoder must be cached by the service worker");
 
+assert.match(app, /function idempotentFormRequestId\(form,payload\)/, "manual point forms must reuse a stable idempotency key while retrying");
+assert.match(app, /form\.dataset\.idempotencyPayload===signature/, "a retry key must be reused only for an identical point payload");
+assert.match(app, /form\.dataset\.submitting==="1"/, "manual point forms must ignore duplicate submissions while a request is active");
+assert.match(app, /request_id:idempotentFormRequestId\(form,payload\)/, "manual award and adjustment forms must reuse their request key");
+assert.match(app, /request_id:idempotentFormRequestId\(manualForm,payload\)/, "QR manual awards must reuse their request key across retries");
+
 console.log("Security regression guardrails passed.");
 
 assert.match(backend, /if\(user\.role!=="admin"\)return fail\(403,"اعتماد منح النقاط اليدوي للشيخ وحده"\)/, "manual point awards must be restricted to the Sheikh admin account");

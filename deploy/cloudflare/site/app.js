@@ -1119,6 +1119,15 @@ function storeStaffMarkup(store,canEdit){
  '<div class="list">'+(rows||'<p class="muted">لم تُضف مواد إلى المتجر بعد.</p>')+'</div></section>';
 }
 
+function idempotentFormRequestId(form,payload){
+ const signature=JSON.stringify(payload);
+ if(form.dataset.idempotencyKey&&form.dataset.idempotencyPayload===signature)return form.dataset.idempotencyKey;
+ const requestId=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():String(Date.now())+"-"+Math.random().toString(36).slice(2);
+ form.dataset.idempotencyKey=requestId;
+ form.dataset.idempotencyPayload=signature;
+ return requestId;
+}
+
 async function pointsPage(v){
  const isStudent=S.user.role==="student",canManage=["admin","teacher","director","supervisor"].includes(S.user.role);
  if(!isStudent&&!S.students.length)await load();
@@ -1183,15 +1192,21 @@ async function pointsPage(v){
   try{await api("/points/events/"+encodeURIComponent(btn.dataset.reverse)+"/reverse",{method:"POST",body:JSON.stringify({reason})});toast("تم عكس الحركة مع إبقاء سجلها");await pointsPage(v)}catch(error){toast(error.message,true)}
  });
  $("#points-adjust-form")?.addEventListener("submit",async e=>{
-  e.preventDefault();const form=e.currentTarget,data=new FormData(form),amount=Number(data.get("amount")),delta=data.get("direction")==="subtract"?-amount:amount,button=form.querySelector('button[type="submit"]');
+  e.preventDefault();const form=e.currentTarget;if(form.dataset.submitting==="1")return;
+  const data=new FormData(form),amount=Number(data.get("amount")),delta=data.get("direction")==="subtract"?-amount:amount,button=form.querySelector('button[type="submit"]');
   if(!Number.isInteger(amount)||amount<1||amount>1000)return toast("أدخل عددًا صحيحًا بين 1 و1000",true);
-  button.disabled=true;
-  try{const result=await api("/points/adjust",{method:"POST",body:JSON.stringify({student_id:studentId,points:delta,reason:data.get("reason"),request_id:crypto.randomUUID()})});toast((delta>0?"أُضيفت ":"خُصمت ")+amount+" نقطة. الرصيد الآن: "+Number(result.totals.balance||0));await pointsPage(v)}catch(error){toast(error.message,true);button.disabled=false}
+  form.dataset.submitting="1";button.disabled=true;
+  try{const payload={student_id:studentId,points:delta,reason:data.get("reason")};const result=await api("/points/adjust",{method:"POST",body:JSON.stringify({...payload,request_id:idempotentFormRequestId(form,payload)})});toast((delta>0?"أُضيفت ":"خُصمت ")+amount+" نقطة. الرصيد الآن: "+Number(result.totals.balance||0));await pointsPage(v)}
+  catch(error){toast(error.message,true);button.disabled=false}
+  finally{form.dataset.submitting="0"}
  });
  $("#points-award-form")?.addEventListener("submit",async e=>{
-  e.preventDefault();const form=e.currentTarget,data=new FormData(form);
-  const requestId=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():String(Date.now())+"-"+Math.random().toString(36).slice(2);
-  try{await api("/points/award",{method:"POST",body:JSON.stringify({student_id:studentId,points:Number(data.get("points")||0),reason:data.get("reason"),request_id:requestId})});toast("تم منح النقاط");await pointsPage(v)}catch(error){toast(error.message,true)}
+  e.preventDefault();const form=e.currentTarget;if(form.dataset.submitting==="1")return;
+  const data=new FormData(form),button=form.querySelector('button[type="submit"]');
+  form.dataset.submitting="1";button.disabled=true;
+  try{const payload={student_id:studentId,points:Number(data.get("points")||0),reason:data.get("reason")};await api("/points/award",{method:"POST",body:JSON.stringify({...payload,request_id:idempotentFormRequestId(form,payload)})});toast("تم منح النقاط");await pointsPage(v)}
+  catch(error){toast(error.message,true);button.disabled=false}
+  finally{form.dataset.submitting="0"}
  });
   // لوحة الشيخ: ترقية المستوى، خصم الجزاء، ورد سريع.
   if(canManage){
@@ -2484,13 +2499,13 @@ async function renderScanPanel(v,studentId){
   });
   const manualForm=host.querySelector("#scan-manual-award");
   if(manualForm)manualForm.addEventListener("submit",async event=>{
-    event.preventDefault();
+    event.preventDefault();if(manualForm.dataset.submitting==="1")return;
     const button=manualForm.querySelector('button[type="submit"]'),data=new FormData(manualForm);
-    button.disabled=true;
-    const requestId=(window.crypto&&crypto.randomUUID)?crypto.randomUUID():String(Date.now())+"-"+Math.random().toString(36).slice(2);
-    try{await api("/points/award",{method:"POST",body:JSON.stringify({student_id:studentId,points:Number(data.get("points")||0),reason:String(data.get("reason")||"").trim(),request_id:requestId})});
-      toast("تم منح النقاط وتحديث الرصيد");await refresh()}
+    manualForm.dataset.submitting="1";button.disabled=true;
+    try{const payload={student_id:studentId,points:Number(data.get("points")||0),reason:String(data.get("reason")||"").trim()};await api("/points/award",{method:"POST",body:JSON.stringify({...payload,request_id:idempotentFormRequestId(manualForm,payload)})});
+      toast("تم منح النقاط وتحديث الرصيد");await refresh();delete manualForm.dataset.idempotencyKey;delete manualForm.dataset.idempotencyPayload}
     catch(error){button.disabled=false;toast(error.message,true)}
+    finally{manualForm.dataset.submitting="0"}
   });
 }
 
