@@ -2695,6 +2695,12 @@ footer a{text-decoration:none}
 .quran-daily-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px;margin:16px 0}
 .quran-log-card{display:flex;flex-direction:column;gap:10px}
 .quran-log-card.is-done{border-color:rgba(232,196,119,.55)}
+.quran-log-card.is-pending{border-color:rgba(232,196,119,.8)}
+.quran-log-card.is-rejected{border-color:rgba(239,82,108,.65)}
+.quran-daily-approvals{margin:12px 0 18px}
+.quran-daily-approvals .list-row{align-items:center;gap:12px}
+.qcal-dot.is-pending{background:transparent;border:2px dashed var(--gold)}
+.qcal-dot.is-rejected{background:rgba(239,82,108,.85);border-color:rgba(239,82,108,.95)}
 .quran-log-done{display:flex;flex-direction:column;gap:4px;padding:14px;border-radius:12px;background:rgba(232,196,119,.10);border:1px dashed rgba(232,196,119,.45)}
 .quran-log-done strong{color:var(--gold)}
 .quran-log-done small{color:var(--muted)}
