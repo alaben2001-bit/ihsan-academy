@@ -52,8 +52,10 @@ check("support event is idempotent per student/day", /:"manual:"\+activity\+":"\
 check("ethics warnings suspend multiplier at three", /warnings\+\+;if\(warnings>=3\)status=\"suspended\"/.test(ethics));
 check("deduction starts after the third warning and is Sheikh-approved", /warnings>3\)[^]*?points:-deduction/.test(ethics));
 check("permanent multiplier forfeiture exists and cannot be restored", /action===\"forfeit\"/ .test(ethics) && /status===\"forfeited\"\)return fail\(409/.test(ethics));
-check("streak milestones are 5, 10, 20 and 30 days", /\[5,10,20,30\]\.includes\(days\)/.test(streak));
-check("streak bonus is 50 percent of the original amount", /Math\.round\(base\*\.5\)/.test(streak));
+check("legacy manual streak endpoint is disabled without awarding points", /return fail\(410,"تم إيقاف الاعتماد اليدوي للاستمرارية/.test(streak) && !/insertPointEvent/.test(streak));
+check("Sheikh interface no longer exposes a manual streak award form", !app.includes('id="scan-streak-form"') && !app.includes("اعتماد يوم الاستمرارية"));
+check("automatic streak bonus begins after three days at 50 percent", /bonus_rate: days >= 3 \? 0\.5 : 0/.test(server) && /Math\.floor\(baseTotal\s*\*\s*0\.5\)/.test(server));
+check("automatic streak bonus is credited to achievement points only", /kind:"achievement",points:bonus/.test(server));
 check("referral reward requires seven days of stability", /Number\(elapsed\?\.days\|\|0\)<7/.test(referral));
 check("referral reward is 20 points and idempotent", /points:20/.test(referral) && /event_key:\"referral:\"\+id/.test(referral));
 check("no invented sample rewards remain in the store UI", !app.includes("STORE_SUGGESTIONS") && !app.includes("data-store-suggest"));
