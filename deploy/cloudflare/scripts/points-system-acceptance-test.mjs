@@ -52,12 +52,26 @@ check("support event is idempotent per student/day", /:"manual:"\+activity\+":"\
 check("ethics warnings suspend multiplier at three", /warnings\+\+;if\(warnings>=3\)status=\"suspended\"/.test(ethics));
 check("deduction starts after the third warning and is Sheikh-approved", /warnings>3\)[^]*?points:-deduction/.test(ethics));
 check("permanent multiplier forfeiture exists and cannot be restored", /action===\"forfeit\"/ .test(ethics) && /status===\"forfeited\"\)return fail\(409/.test(ethics));
-check("streak milestones are 5, 10, 20 and 30 days", /\[5,10,20,30\]\.includes\(days\)/.test(streak));
-check("streak bonus is 50 percent of the original amount", /Math\.round\(base\*\.5\)/.test(streak));
+check("legacy manual streak endpoint is disabled without awarding points", /return fail\(410,"تم إيقاف الاعتماد اليدوي للاستمرارية/.test(streak) && !/insertPointEvent/.test(streak));
+check("Sheikh interface no longer exposes a manual streak award form", !app.includes('id="scan-streak-form"') && !app.includes("اعتماد يوم الاستمرارية"));
+check("Sheikh scan panel renders automatic streaks and badges", app.includes("streakData.streaks") && app.includes("streakData.badges") && app.includes("streakBadgeRows"));
+check("automatic streak bonus begins after three days at 50 percent", /if\s*\(days >= 3 && baseTotal > 0\)/.test(server) && /bonus_rate: days >= 3 \? 0\.5 : 0/.test(server) && /Math\.floor\(baseTotal\s*\/\s*2\)/.test(server));
+check("automatic streak bonus is credited to achievement points only", /kind:\s*"achievement",\s*points:\s*bonus/.test(server));
 check("referral reward requires seven days of stability", /Number\(elapsed\?\.days\|\|0\)<7/.test(referral));
 check("referral reward is 20 points and idempotent", /points:20/.test(referral) && /event_key:\"referral:\"\+id/.test(referral));
 check("no invented sample rewards remain in the store UI", !app.includes("STORE_SUGGESTIONS") && !app.includes("data-store-suggest"));
 check("store catalog remains owner-entered through the real item form", /id=\"store-item-form\"/.test(app) && /كتالوج الأكاديمية المعتمد فقط/.test(app));
+
+
+check("pointsTotals preserves old balances until cutover", /if\(Number\(cutover\?\.active\)!==1\) return legacyTotals\(\)/.test(server) && /mode: "legacy"/.test(server));
+check("pointsTotals separates achievement and store after snapshot activation", /mode: "separate"/.test(server) && /AS achievement/.test(server) && /AS store/.test(server));
+
+const manualAwardStart = server.indexOf('if(path==="/api/points/award"&&method==="POST"){');
+const manualAwardEnd = server.indexOf('if(path==="/api/points/adjust"&&method==="POST"){', manualAwardStart);
+const manualAwardRoute = server.slice(manualAwardStart, manualAwardEnd);
+check("manual award supports separate achievement and store amounts", manualAwardRoute.includes("hasAchievement") && manualAwardRoute.includes("hasStore") && manualAwardRoute.includes("achievementPoints") && manualAwardRoute.includes("storePoints"));
+const cutoverSnapshotSql = fs.readFileSync(path.join(root, "scripts/store-balance-cutover-snapshot.sql"), "utf8");
+check("store balance snapshot is additive and idempotent", cutoverSnapshotSql.includes("INSERT OR IGNORE") && cutoverSnapshotSql.includes("point_balance_cutovers") && !/^\s*(?:DELETE|UPDATE|DROP)\b/im.test(cutoverSnapshotSql));
 
 const failed = checks.filter(item => !item.ok);
 console.log("\\n" + (checks.length - failed.length) + "/" + checks.length + " points-system checks passed.");

@@ -299,15 +299,62 @@ async function parseBody(request, maxBytes = 32000) {
 // نقاط الإنجاز مؤشر تراكمي، ورصيد المتجر هو ما يُصرف فقط.
 // ---------------------------------------------------------------------------
 const POINT_KINDS = ["achievement", "store"];
-const POINT_KIND_LABELS = { achievement: "رصيد النقاط", store: "حركة نقاط" };
+const POINT_KIND_LABELS = { achievement: "نقاط الإنجاز", store: "رصيد المتجر" };
 const MAX_RULE_POINTS = 100000;
 const MAX_MANUAL_POINTS = 1000;
 
 async function pointsTotals(env, studentId) {
-  const row = await env.DB.prepare(
-    "WITH grouped AS (SELECT event_key,MAX(CASE WHEN kind='achievement' THEN points END) AS achievement_points,MAX(CASE WHEN kind='store' AND event_type<>'store_redemption' THEN points END) AS store_points FROM point_events WHERE student_id=? AND reversed_at IS NULL AND event_type<>'store_redemption' GROUP BY event_key), redeemed AS (SELECT COALESCE(SUM(points),0) AS spent FROM point_events WHERE student_id=? AND reversed_at IS NULL AND event_type='store_redemption' AND kind='store') SELECT COALESCE(SUM(MAX(COALESCE(achievement_points,-100000),COALESCE(store_points,-100000))),0)+(SELECT spent FROM redeemed) AS balance FROM grouped"
-  ).bind(studentId,studentId).first();
-  const balance=Number(row?.balance||0); return { achievement: balance, store: balance, balance };
+  const legacySql = "WITH grouped AS (SELECT event_key,MAX(CASE WHEN kind='achievement' THEN points END) AS achievement_points,MAX(CASE WHEN kind='store' AND event_type<>'store_redemption' THEN points END) AS store_points FROM point_events WHERE student_id=? AND reversed_at IS NULL AND event_type<>'store_redemption' GROUP BY event_key), redeemed AS (SELECT COALESCE(SUM(points),0) AS spent FROM point_events WHERE student_id=? AND reversed_at IS NULL AND event_type='store_redemption' AND kind='store') SELECT COALESCE(SUM(MAX(COALESCE(achievement_points,-100000),COALESCE(store_points,-100000))),0)+(SELECT spent FROM redeemed) AS balance FROM grouped";
+  const legacyTotals = async () => {
+    const row = await env.DB.prepare(legacySql).bind(studentId,studentId).first();
+    const balance=Number(row?.balance||0);
+    return { achievement: balance, store: balance, balance, mode: "legacy" };
+  };
+  let cutover=null;
+  try { cutover=await env.DB.prepare("SELECT active FROM point_balance_cutovers WHERE id=1").first(); } catch {}
+  if(Number(cutover?.active)!==1) return legacyTotals();
+  try {
+    const row=await env.DB.prepare(`
+      WITH opening AS (
+        SELECT opening_balance,as_of FROM student_store_opening_balances WHERE student_id=?
+      ),
+      achievement_events AS (
+        SELECT event_key,MAX(points) AS points FROM point_events
+        WHERE student_id=? AND kind='achievement' AND reversed_at IS NULL
+        GROUP BY event_key
+      ),
+      store_events AS (
+        SELECT event_key,MAX(points) AS points FROM point_events
+        WHERE student_id=? AND kind='store' AND event_type<>'store_redemption' AND reversed_at IS NULL
+          AND created_at>COALESCE((SELECT as_of FROM opening),'1970-01-01T00:00:00.000Z')
+        GROUP BY event_key
+      ),
+      new_redemptions AS (
+        SELECT COALESCE(SUM(CASE WHEN status IN ('pending','approved','fulfilled') THEN -cost ELSE 0 END),0) AS net
+        FROM store_redemptions
+        WHERE student_id=? AND requested_at>COALESCE((SELECT as_of FROM opening),'1970-01-01T00:00:00.000Z')
+      ),
+      old_redemption_refunds AS (
+        SELECT COALESCE(SUM(cost),0) AS refund
+        FROM store_redemptions
+        WHERE student_id=?
+          AND requested_at<=COALESCE((SELECT as_of FROM opening),'1970-01-01T00:00:00.000Z')
+          AND status='rejected'
+          AND decided_at>COALESCE((SELECT as_of FROM opening),'1970-01-01T00:00:00.000Z')
+      )
+      SELECT
+        COALESCE((SELECT SUM(points) FROM achievement_events),0) AS achievement,
+        COALESCE((SELECT opening_balance FROM opening),0)
+          +COALESCE((SELECT SUM(points) FROM store_events),0)
+          +(SELECT net FROM new_redemptions)
+          +(SELECT refund FROM old_redemption_refunds) AS store
+    `).bind(studentId,studentId,studentId,studentId,studentId).first();
+    const achievement=Number(row?.achievement||0);
+    const store=Number(row?.store||0);
+    return { achievement, store, balance: store, mode: "separate" };
+  } catch {
+    return legacyTotals();
+  }
 }
 
 function storeItemAvailability(item, balance) {
@@ -4904,25 +4951,41 @@ export default {
       const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
       const resolved=await resolvePointStudent(env,user,clean(b.student_id,80));
       if(resolved.error)return resolved.error;
-      const s=resolved.row,reason=clean(b.reason,500);
+      const student=resolved.row,reason=clean(b.reason,500);
       const ruleId=clean(b.rule_id,80);
       const rule=ruleId?await env.DB.prepare("SELECT * FROM point_rules WHERE id=?").bind(ruleId).first():null;
       if(ruleId&&!rule)return fail(404,"قاعدة النقاط غير موجودة");
       if(!rule&&reason.length<3)return fail(400,"اكتب سبب منح النقاط (3 أحرف على الأقل)");
-      const basePoints=Number(b.base_points??b.points??Math.max(Number(b.achievement_points)||0,Number(b.store_points)||0,Number(rule?.achievement_points)||0,Number(rule?.store_points)||0));
+      const hasAchievement=Object.prototype.hasOwnProperty.call(b,"achievement_points");
+      const hasStore=Object.prototype.hasOwnProperty.call(b,"store_points");
+      const hasShared=(b.base_points!==undefined&&b.base_points!==null)||(b.points!==undefined&&b.points!==null);
+      let achievementBase=0,storeBase=0;
+      if(hasAchievement||hasStore){
+        achievementBase=hasAchievement?Number(b.achievement_points):0;
+        storeBase=hasStore?Number(b.store_points):0;
+      }else if(hasShared){
+        const shared=Number(b.base_points??b.points);
+        achievementBase=shared;storeBase=shared;
+      }else if(rule){
+        achievementBase=Number(rule.achievement_points||0);
+        storeBase=Number(rule.store_points||0);
+      }else return fail(400,"حدد نقاط الإنجاز أو نقاط المتجر أو مقدارًا عامًا");
       const bonusPercent=Number(rule?.bonus_percent||0);
-      const points=bonusPercent>0?Math.round(basePoints*(1+bonusPercent/100)):basePoints;
-      if(!Number.isInteger(points)||points<=0||points>MAX_MANUAL_POINTS)return fail(400,"النقاط الممنوحة بعد المكافأة يجب أن تكون عددًا صحيحًا بين 1 و1000");
+      const applyBonus=value=>bonusPercent>0?Math.round(value*(1+bonusPercent/100)):value;
+      const achievementPoints=applyBonus(achievementBase),storePoints=applyBonus(storeBase);
+      if(!Number.isInteger(achievementPoints)||!Number.isInteger(storePoints)||achievementPoints<0||storePoints<0||achievementPoints>MAX_MANUAL_POINTS||storePoints>MAX_MANUAL_POINTS||achievementPoints+storePoints<=0)return fail(400,"يجب أن تكون نقاط كل رصيد عددًا صحيحًا بين 0 و1000، مع قيمة موجبة لأحدهما على الأقل");
       const requestId=clean(b.request_id,80);
       if(!/^[a-zA-Z0-9_-]{6,80}$/.test(requestId))return fail(400,"معرّف الحركة مطلوب لمنع تكرار المنح");
       const eventKey="manual:"+requestId;
       const date=academyDate(),events=[];
       for(const kind of POINT_KINDS){
-        const inserted=await insertPointEvent(env,{student_id:s.id,group_id:s.group_id,rule_id:rule?.id||null,event_type:"manual",kind,points,reason:reason||rule.name,event_key:eventKey,awarded_date:date,awarded_by:user.id});
+        const points=kind==="achievement"?achievementPoints:storePoints;
+        if(points<=0){events.push({kind,points:0,status:"skipped"});continue;}
+        const inserted=await insertPointEvent(env,{student_id:student.id,group_id:student.group_id,rule_id:rule?.id||null,event_type:"manual",kind,points,reason:reason||rule.name,event_key:eventKey,awarded_date:date,awarded_by:user.id});
         events.push({kind,points,status:inserted.inserted?"awarded":"duplicate",id:inserted.id});
       }
-      await log(env,user.id,"points_manual_award",{student_id:s.id,points,rule_id:rule?.id||null,event_key:eventKey});
-      return json({ok:true,events,totals:await pointsTotals(env,s.id)},201);
+      await log(env,user.id,"points_manual_award",{student_id:student.id,achievement_points:achievementPoints,store_points:storePoints,rule_id:rule?.id||null,event_key:eventKey});
+      return json({ok:true,events,totals:await pointsTotals(env,student.id)},201);
     }
     if(path==="/api/points/adjust"&&method==="POST"){
       if(user.role!=="admin")return fail(403,"الإضافة والخصم العام متاحان للشيخ وحده");
@@ -4933,7 +4996,7 @@ export default {
       if(!Number.isInteger(delta)||delta===0||Math.abs(delta)>MAX_MANUAL_POINTS)return fail(400,"أدخل عددًا صحيحًا بين -1000 و1000 دون الصفر");
       if(reason.length<3)return fail(400,"اكتب سبب الإضافة أو الخصم (3 أحرف على الأقل)");
       const totals=await pointsTotals(env,student.id);
-      if(Number(totals.balance||0)+delta<0)return fail(409,"لا يمكن أن يتجاوز الخصم رصيد الطالب الحالي");
+      if(Number(totals.store||0)+delta<0||Number(totals.achievement||0)+delta<0)return fail(409,"لا يمكن أن يتجاوز الخصم أحد رصيدي الطالب الحاليين");
       const requestId=clean(b.request_id,80);
       if(!/^[a-zA-Z0-9_-]{6,80}$/.test(requestId))return fail(400,"معرّف الحركة مطلوب لمنع التكرار");
       const eventKey="general-adjustment:"+requestId,date=academyDate(),events=[];
@@ -4969,24 +5032,7 @@ export default {
     }
     if(path==="/api/points/streak"&&method==="POST"){
       if(user.role!=="admin")return fail(403,"اعتماد الاستمرارية ومكافآتها للشيخ وحده");
-      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
-      const studentId=clean(b.student_id,80),activity=clean(b.activity,20),date=quranDateISO(b.date)||academyDate();
-      if(!["hifz","fajr","shuruq"].includes(activity))return fail(400,"المسار يجب أن يكون الحفظ أو الفجر أو الشروق");
-      if(date>academyDate())return fail(400,"لا يمكن تسجيل استمرارية مستقبلية");
-      const student=await env.DB.prepare("SELECT id,group_id FROM students WHERE id=? AND active=1").bind(studentId).first();if(!student)return fail(404,"الطالب غير موجود");
-      const base=Number(b.base_points);if(!Number.isInteger(base)||base<1||base>1000)return fail(400,"أدخل نقاط الإنجاز الأساسية الصحيحة");
-      const old=await env.DB.prepare("SELECT * FROM student_point_streaks WHERE student_id=? AND activity=?").bind(studentId,activity).first();
-      if(old&&old.last_date===date)return fail(409,"سُجل هذا اليوم في سلسلة الاستمرارية بالفعل");
-      let days=old&&old.last_date===addCalendarDays(date,-1)?Number(old.current_days)+1:1;
-      let milestones=[];try{milestones=JSON.parse(old?.awarded_milestones||"[]")}catch{}
-      const due=[5,10,20,30].includes(days)&&!milestones.includes(days);
-      const now=nowIso();
-      if(due)milestones.push(days);
-      await env.DB.prepare("INSERT INTO student_point_streaks(student_id,activity,current_days,last_date,awarded_milestones,updated_at) VALUES(?,?,?,?,?,?) ON CONFLICT(student_id,activity) DO UPDATE SET current_days=excluded.current_days,last_date=excluded.last_date,awarded_milestones=excluded.awarded_milestones,updated_at=excluded.updated_at").bind(studentId,activity,days,date,JSON.stringify(milestones),now).run();
-      let bonus=0;
-      if(due){bonus=Math.round(base*.5);for(const kind of POINT_KINDS)await insertPointEvent(env,{student_id:studentId,group_id:student.group_id,rule_id:null,event_type:"streak_bonus",kind,points:bonus,reason:"مكافأة استمرارية "+days+" يومًا — "+activity,event_key:"streak:"+studentId+":"+activity+":"+days,awarded_date:date,awarded_by:user.id});}
-      await log(env,user.id,"points_streak_record",{student_id:studentId,activity,date,days,bonus});
-      return json({ok:true,days,milestone:due?days:null,bonus,totals:await pointsTotals(env,studentId)});
+      return fail(410,"تم إيقاف الاعتماد اليدوي للاستمرارية؛ تُحتسب المكافأة تلقائيًا من سجلات النشاط اليومية.");
     }
     if(path==="/api/points/ethics"&&method==="GET"){
       const studentId=user.role==="student"?user.student_id:clean(url.searchParams.get("student_id"),80);

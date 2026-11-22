@@ -634,6 +634,9 @@ console.log("Security regression guardrails passed.");
 
 assert.match(backend, /if\(user\.role!=="admin"\)return fail\(403,"اعتماد منح النقاط اليدوي للشيخ وحده"\)/, "manual point awards must be restricted to the Sheikh admin account");
 assert.match(backend, /student_point_streaks/, "Masjid Al-Rahma streaks must persist in D1");
+assert.match(backend, /return fail\(410,"تم إيقاف الاعتماد اليدوي للاستمرارية/, "manual streak awards must be disabled to prevent duplicate rewards");
+assert.doesNotMatch(app, /scan-streak-form|اعتماد يوم الاستمرارية/, "manual streak award form must not be shown");
+assert.match(app, /streakData\.streaks[\s\S]*streakData\.badges[\s\S]*streakBadgeRows/, "Sheikh panel must render activity streaks and badges");
 assert.match(backend, /student_ethics/, "Masjid Al-Rahma ethics warnings must persist in D1");
 assert.match(backend, /student_referrals/, "student referrals must be tracked before awarding the seven-day bonus");
 assert.match(backend, /hifz_no_errors.*hifz_tajweed/, "the two memorization point values must be mutually exclusive");
@@ -641,3 +644,5 @@ assert.match(backend, /bonus_percent/, "the 30% support bonus must be configurab
 assert.match(app, /رصيد النقاط الموحد/, "students must see one unified points balance");
 assert.match(app, /الفجر · 30/, "the Sheikh scan panel must expose the new point activities");
 assert.match(index, /ihsan-rules\.html/, "the Cloudflare entry page must link to the printable Ihsan rules");
+
+assert.doesNotMatch(app, /points_awarded\|\|0/, "badge UI must not show zero-point labels");

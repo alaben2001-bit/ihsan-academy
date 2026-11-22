@@ -11,6 +11,8 @@ assert(server.includes("streak-half:"), "half-points streak bonuses must use an 
 assert(server.includes("Math.floor(baseTotal / 2)"), "streak bonus must equal half of the underlying points earned");
 assert(server.includes("expectedDate === date"), "a streak only advances on the next consecutive calendar day");
 assert(server.includes("student_activity_badges"), "all activity types must retain their own streak badges");
+assert(server.includes("const milestones = [3, 5, 7, 14, 30, 60, 90, 180, 365]"), "streak badges must use the approved milestone sequence");
+assert(server.includes("MAX(points) AS points") && server.includes("GROUP BY event_key"), "base points must count one event once across ledger kinds");
 assert(server.includes("bonus_rate: days >= 3 ? 0.5 : 0"), "the 50 percent bonus begins only after three consecutive days");
 assert(server.includes("if (old?.last_date === date)"), "duplicate same-day entries must not advance a streak");
 assert(server.includes("old?.last_date && old.last_date > date"), "backdated entries must not rewrite the current streak");
@@ -27,3 +29,11 @@ const attendanceStart = server.indexOf('if(path==="/api/attendance"&&method==="P
 const attendanceEnd = server.indexOf('if(path==="/api/quran/progress"&&method==="GET")', attendanceStart);
 const attendanceRoute = server.slice(attendanceStart, attendanceEnd);
 assert(attendanceRoute.includes("date>academyDate()"), "future attendance dates must be rejected before points or streaks are recorded");
+
+assert(server.includes('return fail(410,"تم إيقاف الاعتماد اليدوي للاستمرارية'), "legacy manual streak endpoint must be disabled");
+assert(server.includes('kind: "achievement", points: bonus'), "automatic streak bonus must not increase the store balance");
+assert(!app.includes('id="scan-streak-form"'), "the manual streak award form must be removed from the Sheikh interface");
+
+assert(app.includes("const streakData=res[5]") && app.includes("streakData.streaks") && app.includes("streakData.badges") && app.includes("streakBadgeRows"), "Sheikh panel must render automatic activity badges");
+
+assert(!app.includes("points_awarded||0"), "badge UI must not show zero-point labels");
