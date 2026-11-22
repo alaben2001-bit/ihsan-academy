@@ -2020,6 +2020,7 @@ export default {
       const parsed=await parseBody(request); if(parsed.error)return parsed.error; const b=parsed.value;
       const identity=clean(b.identity??b.email,200).toLowerCase(), password=String(b.password||"");
       if(!identity||!password||password.length>1024)return fail(400,"أدخل الاسم الكامل أو اسم الدخول وكلمة المرور");
+      // أسماء الطلاب تُطابق بعد توحيد Unicode وإزالة التشكيل؛ لا نسمح بدخول اسم ملتبس.
       // اسم الطالب الكامل صالح للدخول فقط إذا كان مرتبطًا بحساب نشط وفريد؛
       // لا نختار أول نتيجة عند تشابه الأسماء، ولا نكشف هل الاسم مسجل.
       const loginKey=normalizeStudentName(identity)||identity;
