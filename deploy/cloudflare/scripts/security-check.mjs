@@ -636,6 +636,7 @@ assert.match(backend, /if\(user\.role!=="admin"\)return fail\(403,"اعتماد 
 assert.match(backend, /student_point_streaks/, "Masjid Al-Rahma streaks must persist in D1");
 assert.match(backend, /return fail\(410,"تم إيقاف الاعتماد اليدوي للاستمرارية/, "manual streak awards must be disabled to prevent duplicate rewards");
 assert.doesNotMatch(app, /scan-streak-form|اعتماد يوم الاستمرارية/, "manual streak award form must not be shown");
+assert.match(app, /streakData\.streaks[\s\S]*streakData\.badges[\s\S]*streakBadgeRows/, "Sheikh panel must render activity streaks and badges");
 assert.match(backend, /student_ethics/, "Masjid Al-Rahma ethics warnings must persist in D1");
 assert.match(backend, /student_referrals/, "student referrals must be tracked before awarding the seven-day bonus");
 assert.match(backend, /hifz_no_errors.*hifz_tajweed/, "the two memorization point values must be mutually exclusive");
