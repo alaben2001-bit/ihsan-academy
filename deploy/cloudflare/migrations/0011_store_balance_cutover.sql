@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS point_balance_cutovers (
 );
 
 CREATE TABLE IF NOT EXISTS student_store_opening_balances (
-  student_id TEXT PRIMARY KEY REFERENCES students(id) ON DELETE CASCADE,
+  student_id TEXT PRIMARY KEY REFERENCES students(id) ON DELETE RESTRICT,
   opening_balance INTEGER NOT NULL DEFAULT 0,
   as_of TEXT NOT NULL,
   snapshot_version INTEGER NOT NULL DEFAULT 1,
