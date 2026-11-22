@@ -753,7 +753,7 @@ const LEARNING_SCHEMA_STATEMENTS = [
   )`,
   `CREATE TABLE IF NOT EXISTS student_activity_streaks (
     student_id TEXT NOT NULL REFERENCES students(id) ON DELETE CASCADE,
-    activity TEXT NOT NULL CHECK(activity IN ('hifz','thabit','ward','wird','asr','adhkar','mandatory_classes','quran_classes','bring')),
+    activity TEXT NOT NULL CHECK(activity IN ('hifz','thabit','ward','wird','asr','adhkar','mandatory_classes','quran_classes','bring','fajr','shuruq','maghrib','attendance')),
     current_days INTEGER NOT NULL DEFAULT 0,
     start_date TEXT NOT NULL,
     last_date TEXT NOT NULL,
@@ -1651,7 +1651,7 @@ async function quranDayState(env, studentId, day) {
   return byKind;
 }
 async function recordAutomaticActivityStreak(env, { studentId, groupId, activity, date, awardedBy }) {
-  if (!["hifz", "thabit", "ward", "wird", "asr", "adhkar", "mandatory_classes", "quran_classes", "bring"].includes(activity)) return { counted: false };
+  if (!["hifz", "thabit", "ward", "wird", "asr", "adhkar", "mandatory_classes", "quran_classes", "bring", "fajr", "shuruq", "maghrib", "attendance"].includes(activity)) return { counted: false };
   const old = await env.DB.prepare("SELECT current_days,start_date,last_date FROM student_activity_streaks WHERE student_id=? AND activity=?").bind(studentId, activity).first();
   if (old?.last_date === date) return { counted: false, duplicate: true, days: Number(old.current_days || 0) };
   // Backdated entries remain in the daily ledger but must not rewrite today's live streak.
@@ -4766,8 +4766,10 @@ export default {
       const basePoints=activity==="support"?Number(b.base_points):undefined;
       if(activity==="support"&&(!Number.isInteger(basePoints)||basePoints<1||basePoints>1000))return fail(400,"أدخل نقاط الإنجاز الأصلي ليحسب النظام زيادة 30%");
       const awards=await awardPointsForEvent(env,{studentId:s.id,groupId:s.group_id,eventType:map.eventType,eventKey,date,reason:map.reason+(note?" — "+note:""),sourceCollection:"points_activity",sourceId:eventKey,awardedBy:user.id,achievementPoints:basePoints,storePoints:basePoints});
-      await log(env,user.id,"points_activity_award",{student_id:s.id,activity,date,awards:awards.map(a=>a.status+":"+a.kind)});
-      return json({ok:true,activity,date,awards,totals:await pointsTotals(env,s.id)},201);
+      const streakActivity={fajr:"fajr",shuruq:"shuruq",maghrib:"maghrib",hizb:"ward",hifz_no_errors:"hifz",hifz_tajweed:"hifz",attendance:"attendance"}[activity];
+      const streak=streakActivity?await recordAutomaticActivityStreak(env,{studentId:s.id,groupId:s.group_id,activity:streakActivity,date,awardedBy:user.id}):null;
+      await log(env,user.id,"points_activity_award",{student_id:s.id,activity,date,awards:awards.map(a=>a.status+":"+a.kind),streak_days:streak?.days||null});
+      return json({ok:true,activity,date,awards,streak,totals:await pointsTotals(env,s.id)},201);
     }
     if(path==="/api/points/summary"&&method==="GET"){
       const resolved=await resolvePointStudent(env,user,clean(url.searchParams.get("student_id"),80));
