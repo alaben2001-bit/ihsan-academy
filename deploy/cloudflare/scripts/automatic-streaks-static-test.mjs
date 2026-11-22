@@ -1,0 +1,15 @@
+import fs from "node:fs";
+import assert from "node:assert/strict";
+
+const server = fs.readFileSync(new URL("../src/index.js", import.meta.url), "utf8");
+const app = fs.readFileSync(new URL("../site/app.js", import.meta.url), "utf8");
+assert(server.includes("recordAutomaticActivityStreak"), "daily Quran entries must feed automatic streaks");
+assert(server.includes("student_activity_streaks"), "automatic streak storage must be separate and additive");
+assert(server.includes("student_streak_badges"), "milestone badges must be retained as history");
+assert(server.includes('activity:kind,date:day'), "each daily Quran activity must update its own streak");
+assert(server.includes("streak-auto:"), "automatic milestone points must use an idempotency key");
+assert(server.includes("if (old?.last_date === date)"), "duplicate same-day entries must not advance a streak");
+assert(server.includes("old?.last_date && old.last_date > date"), "backdated entries must not rewrite the current streak");
+assert(app.includes("سلسلة المواظبة والأوسمة"), "student profile must display streaks and badges");
+assert(app.includes('/points/streak'), "student profile must load automatic streaks and badges");
+console.log("Automatic streaks static checks passed.");
