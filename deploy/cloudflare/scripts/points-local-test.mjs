@@ -121,7 +121,7 @@ async function main() {
   // 4) Store item, student redemption, rejection refunds balance
   // -------------------------------------------------------------------------
   const item = await call("/api/store/items", { method: "POST", token: admin, body: { name: "جائزة اختبار النقاط", description: "عنصر تجريبي", cost: 10, stock: 2, max_per_student: 1, active: 1 } });
-  check("create store item", item.status === 201 && item.data?.item?.cost === 20, JSON.stringify(item.data));
+  check("create store item", item.status === 201 && item.data?.item?.cost === 10, JSON.stringify(item.data));
   const itemId = item.data.item.id;
 
   const studentStore = await call("/api/store/items", { token: studentToken });
