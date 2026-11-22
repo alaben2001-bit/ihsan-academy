@@ -141,7 +141,7 @@ async function main() {
   const afterRestHifzWorkday = await call("/api/quran/daily", { method: "POST", token: studentA.token, body: { kind: "hifz", day: academyDate(-1), amount: 2, unit: "سطر" } });
   check("student logs memorization after the planned rest day", afterRestHifzWorkday.status === 201 && afterRestHifzWorkday.data?.streak?.days === 2, JSON.stringify(afterRestHifzWorkday.data));
   const hifz = await call("/api/quran/daily", { method: "POST", token: studentA.token, body: { kind: "hifz", amount: 5, unit: "سطر", notes: "اختبار الحفظ" } });
-  check("student logs memorization after resolving makeup", hifz.status === 201 && hifz.data?.entry?.kind === "hifz", JSON.stringify(hifz.data));
+  check("student logs memorization after resolving makeup", hifz.status === 201 && hifz.data?.entry?.kind === "hifz" && hifz.data?.streak?.days === 3, JSON.stringify(hifz.data));
 
   const duplicate = await call("/api/quran/daily", { method: "POST", token: studentA.token, body: { kind: "hifz", amount: 5, unit: "سطر", notes: "اختبار الحفظ" } });
   check("identical daily log is idempotent", duplicate.status === 200 && duplicate.data?.duplicate === true, JSON.stringify(duplicate.data));
@@ -216,7 +216,7 @@ async function main() {
 
   // 7) Summary aggregates the day's work
   const summary = await call("/api/quran/summary", { token: studentA.token });
-  check("summary counts the three daily kinds", summary.status === 200 && Number(summary.data?.totals?.hifz?.days) === 1 && Number(summary.data?.totals?.thabit?.days) === 1 && Number(summary.data?.totals?.ward?.days) === 5, JSON.stringify(summary.data?.totals));
+  check("summary counts the three daily kinds", summary.status === 200 && Number(summary.data?.totals?.hifz?.days) === 3 && Number(summary.data?.totals?.thabit?.days) === 1 && Number(summary.data?.totals?.ward?.days) === 5, JSON.stringify(summary.data?.totals));
   check("summary reports the approved station", Number(summary.data?.stations?.approved) === 1, JSON.stringify(summary.data?.stations));
   check("summary reports the completed makeup", Number(summary.data?.makeups?.done) === 1, JSON.stringify(summary.data?.makeups));
   check("summary reports an active streak", Number(summary.data?.streak) >= 1, JSON.stringify(summary.data?.streak));
