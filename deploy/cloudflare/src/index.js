@@ -3403,7 +3403,7 @@ export default {
         alreadyAwarded=Boolean(activeDailyEvent||activeProgressEvent);
       }
       if(!alreadyAwarded){
-        await awardPointsForEvent(env,{studentId,groupId:st.group_id,eventType:"quran_daily_approved",eventKey:pointsEventKey,date,reason:"متابعة قرآنية ("+activity+")",sourceCollection:pointsSource,sourceId:pointsSourceId,awardedBy:user.id});
+        await awardPointsForEvent(env,{studentId,groupId:st.group_id,eventType:dailyKind?"quran_daily_approved":"quran_entry",eventKey:pointsEventKey,date,reason:"متابعة قرآنية ("+activity+")",sourceCollection:pointsSource,sourceId:pointsSourceId,awardedBy:user.id});
         if(dailyKind)await recordAutomaticActivityStreak(env,{studentId,groupId:st.group_id,activity:dailyKind,date,awardedBy:user.id});
       }
       await log(env,user.id,"quran_progress_add",{student_id:studentId,activity,errors,grade,linked_daily_id:dailyEntry?.id||null});
