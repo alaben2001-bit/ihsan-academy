@@ -472,7 +472,7 @@ assert.match(app, /filter\(index=>index!==previousDuaIndex\)/, "the dashboard du
 assert.match(app, /سنن أبي داود \(1522\)، والنسائي \(1303\)؛ صححه الألباني/, "the remembrance dua must show its source and grading");
 assert.doesNotMatch(about, /rel="canonical"/, "the internal about page must not publish a canonical URL");
 assert.doesNotMatch(privacy, /rel="canonical"/, "the internal privacy page must not publish a canonical URL");
-assert.match(index, /بوابة خاصة بأكاديمية الإحسان للمسجلين المعتمدين/, "the home page must present itself as the internal platform for approved members");
+assert.match(index, /منصة داخلية للمسجلين المعتمدين/, "the home page must present itself as the internal platform for approved members");
 assert.match(index, /<meta name="robots" content="noindex/, "the internal platform must not be indexable");
 for (const [name, page] of [["about", about], ["privacy", privacy]]) {
   for (const asset of ["fonts.css", "style.css"]) {
