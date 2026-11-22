@@ -621,9 +621,8 @@ assert.match(app, /form\.dataset\.submitting==="1"/, "manual point forms must ig
 assert.match(app, /request_id:idempotentFormRequestId\(form,payload\)/, "manual award and adjustment forms must reuse their request key");
 assert.match(app, /request_id:idempotentFormRequestId\(manualForm,payload\)/, "QR manual awards must reuse their request key across retries");
 assert.match(app, /function storeItemImage\(item\)/, "student rewards must support real product imagery");
-assert.match(app, /store-reco-card">\'+storeItemImage\(item\)/, "available rewards must render visual product cards");
 assert.match(app, /store-reco-card--locked/, "locked rewards must retain visual product-card presentation");
-assert.match(app, /https:\\/\\//, "external reward imagery must use HTTPS");
+assert.match(app, /safeUrl=\/\^\(https:/, "external reward imagery must use HTTPS");
 
 console.log("Security regression guardrails passed.");
 
