@@ -303,6 +303,43 @@ async function main() {
   const restoreRule = await call("/api/points/rules", { method: "POST", token: admin, body: { id: attendanceRule.id, event_type: "attendance_present", name: attendanceRule.name, description: attendanceRule.description, achievement_points: 30, store_points: 30, max_per_day: 1, auto_award: 1, active: 1, sort_order: attendanceRule.sort_order } });
   check("attendance rule is restored to the academy 30-point default", restoreRule.status === 200 && restoreRule.data?.rule?.store_points === 30 && restoreRule.data?.rule?.achievement_points === 30, JSON.stringify(restoreRule.data));
 
+  // -------------------------------------------------------------------------
+  // 15) Period rankings and general adjustments (run last to avoid changing
+  //     the balances expected by the store and reversal tests above).
+  // -------------------------------------------------------------------------
+  const balanceBeforeAdjustment = await call("/api/points/summary?student_id=" + encodeURIComponent(student.id), { token: admin });
+  const startingBalance = Number(balanceBeforeAdjustment.data?.totals?.balance || 0);
+  const adjustNoReason = await call("/api/points/adjust", { method: "POST", token: admin, body: { student_id: student.id, points: 5, request_id: "test-adjust-no-reason" } });
+  check("general adjustment requires a reason", adjustNoReason.status === 400, JSON.stringify(adjustNoReason.data));
+
+  const adjustmentBody = { student_id: student.id, points: 7, reason: "اختبار إضافة عامة", request_id: "test-general-adjust-001" };
+  const adjustment1 = await call("/api/points/adjust", { method: "POST", token: admin, body: adjustmentBody });
+  check("general adjustment adds points", adjustment1.status === 201 && adjustment1.data?.totals?.balance === startingBalance + 7, JSON.stringify(adjustment1.data));
+
+  const adjustment2 = await call("/api/points/adjust", { method: "POST", token: admin, body: adjustmentBody });
+  check("repeated general adjustment does not duplicate", adjustment2.status === 201 && (adjustment2.data?.events || []).every(event => event.status === "duplicate") && adjustment2.data?.totals?.balance === startingBalance + 7, JSON.stringify(adjustment2.data));
+
+  const adjustmentSubtract = await call("/api/points/adjust", { method: "POST", token: admin, body: { student_id: student.id, points: -2, reason: "اختبار خصم عام", request_id: "test-general-adjust-002" } });
+  check("general adjustment subtracts points once", adjustmentSubtract.status === 201 && adjustmentSubtract.data?.totals?.balance === startingBalance + 5, JSON.stringify(adjustmentSubtract.data));
+
+  const adjustmentOverdraw = await call("/api/points/adjust", { method: "POST", token: admin, body: { student_id: student.id, points: -(startingBalance + 6), reason: "اختبار منع الرصيد السالب", request_id: "test-general-adjust-003" } });
+  check("general adjustment prevents a negative balance", adjustmentOverdraw.status === 409, JSON.stringify(adjustmentOverdraw.data));
+
+  for (const period of ["weekly", "monthly", "yearly"]) {
+    const ranking = await call("/api/effort/ranking?scope=group&group_id=" + encodeURIComponent(groupId) + "&period=" + period, { token: admin });
+    const own = (ranking.data?.rows || []).find(row => row.student_id === student.id);
+    check("group ranking supports " + period + " period", ranking.status === 200 && ranking.data?.total_count === 2 && own && Number.isFinite(own.score) && own.rank > 0, JSON.stringify(ranking.data));
+  }
+
+  const studentGroupRanking = await call("/api/effort/ranking?scope=group&group_id=" + encodeURIComponent(groupId) + "&period=weekly", { token: studentToken });
+  check("student ranking exposes only their own row", studentGroupRanking.status === 200 && studentGroupRanking.data?.rows?.length === 1 && studentGroupRanking.data.rows[0]?.student_id === student.id && studentGroupRanking.data?.total_count === 2, JSON.stringify(studentGroupRanking.data));
+
+  const studentAcademyRanking = await call("/api/effort/ranking?scope=academy&student_id=" + encodeURIComponent(student.id) + "&period=weekly", { token: studentToken });
+  check("student can see own academy position without other student records", studentAcademyRanking.status === 200 && studentAcademyRanking.data?.rows?.length === 1 && studentAcademyRanking.data.rows[0]?.student_id === student.id && studentAcademyRanking.data?.total_count >= 1, JSON.stringify(studentAcademyRanking.data));
+
+  const studentOtherTeamRanking = await call("/api/effort/ranking?scope=team&group_id=" + encodeURIComponent(groupId) + "&student_id=" + encodeURIComponent(otherStudent.id) + "&period=weekly", { token: studentToken });
+  check("student cannot request another student's team ranking", studentOtherTeamRanking.status === 403, JSON.stringify(studentOtherTeamRanking.data));
+
   const report = { base: BASE, failures, passed: results.filter(row => row.ok).length, total: results.length, results };
   const outputPath = process.env.POINTS_TEST_REPORT || "";
   if (outputPath) {

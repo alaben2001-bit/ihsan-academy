@@ -2995,32 +2995,86 @@ export default {
       return json({ok:true,saved});
     }
     if(path==="/api/effort/ranking"&&method==="GET"){
-      if(!["admin","teacher","director","supervisor"].includes(user.role))return fail(403,"الترتيب متاح للشيخ أو المشرف");
-      const groupId=clean(url.searchParams.get("group_id"),80),period=url.searchParams.get("period")==="monthly"?"monthly":"weekly",today=academyDate();
-      if(!groupId||!await canManageGroup(env,user,groupId))return fail(400,"اختر فوجًا ضمن صلاحيتك");
-      const fromDate=period==="monthly"?today.slice(0,7)+"-01":(()=>{const [y,m,d]=today.split("-").map(Number),x=new Date(Date.UTC(y,m-1,d-6));return x.getUTCFullYear()+"-"+String(x.getUTCMonth()+1).padStart(2,"0")+"-"+String(x.getUTCDate()).padStart(2,"0")})();
-      const [studentsRows,effortRows,attendanceRows,quranRows,pointsRows]=await Promise.all([
-        env.DB.prepare("SELECT id,display_name AS name FROM students WHERE group_id=? AND active=1 ORDER BY display_name").bind(groupId).all(),
-        records(env,"effort_logs"," AND group_id=?",[groupId]),
-        records(env,"attendance"," AND group_id=?",[groupId]),
-        records(env,"quran_progress"," AND group_id=?",[groupId]),
-        env.DB.prepare("SELECT student_id,COALESCE(SUM(points),0) AS achievement FROM point_events WHERE group_id=? AND kind='achievement' AND reversed_at IS NULL GROUP BY student_id").bind(groupId).all()
+      if(!["admin","teacher","director","supervisor","student"].includes(user.role))return fail(403,"الترتيب غير متاح لهذا الحساب");
+      const scope=["academy","group","team"].includes(url.searchParams.get("scope"))?url.searchParams.get("scope"):"group";
+      const groupId=clean(url.searchParams.get("group_id"),80),studentId=clean(url.searchParams.get("student_id"),80);
+      const period=["weekly","monthly","yearly"].includes(url.searchParams.get("period"))?url.searchParams.get("period"):"weekly",today=academyDate();
+      let groupIds=[],teamId=null,teamName=null,scopeLabel="الفوج";
+      if(scope==="group"){
+        if(!groupId||!await canManageGroup(env,user,groupId)&&!(user.role==="student"&&user.group_id===groupId))return fail(403,"اختر فوجًا ضمن صلاحيتك");
+        groupIds=[groupId];
+      }else if(scope==="team"){
+        if(!groupId||!studentId)return fail(400,"بيانات الفوج والطالب مطلوبة لترتيب الفرقة");
+        if(user.role==="student"&&user.student_id!==studentId)return fail(403,"يمكنك عرض ترتيب فرقتك أنت فقط");
+        if(!await canManageGroup(env,user,groupId)&&!(user.role==="student"&&user.group_id===groupId&&user.student_id===studentId))return fail(403,"هذا الفوج خارج نطاق صلاحيتك");
+        const memberRow=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='student_team_memberships' AND id=? AND group_id=?").bind(studentId,groupId).first();
+        if(memberRow){try{const membership=JSON.parse(memberRow.payload_json);teamId=clean(membership.team_id,100);teamName=clean(membership.team_name,80)||null;}catch{}}
+        if(!teamId)return json({scope,scope_label:"ترتيب الفرقة",team_id:null,team_name:null,period,from_date:null,to_date:null,previous_from_date:null,previous_to_date:null,metrics:["attendance","wird","thabit","bring","memorization"],rows:[]});
+        groupIds=[groupId];scopeLabel="الفرقة";
+      }else{
+        if(user.role==="student"){
+          if(!user.student_id||studentId!==user.student_id)return fail(403,"يمكنك طلب ترتيبك العام أنت فقط");
+          const all=await env.DB.prepare("SELECT id FROM groups WHERE active=1 ORDER BY name").all();
+          groupIds=(all.results||[]).map(x=>x.id);scopeLabel="ترتيب الأكاديمية";
+        }else{
+          const managed=await managedGroupIds(env,user);
+          if(managed===null){const all=await env.DB.prepare("SELECT id FROM groups WHERE active=1 ORDER BY name").all();groupIds=(all.results||[]).map(x=>x.id);scopeLabel="الأكاديمية";}
+          else{groupIds=managed;scopeLabel="الترتيب العام ضمن نطاق صلاحيتك";}
+        }
+      }
+      const [year,month,day]=today.split("-").map(Number);
+      let fromDate,toDate=today,previousFrom,previousTo;
+      if(period==="weekly"){
+        const weekday=new Date(Date.UTC(year,month-1,day)).getUTCDay(),offset=(weekday+6)%7;
+        fromDate=addCalendarDays(today,-offset);previousFrom=addCalendarDays(fromDate,-7);previousTo=addCalendarDays(previousFrom,offset);
+      }else if(period==="monthly"){
+        fromDate=today.slice(0,7)+"-01";
+        const priorEnd=addCalendarDays(fromDate,-1),priorMonth=priorEnd.slice(0,7);
+        previousFrom=priorMonth+"-01";
+        const previousDay=Math.min(day,Number(priorEnd.slice(8,10)));
+        previousTo=priorMonth+"-"+String(previousDay).padStart(2,"0");
+      }else{
+        fromDate=year+"-01-01";previousFrom=(year-1)+"-01-01";
+        const priorYear=year-1,priorDay=Math.min(day, new Date(Date.UTC(priorYear,month,0)).getUTCDate());
+        previousTo=priorYear+"-"+String(month).padStart(2,"0")+"-"+String(priorDay).padStart(2,"0");
+      }
+      let students=[];
+      if(scope==="group"){
+        const r=await env.DB.prepare("SELECT id,display_name AS name,group_id FROM students WHERE group_id=? AND active=1 ORDER BY display_name").bind(groupId).all();students=r.results||[];
+      }else if(scope==="team"){
+        const r=await env.DB.prepare("SELECT payload_json FROM academy_records WHERE collection='student_team_memberships' AND group_id=?").bind(groupId).all();
+        const ids=(r.results||[]).flatMap(row=>{try{const m=JSON.parse(row.payload_json);return m.team_id===teamId?[m.student_id]:[]}catch{return []}});
+        if(ids.length){const marks=ids.map(()=>"?").join(",");const q=await env.DB.prepare("SELECT id,display_name AS name,group_id FROM students WHERE active=1 AND group_id=? AND id IN ("+marks+") ORDER BY display_name").bind(groupId,...ids).all();students=q.results||[];}
+      }else if(groupIds.length){
+        const marks=groupIds.map(()=>"?").join(",");
+        const q=await env.DB.prepare("SELECT id,display_name AS name,group_id FROM students WHERE active=1 AND group_id IN ("+marks+") ORDER BY display_name").bind(...groupIds).all();students=q.results||[];
+      }
+      const studentIds=students.map(s=>s.id),marks=studentIds.map(()=>"?").join(",");
+      const [effortRows,attendanceRows,quranRows,currentPoints,previousPoints]=await Promise.all([
+        groupIds.length?records(env,"effort_logs"," AND group_id IN ("+groupIds.map(()=>"?").join(",")+")",groupIds):Promise.resolve([]),
+        groupIds.length?records(env,"attendance"," AND group_id IN ("+groupIds.map(()=>"?").join(",")+")",groupIds):Promise.resolve([]),
+        groupIds.length?records(env,"quran_progress"," AND group_id IN ("+groupIds.map(()=>"?").join(",")+")",groupIds):Promise.resolve([]),
+        studentIds.length?env.DB.prepare("SELECT student_id,COALESCE(SUM(points),0) AS score FROM point_events WHERE student_id IN ("+marks+") AND kind='achievement' AND reversed_at IS NULL AND event_type<>'store_redemption' AND awarded_date>=? AND awarded_date<=? GROUP BY student_id").bind(...studentIds,fromDate,toDate).all():Promise.resolve({results:[]}),
+        studentIds.length?env.DB.prepare("SELECT student_id,COALESCE(SUM(points),0) AS score FROM point_events WHERE student_id IN ("+marks+") AND kind='achievement' AND reversed_at IS NULL AND event_type<>'store_redemption' AND awarded_date>=? AND awarded_date<=? GROUP BY student_id").bind(...studentIds,previousFrom,previousTo).all():Promise.resolve({results:[]})
       ]);
-      const achievementByStudent=new Map((pointsRows.results||[]).map(row=>[row.student_id,Number(row.achievement||0)]));
-      const inPeriod=r=>String(r.date||"")>=fromDate&&String(r.date||"")<=today;
-      const metrics=["attendance","mandatory_classes","asr","adhkar","wird","thabit","bring","quran_classes","memorization","revision"];
-      const stats=(studentsRows.results||[]).map(student=>{
-        const values={};
-        const att=attendanceRows.filter(r=>r.student_id===student.id&&inPeriod(r)&&r.status!=="excused");
-        if(att.length)values.attendance=att.reduce((n,r)=>n+(r.status==="present"?1:r.status==="late"?.5:0),0)/att.length;
-        for(const cat of effortCategories){const rows=effortRows.filter(r=>r.student_id===student.id&&r.category===cat&&inPeriod(r)&&r.status!=="excused");if(rows.length)values[cat]=rows.filter(r=>r.status==="done").length/rows.length}
-        for(const cat of ["memorization","revision"]){const rows=quranRows.filter(r=>r.student_id===student.id&&r.activity===cat&&inPeriod(r));const dates=new Set(rows.filter(r=>cat==="memorization"?String(r.memorized||"").trim():String(r.reviewed||"").trim()).map(r=>r.date));const opportunities=new Set(rows.map(r=>r.date).filter(Boolean));if(opportunities.size)values[cat]=dates.size/opportunities.size}
-        const scored=metrics.filter(k=>values[k]!==undefined);
-        const metricsAvg=scored.length?Math.round(100*scored.reduce((n,k)=>n+values[k],0)/scored.length):null;
-        const score=Number(achievementByStudent.get(student.id)||0);
-        return {student_id:student.id,name:student.name,score,achievement:score,metrics_average:metricsAvg,recorded_metrics:scored.length,metrics:Object.fromEntries(metrics.map(k=>[k,values[k]===undefined?null:Math.round(values[k]*100)]))};
-      }).sort((a,b)=>(b.achievement??0)-(a.achievement??0)||(b.score??0)-(a.score??0)||(b.recorded_metrics-a.recorded_metrics)||a.name.localeCompare(b.name,"ar"));
-      let rank=0;return json({period,from_date:fromDate,to_date:today,metrics,rows:stats.map(r=>({...r,rank:++rank}))});
+      const currentMap=new Map((currentPoints.results||[]).map(x=>[x.student_id,Number(x.score||0)])),previousMap=new Map((previousPoints.results||[]).map(x=>[x.student_id,Number(x.score||0)]));
+      const inRange=(r,from,to)=>String(r.date||"")>=from&&String(r.date||"")<=to;
+      const metrics=["attendance","wird","thabit","bring","memorization"];
+      const makeRows=(from,to,pointMap)=>{
+        const rows=students.map(student=>{
+          const values={},att=attendanceRows.filter(r=>r.student_id===student.id&&inRange(r,from,to)&&r.status!=="excused");
+          if(att.length)values.attendance=att.reduce((n,r)=>n+(r.status==="present"?1:r.status==="late"?.5:0),0)/att.length;
+          for(const cat of ["wird","thabit","bring"]){const logs=effortRows.filter(r=>r.student_id===student.id&&r.category===cat&&inRange(r,from,to)&&r.status!=="excused");if(logs.length)values[cat]=logs.filter(r=>r.status==="done").length/logs.length;}
+          const hifz=quranRows.filter(r=>r.student_id===student.id&&r.activity==="memorization"&&inRange(r,from,to));
+          if(hifz.length)values.memorization=hifz.filter(r=>String(r.memorized||"").trim()).length/hifz.length;
+          return {student_id:student.id,name:student.name,group_id:student.group_id,score:Number(pointMap.get(student.id)||0),metrics:Object.fromEntries(metrics.map(k=>[k,values[k]===undefined?null:Math.round(values[k]*100)]))};
+        }).sort((a,b)=>b.score-a.score||a.name.localeCompare(b.name,"ar"));
+        return rows.map((row,index)=>({...row,rank:index+1}));
+      };
+      const rows=makeRows(fromDate,toDate,currentMap),previousRows=makeRows(previousFrom,previousTo,previousMap),previousRanks=new Map(previousRows.map(row=>[row.student_id,row.rank]));
+      const rankedRows=rows.map(row=>({...row,previous_rank:previousRanks.get(row.student_id)||null,rank_change:previousRanks.has(row.student_id)?previousRanks.get(row.student_id)-row.rank:null}));
+      const visibleRows=user.role==="student"?rankedRows.filter(row=>row.student_id===user.student_id):rankedRows;
+      return json({scope,scope_label:scopeLabel,group_id:groupId||null,team_id:teamId,team_name:teamName,period,from_date:fromDate,to_date:toDate,previous_from_date:previousFrom,previous_to_date:previousTo,total_count:rankedRows.length,metrics,rows:visibleRows});
     }
     if(path==="/api/attendance"&&method==="GET"){
       const date=clean(url.searchParams.get("date"),10)||academyDate(),groupId=clean(url.searchParams.get("group_id"),80),history=url.searchParams.get("history")==="1",studentId=clean(url.searchParams.get("student_id"),80);
@@ -4762,6 +4816,26 @@ export default {
       }
       await log(env,user.id,"points_manual_award",{student_id:s.id,points,rule_id:rule?.id||null,event_key:eventKey});
       return json({ok:true,events,totals:await pointsTotals(env,s.id)},201);
+    }
+    if(path==="/api/points/adjust"&&method==="POST"){
+      if(user.role!=="admin")return fail(403,"الإضافة والخصم العام متاحان للشيخ وحده");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      const resolved=await resolvePointStudent(env,user,clean(b.student_id,80));
+      if(resolved.error)return resolved.error;
+      const student=resolved.row,delta=Number(b.points),reason=clean(b.reason,500);
+      if(!Number.isInteger(delta)||delta===0||Math.abs(delta)>MAX_MANUAL_POINTS)return fail(400,"أدخل عددًا صحيحًا بين -1000 و1000 دون الصفر");
+      if(reason.length<3)return fail(400,"اكتب سبب الإضافة أو الخصم (3 أحرف على الأقل)");
+      const totals=await pointsTotals(env,student.id);
+      if(Number(totals.balance||0)+delta<0)return fail(409,"لا يمكن أن يتجاوز الخصم رصيد الطالب الحالي");
+      const requestId=clean(b.request_id,80);
+      if(!/^[a-zA-Z0-9_-]{6,80}$/.test(requestId))return fail(400,"معرّف الحركة مطلوب لمنع التكرار");
+      const eventKey="general-adjustment:"+requestId,date=academyDate(),events=[];
+      for(const kind of POINT_KINDS){
+        const inserted=await insertPointEvent(env,{student_id:student.id,group_id:student.group_id,rule_id:null,event_type:"general_adjustment",kind,points:delta,reason,event_key:eventKey,awarded_date:date,awarded_by:user.id});
+        events.push({kind,points:delta,status:inserted.inserted?"saved":"duplicate",id:inserted.id});
+      }
+      await log(env,user.id,"points_general_adjustment",{student_id:student.id,delta,reason,event_key:eventKey});
+      return json({ok:true,events,totals:await pointsTotals(env,student.id)},201);
     }
     if(path==="/api/points/streak"&&method==="GET"){
       const studentId=user.role==="student"?user.student_id:clean(url.searchParams.get("student_id"),80);
