@@ -4003,3 +4003,43 @@ html:root:root .ranking-note{margin:10px 0 0;color:#b99aa2!important;line-height
 .ihsan-visual-edge--left{left:12px;top:47%}.ihsan-visual-edge--right{right:12px;top:53%}
 @media(max-width:1099px){.ihsan-visual-edge{display:none}}
 @media(prefers-reduced-motion:reduce){.ihsan-visual-edge{scroll-behavior:auto}}
+
+/* Visual rails: reserve real gutters so artwork never covers navigation or cards. */
+@media (min-width: 1100px) {
+  .app-authenticated .workspace .content-area {
+    padding-inline: clamp(92px, 8vw, 116px);
+  }
+  .ihsan-visual-edge {
+    z-index: 1;
+    width: clamp(68px, 5.6vw, 82px);
+    max-height: min(46vh, 300px);
+    opacity: .88;
+    border-radius: 14px;
+    box-shadow: 0 8px 24px rgba(0,0,0,.22);
+  }
+  .ihsan-visual-edge img {
+    width: 100%;
+    height: auto;
+    aspect-ratio: 180 / 321;
+    object-fit: contain;
+  }
+  .ihsan-visual-edge--left {
+    left: 10px;
+    right: auto;
+    top: 50%;
+  }
+  .ihsan-visual-edge--right {
+    right: calc(264px + 10px);
+    left: auto;
+    top: 50%;
+  }
+}
+@media (min-width: 1100px) and (max-width: 1240px) {
+  .app-authenticated .workspace .content-area {
+    padding-inline: 82px;
+  }
+  .ihsan-visual-edge { width: 62px; }
+}
+@media (max-width: 1099px) {
+  .ihsan-visual-edge { display: none !important; }
+}
