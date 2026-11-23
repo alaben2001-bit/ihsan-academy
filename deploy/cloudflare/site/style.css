@@ -4001,5 +4001,5 @@ html:root:root .ranking-note{margin:10px 0 0;color:#b99aa2!important;line-height
 .ihsan-visual-edge{position:fixed;top:50%;z-index:0;width:clamp(88px,7.8vw,116px);transform:translateY(-50%);pointer-events:none;overflow:hidden;border:1px solid rgba(212,173,99,.58);border-radius:17px;background:#08271f;box-shadow:0 12px 34px rgba(0,0,0,.24);opacity:.78}
 .ihsan-visual-edge img{display:block;width:100%;height:auto;aspect-ratio:180/321;object-fit:cover}
 .ihsan-visual-edge--left{left:12px;top:47%}.ihsan-visual-edge--right{right:12px;top:53%}
-@media(max-width:1399px){.ihsan-visual-edge{display:none}}
+@media(max-width:1099px){.ihsan-visual-edge{display:none}}
 @media(prefers-reduced-motion:reduce){.ihsan-visual-edge{scroll-behavior:auto}}
