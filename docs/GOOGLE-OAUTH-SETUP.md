@@ -1,30 +1,42 @@
-# إعداد Google OAuth — خطوات (يحتاج تدخلك)
+# إعداد Google OAuth — أكاديمية الإحسان
 
-## حالة الكود
-- `/api/auth/google/config` → `{enabled:false, client_id:null}` (production + local without env).
-- `/api/auth/google/link` exists (links Google identity to a user account).
-- Verification: JWT RS256 via Google JWKS, issuer/audience checks, `GOOGLE_CLIENT_ID`.
+## الحالة الفعلية في الإنتاج — 23 نوفمبر 2026
 
-## المتغيرات المطلوبة (Cloudflare Pages → Settings → Environment variables)
-- `GOOGLE_CLIENT_ID` = `<your>.apps.googleusercontent.com`
-- `GOOGLE_CLIENT_SECRET` = (إن استُخدم server-side flow; التحقق الحالي JWT-based قد لا يحتاجه — verify code)
+Google OAuth مفعّل بالفعل في مشروع Cloudflare Pages المسمّى `ihsan`، على النطاق الرسمي الحالي:
 
-## خطوات Google Cloud Console
-1. Create project → APIs & Services → Credentials.
-2. Create OAuth 2.0 Client ID (Web application).
-3. Authorized JavaScript origins: `https://a-ihsan.pages.dev`
-4. Authorized redirect URIs: `https://a-ihsan.pages.dev/` (and localhost for dev).
-5. Copy Client ID → set as `GOOGLE_CLIENT_ID` in Cloudflare.
-6. Redeploy (or wait for env to propagate).
+- `https://a-ihsan.pages.dev`
+- `GOOGLE_CLIENT_ID` موجود في بيئتي Production وPreview.
+- `DISABLE_LEGACY_PASSWORD_SIGNUP=true` في البيئتين؛ التسجيل اليدوي بالبريد وكلمة المرور موقوف.
+- قاعدة D1 تحتوي جدول `google_identities` وجدول طلبات الانضمام؛ لا يلزم ترحيل جديد لهذه الميزات.
 
-## اختبار
-- Open site → login screen → Google button should appear (client_id not null).
-- Link Google account to an existing user → `/api/auth/google/link`.
-- Verify no secret in client bundle (check app.js for client_id only, no secret).
+لا تُضف Client Secret. التدفق الحالي يستخدم Google Identity Services في المتصفح، ثم يتحقق الخادم من توقيع ID token باستخدام مفاتيح Google العامة (JWKS)، مع فحص issuer وaudience وnonce ووقت الصلاحية و`email_verified`.
 
-## مخاطر
-- لا تضع Client Secret في app.js (client-side). التحقق actual uses JWT; confirm whether secret is needed.
-- قم بمراجعة `src/index.js` google verification block before enabling.
+## الوظائف الموجودة
 
-## قرار مطلوب
-- هل نُفعّل OAuth أم نكتفي بتسجيل الدخول بكلمة مرور؟ (الكود جاهز إما way)
+1. **إنشاء الحساب:** من تبويب «إنشاء حساب» يختار المستخدم طالبًا أو شيخًا/معلمًا، ويكتب اسمه فقط؛ البريد يأتي من Google بعد التحقق منه.
+2. **ربط حساب قديم:** يسجل المستخدم دخوله إلى حساب الأكاديمية أولًا، ثم يربط هوية Google من الإعدادات. يمنع النظام ربط هوية Google بحسابين.
+3. **الدخول:** لا يُقبل إلا حساب Google المرتبط مسبقًا بحساب أكاديمية نشط.
+4. **استرداد كلمة المرور:** يثبت المستخدم هويته بحساب Google المرتبط، ثم يضع كلمة مرور جديدة. تُبطل الجلسات القديمة.
+5. **الحسابات القديمة غير المرتبطة:** إذا نسي صاحبها كلمة المرور قبل ربط Google، فلا يُسمح بتجاوز التحقق؛ يلزم أن تتحقق الإدارة من هويته وتساعده على استعادة الوصول.
+
+## إعداد Google Cloud الذي يجب التأكد منه
+
+في Google Cloud Console → APIs & Services → Credentials → OAuth 2.0 Client ID (Web application):
+
+- Authorized JavaScript origins يجب أن تتضمن بالضبط: `https://a-ihsan.pages.dev`.
+- لا تضف Redirect URI لهذا التدفق؛ زر Google الحالي يستخدم Google Identity Services credential callback ولا يعتمد على OAuth redirect.
+- إذا ظهر `origin_mismatch`، راجع Authorized JavaScript origins وتأكد من عدم استخدام نطاق معاينة أو نطاق قديم.
+
+لا تحذف Client ID الحالي ولا تنشئ عميلًا جديدًا دون سبب؛ إعداد Cloudflare الحالي يشير إلى عميل Google موجود بالفعل.
+
+## التحقق والاختبار
+
+- واجهة التسجيل لا تحتوي حقل بريد إلكتروني يدويًا ولا كلمة مرور عند الإنشاء.
+- الخادم يرفض التسجيل التقليدي في الإنتاج برسالة 410.
+- إنشاء الحساب يتحقق من البريد الموثق ويمنع تكرار هوية Google أو ملف الطالب.
+- استرداد كلمة المرور محمي بتحديد المحاولات ويتطلب إثبات Google.
+- آخر نشر إنتاجي مفحوص اجتاز `npm run prepare:assets`، بما فيه فحوص الأمان الثابتة، ثم نُشر بنجاح على Cloudflare.
+
+## تنبيه تشغيلي
+
+حساب المدير الأول (Bootstrap) مسار تأسيس منفصل، وليس نموذج التسجيل العام. لا تغيّر هذا المسار ولا بيانات الحسابات الحالية ضمن تحديث التسجيل.
