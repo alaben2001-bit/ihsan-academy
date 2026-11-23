@@ -453,15 +453,14 @@ for (const asset of ["app.js", "style.css", "startup.js", "fonts.css"]) {
 assert.ok(serviceWorker.includes(releaseVersion), "service worker cache namespace must match this release");
 assert.match(app, /secondary:""/, "welcome dua must have one Continue button rather than Later");
 assert.match(app, /primary:"متابعة"/, "the rotating welcome dua must use the requested Continue label");
-assert.match(app, /function rememberOfflineUser\(\)/, "offline startup may only rely on the minimal stored profile, never the password");
-
-
-assert.match(app, /function startOfflineFromCache\(\)/, "startup must enter a cached offline session after a network failure");
+assert.match(app, /function purgePrivateOfflineData\(\)/, "startup must purge any legacy private offline records from local storage");
+assert.match(app, /purgePrivateOfflineData\(\);/, "legacy student records and offline identities must be cleared on startup");
+assert.match(app, /function rememberOfflineUser\(\)\{\}/, "the app must not persist an offline user profile");
+assert.match(app, /function loadOfflineUser\(\)\{return null\}/, "offline mode must never restore a cached student or staff identity");
+assert.match(app, /function cacheableApiPath\(\)\{return false\}/, "private API responses must never be stored in browser storage");
+assert.match(app, /function canQueueOffline\(\)\{return false\}/, "attendance and Quran records must not be queued in local storage while offline");
 assert.match(app, /function isOfflineNetworkError\(error\)/, "offline fallback must distinguish network failures from authorization errors");
-assert.match(app, /age>30\*24\*60\*60\*1000/, "the local offline profile must expire after 30 days");
-assert.match(app, /if\(offlineSessionActive\|\|!S\.user\?\.id\)return;/, "offline use must not renew the local profile expiry timestamp");
-assert.match(app, /if\(offlineSessionActive\)\{offlineSessionActive=false;rememberOfflineUser\(\)\}/, "a successful online API response must refresh the profile timestamp and end offline mode");
-assert.match(app, /safeStore\.remove\(offlineUserKey\(\)\);clearSessionToken\(\);auth\(false\)/, "logout must remove the local offline profile");
+assert.match(app, /function startOfflineFromCache\(\)/, "the shell may provide offline resources without restoring private records");
 
 assert.match(app, /صيانة 22 أكتوبر 2026 · منشورة/, "the feature history must reflect the successful production deployment");
 assert.match(app, /اجتازت فحوص الكود والبناء والنشر/, "the feature history must separate deployment success from pending hands-on acceptance testing");
