@@ -1,3 +1,4 @@
+// CI build trigger: assemble the Android application and publish the APK artifact.
 plugins {
     id 'com.android.application' version '8.7.3' apply false
 }
