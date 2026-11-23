@@ -20,22 +20,22 @@ public final class MainActivity extends Activity {
     private static final String OFFLINE_HTML =
         "<!doctype html><html lang='ar' dir='rtl'><meta charset='utf-8'>" +
         "<meta name='viewport' content='width=device-width,initial-scale=1'>" +
-        "<meta name='theme-color' content='#245b49'><body style='font-family:Arial,Tahoma;background:#f6f7f5;color:#24352f;padding:28px;line-height:1.9'>" +
-        "<h2 style='color:#245b49'>أكاديمية الإحسان</h2>" +
+        "<meta name='theme-color' content='#245b49'><body style='font-family:Arial,Tahoma;background:#061412;color:#f3f4f6;padding:28px;line-height:1.9'>" +
+        "<h2 style='color:#d4ad63'>أكاديمية الإحسان</h2>" +
         "<p>لا يوجد اتصال بالإنترنت حاليًا.</p>" +
         "<p>إذا فتحت الأكاديمية سابقًا مع الاتصال، فقد تتمكن من استخدام الصفحات والموارد التي حُفظت على هذا الجهاز.</p>" +
-        "<button onclick='location.reload()' style='background:#245b49;color:white;border:0;border-radius:10px;padding:12px 18px'>إعادة المحاولة</button></body></html>";
+        "<button onclick='location.reload()' style='background:#064e3b;color:white;border:0;border-radius:10px;padding:12px 18px'>إعادة المحاولة</button></body></html>";
 
     private WebView webView;
 
     @Override protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        getWindow().setStatusBarColor(Color.rgb(36, 91, 73));
-        getWindow().setNavigationBarColor(Color.rgb(246, 247, 245));
-        getWindow().getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LIGHT_NAVIGATION_BAR);
+        getWindow().setStatusBarColor(Color.rgb(6, 20, 18));
+        getWindow().setNavigationBarColor(Color.rgb(6, 20, 18));
+        getWindow().getDecorView().setSystemUiVisibility(0);
 
         webView = new WebView(this);
-        webView.setBackgroundColor(Color.rgb(246, 247, 245));
+        webView.setBackgroundColor(Color.rgb(6, 20, 18));
         WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
