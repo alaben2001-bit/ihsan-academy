@@ -242,14 +242,17 @@ const compareStudentNames=(a,b)=>studentSortKey(a).localeCompare(studentSortKey(
 const studentAlphabetIndex=name=>{const n=studentDisplayName(name).replace(/^[\s\u064B-\u065F\u0670]+/,"");return (n.match(/[ء-ي]/)||["—"])[0]};
 function readCsrfCookie(){try{const part=document.cookie.split(";").map(x=>x.trim()).find(x=>x.startsWith("__Host-ihsan_csrf="));return part?decodeURIComponent(part.slice("__Host-ihsan_csrf=".length)):""}catch{return ""}}
 function offlineUserKey(){return "ihsan_offline_user"}
-function rememberOfflineUser(){
- if(offlineSessionActive||!S.user?.id)return;
- const user={id:S.user.id,name:S.user.name,role:S.user.role,student_id:S.user.student_id||null,group_id:S.user.group_id||null,school_ids:S.user.school_ids||[],group_ids:S.user.group_ids||[],saved_at:Date.now()};
- try{safeStore.set(offlineUserKey(),JSON.stringify(user))}catch{}
+function purgePrivateOfflineData(){
+ try{
+  for(let i=localStorage.length-1;i>=0;i--){
+   const key=localStorage.key(i)||"";
+   if(key==="ihsan_offline_user"||key.startsWith("ihsan_offline_pending_v1_")||key.startsWith("ihsan_offline_cache_"))localStorage.removeItem(key);
+  }
+ }catch{}
 }
-function loadOfflineUser(){
- try{const raw=safeStore.get(offlineUserKey());if(!raw)return null;const u=JSON.parse(raw),age=Date.now()-Number(u?.saved_at||0);if(!u?.id||!u?.role||!Number.isFinite(age)||age<0||age>30*24*60*60*1000){safeStore.remove(offlineUserKey());return null}return u}catch{return null}
-}
+purgePrivateOfflineData();
+function rememberOfflineUser(){}
+function loadOfflineUser(){return null}
 function offlineQueueKey(){return S.user?.id?"ihsan_offline_pending_v1_"+S.user.id:""}
 function readOfflineQueue(){
  const key=offlineQueueKey();if(!key)return [];
@@ -257,20 +260,13 @@ function readOfflineQueue(){
 }
 function writeOfflineQueue(q){const key=offlineQueueKey();if(!key)return false;try{localStorage.setItem(key,JSON.stringify(q.slice(-300)));return true}catch{return false}}
 function offlineCacheKey(path){return "ihsan_offline_cache_"+(S.user?.id||"anonymous")+"_"+encodeURIComponent(path)}
-function cacheableApiPath(path,method){
- if(method!=="GET")return false;
- const base=String(path).split("?")[0];
- return ["/dashboard","/groups","/students","/teachers","/admin/student-team-supervisors","/attendance","/quran","/quran/plan","/quran/progress","/tests","/assignments","/gamification","/leaderboard","/messages","/messages/recipients","/notifications"].includes(base);
-}
+function cacheableApiPath(){return false}
 function parseOfflineBody(body){
  if(body&&typeof body==="object")return body;
  if(typeof body==="string"){try{return JSON.parse(body)}catch{}}
  return null;
 }
-function canQueueOffline(path,method){
- const base=String(path).split("?")[0];
- return (method==="POST"&&["/attendance","/quran/progress","/groups"].includes(base))||(method==="PATCH"&&/^\/groups\/[^/]+$/.test(base));
-}
+function canQueueOffline(){return false}
 function enqueueOfflineWrite(path,method,body){
  if(!S.user?.id||!canQueueOffline(path,method)||!body)return false;
  const q=readOfflineQueue(),base=String(path).split("?")[0],id=String(body.id||"");
