@@ -1,34 +1,40 @@
-# Google OAuth — خطة إجراء (أكاديمية الإحسان)
+# حالة تنفيذ Google OAuth — أكاديمية الإحسان
 
-## الحالة الحالية
-- `/api/auth/google/config` → `{enabled:false, client_id:null}` (production + local).
-- الكود (src/index.js) يتحقق من JWT RS256 via Google JWKS (issuer/audience/nonce/exp/iat/email_verified).
-- `GOOGLE_CLIENT_ID` اختياري (env var). `GOOGLE_CLIENT_SECRET` غير مستخدم (JWT-based، لا server-side flow).
+آخر تحقق: 23 نوفمبر 2026.
 
-## ما يجب على المالك فعله (Google Cloud Console)
-1. إنشاء مشروع (أو استخدام موجود) → APIs & Services → Credentials.
-2. Create OAuth 2.0 Client ID (Web application).
-3. Authorized JavaScript origins:
-   - `https://a-ihsan.pages.dev`
-   - `http://127.0.0.1:8788` (للتطوير)
-4. Authorized redirect URIs:
-   - `https://a-ihsan.pages.dev/`
-   - `http://127.0.0.1:8788/`
-5. نسخ Client ID (形如 `….apps.googleusercontent.com`).
+## المنجز فعليًا
 
-## ما يجب على المالك فعله (Cloudflare)
-1. Cloudflare Dashboard → Pages/Worker → Settings → Environment variables.
-2. إضافة `GOOGLE_CLIENT_ID` = Client ID (Production + Preview).
-3. (اختياري) `GOOGLE_CLIENT_SECRET` غير مطلوب (JWT flow). لا تضعه في الكود.
-4. إعادة نشر (أو انتظار propagation).
+- [x] تفعيل Google OAuth في Cloudflare Pages للمشروع `ihsan`.
+- [x] ضبط `GOOGLE_CLIENT_ID` في Production وPreview.
+- [x] تعطيل التسجيل التقليدي بالبريد اليدوي في Production وPreview عبر `DISABLE_LEGACY_PASSWORD_SIGNUP=true`.
+- [x] إخفاء حقل البريد اليدوي وكلمة المرور من نموذج إنشاء الحساب.
+- [x] إنشاء الحساب من Google فقط، مع التحقق من توقيع الرمز والبريد الموثق.
+- [x] حفظ هوية Google الفريدة وربطها بحساب الأكاديمية.
+- [x] منع إنشاء حساب مكرر إذا كان البريد أو Google subject مرتبطًا مسبقًا.
+- [x] الحفاظ على موافقة الإدارة على طلبات انضمام الطلاب والمعلمين؛ لا يمنح التسجيل دورًا إداريًا.
+- [x] ربط الحسابات القديمة من داخل جلسة موثقة.
+- [x] استرداد كلمة المرور بعد إثبات هوية Google المرتبطة، مع إبطال الجلسات السابقة.
+- [x] وجود جدول `google_identities` في قاعدة D1 الإنتاجية.
+- [x] اجتياز فحوص الأمان الثابتة في آخر بناء إنتاجي مفحوص.
 
-## تحقق بعد التفعيل
-- `/api/auth/google/config` → `{enabled:true, client_id:"….apps.googleusercontent.com"}`.
-- زر Google يظهر في شاشة الدخول.
-- `/api/auth/google/link` يربط هوية Google بحساب موجود (يتطلب تسجيل دخول أولاً).
-- لا سر في bundle (app.js يحتوي client_id فقط).
+## ما بقي خارج صلاحية التنفيذ المباشر
 
-## ملاحظات أمنية
-- لا تضع Client Secret في frontend/Git.
-- لا تغيّر بيانات اعتماد الإنتاج دون موافقة.
-- التحقق من `email_verified=true` إلزامي (موجود في الكود).
+1. تأكيد أن Google Cloud Console يسمح بأصل JavaScript الحالي `https://a-ihsan.pages.dev`. إعداد Cloudflare يحتوي Client ID، لكن لا أملك من واجهة التنفيذ هذه قراءة قائمة Authorized JavaScript origins داخل Google Cloud Console.
+2. اختبار تفاعلي نهائي بزر Google من متصفح حقيقي؛ فحص الكود وإعدادات النشر لا يغنيان عن تجربة OAuth الفعلية.
+3. الحسابات القديمة التي لم تربط Google بعد: من نسي كلمة مروره يحتاج تحققًا يدويًا من الإدارة قبل ربط هويته، حفاظًا على الحسابات وملفات الطلاب.
+
+## مراجع التنفيذ
+
+- Backend: `deploy/cloudflare/src/index.js`
+- واجهة الدخول والتسجيل والاسترداد: `deploy/cloudflare/site/app.js`
+- جدول الهويات: `deploy/cloudflare/migrations/0002_google_identities.sql`
+- فحوص الحماية: `deploy/cloudflare/scripts/security-check.mjs`
+- إعداد Cloudflare: مشروع Pages `ihsan`، فرع الإنتاج `migration/cloudflare-student-platform`
+
+## ضوابط لا تُكسر
+
+- لا تُعد حقل بريد يدويًا إلى نموذج التسجيل.
+- لا تضع Client Secret في Git أو JavaScript.
+- لا تسمح باسترداد كلمة المرور اعتمادًا على بريد يكتبه المستخدم.
+- لا تنشئ حسابًا مكررًا ولا تربط Google تلقائيًا بحساب قديم اعتمادًا على تشابه الاسم.
+- لا تحذف أو تعدّل بيانات الطلاب أو الحسابات الحالية أثناء إصلاح الدخول.
