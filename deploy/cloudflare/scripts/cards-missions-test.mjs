@@ -69,13 +69,15 @@ async function makeStudent(admin, groupId, name, username, password) {
   if (!student) throw new Error("roster did not return " + name);
   const account = await call("/api/students/" + encodeURIComponent(student.id) + "/account", { method: "POST", token: admin, body: { username, password } });
   if (account.status !== 201) throw new Error("account creation failed: " + JSON.stringify(account.data));
+  const cardBeforePasswordChange = await call("/api/student-cards?student_id=" + encodeURIComponent(student.id), { token: admin });
+  if (cardBeforePasswordChange.status !== 200 || !cardBeforePasswordChange.data?.links?.login) throw new Error("card was not provisioned with student account");
   const first = await login(username, password);
   if (!first.token) throw new Error("login failed: " + JSON.stringify(first.data));
   const changed = password + "b";
   const change = await call("/api/me/password", { method: "POST", token: first.token, body: { current_password: password, new_password: changed } });
   if (change.status !== 200) throw new Error("password change failed: " + JSON.stringify(change.data));
   const second = await login(username, changed);
-  return { id: student.id, name, token: second.token };
+  return { id: student.id, name, token: second.token, linksBeforePasswordChange: cardBeforePasswordChange.data.links };
 }
 
 async function makeTeacher(admin, name, username, password, groupId, groupName = null) {
@@ -158,9 +160,13 @@ async function main() {
   check("card id equals the student id (one card per student)", created.data?.card?.id === student.id, JSON.stringify(created.data?.card));
   const kinds = Object.keys(created.data?.card?.tokens || {});
   check("card exposes exactly the three QR kinds", kinds.length === 3 && ["add_points", "profile", "login"].every(kind => kinds.includes(kind)), JSON.stringify(kinds));
+  check("all issued QR tokens have no time expiry", ["add_points", "profile", "login"].every(kind => created.data?.card?.tokens?.[kind]?.expires_at === null), JSON.stringify(created.data?.card?.tokens));
+  check("QR links use the fixed production Pages origin, never the request preview origin", ["add_points", "profile", "login"].every(kind => created.data?.links?.[kind]?.startsWith("https://a-ihsan.pages.dev/#scan=")), JSON.stringify(created.data?.links));
+  check("password change preserves all three printed QR links", ["add_points", "profile", "login"].every(kind => created.data?.links?.[kind] === student.linksBeforePasswordChange?.[kind]), JSON.stringify({ before: student.linksBeforePasswordChange, after: created.data?.links }));
   check("all three QR links are active", ["add_points", "profile", "login"].every(kind => typeof created.data?.links?.[kind] === "string" && created.data.links[kind].includes("#scan=" + kind + "." + student.id + ".")), JSON.stringify(created.data?.links));
   const again = await call("/api/student-cards", { method: "POST", token: admin, body: { student_id: student.id } });
   check("opening an existing card does not mint a second one", again.status === 200 && again.data?.created === false && again.data?.card?.id === student.id, JSON.stringify(again.data));
+  check("reopening the card preserves every QR link across subsequent requests", ["add_points", "profile", "login"].every(kind => again.data?.links?.[kind] === created.data?.links?.[kind]), JSON.stringify({ first: created.data?.links, reopened: again.data?.links }));
 
   const loginLink = parseScanLink(created.data.links.login);
   const profileLink = parseScanLink(created.data.links.profile);
