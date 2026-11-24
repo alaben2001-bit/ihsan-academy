@@ -5423,7 +5423,8 @@ export default {
       for(const row of rows.results||[]){
         const ensured=await ensureStudentCard(env,{id:row.id,name:row.name,group_id:groupId},user.id);
         const card=ensured.card;
-        cards.push({student:{id:row.id,name:row.name,group_id:groupId,group_name:group.name},card:cardPublic(card),links:cardLinks(card,url.origin)});
+        const totals=await pointsTotals(env,row.id);
+        cards.push({student:{id:row.id,name:row.name,group_id:groupId,group_name:group.name},card:cardPublic(card),links:cardLinks(card,url.origin),totals});
       }
       await log(env,user.id,"student_cards_bulk",{group_id:groupId,count:cards.length});
       return json({group:{id:group.id,name:group.name},count:cards.length,cards,next_offset:(rows.results||[]).length===limit?offset+cards.length:null,has_more:(rows.results||[]).length===limit});
