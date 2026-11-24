@@ -2017,7 +2017,7 @@ async function staffCardsPage(v){
    const pages=[];
    for(let offset=0;offset<datasets.length;offset+=10){
     const items=datasets.slice(offset,offset+10).map(row=>
-     '<section class="student-card-print-item" data-card-item="'+esc(row.student.id)+'">'+staffStudentPassMarkup(row)+'<div class="student-card-print-actions"><button class="btn secondary" type="button" data-card-print-one="'+esc(row.student.id)+'">طباعة هذه البطاقة</button><button class="btn secondary" type="button" data-card-reissue="'+esc(row.student.id)+'">إعادة إصدار الرموز</button><button class="btn danger" type="button" data-card-revoke="'+esc(row.student.id)+'">إلغاء الرموز</button></div></section>'
+     '<section class="student-card-print-item" data-card-item="'+esc(row.student.id)+'">'+staffStudentPassMarkup(row)+'<div class="student-card-print-actions"><button class="btn secondary" type="button" data-card-print-one="'+esc(row.student.id)+'">طباعة هذه البطاقة</button><button class="btn secondary" type="button" data-card-qr-tools="'+esc(row.student.id)+'">رموز الشيخ</button><button class="btn secondary" type="button" data-card-reissue="'+esc(row.student.id)+'">إعادة إصدار الرموز</button><button class="btn danger" type="button" data-card-revoke="'+esc(row.student.id)+'">إلغاء الرموز</button><div class="staff-card-qr-tools hidden" data-card-qr-panel="'+esc(row.student.id)+'"><div><strong>QR الملف الشخصي</strong>'+qrSvg(row.links?.profile||"",112)+'</div><div><strong>QR إضافة النقاط</strong>'+qrSvg(row.links?.add_points||"",112)+'</div><small>المسح يتطلب دخول الشيخ وصلاحيته على الفوج.</small></div></div></section>'
     );
     pages.push('<section class="cards-print-page"><div class="cards-sheet-grid">'+items.join("")+'</div><span class="cards-print-page-number">صفحة '+(Math.floor(offset/10)+1)+' من '+pageCount+'</span></section>');
    }
@@ -2029,6 +2029,10 @@ async function staffCardsPage(v){
     btn.disabled=true;
     try{await api("/student-cards/"+encodeURIComponent(btn.dataset.cardReissue)+"/reissue",{method:"POST",body:JSON.stringify({})});toast("أُصدرت رموز جديدة، والرموز السابقة لم تعد صالحة");await loadCards()}
     catch(error){btn.disabled=false;toast(error.message,true)}
+   });
+   host.querySelectorAll("[data-card-qr-tools]").forEach(btn=>btn.onclick=()=>{
+    const panel=[...host.querySelectorAll("[data-card-qr-panel]")].find(item=>item.dataset.cardQrPanel===btn.dataset.cardQrTools);
+    panel?.classList.toggle("hidden");
    });
    host.querySelectorAll("[data-card-revoke]").forEach(btn=>btn.onclick=async()=>{
     const reason=String(window.prompt("سبب إلغاء رموز البطاقة (3 أحرف على الأقل):")||"").trim();
