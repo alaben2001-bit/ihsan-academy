@@ -2013,7 +2013,7 @@ async function staffCardsPage(v){
    const count=$("#cards-count"),pageCount=Math.ceil(datasets.length/10);if(count)count.textContent=datasets.length+" بطاقة · "+selectedGroups.length+" فوج · "+pageCount+" صفحات A4 · 10 بطاقات/صفحة";
    const pages=[];
    for(let offset=0;offset<datasets.length;offset+=10){
-    const items=datasets.slice(offset,offset+8).map(row=>
+    const items=datasets.slice(offset,offset+10).map(row=>
      '<section class="student-card-print-item" data-card-item="'+esc(row.student.id)+'">'+staffStudentPassMarkup(row)+'<div class="student-card-print-actions"><button class="btn secondary" type="button" data-card-print-one="'+esc(row.student.id)+'">طباعة هذه البطاقة</button><button class="btn secondary" type="button" data-card-reissue="'+esc(row.student.id)+'">إعادة إصدار الرموز</button><button class="btn danger" type="button" data-card-revoke="'+esc(row.student.id)+'">إلغاء الرموز</button></div></section>'
     );
     pages.push('<section class="cards-print-page"><div class="cards-sheet-grid">'+items.join("")+'</div><span class="cards-print-page-number">صفحة '+(Math.floor(offset/10)+1)+' من '+pageCount+'</span></section>');
