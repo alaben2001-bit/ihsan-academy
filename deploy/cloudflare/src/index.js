@@ -528,13 +528,15 @@ async function issueCardToken(card, kind) {
   tokens[kind] = { hash: await hashToken(secret), secret, issued_at: now, expires_at: null, revoked_at: null };
   return { ...card, tokens, updated_at: now };
 }
-function cardLinks(card, origin) {
-  const base = String(origin || "").replace(/\/+$/, "");
+// رابط البطاقة ثابت على نطاق مشروع Cloudflare Pages، ولا يُشتق من عنوان الطلب
+// حتى لا تُطبع روابط معاينة مؤقتة عند فتح لوحة الإدارة من رابط Preview.
+const CARD_PUBLIC_ORIGIN = "https://a-ihsan.pages.dev";
+function cardLinks(card) {
   const links = {};
   for (const kind of CARD_KIND_ORDER) {
     const token = card?.tokens?.[kind];
     if (!cardActive(token) || !token.secret) continue;
-    links[kind] = base + "/#scan=" + kind + "." + card.id + "." + token.secret;
+    links[kind] = CARD_PUBLIC_ORIGIN + "/#scan=" + kind + "." + card.id + "." + token.secret;
   }
   return links;
 }
@@ -5381,7 +5383,7 @@ export default {
       const ensured=await ensureStudentCard(env,student,user.id);
       const card=ensured.card;
       if(ensured.created)await log(env,user.id,"student_card_auto_create",{card_id:card.id,student_id:student.id});
-      return json({card:cardPublic(card),links:cardLinks(card,url.origin),student:{id:student.id,name:student.name,group_id:student.group_id,group_name:student.group_name||""},created:ensured.created});
+      return json({card:cardPublic(card),links:cardLinks(card),student:{id:student.id,name:student.name,group_id:student.group_id,group_name:student.group_name||""},created:ensured.created});
     }
     if(path==="/api/student-cards"&&method==="POST"){
       const parsed=await parseBody(request,4000);if(parsed.error)return parsed.error;const b=parsed.value;
@@ -5394,7 +5396,7 @@ export default {
       const card=ensured.card;
       const created=ensured.created;
       await log(env,user.id,created?"student_card_create":"student_card_open",{card_id:card.id,student_id:student.id});
-      return json({ok:true,created,card:cardPublic(card),links:cardLinks(card,url.origin),student:{id:student.id,name:student.name,group_id:student.group_id,group_name:student.group_name||""}},created?201:200);
+      return json({ok:true,created,card:cardPublic(card),links:cardLinks(card),student:{id:student.id,name:student.name,group_id:student.group_id,group_name:student.group_name||""}},created?201:200);
     }
     if(path==="/api/student-cards/bulk"&&method==="POST"){
       if(user.role==="student")return fail(403,"غير مسموح");
@@ -5410,7 +5412,7 @@ export default {
       for(const row of rows.results||[]){
         const ensured=await ensureStudentCard(env,{id:row.id,name:row.name,group_id:groupId},user.id);
         const card=ensured.card;
-        cards.push({student:{id:row.id,name:row.name,group_id:groupId,group_name:group.name},card:cardPublic(card),links:cardLinks(card,url.origin)});
+        cards.push({student:{id:row.id,name:row.name,group_id:groupId,group_name:group.name},card:cardPublic(card),links:cardLinks(card)});
       }
       await log(env,user.id,"student_cards_bulk",{group_id:groupId,count:cards.length});
       return json({group:{id:group.id,name:group.name},count:cards.length,cards,next_offset:(rows.results||[]).length===limit?offset+cards.length:null,has_more:(rows.results||[]).length===limit});
@@ -5457,7 +5459,7 @@ export default {
       const student=await studentCardRow(env,card.student_id);
       if(!student||!await canAccessStudentCard(env,user,student))return fail(403,"هذه البطاقة خارج صلاحيتك");
       await log(env,user.id,"student_card_print",{card_id:card.id,student_id:student.id});
-      return json({ok:true,card:cardPublic(card),links:cardLinks(card,url.origin),student:{id:student.id,name:student.name,group_id:student.group_id,group_name:student.group_name||""}});
+      return json({ok:true,card:cardPublic(card),links:cardLinks(card),student:{id:student.id,name:student.name,group_id:student.group_id,group_name:student.group_name||""}});
     }
     // -----------------------------------------------------------------------
     // عالم المهام: يُشتق من أعمال حقيقية، والاستلام عبر محرك النقاط الموجود.
