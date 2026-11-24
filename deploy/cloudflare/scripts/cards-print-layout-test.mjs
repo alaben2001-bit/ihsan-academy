@@ -28,7 +28,7 @@ check("all permitted groups option exists", /__all_managed_groups__/.test(staffP
 check("group and all-scope printing use the existing authorized bulk endpoint", /api\("\/student-cards\/bulk"/.test(staffPage));
 check("all-scope printing follows every paginated batch", /while\(true\)[^]*?data\.has_more[^]*?data\.next_offset/.test(staffPage));
 check("existing bulk endpoint paginates with bounded limits and offset", /LIMIT \? OFFSET \?/.test(server) && /Math\.min\(200/.test(server));
-check("admin card template does not inject point balances", !/achievement|store_balance|رصيد المتجر|نقاط الإنجاز/.test(staffPage));
+check("bulk card API supplies authoritative balances and prints achievement/store separately without conflating legacy balances", /pointsTotals\(env,row\.id\)/.test(server) && /totals\.mode==="separate"/.test(staffPage) && /نقاط الإنجاز/.test(staffPage) && /رصيد المتجر/.test(staffPage) && /الرصيد الحالي/.test(staffPage));
 check("bulk print is split into explicit sheets of ten cards with page numbering", /offset\+=10/.test(staffPage) && /cards-print-page-number/.test(staffPage));
 check("each A4 sheet actually renders ten cards rather than eight", /datasets\.slice\(offset,offset\+10\)/.test(staffPage));
 check("page count is derived from the same ten-card batch size", /Math\.ceil\(datasets\.length\/10\)/.test(staffPage));
