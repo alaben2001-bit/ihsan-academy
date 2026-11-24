@@ -51,6 +51,16 @@ check("final overriding print rules also use five rows, not the legacy four-row 
 check("bulk print offers Save as PDF from the browser print dialog", /حفظ PDF \/ طباعة النطاق/.test(app) && /حفظ بصيغة PDF/.test(app));
 check("bulk print prevents page splitting inside a sheet or card", css.includes("break-inside:avoid!important") && css.includes("page-break-inside:avoid!important"));
 
+
+check("staff card uses the academy emblem image instead of the Arabic letter mark", /pass-brand-logo[^]*?src="\\/icon\\.svg"/.test(staffPage) && !/pass-brand-mark/.test(staffPage));
+check("staff card title is بطاقة مستوى 1 and old بطاقة طالب label is absent", staffPage.includes("بطاقة مستوى 1") && !staffPage.includes("بطاقة طالب"));
+check("staff card removes the هوية الطالب label", !staffPage.includes("هوية الطالب"));
+check("staff card prints the school name beneath the academy brand", /student\\.school_name\\|\\|student\\.group_name/.test(staffPage));
+check("bulk card API supplies the official school name from the student's group school", /const school=group\\.school_id[^]*?school_name:schoolName/.test(server));
+check("bulk A4 sheet uses a named full-page A4 layout with 10 mm safe margins", /@page cards-a4\\{size:A4 portrait;margin:0\\}/.test(css) && /height:297mm!important[^]*?padding:10mm!important/.test(css));
+check("bulk grid reserves five complete CR80 rows and fits within the A4 safe area", /width:190mm!important;height:273mm!important[^]*?grid-template-rows:repeat\\(5,54mm\\)!important/.test(css));
+check("bulk card logo and school label have print-specific CR80 sizing", /body\\[data-print="cards"\\] \\.pass-brand-logo\\{width:7mm!important/.test(css) && /pass-school-name\\{max-width:58%!important;font-size:5\\.5pt!important/.test(css));
+
 const failed = checks.filter(item => !item.ok);
 console.log("\n" + (checks.length - failed.length) + "/" + checks.length + " source-layout checks passed.");
 if (failed.length) process.exitCode = 1;
