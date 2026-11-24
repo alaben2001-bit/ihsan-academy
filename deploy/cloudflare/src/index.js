@@ -462,7 +462,7 @@ async function resolvePointStudent(env, user, studentId) {
 // V71: بطاقة الطالب بثلاثة رموز QR مستقلة، عالم المهام، وحدّ المعدل.
 // البطاقة تُحفظ في academy_records (collection=student_cards) بلا جدول جديد،
 // ومعرّفها هو معرّف الطالب حتى تبقى بطاقة واحدة لكل طالب ولا تتكرر.
-// كل رمز سرّي محدود الأجل؛ نُخزّن بصمته للتحقق ونُبقي السرّ لطباعة البطاقة.
+// لكل رمز سرّ عشوائي طويل الأمد؛ نُخزّن بصمته للتحقق ونُبقي السرّ لطباعة البطاقة.
 // ---------------------------------------------------------------------------
 const CARD_KINDS = {
   add_points: { label: "إضافة نقاط", requiresAuth: true },
@@ -2358,7 +2358,7 @@ export default {
       const limited=await rateLimit(env,"card-resolve:"+kind,kind==="login"?cardId:rateLimitKey(request),kind==="login"?12:300,600);
       if(!limited.allowed)return json({error:"محاولات مسح كثيرة خلال وقت قصير. انتظر قليلًا ثم أعد المحاولة.",retry_after:limited.retry_after},429,{"retry-after":String(limited.retry_after)});
       const card=await cardRecord(env,cardId);
-      if(!card||!await verifyCardToken(card,kind,secret))return fail(404,"رمز البطاقة غير صالح أو منتهٍ. اطلب إعادة إصداره من الإدارة.");
+      if(!card||!await verifyCardToken(card,kind,secret))return fail(404,"رمز البطاقة غير صالح أو أُلغي. اطلب التحقق منه لدى الإدارة.");
       const student=await studentCardRow(env,card.student_id);
       if(!student)return fail(404,"ملف الطالب غير متاح");
       if(kind==="login"){

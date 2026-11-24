@@ -1903,7 +1903,7 @@ function cardQrFigure(kind,links){
  return '<figure class="card-qr '+(link?"":"is-missing")+'"><div class="card-qr-code">'+(svg||'<span class="card-qr-missing" aria-hidden="true">—</span>')+'</div><figcaption><strong>'+esc(meta.title)+'</strong><small>'+esc(link?meta.desc:"الرمز غير مفعّل؛ أعد إصدار البطاقة.")+'</small></figcaption></figure>';
 }
 function cardQrSheet(links,actions){
- return '<section class="card card-qr-sheet"><div class="section-head"><div><span class="eyebrow">رموز البطاقة</span><h3>ثلاثة رموز مستقلة</h3><p>لكل رمز صلاحية منفصلة؛ لا تشاركه مع غير أهله، ويمكن إلغاؤه أو إعادة إصداره في أي وقت.</p></div>'+(actions?'<div class="card-qr-actions">'+actions+'</div>':"")+'</div><div class="card-qr-grid">'+["add_points","profile","login"].map(kind=>cardQrFigure(kind,links)).join("")+'</div><p class="muted small">رمز الدخول السريع لا يسجّل الدخول تلقائيًا؛ يعرض الاسم ويملأ اسم المستخدم فقط. رموز إضافة النقاط والملف تتطلب جلسة وصلاحية على الفوج.</p></section>';
+ return '<section class="card card-qr-sheet"><div class="section-head"><div><span class="eyebrow">رموز البطاقة</span><h3>ثلاثة رموز مستقلة</h3><p>لا تنتهي الرموز تلقائيًا؛ ويمكن إلغاؤها أو إعادة إصدارها عند فقدان البطاقة أو الاشتباه في إساءة استخدامها.</p></div>'+(actions?'<div class="card-qr-actions">'+actions+'</div>':"")+'</div><div class="card-qr-grid">'+["add_points","profile","login"].map(kind=>cardQrFigure(kind,links)).join("")+'</div><p class="muted small">رمز الدخول السريع لا يسجّل الدخول تلقائيًا؛ يعرض الاسم ويملأ اسم المستخدم فقط. رموز إضافة النقاط والملف تتطلب جلسة وصلاحية على الفوج.</p></section>';
 }
 const SCAN_KEY="ihsan_pending_scan";
 function readScanHash(){
