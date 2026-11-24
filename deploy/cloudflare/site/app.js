@@ -1989,8 +1989,8 @@ async function staffCardsPage(v){
  if(!groups.length){v.innerHTML=head("بطاقات الطلاب","لا يوجد فوج ضمن صلاحيتك.");return}
  if(!S.cardsGroupId||!groups.some(g=>g.id===S.cardsGroupId))S.cardsGroupId=groups[0].id;
  const allValue="__all_managed_groups__";
- v.innerHTML=head("بطاقات الطلاب","معاينة البطاقة كاملة قبل الطباعة. رمز إضافة النقاط داخل التصميم، ولا تُعرض أرصدة الطلاب في بطاقات الإدارة.")+
-  '<div class="card cards-toolbar"><label class="field">نطاق البطاقات<select id="cards-group"><option value="'+allValue+'">جميع الطلاب ضمن صلاحيتي</option>'+groups.map(g=>'<option value="'+esc(g.id)+'"'+(g.id===S.cardsGroupId?" selected":"")+'>'+esc(g.name)+'</option>').join("")+'</select></label><div class="student-actions"><button class="btn secondary" type="button" id="cards-print">طباعة النطاق المحدد</button><span class="muted small" id="cards-count"></span></div><p class="muted small">كل بطاقة تضم رمز QR الخاص بالطالب داخل تصميم البطاقة نفسه. الطباعة الفردية متاحة من بطاقة كل طالب.</p></div>'+
+ v.innerHTML=head("بطاقات الطلاب","معاينة جميع البطاقات قبل الطباعة. من نافذة الطباعة اختر «حفظ بصيغة PDF» لإنشاء ملف للطباعة بالمقاس الحقيقي.")+
+  '<div class="card cards-toolbar"><label class="field">نطاق البطاقات<select id="cards-group"><option value="'+allValue+'">جميع الطلاب ضمن صلاحيتي</option>'+groups.map(g=>'<option value="'+esc(g.id)+'"'+(g.id===S.cardsGroupId?" selected":"")+'>'+esc(g.name)+'</option>').join("")+'</select></label><div class="student-actions"><button class="btn secondary" type="button" id="cards-print">حفظ PDF / طباعة النطاق</button><span class="muted small" id="cards-count"></span></div><p class="muted small">كل بطاقة تضم رمز QR الخاص بالطالب داخل تصميمها. المقاس CR80 الحقيقي؛ 10 بطاقات في ورقة A4 عند حفظ PDF أو الطباعة.</p></div>'+
   '<div id="cards-sheet" class="cards-sheet"><div class="loading">جار تجهيز معاينة البطاقات…</div></div>';
  const loadCards=async()=>{
   const host=$("#cards-sheet");if(!host)return;host.innerHTML='<div class="loading">جار تجهيز معاينة البطاقات…</div>';
@@ -2010,13 +2010,13 @@ async function staffCardsPage(v){
      offset=next;
     }
    }
-   const count=$("#cards-count");if(count)count.textContent=datasets.length+" بطاقة · "+selectedGroups.length+" فوج";
+   const count=$("#cards-count"),pageCount=Math.ceil(datasets.length/10);if(count)count.textContent=datasets.length+" بطاقة · "+selectedGroups.length+" فوج · "+pageCount+" صفحات A4 · 10 بطاقات/صفحة";
    const pages=[];
-   for(let offset=0;offset<datasets.length;offset+=8){
+   for(let offset=0;offset<datasets.length;offset+=10){
     const items=datasets.slice(offset,offset+8).map(row=>
      '<section class="student-card-print-item" data-card-item="'+esc(row.student.id)+'">'+staffStudentPassMarkup(row)+'<div class="student-card-print-actions"><button class="btn secondary" type="button" data-card-print-one="'+esc(row.student.id)+'">طباعة هذه البطاقة</button><button class="btn secondary" type="button" data-card-reissue="'+esc(row.student.id)+'">إعادة إصدار الرموز</button><button class="btn danger" type="button" data-card-revoke="'+esc(row.student.id)+'">إلغاء الرموز</button></div></section>'
     );
-    pages.push('<section class="cards-print-page"><div class="cards-sheet-grid">'+items.join("")+'</div></section>');
+    pages.push('<section class="cards-print-page"><div class="cards-sheet-grid">'+items.join("")+'</div><span class="cards-print-page-number">صفحة '+(Math.floor(offset/10)+1)+' من '+pageCount+'</span></section>');
    }
    host.innerHTML=pages.join("")||'<div class="notice">لا توجد بطاقات في النطاق المحدد.</div>';
    host.querySelectorAll("[data-card-print-one]").forEach(btn=>btn.onclick=()=>{

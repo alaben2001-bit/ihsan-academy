@@ -3265,14 +3265,15 @@ footer a{text-decoration:none}
  body[data-print="card"] .pass-grid strong{font-size:8pt!important}
 }
 
-/* V75 — explicit A4 card sheets: eight physical CR80 cards per page */
-.cards-print-page{margin:16px 0;padding:12px;border:1px dashed var(--line);border-radius:16px;background:var(--surface-2)}
+/* V75 — A4 card sheets: ten physical CR80 cards per page (2×5). */
+.cards-print-page{position:relative;margin:16px 0;padding:12px;border:1px dashed var(--line);border-radius:16px;background:var(--surface-2)}
+.cards-print-page-number{display:block;margin-top:6px;text-align:center;color:var(--muted);font-size:.68rem}
 @media print{
- body[data-print="cards"] .cards-print-page{display:block!important;width:100%!important;height:231mm!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:#fff!important;break-after:page!important;page-break-after:always!important;box-sizing:border-box!important}
+ body[data-print="cards"] .cards-print-page{position:relative!important;display:block!important;width:100%!important;height:275mm!important;margin:0!important;padding:0!important;border:0!important;border-radius:0!important;background:#fff!important;break-after:page!important;page-break-after:always!important;box-sizing:border-box!important}
  body[data-print="cards"] .cards-print-page:last-child{break-after:auto!important;page-break-after:auto!important}
- body[data-print="cards"] .cards-sheet-grid{display:grid!important;grid-template-columns:repeat(2,85.6mm)!important;grid-template-rows:repeat(4,54mm)!important;grid-auto-rows:54mm!important;justify-content:center!important;align-content:start!important;align-items:start!important;gap:5mm 6mm!important;width:100%!important;height:231mm!important}
+ body[data-print="cards"] .cards-sheet-grid{display:grid!important;grid-template-columns:repeat(2,85.6mm)!important;grid-template-rows:repeat(5,54mm)!important;grid-auto-rows:54mm!important;justify-content:center!important;align-content:start!important;align-items:start!important;gap:.7mm 6mm!important;width:100%!important;height:273mm!important}
+ body[data-print="cards"] .cards-print-page-number{position:absolute!important;inset-inline:0!important;bottom:0!important;margin:0!important;text-align:center!important;font-size:5pt!important;line-height:2mm!important;color:#555!important}
 }
-
 
 /* V76 — bulk card print: prevent clipping by app-shell scroll containers and
    keep each complete 2×4 CR80 sheet together on a physical A4 page. */

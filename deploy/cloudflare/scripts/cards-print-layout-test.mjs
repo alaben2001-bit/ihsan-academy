@@ -29,7 +29,7 @@ check("group and all-scope printing use the existing authorized bulk endpoint", 
 check("all-scope printing follows every paginated batch", /while\(true\)[^]*?data\.has_more[^]*?data\.next_offset/.test(staffPage));
 check("existing bulk endpoint paginates with bounded limits and offset", /LIMIT \? OFFSET \?/.test(server) && /Math\.min\(200/.test(server));
 check("admin card template does not inject point balances", !/achievement|store_balance|رصيد المتجر|نقاط الإنجاز/.test(staffPage));
-check("bulk print is split into explicit sheets of eight cards", /offset\+=8/.test(staffPage) && /cards-print-page/.test(staffPage));
+check("bulk print is split into explicit sheets of ten cards with page numbering", /offset\+=10/.test(staffPage) && /cards-print-page-number/.test(staffPage));
 check("A4 sheet boundaries force page breaks", /cards-print-page\{display:block!important[^}]*break-after:page!important/s.test(css));
 check("physical card dimensions are defined as 85.6 × 54 mm", /width:85\.6mm!important;height:54mm!important/.test(css));
 check("QR has a dedicated print-safe white surface and crisp SVG", /\.pass-qr svg\{display:block;width:100%;height:100%;shape-rendering:crispEdges\}/.test(css));
@@ -44,7 +44,8 @@ check("printed QR links use the canonical production origin", server.includes('C
 check("student card does not print an automatic expiry date", !/صالحة حتى/.test(app));
 
 check("bulk print clears scroll/height clipping from every app-shell ancestor", css.includes('body[data-print="cards"] #app') && css.includes("max-height:none!important") && css.includes("overflow:visible!important"));
-check("bulk print preserves a full four-row CR80 sheet per A4 page", css.includes("grid-template-rows:repeat(4,54mm)!important") && css.includes("height:231mm!important"));
+check("bulk print preserves a full five-row 2×5 CR80 sheet per A4 page", css.includes("grid-template-rows:repeat(5,54mm)!important") && css.includes("height:273mm!important") && css.includes("height:275mm!important") && css.includes("@page{size:A4 portrait;margin:10mm}"));
+check("bulk print offers Save as PDF from the browser print dialog", /حفظ PDF \/ طباعة النطاق/.test(app) && /حفظ بصيغة PDF/.test(app));
 check("bulk print prevents page splitting inside a sheet or card", css.includes("break-inside:avoid!important") && css.includes("page-break-inside:avoid!important"));
 
 const failed = checks.filter(item => !item.ok);
