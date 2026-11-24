@@ -1889,7 +1889,7 @@ async function worldPage(v){
 }
 
 const CARD_QR_META={
- add_points:{title:"إضافة نقاط",desc:"يمسحه الشيخ أو المشرف بعد التحقق من صلاحيته، ثم يمنح النقاط يدويًا."},
+ add_points:{title:"إضافة نقاط",desc:"يتطلب جلسة الشيخ وصلاحيته على الفوج؛ وتُسجّل العملية باسم من اعتمدها."},
  profile:{title:"الملف الشخصي",desc:"يفتح ملف الطالب لصاحب الصلاحية بعد تسجيل الدخول."},
  login:{title:"الدخول السريع",desc:"يملأ اسم المستخدم فقط؛ كلمة المرور تبقى مطلوبة دائمًا."}
 };
@@ -1957,7 +1957,7 @@ async function cardPage(v){
  }
  const links=cardData?.links||{};
  const student=summary.student||{},achievement=Number(summary.totals?.achievement||0),store=Number(summary.totals?.store||0),me=board.find(x=>x.is_self);
- const serial=passSerial(student.id||S.user.student_id||S.user.id),year=new Date().getFullYear();
+ const serial=passSerial(student.id||S.user.student_id||S.user.id);
  const recent=(summary.recent||[]).slice(0,6).map(event=>'<div class="list-row"><div><strong>'+esc(event.reason||event.event_type)+'</strong><small>'+esc(event.kind_label||"")+' · '+worldDate(event.created_at)+'</small></div><span class="pill">'+(Number(event.points)>0?"+":"")+Number(event.points)+'</span></div>').join("");
  const badges=(gam?.badges||[]).map(badge=>'<span class="pass-badge"><span aria-hidden="true">'+esc(badge.icon||"★")+'</span>'+esc(badge.name)+'</span>').join("");
  const passBalances=summary.totals?.mode==="separate"?'<div><small>نقاط الإنجاز</small><strong>'+Number(achievement)+'</strong></div><div><small>رصيد المتجر</small><strong>'+Number(store)+'</strong></div>':'<div><small>الرصيد الحالي</small><strong>'+Number(store)+'</strong></div>';

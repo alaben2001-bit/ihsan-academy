@@ -36,6 +36,12 @@ check("QR has a dedicated print-safe white surface and crisp SVG", /\.pass-qr sv
 check("bulk print hides controls and keeps complete cards", /body\[data-print="cards"\] \.student-card-print-actions\{display:none!important\}/.test(css));
 check("individual print isolates the selected card", /\.student-card-print-item\.is-print-target\{display:block!important\}/.test(css));
 check("student card still retains its original gold-chip styling", /\.pass-chip\{[^}]*linear-gradient\(135deg,#f3d79b,#b98b3c\)/s.test(css));
+check("QR tokens have no automatic expiry", /const cardActive = token => Boolean\(token\) && !token\.revoked_at/.test(server));
+check("new QR tokens persist with a null expiry", /expires_at: null, revoked_at: null/.test(server));
+check("legacy QR expiry is cleared without rotating the secret", /ترقية آمنة للبطاقات القديمة[\\s\\S]*?expires_at: null/.test(server));
+check("revoked QR tokens are not automatically reissued", /if \(token\.revoked_at\) continue/.test(server));
+check("printed QR links use the canonical production origin", /CARD_CANONICAL_ORIGIN = "https:\\/\\/a-ihsan\\.pages\\.dev"/.test(server) && /const base = CARD_CANONICAL_ORIGIN/.test(server));
+check("student card does not print an automatic expiry date", !/صالحة حتى/.test(app));
 
 check("bulk print clears scroll/height clipping from every app-shell ancestor", css.includes('body[data-print="cards"] #app') && css.includes("max-height:none!important") && css.includes("overflow:visible!important"));
 check("bulk print preserves a full four-row CR80 sheet per A4 page", css.includes("grid-template-rows:repeat(4,54mm)!important") && css.includes("height:231mm!important"));

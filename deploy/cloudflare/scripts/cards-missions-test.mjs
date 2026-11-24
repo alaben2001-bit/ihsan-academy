@@ -159,6 +159,16 @@ async function main() {
   const kinds = Object.keys(created.data?.card?.tokens || {});
   check("card exposes exactly the three QR kinds", kinds.length === 3 && ["add_points", "profile", "login"].every(kind => kinds.includes(kind)), JSON.stringify(kinds));
   check("all three QR links are active", ["add_points", "profile", "login"].every(kind => typeof created.data?.links?.[kind] === "string" && created.data.links[kind].includes("#scan=" + kind + "." + student.id + ".")), JSON.stringify(created.data?.links));
+  check("all three QR tokens have no automatic expiry", ["add_points", "profile", "login"].every(kind => created.data?.card?.tokens?.[kind]?.expires_at === null), JSON.stringify(created.data?.card?.tokens));
+  check("printed QR URLs always use the official production domain", Object.values(created.data?.links || {}).every(link => link.startsWith("https://a-ihsan.pages.dev/#scan=")), "QR base must not use a Preview hostname");
+  const qrLinksBeforeIdentityChanges = { ...created.data.links };
+  const renameAfterCard = await call("/api/students/" + encodeURIComponent(student.id), { method: "PATCH", token: admin, body: { name: "اسم جديد بعد إصدار البطاقة " + RUN } });
+  const linksAfterRename = await call("/api/student-cards?student_id=" + encodeURIComponent(student.id), { token: admin });
+  check("renaming the student preserves all printed QR links", renameAfterCard.status === 200 && JSON.stringify(linksAfterRename.data?.links) === JSON.stringify(qrLinksBeforeIdentityChanges), JSON.stringify(linksAfterRename.data?.links));
+  await call("/api/students/" + encodeURIComponent(student.id), { method: "PATCH", token: admin, body: { name: student.name } });
+  const passwordAfterCard = await call("/api/me/password", { method: "POST", token: student.token, body: { current_password: "CardsStudent#2026b", new_password: "CardsStudent#2026c" } });
+  const linksAfterPassword = await call("/api/student-cards?student_id=" + encodeURIComponent(student.id), { token: admin });
+  check("changing the student's password preserves all printed QR links", passwordAfterCard.status === 200 && JSON.stringify(linksAfterPassword.data?.links) === JSON.stringify(qrLinksBeforeIdentityChanges), JSON.stringify(linksAfterPassword.data?.links));
   const again = await call("/api/student-cards", { method: "POST", token: admin, body: { student_id: student.id } });
   check("opening an existing card does not mint a second one", again.status === 200 && again.data?.created === false && again.data?.card?.id === student.id, JSON.stringify(again.data));
 

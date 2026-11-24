@@ -465,15 +465,17 @@ async function resolvePointStudent(env, user, studentId) {
 // كل رمز سرّي محدود الأجل؛ نُخزّن بصمته للتحقق ونُبقي السرّ لطباعة البطاقة.
 // ---------------------------------------------------------------------------
 const CARD_KINDS = {
-  add_points: { label: "إضافة نقاط", ttlDays: 90, requiresAuth: true },
-  profile: { label: "الملف الشخصي", ttlDays: 365, requiresAuth: true },
-  login: { label: "الدخول السريع", ttlDays: 365, requiresAuth: false }
+  add_points: { label: "إضافة نقاط", requiresAuth: true },
+  profile: { label: "الملف الشخصي", requiresAuth: true },
+  login: { label: "الدخول السريع", requiresAuth: false }
 };
 const CARD_KIND_ORDER = ["add_points", "profile", "login"];
 const CARD_SECRET_BYTES = 24;
+// QR المطبوع لا يُربط برابط Preview أو بعنوان الطلب الحالي؛ هذا هو النطاق الإنتاجي الثابت.
+const CARD_CANONICAL_ORIGIN = "https://a-ihsan.pages.dev";
 const cardSecret = () => hex(crypto.getRandomValues(new Uint8Array(CARD_SECRET_BYTES)));
-const cardExpiry = days => new Date(Date.now() + Number(days) * 86400000).toISOString();
-const cardActive = token => Boolean(token) && !token.revoked_at && (!token.expires_at || token.expires_at > nowIso());
+// الصلاحية طويلة الأمد: لا تنتهي الرموز بالتاريخ، ولا يُعطّلها إلا الإلغاء الصريح.
+const cardActive = token => Boolean(token) && !token.revoked_at;
 
 async function cardRecord(env, cardId) {
   const id = clean(cardId, 80);
@@ -497,7 +499,22 @@ async function ensureStudentCard(env, student, actorId = null) {
   // Immutable student ID is the identity key; names are display data only.
   card = { ...card, id: student.id, student_id: student.id, group_id: student.group_id || null, name: student.name || student.display_name || card.name || "" };
   for (const kind of CARD_KIND_ORDER) {
-    if (!card.tokens?.[kind] || !cardActive(card.tokens[kind]) || !card.tokens[kind].secret) card = await issueCardToken(card, kind);
+    const token = card.tokens?.[kind];
+    // لا نُحيي رمزًا ألغاه المدير، ولا نغيّر أسرار البطاقة عند تعديل الاسم أو إعادة النشر.
+    if (!token) {
+      card = await issueCardToken(card, kind);
+      continue;
+    }
+    if (token.revoked_at) continue;
+    if (!token.secret || !token.hash) {
+      card = await issueCardToken(card, kind);
+      continue;
+    }
+    // ترقية آمنة للبطاقات القديمة: أزل تاريخ الانتهاء فقط، واحتفظ بالسرّ نفسه
+    // حتى تظل الرموز المطبوعة سابقًا صالحة ولا نضطر إلى إعادة الطباعة.
+    if (token.expires_at !== null) {
+      card = { ...card, tokens: { ...(card.tokens || {}), [kind]: { ...token, expires_at: null } }, updated_at: nowIso() };
+    }
   }
   await saveRecord(env, "student_cards", card);
   return { card, created };
@@ -521,11 +538,11 @@ async function issueCardToken(card, kind) {
   const secret = cardSecret();
   const now = nowIso();
   const tokens = { ...(card.tokens || {}) };
-  tokens[kind] = { hash: await hashToken(secret), secret, issued_at: now, expires_at: cardExpiry(CARD_KINDS[kind].ttlDays), revoked_at: null };
+  tokens[kind] = { hash: await hashToken(secret), secret, issued_at: now, expires_at: null, revoked_at: null };
   return { ...card, tokens, updated_at: now };
 }
 function cardLinks(card, origin) {
-  const base = String(origin || "").replace(/\/+$/, "");
+  const base = CARD_CANONICAL_ORIGIN;
   const links = {};
   for (const kind of CARD_KIND_ORDER) {
     const token = card?.tokens?.[kind];
