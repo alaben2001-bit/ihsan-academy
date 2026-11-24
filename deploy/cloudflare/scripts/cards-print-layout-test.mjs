@@ -18,11 +18,11 @@ const staffStart = app.indexOf("function staffStudentPassMarkup");
 const staffEnd = app.indexOf("function quranEightMonthMarkup", staffStart);
 const staffPage = staffEnd > staffStart ? app.slice(staffStart, staffEnd) : "";
 
-check("student card contains its own QR inside the pass", /class="pass-qr"[^]*?qrSvg\(links\.add_points,144\)/.test(studentPage));
+check("student card QR opens the public canonical academy URL", /class="pass-qr"[^]*?qrSvg\("https:\/\/a-ihsan\.pages\.dev",144\)/.test(studentPage));
 check("student card print no longer appends a separate QR sheet", !/cardQrSheet\(links/.test(studentPage));
 check("golden decorative chip remains in student card", /class="pass-chip"/.test(studentPage));
 check("staff cards use the same preserved student-pass design", /class="student-pass student-pass-print"/.test(staffPage));
-check("staff cards embed a unique add-points QR per student", /qrSvg\(link,180\)/.test(staffPage));
+check("staff print cards use the public canonical academy QR, not a privileged action token", /qrSvg\("https:\/\/a-ihsan\.pages\.dev",180\)/.test(staffPage) && !/row\.links\?\.add_points/.test(staffPage));
 check("individual print action exists", /data-card-print-one/.test(staffPage));
 check("all permitted groups option exists", /__all_managed_groups__/.test(staffPage));
 check("group and all-scope printing use the existing authorized bulk endpoint", /api\("\/student-cards\/bulk"/.test(staffPage));
