@@ -38,9 +38,9 @@ check("individual print isolates the selected card", /\.student-card-print-item\
 check("student card still retains its original gold-chip styling", /\.pass-chip\{[^}]*linear-gradient\(135deg,#f3d79b,#b98b3c\)/s.test(css));
 check("QR tokens have no automatic expiry", /const cardActive = token => Boolean\(token\) && !token\.revoked_at/.test(server));
 check("new QR tokens persist with a null expiry", /expires_at: null, revoked_at: null/.test(server));
-check("legacy QR expiry is cleared without rotating the secret", /ترقية آمنة للبطاقات القديمة[\\s\\S]*?expires_at: null/.test(server));
+check("legacy QR expiry is cleared without rotating the secret", server.includes("ترقية آمنة للبطاقات القديمة") && server.includes("expires_at: null"));
 check("revoked QR tokens are not automatically reissued", /if \(token\.revoked_at\) continue/.test(server));
-check("printed QR links use the canonical production origin", /CARD_CANONICAL_ORIGIN = "https:\\/\\/a-ihsan\\.pages\\.dev"/.test(server) && /const base = CARD_CANONICAL_ORIGIN/.test(server));
+check("printed QR links use the canonical production origin", server.includes('CARD_CANONICAL_ORIGIN = "https://a-ihsan.pages.dev"') && server.includes("const base = CARD_CANONICAL_ORIGIN"));
 check("student card does not print an automatic expiry date", !/صالحة حتى/.test(app));
 
 check("bulk print clears scroll/height clipping from every app-shell ancestor", css.includes('body[data-print="cards"] #app') && css.includes("max-height:none!important") && css.includes("overflow:visible!important"));
