@@ -30,6 +30,8 @@ check("all-scope printing follows every paginated batch", /while\(true\)[^]*?dat
 check("existing bulk endpoint paginates with bounded limits and offset", /LIMIT \? OFFSET \?/.test(server) && /Math\.min\(200/.test(server));
 check("admin card template does not inject point balances", !/achievement|store_balance|رصيد المتجر|نقاط الإنجاز/.test(staffPage));
 check("bulk print is split into explicit sheets of ten cards with page numbering", /offset\+=10/.test(staffPage) && /cards-print-page-number/.test(staffPage));
+check("each A4 sheet actually renders ten cards rather than eight", /datasets\.slice\(offset,offset\+10\)/.test(staffPage));
+check("page count is derived from the same ten-card batch size", /Math\.ceil\(datasets\.length\/10\)/.test(staffPage));
 check("A4 sheet boundaries force page breaks", css.includes('body[data-print="cards"] .cards-print-page{position:relative!important;display:block!important') && css.includes("break-after:page!important;page-break-after:always!important"));
 check("physical card dimensions are defined as 85.6 × 54 mm", /width:85\.6mm!important;height:54mm!important/.test(css));
 check("QR has a dedicated print-safe white surface and crisp SVG", /\.pass-qr svg\{display:block;width:100%;height:100%;shape-rendering:crispEdges\}/.test(css));
