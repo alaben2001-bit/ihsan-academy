@@ -459,20 +459,19 @@ async function resolvePointStudent(env, user, studentId) {
 }
 
 // ---------------------------------------------------------------------------
-// V71: بطاقة الطالب بثلاثة رموز QR مستقلة، عالم المهام، وحدّ المعدل.
-// البطاقة تُحفظ في academy_records (collection=student_cards) بلا جدول جديد،
-// ومعرّفها هو معرّف الطالب حتى تبقى بطاقة واحدة لكل طالب ولا تتكرر.
-// كل رمز سرّي محدود الأجل؛ نُخزّن بصمته للتحقق ونُبقي السرّ لطباعة البطاقة.
+// V71+: بطاقة الطالب بثلاثة رموز QR مستقلة.
+// معرّف البطاقة هو معرّف الطالب الثابت. أسرار QR طويلة الأجل بلا انتهاء زمني
+// تلقائي؛ يمكن للإدارة إبطال أي رمز أو إعادة إصداره عند فقدان البطاقة.
+// صلاحية الوصول الفعلية تُفرض دائماً من الخادم، ولا يمنح QR وحده أي جلسة دخول.
 // ---------------------------------------------------------------------------
 const CARD_KINDS = {
-  add_points: { label: "إضافة نقاط", ttlDays: 90, requiresAuth: true },
-  profile: { label: "الملف الشخصي", ttlDays: 365, requiresAuth: true },
-  login: { label: "الدخول السريع", ttlDays: 365, requiresAuth: false }
+  add_points: { label: "إضافة نقاط", requiresAuth: true },
+  profile: { label: "الملف الشخصي", requiresAuth: true },
+  login: { label: "الدخول السريع", requiresAuth: false }
 };
 const CARD_KIND_ORDER = ["add_points", "profile", "login"];
 const CARD_SECRET_BYTES = 24;
 const cardSecret = () => hex(crypto.getRandomValues(new Uint8Array(CARD_SECRET_BYTES)));
-const cardExpiry = days => new Date(Date.now() + Number(days) * 86400000).toISOString();
 const cardActive = token => Boolean(token) && !token.revoked_at && (!token.expires_at || token.expires_at > nowIso());
 
 async function cardRecord(env, cardId) {
@@ -497,7 +496,12 @@ async function ensureStudentCard(env, student, actorId = null) {
   // Immutable student ID is the identity key; names are display data only.
   card = { ...card, id: student.id, student_id: student.id, group_id: student.group_id || null, name: student.name || student.display_name || card.name || "" };
   for (const kind of CARD_KIND_ORDER) {
-    if (!card.tokens?.[kind] || !cardActive(card.tokens[kind]) || !card.tokens[kind].secret) card = await issueCardToken(card, kind);
+    if (!card.tokens?.[kind] || !cardActive(card.tokens[kind]) || !card.tokens[kind].secret) {
+      card = await issueCardToken(card, kind);
+    } else if (card.tokens[kind].expires_at) {
+      // ترحيل الرموز النشطة القديمة إلى صلاحية غير محدودة دون تغيير QR المطبوع.
+      card = { ...card, tokens: { ...(card.tokens || {}), [kind]: { ...card.tokens[kind], expires_at: null } } };
+    }
   }
   await saveRecord(env, "student_cards", card);
   return { card, created };
@@ -521,7 +525,7 @@ async function issueCardToken(card, kind) {
   const secret = cardSecret();
   const now = nowIso();
   const tokens = { ...(card.tokens || {}) };
-  tokens[kind] = { hash: await hashToken(secret), secret, issued_at: now, expires_at: cardExpiry(CARD_KINDS[kind].ttlDays), revoked_at: null };
+  tokens[kind] = { hash: await hashToken(secret), secret, issued_at: now, expires_at: null, revoked_at: null };
   return { ...card, tokens, updated_at: now };
 }
 function cardLinks(card, origin) {
