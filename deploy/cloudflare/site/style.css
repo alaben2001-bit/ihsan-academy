@@ -4043,3 +4043,44 @@ html:root:root .ranking-note{margin:10px 0 0;color:#b99aa2!important;line-height
 @media (max-width: 1099px) {
   .ihsan-visual-edge { display: none !important; }
 }
+
+
+/* V77 — paired duplex CR80 card backs. Back sheets mirror each two-card row
+   so long-edge duplex printing places each reverse directly behind its front. */
+.student-pass-back{
+ display:flex;flex-direction:column;align-items:center;justify-content:space-between;
+ position:relative;overflow:hidden;text-align:center;color:#f4ead4;
+ background:radial-gradient(ellipse at 50% 0%,rgba(18,104,72,.42),transparent 68%),linear-gradient(145deg,#071b15,#0d3024 58%,#071b15);
+ border:1px solid rgba(215,183,112,.72);
+}
+.student-pass-back:before,.student-pass-back:after{
+ content:"";position:absolute;inset:3mm;border:1px solid rgba(215,183,112,.28);border-radius:2mm;pointer-events:none
+}
+.pass-back-brand{display:flex;align-items:center;gap:7px;font-weight:900;font-size:12px;letter-spacing:.02em}
+.pass-back-brand .pass-brand-mark{display:grid;place-items:center;width:8mm;height:8mm;border:1px solid #d7b770;border-radius:50%;color:#f1d99c;font-size:15px}
+.pass-back-motto{font-size:10px;font-weight:800;color:#e4ca91;letter-spacing:.04em}
+.pass-back-rule{width:62%;height:1px;background:linear-gradient(90deg,transparent,#d7b770,transparent)}
+.pass-back-name{font-size:12px;font-weight:900;max-width:90%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pass-back-serial{font:700 8px/1.2 ui-monospace,monospace;letter-spacing:.12em;color:#d8cba9}
+.pass-back-guidance{display:grid;gap:3px;font-size:7px;line-height:1.5;color:#e9e2d2}
+.pass-back-guidance strong{font-size:8px;color:#f0d69a}
+.pass-back-foot{font-size:7px;font-weight:800;color:#d7b770;letter-spacing:.04em}
+@media print{
+ body[data-print="cards"] .cards-print-page{break-after:page!important;page-break-after:always!important}
+ body[data-print="cards"] .cards-print-page:last-child{break-after:auto!important;page-break-after:auto!important}
+ body[data-print="cards"] .student-pass-back{
+  display:flex!important;flex-direction:column!important;align-items:center!important;justify-content:space-between!important;
+  width:85.6mm!important;height:54mm!important;min-height:54mm!important;max-height:54mm!important;
+  padding:4mm!important;border:1px solid #b89a5c!important;border-radius:3mm!important;
+  background:#09251b!important;color:#f4ead4!important;
+  -webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;
+ }
+ body[data-print="cards"] .pass-back-brand{font-size:7pt!important}
+ body[data-print="cards"] .pass-back-brand .pass-brand-mark{width:7mm!important;height:7mm!important;font-size:11pt!important}
+ body[data-print="cards"] .pass-back-motto{font-size:6.5pt!important}
+ body[data-print="cards"] .pass-back-name{font-size:8pt!important}
+ body[data-print="cards"] .pass-back-serial{font-size:5.5pt!important}
+ body[data-print="cards"] .pass-back-guidance{font-size:5.2pt!important;gap:1mm!important}
+ body[data-print="cards"] .pass-back-guidance strong{font-size:6pt!important}
+ body[data-print="cards"] .pass-back-foot{font-size:5.5pt!important}
+}
