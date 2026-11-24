@@ -563,9 +563,13 @@ assert.match(backend, /ORDER BY CASE WHEN id=\? THEN 0 ELSE 1 END LIMIT 2/, "car
 assert.match(backend, /if \(matches\.length > 1\) throw new Error\("student_card_duplicate_records"\)/, "duplicate cards must fail closed instead of choosing an arbitrary QR identity");
 assert.match(backend, /card\.id !== card\.student_id \|\| card\.id !== matches\[0\]\.id/, "card id and student id must match the immutable canonical student identity");
 assert.match(backend, /const CARD_KINDS = \{/, "card QR kinds must be declared explicitly");
-assert.match(backend, /add_points: \{ label: "إضافة نقاط", ttlDays: 90, requiresAuth: true \}/, "the add-points QR must expire after 90 days");
-assert.match(backend, /profile: \{ label: "الملف الشخصي", ttlDays: 365, requiresAuth: true \}/, "the profile QR must expire after 365 days");
-assert.match(backend, /login: \{ label: "الدخول السريع", ttlDays: 365, requiresAuth: false \}/, "the login QR must expire after 365 days and stay anonymous");
+assert.match(backend, /add_points: \{ label: "إضافة نقاط", requiresAuth: true \}/, "the add-points QR must remain a separate staff-only token kind");
+assert.match(backend, /profile: \{ label: "الملف الشخصي", requiresAuth: true \}/, "the profile QR must remain a separate authenticated token kind");
+assert.match(backend, /login: \{ label: "الدخول السريع", requiresAuth: false \}/, "the login QR must remain separate and anonymous without creating a session");
+assert.match(backend, /const cardActive = token => Boolean\(token\) && !token\.revoked_at;/, "QR validity must not depend on an automatic expiry date");
+assert.match(backend, /expires_at: null, revoked_at: null/, "new QR tokens must have no automatic expiry");
+assert.match(backend, /CARD_CANONICAL_ORIGIN = "https:\/\/a-ihsan\.pages\.dev"/, "printed QR links must always use the permanent production domain");
+assert.match(backend, /if \(token\.revoked_at\) continue;/, "opening a card must never reactivate a manually revoked token");
 assert.match(backend, /tokens\[kind\] = \{ hash: await hashToken\(secret\), secret, issued_at: now/, "card tokens must store a hash for verification and the secret for reprint");
 assert.ok(backend.indexOf('path === "/api/cards/resolve"') > 0 && backend.indexOf('path === "/api/cards/resolve"') < backend.indexOf('const user=await currentUser(request,env); if(!user)return fail(401'), "card resolution must run before the login gate so the login QR can be read anonymously");
 assert.match(backend, /requires_password:true,student:\{name:student\.name,username:student\.username/, "the login QR must return only a name and username, never a session");
