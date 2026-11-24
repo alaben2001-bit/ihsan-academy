@@ -51,6 +51,16 @@ check("final overriding print rules also use five rows, not the legacy four-row 
 check("bulk print offers Save as PDF from the browser print dialog", /حفظ PDF \/ طباعة النطاق/.test(app) && /حفظ بصيغة PDF/.test(app));
 check("bulk print prevents page splitting inside a sheet or card", css.includes("break-inside:avoid!important") && css.includes("page-break-inside:avoid!important"));
 
+
+check("staff card uses the academy emblem image instead of the Arabic letter mark", staffPage.includes('class="pass-brand-logo" src="/icon.svg"') && !staffPage.includes("pass-brand-mark"));
+check("staff card title is بطاقة مستوى 1 and old بطاقة طالب label is absent", staffPage.includes("بطاقة مستوى 1") && !staffPage.includes("بطاقة طالب"));
+check("staff card removes the هوية الطالب label", !staffPage.includes("هوية الطالب"));
+check("staff card prints the school name beneath the academy brand", staffPage.includes("student.school_name||student.group_name"));
+check("bulk card API supplies the official school name from the student's group school", server.includes('const school=group.school_id?await env.DB.prepare("SELECT name FROM quran_schools WHERE id=?")') && server.includes("school_name:schoolName"));
+check("bulk A4 sheet uses a named full-page A4 layout with 10 mm safe margins", css.includes("@page cards-a4{size:A4 portrait;margin:0}") && css.includes("height:297mm!important;min-height:297mm!important;max-height:297mm!important;padding:10mm!important"));
+check("bulk grid reserves five complete CR80 rows and fits within the A4 safe area", css.includes("width:190mm!important;height:273mm!important;min-height:273mm!important;max-height:273mm!important;grid-template-columns:repeat(2,85.6mm)!important;grid-template-rows:repeat(5,54mm)!important"));
+check("bulk card logo and school label have print-specific CR80 sizing", css.includes('body[data-print="cards"] .pass-brand-logo{width:7mm!important') && css.includes("pass-school-name{max-width:58%!important;font-size:5.5pt!important"));
+
 const failed = checks.filter(item => !item.ok);
 console.log("\n" + (checks.length - failed.length) + "/" + checks.length + " source-layout checks passed.");
 if (failed.length) process.exitCode = 1;

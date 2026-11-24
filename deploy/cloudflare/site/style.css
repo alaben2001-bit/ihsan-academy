@@ -4043,3 +4043,21 @@ html:root:root .ranking-note{margin:10px 0 0;color:#b99aa2!important;line-height
 @media (max-width: 1099px) {
   .ihsan-visual-edge { display: none !important; }
 }
+
+ 
+/* V78 — refined academy identity and reliable full-page 2×5 PVC output. */
+.pass-brand{gap:8px}
+.pass-brand-logo{display:block;width:34px;height:34px;flex:0 0 34px;object-fit:contain;border-radius:9px;border:1px solid rgba(232,196,119,.55);background:#174b3b;padding:2px}
+.pass-brand-mark{display:none!important}
+.pass-school-name{max-width:58%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;color:#f1dcae}
+.student-pass{background:radial-gradient(520px 260px at 8% 0%,rgba(54,139,101,.35),transparent 62%),radial-gradient(420px 240px at 100% 100%,rgba(212,173,99,.2),transparent 66%),linear-gradient(135deg,#0b4a37,#092d24 58%,#061a15)}
+@media print{
+  @page cards-a4{size:A4 portrait;margin:0}
+  body[data-print="cards"] .cards-print-page{page:cards-a4!important;box-sizing:border-box!important;width:210mm!important;height:297mm!important;min-height:297mm!important;max-height:297mm!important;padding:10mm!important;overflow:hidden!important}
+  body[data-print="cards"] .cards-sheet-grid{box-sizing:border-box!important;width:190mm!important;height:273mm!important;min-height:273mm!important;max-height:273mm!important;grid-template-columns:repeat(2,85.6mm)!important;grid-template-rows:repeat(5,54mm)!important;grid-auto-rows:54mm!important;gap:.7mm 6mm!important;justify-content:center!important;align-content:start!important;overflow:visible!important}
+  body[data-print="cards"] .pass-brand-logo{width:7mm!important;height:7mm!important;flex:0 0 7mm!important;padding:.4mm!important;border-radius:1.5mm!important}
+  body[data-print="cards"] .pass-brand{font-size:7pt!important}
+  body[data-print="cards"] .pass-school-name{max-width:58%!important;font-size:5.5pt!important;line-height:1.15!important}
+  body[data-print="cards"] .pass-brand-mark{display:none!important}
+  body[data-print="cards"] .cards-print-page-number{bottom:3mm!important}
+}
