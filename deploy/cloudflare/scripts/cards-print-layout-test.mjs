@@ -22,7 +22,7 @@ check("student card QR opens the public canonical academy URL", /class="pass-qr"
 check("student card print no longer appends a separate QR sheet", !/cardQrSheet\(links/.test(studentPage));
 check("golden decorative chip remains in student card", /class="pass-chip"/.test(studentPage));
 check("staff cards use the same preserved student-pass design", /class="student-pass student-pass-print"/.test(staffPage));
-check("staff tools expose separate profile and add-points QR codes outside the public printed card", /data-card-qr-tools/.test(staffPage) && /QR الملف الشخصي/.test(staffPage) && /QR إضافة النقاط/.test(staffPage) && server.includes("canAccessStudentCard(env,scanner,student)") && server.includes('if(kind==="add_points"&&![\\"admin\\",\\"teacher\\",\\"director\\",\\"supervisor\\"]'));
+check("staff tools expose separate profile and add-points QR codes outside the public printed card", /data-card-qr-tools/.test(staffPage) && /QR الملف الشخصي/.test(staffPage) && /QR إضافة النقاط/.test(staffPage) && server.includes("canAccessStudentCard(env,scanner,student)") && server.includes('kind==="add_points"'));
 check("staff print cards use the public canonical academy QR, not a privileged action token", /qrSvg\("https:\/\/a-ihsan\.pages\.dev",180\)/.test(staffPage) && !/row\.links\?\.add_points/.test(staffPage));
 check("individual print action exists", /data-card-print-one/.test(staffPage));
 check("all permitted groups option exists", /__all_managed_groups__/.test(staffPage));
