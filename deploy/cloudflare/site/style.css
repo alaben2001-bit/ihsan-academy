@@ -3275,8 +3275,7 @@ footer a{text-decoration:none}
  body[data-print="cards"] .cards-print-page-number{position:absolute!important;inset-inline:0!important;bottom:0!important;margin:0!important;text-align:center!important;font-size:5pt!important;line-height:2mm!important;color:#555!important}
 }
 
-/* V76 — bulk card print: prevent clipping by app-shell scroll containers and
-   keep each complete 2×4 CR80 sheet together on a physical A4 page. */
+/* V76 — bulk card print: prevent clipping and keep a complete 2×5 CR80 sheet on A4. */
 @media print {
   body[data-print="cards"],
   body[data-print="cards"] #app,
@@ -3305,9 +3304,9 @@ footer a{text-decoration:none}
     display:block!important;
     box-sizing:border-box!important;
     width:100%!important;
-    height:231mm!important;
-    min-height:231mm!important;
-    max-height:231mm!important;
+    height:275mm!important;
+    min-height:275mm!important;
+    max-height:275mm!important;
     margin:0!important;
     padding:0!important;
     overflow:visible!important;
@@ -3324,17 +3323,17 @@ footer a{text-decoration:none}
     display:grid!important;
     box-sizing:border-box!important;
     grid-template-columns:repeat(2,85.6mm)!important;
-    grid-template-rows:repeat(4,54mm)!important;
+    grid-template-rows:repeat(5,54mm)!important;
     grid-auto-rows:54mm!important;
     grid-auto-flow:row!important;
     justify-content:center!important;
     align-content:start!important;
     align-items:start!important;
-    gap:5mm 6mm!important;
+    gap:.7mm 6mm!important;
     width:100%!important;
-    height:231mm!important;
-    min-height:231mm!important;
-    max-height:231mm!important;
+    height:273mm!important;
+    min-height:273mm!important;
+    max-height:273mm!important;
     margin:0 auto!important;
     padding:0!important;
     overflow:visible!important;
