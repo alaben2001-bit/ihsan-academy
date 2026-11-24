@@ -50,6 +50,11 @@ check("bulk print preserves a full five-row 2×5 CR80 sheet per A4 page", css.in
 check("final overriding print rules also use five rows, not the legacy four-row layout", /V76[^]*?grid-template-rows:repeat\(5,54mm\)!important[^]*?height:273mm!important/.test(css) && !/V76[^]*?grid-template-rows:repeat\(4,54mm\)!important/.test(css));
 check("bulk print offers Save as PDF from the browser print dialog", /حفظ PDF \/ طباعة النطاق/.test(app) && /حفظ بصيغة PDF/.test(app));
 check("bulk print prevents page splitting inside a sheet or card", css.includes("break-inside:avoid!important") && css.includes("page-break-inside:avoid!important"));
+check("bulk cards generate a separate back face for every front sheet", /cards-print-back/.test(staffPage) && /staffStudentPassBackMarkup\(row\)/.test(staffPage));
+check("back faces repeat each student's printed name and serial for identity matching", /pass-back-name[^]*?pass-back-serial/.test(app) && /esc\(student\.name\|\|"الطالب"\)/.test(app));
+check("duplex backs mirror each row pair for long-edge alignment", /backBatch\.push\(batch\[i\+1\]\|\|batch\[i\],batch\[i\]\)/.test(staffPage));
+check("each selected individual card prints both its front and back", /data-card-item=.*staffStudentPassBackMarkup/.test(staffPage) && /is-print-target/.test(staffPage));
+check("reverse-side layout has dedicated print-safe CR80 styling", /\.student-pass-back\{[^]*?width:85\.6mm!important;height:54mm!important/s.test(css) && /pass-back-guidance/.test(css));
 
 const failed = checks.filter(item => !item.ok);
 console.log("\n" + (checks.length - failed.length) + "/" + checks.length + " source-layout checks passed.");
