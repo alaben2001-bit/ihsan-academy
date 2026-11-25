@@ -40,7 +40,7 @@ check("only Sheikh account can award point activities", /if\(user\.role!=="admin
 check("QR scanner offers only attendance and hifz tasks", /\{id:"attendance",label:"الحضور",hint:"30 نقطة"/.test(app) && /\{id:"hifz",label:"الحفظ",hint:"20 نقطة"/.test(app) && !/scan-point-picker|data-scan-pre-activity/.test(app));
 check("QR scanner remembers selected tasks between visits", /ihsan_scan_task_type/.test(app) && /safeStore\.set\("ihsan_scan_task_type"/.test(app));
 check("daily scan uses current date without manual date selection", /id="scan-task-date" type="hidden"/.test(app));
-check("add-points QR resolution is limited to authorized group staff", /kind==="add_points"&&!\["admin","teacher","director","supervisor"\]\.includes\(scanner\.role\)/.test(server));
+check("point-awarding QR resolution is limited to authorized group staff", /resolvedKind==="add_points"&&!\["admin","teacher","director","supervisor"\]\.includes\(scanner\.role\)/.test(server));
 check("add-points QR scan automatically records present attendance", /status:"present",note:"تسجيل حضور آلي بمسح بطاقة الطالب"/.test(server));
 check("add-points QR scan awards attendance through the once-per-day engine", /awardAttendancePoints\(env,\{groupId:student\.group_id,date,studentIds:\[student\.id\],awardedBy:scanner\.id\}\)/.test(server));
 check("support activity uses the support_others rule", /support:\{eventType:\"support_others\"/.test(activity));
