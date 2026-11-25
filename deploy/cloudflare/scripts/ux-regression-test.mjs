@@ -12,4 +12,12 @@ assert.match(css,/body:has\(\.auth-layout\) \.topbar\{display:none!important\}/,
 assert.match(css,/auth-layout \.field input[\s\S]*background:#071a13!important/,"login inputs must use high-contrast dark surfaces");
 assert.match(css,/\.app-authenticated \.content-area\{padding-bottom:calc\(148px/,"mobile workspace must reserve room for bottom navigation");
 assert.doesNotMatch(rules,/۞/,"eight-point star must be removed from the Ihsan rules page");
+assert.match(app,/ط1 · فردية[\s\S]*ط2 · جماعية/,"manual follow-up must expose clearly numbered individual and group modes");
+assert.match(app,/async function effortIndividualPage/,"individual student follow-up workflow must exist");
+assert.match(app,/async function effortGroupPage/,"group daily follow-up workflow must exist");
+assert.match(app,/data-effort-attendance/,"group mode must support attendance");
+assert.match(app,/data-effort-memorized/,"group mode must support memorization");
+assert.match(app,/data-effort-reviewed/,"group mode must support revision");
+assert.match(app,/data-individual-effort-task/,"individual mode must support the additional daily tasks");
+assert.match(css,/\.effort-mode-switch\{display:grid/,"follow-up modes must have a distinct responsive switch");
 console.log("UX regression checks passed.");
