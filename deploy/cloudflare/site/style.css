@@ -4359,7 +4359,7 @@ body:has(.auth-layout) .brand .brand-structure{font-size:10px!important;color:#b
 }
 /* Keep the temporary batch wrapper visible while isolating only its ten-card sheet. */
 @media print{
- body[data-print="cards-temp"] .temp-cards-panel{display:block!important;position:static!important;visibility:visible!important}
+ body[data-print="cards-temp"] .temp-cards-panel{display:block!important;position:static!important;visibility:hidden!important}
  body[data-print="cards-temp"] .temp-cards-panel>.section-head,
  body[data-print="cards-temp"] #temporary-cards-status{display:none!important}
 }
