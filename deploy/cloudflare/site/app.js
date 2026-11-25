@@ -652,7 +652,14 @@ async function boot(){
    S.user=await sessionRequest;
    const pending=pendingScan();
    if(pending&&pending.kind==="login"){
-    try{const r=await api("/cards/resolve",{method:"POST",body:JSON.stringify({kind:"login",card_id:pending.cardId,secret:pending.secret})});toast("بطاقة "+String(r.student?.name||"الطالب")+" — أنت مسجّل الدخول بالفعل.")}catch{}
+    try{
+     const r=await api("/cards/resolve",{method:"POST",body:JSON.stringify({kind:"login",card_id:pending.cardId,secret:pending.secret})});
+     if(S.user?.role==="student"&&r.student?.id===S.user.student_id){
+      S.mode="school";S.tab="world";
+      safeStore.setSession("ihsan_last_mode","school");safeStore.setSession("ihsan_last_tab","world");
+     }
+     toast("تم التعرف على البطاقة"+(r.student?.name?" الخاصة بـ "+String(r.student.name):"")+".");
+    }catch(error){toast(error.message,true)}
     clearPendingScan();
    }
    if(S.user?.must_change_password){renderTopActions();showPasswordChange(true)}else{await start()}
