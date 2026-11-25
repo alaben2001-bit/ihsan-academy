@@ -1979,11 +1979,11 @@ async function cardPage(v){
 
 function staffStudentPassMarkup(row){
  const student=row.student||{},serial=passSerial(student.id),totals=row.totals||{};
- const qr=qrSvg("https://a-ihsan.pages.dev",180);
+ const qr=qrSvg(row.links?.login||"",180);
  const balances=totals.mode==="separate"
   ?'<div><small>نقاط الإنجاز</small><strong>'+Number(totals.achievement||0)+'</strong></div><div><small>رصيد المتجر</small><strong>'+Number(totals.store||0)+'</strong></div>'
   :'<div><small>الرصيد الحالي</small><strong>'+Number(totals.balance||0)+'</strong></div>';
- return '<article class="student-pass student-pass-print" data-card-student="'+esc(student.id)+'" aria-label="بطاقة '+esc(student.name)+'"><span class="pass-shine" aria-hidden="true"></span><div class="pass-pattern" aria-hidden="true"></div><div class="pass-head"><span class="pass-brand"><span class="pass-brand-mark" aria-hidden="true">إ</span>أكاديمية الإحسان</span><span class="pass-type">بطاقة طالب</span></div><div class="pass-middle"><span class="pass-chip" aria-hidden="true"><i></i><i></i><i></i></span><span class="pass-level">بطاقة مستوى 1</span><span class="pass-qr" aria-label="رابط الأكاديمية العام">'+(qr||'<span class="card-qr-missing">—</span>')+'</span></div><div class="pass-name">'+esc(student.name||"الطالب")+'</div><div class="pass-serial" dir="ltr">'+esc(serial)+'</div><div class="pass-grid">'+balances+'</div><div class="pass-foot"><span>الفوج: '+esc(student.group_name||"—")+'</span><span>أكاديمية الإحسان</span></div></article>';
+ return '<article class="student-pass student-pass-print" data-card-student="'+esc(student.id)+'" aria-label="بطاقة '+esc(student.name)+'"><span class="pass-shine" aria-hidden="true"></span><div class="pass-pattern" aria-hidden="true"></div><div class="pass-head"><span class="pass-brand"><span class="pass-brand-mark" aria-hidden="true">إ</span>أكاديمية الإحسان</span><span class="pass-type">بطاقة طالب</span></div><div class="pass-middle"><span class="pass-chip" aria-hidden="true"><i></i><i></i><i></i></span><span class="pass-level">بطاقة مستوى 1</span><span class="pass-qr" aria-label="رمز دخول الطالب المحمي بكلمة المرور">'+(qr||'<span class="card-qr-missing">—</span>')+'</span></div><div class="pass-name">'+esc(student.name||"الطالب")+'</div><div class="pass-serial" dir="ltr">'+esc(serial)+'</div><div class="pass-grid">'+balances+'</div><div class="pass-foot"><span>الفوج: '+esc(student.group_name||"—")+'</span><span>أكاديمية الإحسان</span></div></article>';
 }
 async function staffCardsPage(v){
  if(!["admin","teacher","director","supervisor"].includes(S.user.role)){v.innerHTML=head("بطاقات الطلاب","هذه الصفحة للشيخ أو المشرف.");return}
