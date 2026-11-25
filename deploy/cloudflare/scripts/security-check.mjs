@@ -655,7 +655,9 @@ assert.doesNotMatch(app, /points_awarded\|\|0/, "badge UI must not show zero-poi
 
 assert.doesNotMatch(app, /WORLD_STAGES|worldStage\(/, "deferred level progression must not remain in the student UI or guide");
 assert.match(app, /إنجازات تستحق الاعتزاز/, "student world must show earned badges instead of levels");
-assert.match(app, /أوسمة إنجاز/, "the student card must show badges rather than a level label");
+assert.match(app, /QR لإضافة النقاط/, "the student card QR must be dedicated to adding points");
+assert.doesNotMatch(app, /class="pass-level"/, "the printed student card must not contain a level or badge tile");
+assert.doesNotMatch(app, /passBalances/, "the printed student card must not display any points or store balance");
 assert.match(app, /رصيدان منفصلان/, "the guide must explain the separate achievement and store balances");
 assert.match(app, /الرصيد الحالي/, "legacy students must see one truthful balance until the safe cutover");
 assert.match(app, /نقاط الإنجاز<\/th><th>رصيد المتجر/, "point rules must display achievement and store amounts separately");
