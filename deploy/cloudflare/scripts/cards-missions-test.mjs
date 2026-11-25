@@ -186,8 +186,6 @@ async function main() {
   check("smart QR opens the matching student's own account", studentSmartScan.status === 200 && studentSmartScan.data?.authenticated === true && studentSmartScan.data?.next === "student" && studentSmartScan.data?.student?.id === student.id, JSON.stringify(studentSmartScan.data));
   const teacherSmartScan = await resolveCard("login", loginLink.cardId, loginLink.secret, teacherInside.token);
   check("smart QR opens a permitted sheikh workflow", teacherSmartScan.status === 200 && teacherSmartScan.data?.authenticated === true && teacherSmartScan.data?.next === "staff" && teacherSmartScan.data?.student?.id === student.id, JSON.stringify(teacherSmartScan.data));
-  const teacherSmartHifz = await resolveCard("login", loginLink.cardId, loginLink.secret, teacherInside.token, "hifz");
-  check("smart QR can record the selected automatic hifz task", teacherSmartHifz.status === 200 && teacherSmartHifz.data?.next === "points" && Array.isArray(teacherSmartHifz.data?.hifz_awards), JSON.stringify(teacherSmartHifz.data));
   const outsideSmartScan = await resolveCard("login", loginLink.cardId, loginLink.secret, teacherOutside.token);
   check("smart QR denies a sheikh outside the student's group", outsideSmartScan.status === 403, JSON.stringify(outsideSmartScan.data));
   const wrongSecret = await resolveCard("login", loginLink.cardId, "0".repeat(48));
@@ -221,6 +219,9 @@ async function main() {
   const hifzRepeat = await resolveCard("add_points", addPointsLink.cardId, addPointsLink.secret, teacherInside.token, "hifz");
   const afterHifzRepeat = await call("/api/points/summary?student_id=" + encodeURIComponent(student.id), { token: admin });
   check("repeated memorization scan does not duplicate 20 points", hifzRepeat.status === 200 && Number(afterHifzRepeat.data?.totals?.balance || 0) === Number(afterHifzPoints.data?.totals?.balance || 0), JSON.stringify(afterHifzRepeat.data?.totals));
+  const teacherSmartHifz = await resolveCard("login", loginLink.cardId, loginLink.secret, teacherInside.token, "hifz");
+  const afterSmartHifz = await call("/api/points/summary?student_id=" + encodeURIComponent(student.id), { token: admin });
+  check("smart QR supports automatic hifz and remains idempotent", teacherSmartHifz.status === 200 && teacherSmartHifz.data?.next === "points" && Array.isArray(teacherSmartHifz.data?.hifz_awards) && Number(afterSmartHifz.data?.totals?.balance || 0) === Number(afterHifzRepeat.data?.totals?.balance || 0), JSON.stringify({scan:teacherSmartHifz.data?.hifz_awards,balance:afterSmartHifz.data?.totals?.balance}));
   const adminAddPoints = await resolveCard("add_points", addPointsLink.cardId, addPointsLink.secret, admin);
   check("add_points QR resolves for the administrator", adminAddPoints.status === 200 && adminAddPoints.data?.next === "points", JSON.stringify(adminAddPoints.data));
 
