@@ -2361,25 +2361,35 @@ export default {
       if(!card||!await verifyCardToken(card,kind,secret))return fail(404,"رمز البطاقة غير صالح أو منتهٍ. اطلب إعادة إصداره من الإدارة.");
       const student=await studentCardRow(env,card.student_id);
       if(!student)return fail(404,"ملف الطالب غير متاح");
+      let resolvedKind=kind;
       if(kind==="login"){
         const scanner=await currentUser(request,env);
         if(scanner){
           if(!await canAccessStudentCard(env,scanner,student))return fail(403,"هذه البطاقة لا تخص حسابك أو أنها خارج صلاحيتك");
           if(scanner.role==="student"&&scanner.student_id!==student.id)return fail(403,"هذه البطاقة لا تخص حساب الطالب المسجل على هذا الجهاز");
-          if(!["student","admin","teacher","director","supervisor"].includes(scanner.role))return fail(403,"ليس لديك صلاحية استخدام بطاقة الطالب");
-          await log(env,scanner.id,"student_card_scan_authenticated",{card_id:card.id,student_id:student.id});
-          return json({ok:true,kind,authenticated:true,student:{id:student.id,name:student.name,group_id:student.group_id,group_name:student.group_name||""},next:scanner.role==="student"?"student":"staff"});
+          if(scanner.role==="student"){
+            await log(env,scanner.id,"student_card_scan_authenticated",{card_id:card.id,student_id:student.id});
+            return json({ok:true,kind,authenticated:true,student:{id:student.id,name:student.name,group_id:student.group_id,group_name:student.group_name||""},next:"student"});
+          }
+          if(!["admin","teacher","director","supervisor"].includes(scanner.role))return fail(403,"ليس لديك صلاحية استخدام بطاقة الطالب");
+          const smartTask=clean(task,20);
+          if(["attendance","hifz"].includes(smartTask))resolvedKind="add_points";
+          else{
+            await log(env,scanner.id,"student_card_scan_authenticated",{card_id:card.id,student_id:student.id});
+            return json({ok:true,kind,authenticated:true,student:{id:student.id,name:student.name,group_id:student.group_id,group_name:student.group_name||""},next:"staff"});
+          }
+        }else{
+          await log(env,null,"student_card_scan_login",{card_id:card.id,student_id:student.id});
+          return json({ok:true,kind,requires_password:true,student:{name:student.name,username:student.username||"",group_name:student.group_name||""},message:"تعرّفنا على البطاقة. أدخل كلمة المرور لإثبات هويتك؛ لا يتم الدخول تلقائيًا حفاظًا على الخصوصية."});
         }
-        await log(env,null,"student_card_scan_login",{card_id:card.id,student_id:student.id});
-        return json({ok:true,kind,requires_password:true,student:{name:student.name,username:student.username||"",group_name:student.group_name||""},message:"تعرّفنا على البطاقة. أدخل كلمة المرور لإثبات هويتك؛ لا يتم الدخول تلقائيًا حفاظًا على الخصوصية."});
       }
       const scanner=await currentUser(request,env);
       if(!scanner)return fail(401,"سجّل الدخول أولًا ثم أعد مسح البطاقة.");
       if(!await canAccessStudentCard(env,scanner,student))return fail(403,"هذه البطاقة خارج صلاحيتك");
-      if(kind==="add_points"&&!["admin","teacher","director","supervisor"].includes(scanner.role))return fail(403,"مسح بطاقة إضافة النقاط متاح للمشرفين المصرح لهم فقط");
+      if(resolvedKind==="add_points"&&!["admin","teacher","director","supervisor"].includes(scanner.role))return fail(403,"مسح بطاقة إضافة النقاط متاح للمشرفين المصرح لهم فقط");
       let attendance=null;
       let attendanceAwards=[];
-      if(kind==="add_points"&&task==="attendance"){
+      if(resolvedKind==="add_points"&&task==="attendance"){
         const date=academyDate();
         const row={id:date+":"+student.id,student_id:student.id,group_id:student.group_id,date,status:"present",note:"تسجيل حضور آلي بمسح بطاقة الطالب",marked_by:scanner.id,updated_at:nowIso()};
         await env.DB.prepare("INSERT INTO academy_records(collection,id,owner_user_id,group_id,student_id,payload_json,updated_at) VALUES('attendance',?,?,?,?,?,?) ON CONFLICT(collection,id) DO UPDATE SET owner_user_id=excluded.owner_user_id,group_id=excluded.group_id,student_id=excluded.student_id,payload_json=excluded.payload_json,updated_at=excluded.updated_at").bind(row.id,scanner.id,student.group_id,student.id,JSON.stringify(row),row.updated_at).run();
@@ -2388,13 +2398,13 @@ export default {
         attendanceAwards=(await env.DB.prepare("SELECT kind,points,event_key FROM point_events WHERE student_id=? AND event_type='attendance_present' AND awarded_date=? AND event_key=? AND reversed_at IS NULL").bind(student.id,date,"attendance:"+date+":"+student.id).all()).results||[];
       }
       let hifzAwards=[];
-      if(kind==="add_points"&&task==="hifz"){
+      if(resolvedKind==="add_points"&&task==="hifz"){
         const date=academyDate();
         hifzAwards=await awardPointsForEvent(env,{studentId:student.id,groupId:student.group_id,eventType:"hifz_no_errors",eventKey:"hifz:"+date+":"+student.id,date,reason:"اعتماد حفظ الطالب بمسح البطاقة",sourceCollection:"student_card_scan",sourceId:date+":"+student.id,awardedBy:scanner.id});
       }
       const totals=await pointsTotals(env,student.id);
       await log(env,scanner.id,"student_card_scan_"+kind,{card_id:card.id,student_id:student.id});
-      return json({ok:true,kind,student:{id:student.id,name:student.name,group_id:student.group_id,group_name:student.group_name||""},totals,attendance,attendance_awards:attendanceAwards,hifz_awards:hifzAwards,next:kind==="add_points"?"points":"profile"});
+      return json({ok:true,kind,student:{id:student.id,name:student.name,group_id:student.group_id,group_name:student.group_name||""},totals,attendance,attendance_awards:attendanceAwards,hifz_awards:hifzAwards,next:resolvedKind==="add_points"?"points":"profile"});
     }
     const user=await currentUser(request,env); if(!user)return fail(401,"يرجى تسجيل الدخول");
     if (!bearerSessionToken(request) && cookieSessionToken(request) && ["POST","PUT","PATCH","DELETE"].includes(method) && !csrfIsValid(request)) return fail(403,"تعذّر التحقق من حماية الطلب. حدّث الصفحة ثم أعد المحاولة.");
