@@ -23,7 +23,8 @@ check("student card print no longer appends a separate QR sheet", !/cardQrSheet\
 check("golden decorative chip remains in student card", /class="pass-chip"/.test(studentPage));
 check("staff cards use the same preserved student-pass design", /class="student-pass student-pass-print"/.test(staffPage));
 check("staff tools expose separate profile and add-points QR codes outside the public printed card", /data-card-qr-tools/.test(staffPage) && /QR الملف الشخصي/.test(staffPage) && /QR إضافة النقاط/.test(staffPage) && server.includes("canAccessStudentCard(env,scanner,student)") && server.includes('kind==="add_points"'));
-check("each printed student card embeds that student's password-protected login QR", /const qr=qrSvg\(row\.links\?\.login\|\|"",180\)/.test(staffPage));
+check("printed student card QR is only for authorized add-points flow", /const qr=qrSvg\(row\.links\?\.add_points\|\|""\,180\)/.test(staffPage) && /QR لإضافة النقاط للمخولين/.test(staffPage));
+check("printed card contains no balance and no level-one label", !/pass-grid|الرصيد الحالي|رصيد المتجر|نقاط الإنجاز|بطاقة مستوى 1/.test(staffPage));
 check("printed student QR does not expose staff-only points token", !/const qr=qrSvg\(row\.links\?\.add_points/.test(staffPage));
 check("individual print action exists", /data-card-print-one/.test(staffPage));
 check("all permitted groups option exists", /__all_managed_groups__/.test(staffPage));
