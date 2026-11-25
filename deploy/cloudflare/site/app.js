@@ -2042,6 +2042,8 @@ async function staffCardsPage(v){
      offset=next;
     }
    }
+   const schoolRows=await api("/public/quran-schools"),schoolMap=new Map((Array.isArray(schoolRows)?schoolRows:[]).map(x=>[String(x.id),String(x.name||"")])),groupMap=new Map(groups.map(g=>[String(g.id),g]));
+   for(const row of datasets){const g=groupMap.get(String(row.student?.group_id||""));row.school_name=schoolMap.get(String(g?.school_id||""))||"—";}
    const count=$("#cards-count"),pageCount=Math.ceil(datasets.length/10);if(count)count.textContent=datasets.length+" بطاقة · "+selectedGroups.length+" فوج · "+pageCount+" صفحات A4 · 10 بطاقات/صفحة";
    const pages=[];
    for(let offset=0;offset<datasets.length;offset+=10){
