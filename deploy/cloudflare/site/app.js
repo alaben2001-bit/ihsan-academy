@@ -2390,7 +2390,24 @@ async function scanPage(v){
   toggle.addEventListener("click",()=>setPickerOpen(!picker.classList.contains("is-open")));
   taskDate.addEventListener("change",updateTask);
   v.querySelectorAll("[data-scan-task]").forEach(button=>button.addEventListener("click",()=>{const id=button.dataset.scanTask;let ids=selectedTaskIds();if(["attendance","hifz"].includes(id)){ids=ids.filter(x=>["attendance","hifz"].includes(x));ids=ids.includes(id)?ids.filter(x=>x!==id):[...ids,id];}else{ids=[id];}taskType.value=ids.join(",");if(!ids.some(x=>["points","general"].includes(x)))S.scanActivity="";updateTask();if(!["attendance","hifz"].includes(id))setPickerOpen(false)}));
-  v.querySelector("#scan-search").addEventListener("input",renderList);
+  const scanSearch=v.querySelector("#scan-search");
+  scanSearch.addEventListener("input",renderList);
+  const submitScanSearch=()=>{
+    renderList();
+    const query=String(scanSearch.value||"").trim().toLocaleLowerCase("ar");
+    if(!query)return;
+    const matches=students.filter(st=>String(st.name||"").toLocaleLowerCase("ar").includes(query));
+    scanSearch.blur();
+    if(matches.length===1){selectStudent(matches[0].id);return}
+    if(matches.length)listEl.scrollIntoView({behavior:"smooth",block:"nearest"});
+    else toast("لم نعثر على طالب بهذا الاسم ضمن صلاحيتك.",true);
+  };
+  scanSearch.addEventListener("keydown",event=>{
+    if(event.key==="Enter"||event.key==="Search"){
+      event.preventDefault();
+      submitScanSearch();
+    }
+  });
   let scanning=false;
   startButton.addEventListener("click",async()=>{
     if(!selectedTaskIds().length||!taskDate.value){openTaskPicker();toast("اختر المهمة أولًا.",true);return}
@@ -2450,6 +2467,7 @@ async function renderScanPanel(v,studentId){
   if(!host)return;
   host.innerHTML='<div class="loading">جار تحميل بيانات الطالب…</div>';
   let summary,pathData,today,events;
+  const todayIso=S.scanDate||localDateISO();
   const res=await Promise.allSettled([
     api("/points/summary?student_id="+encodeURIComponent(studentId)),
     api("/quran/path?student_id="+encodeURIComponent(studentId)),
@@ -2457,7 +2475,8 @@ async function renderScanPanel(v,studentId){
     api("/points/history?student_id="+encodeURIComponent(studentId)+"&limit=8"),
     S.user.role==="admin"?api("/points/ethics?student_id="+encodeURIComponent(studentId)):Promise.resolve(null),
     S.user.role==="admin"?api("/points/streak?student_id="+encodeURIComponent(studentId)):Promise.resolve([]),
-    S.user.role==="admin"?api("/points/referrals?student_id="+encodeURIComponent(studentId)):Promise.resolve([])
+    S.user.role==="admin"?api("/points/referrals?student_id="+encodeURIComponent(studentId)):Promise.resolve([]),
+    S.scanGroupId?api("/effort?group_id="+encodeURIComponent(S.scanGroupId)+"&date="+encodeURIComponent(todayIso)):Promise.resolve([])
   ]);
   if(res[0].status!=="fulfilled"){host.innerHTML='<div class="notice error">'+esc(res[0].reason?.message||"تعذر تحميل بيانات الطالب")+'</div>';return}
   summary=res[0].value;
@@ -2472,7 +2491,8 @@ async function renderScanPanel(v,studentId){
   const s=summary.student||{},t=summary.totals||{};
   const info=(pathData&&pathData.path)||null;
   const logs=(today&&today.logs)||{};
-  const todayIso=S.scanDate||localDateISO();
+  const dailyEffortRows=res[7]?.status==="fulfilled"?res[7].value:[];
+  const dailyEffortByTask={};dailyEffortRows.forEach(row=>dailyEffortByTask[row.category]=row.status);
   const planChips=info
     ?'<div class="quran-path-chips"><span class="world-chip"><b>الفئة</b> '+esc(info.hifz_category_label||"—")+'</span><span class="world-chip"><b>الحفظ</b> '+esc(info.hifz_amount||"—")+" "+esc(info.hifz_unit||"")+'</span><span class="world-chip"><b>التثبيت</b> '+esc(info.thabit_label||"—")+'</span><span class="world-chip"><b>الورد</b> '+esc(info.ward_label||"—")+'</span>'+(info.rest_day!==null&&info.rest_day!==undefined?'<span class="world-chip"><b>الاستدراك</b> '+esc(QURAN_WEEKDAYS[Number(info.rest_day)]||"")+'</span>':"")+(today.is_rest_day?'<span class="pill">اليوم يوم استدراك</span>':"")+'</div>'
     :'<div class="notice">لم يشترك هذا الطالب في مسار القرآن بعد؛ يبدأ من «عالمي» داخل حسابه.</div>';
@@ -2511,6 +2531,7 @@ async function renderScanPanel(v,studentId){
    +'<h4>خطته المعتمدة</h4>'+planChips
    +'<h4>تسجيل الحضور اليوم</h4><div class="student-actions" id="scan-attendance-buttons">'+attButtons+'</div>'
    +'<h4>تسجيل إنجاز اليوم (حفظ / تثبيت / ورد)</h4><div class="scan-quran-grid">'+quranQuick("hifz","الحفظ الجديد","",Array.from(new Set([info&&info.hifz_unit,"صفحة","سطر","آية","وجه"].filter(Boolean))),0,info?(info.hifz_unit||"صفحة"):"صفحة")+quranQuick("thabit","التثبيت",info?info.thabit_amount:"",["حزب","نصف حزب","ثلاثة أثمان حزب","ربع حزب","ثمن حزب"],15,info?thabitUnitFor(info.thabit_amount):"ربع حزب")+quranQuick("ward","الورد اليومي",info?info.ward_ahzab:"",["حزب","حزبان","أربعة أحزاب"],0,info?wardUnitFor(info.ward_ahzab):"حزب")+'</div>'
+   +'<h4>المهام اليومية الأخرى</h4><form id="scan-daily-effort" class="scan-daily-effort"><div class="scan-daily-effort-grid">'+EFFORT_TASKS.filter(([key])=>!["thabit","wird"].includes(key)).map(([key,label])=>'<label class="field">'+esc(label)+'<select data-scan-effort-task="'+key+'">'+effortStatusOptions(dailyEffortByTask[key])+'</select></label>').join("")+'</div><button class="btn" type="submit">حفظ المهام اليومية</button></form>'
    +(canGrantPoints&&pointsTaskSelected?'<h4>منح النقاط</h4><p class="muted small">اختر النشاط الذي أنجزه الطالب، أو أدخل النقاط يدويًا. لا تُضاف النقاط بمجرد المسح؛ تُحفظ بعد اعتماد النشاط بنجاح.</p><div class="student-actions" id="scan-activity-buttons">'+activityButtons+'</div><div id="scan-activity-result" class="muted small" aria-live="polite"></div><form id="scan-manual-award" class="form-grid"><label class="field">عدد النقاط<input type="number" name="points" min="1" max="1000" value="10" required></label><label class="field full">سبب المنح<input name="reason" required minlength="3" maxlength="500" placeholder="مثال: حفظ ثمن دون أخطاء"></label><button class="btn" type="submit">اعتماد النقاط</button></form>':'<div class="notice">'+(canGrantPoints?'اختر «إنجاز ونقاط» في نوع المهمة قبل المسح لإظهار أدوات منح النقاط.':'منح النقاط غير متاح لهذا الدور.')+'</div>')+adminPointTools
    +assignTaskMarkup
    +'<h4>آخر العمليات على حساب الطالب</h4><div class="list">'+(eventRows||'<div class="empty">لا توجد عمليات بعد.</div>')+'</div>'
@@ -2518,6 +2539,18 @@ async function renderScanPanel(v,studentId){
   const refresh=()=>renderScanPanel(v,studentId);
   host.querySelector("#scan-open-profile").onclick=()=>studentProfile(v,studentId);
   host.querySelector("#scan-open-plans").onclick=()=>{safeStore.setSession("ihsan_quran_staff_tab","plans");go("quran")};
+  host.querySelector("#scan-daily-effort")?.addEventListener("submit",async event=>{
+    event.preventDefault();
+    const form=event.currentTarget,button=form.querySelector('button[type="submit"]');
+    const checks=Object.fromEntries([...form.querySelectorAll("[data-scan-effort-task]")].map(select=>[select.dataset.scanEffortTask,select.value]).filter(([,value])=>value));
+    if(!Object.keys(checks).length)return toast("اختر حالة مهمة واحدة على الأقل",true);
+    button.disabled=true;
+    try{
+      const result=await api("/effort",{method:"POST",body:JSON.stringify({group_id:s.group_id,date:todayIso,items:[{student_id:studentId,checks}]})});
+      toast("تم حفظ "+Number(result.saved||Object.keys(checks).length)+" من المهام اليومية");
+      await refresh();
+    }catch(error){button.disabled=false;toast("تعذّر حفظ المهام: "+error.message,true)}
+  });
   host.querySelectorAll("[data-scan-att]").forEach(btn=>btn.onclick=async()=>{
     btn.disabled=true;
     try{await api("/attendance",{method:"POST",body:JSON.stringify({group_id:s.group_id,date:todayIso,items:[{student_id:studentId,status:btn.dataset.scanAtt}]})});

@@ -31,3 +31,10 @@ assert.match(app,/aria-labelledby","ihsan-prayer-title"/,"entry supplication mus
 assert.match(css,/\.ihsan-prayer-dialog \.ihsan-prayer-text/,"entry supplication must have a clear responsive reading layout");
 // Keep the dialog-specific selector covered so generic prayer text styles cannot regress.
 console.log("UX regression checks passed.");
+
+assert.match(app,/event\.key==="Search"/,"scan search must respond to the mobile keyboard Search key");
+assert.match(app,/const submitScanSearch=/,"scan search must expose an explicit submit action");
+assert.match(app,/id="scan-daily-effort"/,"scanned student profile must expose organized daily task controls");
+assert.match(app,/data-scan-effort-task=/,"scanned student profile must allow individual daily task statuses");
+assert.match(app,/api\("\/effort",\{method:"POST"/,"scanned student profile must save the selected daily tasks");
+assert.match(css,/\.scan-daily-effort-grid\{display:grid/,"scanned student daily tasks must use a responsive organized grid");

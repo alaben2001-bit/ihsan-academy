@@ -4301,3 +4301,12 @@ body:has(.auth-layout) .brand .brand-structure{font-size:10px!important;color:#b
  .module-card.school-module .module-label,.module-card.ihsan-module .module-label{font-size:23px!important}
  .module-card.school-module .module-desc,.module-card.ihsan-module .module-desc{font-size:13px!important}
 }
+
+
+/* Scan profile daily tasks: compact, clear, touch-friendly task tiles */
+.scan-daily-effort{display:grid;gap:12px;margin:12px 0 18px;padding:16px;border:1px solid rgba(212,173,99,.3);border-radius:16px;background:linear-gradient(145deg,rgba(8,39,27,.7),rgba(5,20,14,.72))}
+.scan-daily-effort-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.scan-daily-effort-grid .field{min-width:0;padding:12px;border:1px solid rgba(212,173,99,.2);border-radius:12px;background:rgba(255,255,255,.035);color:var(--text,#f3f0e5)}
+.scan-daily-effort-grid .field select{min-height:43px;width:100%;background:#071a13;color:#f7f2e7;border:1px solid #668a73;border-radius:9px}
+.scan-daily-effort>button{min-height:48px}
+@media(max-width:600px){.scan-daily-effort{padding:11px}.scan-daily-effort-grid{grid-template-columns:1fr}.scan-daily-effort-grid .field{padding:10px}}
