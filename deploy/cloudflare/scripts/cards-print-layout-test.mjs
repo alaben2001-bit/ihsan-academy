@@ -66,6 +66,7 @@ check("temporary batch refuses ambiguous or missing students and enables print o
 check("temporary batch uses the current smart login QR, not add-points QR", /qrSvg\(row\.links\?\.login\|\|""\,180\)/.test(staffPage));
 check("temporary A4 print isolates one 2×5 sheet of CR80 cards", /body\[data-print="cards-temp"\] #temporary-cards-sheet/.test(css) && /grid-template-columns:repeat\(2,85\.6mm\)!important;grid-template-rows:repeat\(5,54mm\)!important/.test(css) && /width:85\.6mm!important;height:54mm!important/.test(css));
 check("original academy emblem is deployed beside the Cloudflare site", fs.existsSync(path.join(root, "site/ihsan-emblem.svg")));
-\nconst failed = checks.filter(item => !item.ok);
+
+const failed = checks.filter(item => !item.ok);
 console.log("\n" + (checks.length - failed.length) + "/" + checks.length + " source-layout checks passed.");
 if (failed.length) process.exitCode = 1;
