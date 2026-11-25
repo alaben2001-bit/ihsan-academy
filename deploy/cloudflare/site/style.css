@@ -4043,3 +4043,66 @@ html:root:root .ranking-note{margin:10px 0 0;color:#b99aa2!important;line-height
 @media (max-width: 1099px) {
   .ihsan-visual-edge { display: none !important; }
 }
+
+
+/* V77 — premium emerald PVC pass and realistic metallic smart-card contact. */
+.student-pass{
+ background:
+  radial-gradient(ellipse at 12% 8%,rgba(33,130,94,.34),transparent 48%),
+  radial-gradient(ellipse at 100% 100%,rgba(202,164,91,.14),transparent 48%),
+  linear-gradient(132deg,#073b30 0%,#052b25 48%,#031b19 100%)!important;
+ border-color:rgba(220,190,126,.72)!important;
+ box-shadow:0 28px 64px rgba(0,0,0,.48),inset 0 1px 0 rgba(255,255,255,.18),inset 0 0 0 1px rgba(255,255,255,.035)!important;
+}
+.pass-pattern{
+ opacity:.42!important;
+ background-image:
+  linear-gradient(30deg,transparent 48%,rgba(221,190,128,.12) 49%,rgba(221,190,128,.12) 50%,transparent 51%),
+  linear-gradient(150deg,transparent 48%,rgba(221,190,128,.09) 49%,rgba(221,190,128,.09) 50%,transparent 51%),
+  radial-gradient(circle,rgba(235,211,160,.24) 1px,transparent 1.6px)!important;
+ background-size:44px 44px,44px 44px,22px 22px!important;
+}
+.pass-brand-mark{
+ background:linear-gradient(145deg,rgba(226,196,133,.24),rgba(9,52,43,.68))!important;
+ border-color:rgba(231,201,143,.72)!important;
+ box-shadow:inset 0 1px 0 rgba(255,255,255,.3),0 3px 10px rgba(0,0,0,.22)!important;
+}
+.pass-chip{
+ position:relative!important;
+ display:grid!important;
+ grid-template-columns:repeat(3,1fr)!important;
+ grid-template-rows:repeat(2,1fr)!important;
+ gap:2px!important;
+ width:52px!important;height:38px!important;
+ padding:4px!important;
+ border-radius:7px!important;
+ border:1px solid #a77d38!important;
+ background:
+  linear-gradient(145deg,#fff0bb 0%,#d8b66e 17%,#f6dfa0 34%,#a77b35 52%,#e8c77f 72%,#9b702f 100%)!important;
+ box-shadow:
+  inset 0 1px 2px rgba(255,255,255,.85),
+  inset 0 -2px 4px rgba(83,52,12,.42),
+  0 3px 9px rgba(0,0,0,.36),
+  0 0 0 1px rgba(255,239,190,.18)!important;
+ overflow:hidden;
+}
+.pass-chip:before{
+ content:"";position:absolute;inset:3px;border:1px solid rgba(105,72,23,.52);
+ border-radius:4px;pointer-events:none;z-index:1;
+}
+.pass-chip i{
+ display:block!important;width:auto!important;height:auto!important;
+ min-width:0;min-height:0;border-radius:2px!important;
+ border:1px solid rgba(113,78,28,.55)!important;
+ background:linear-gradient(145deg,rgba(255,245,205,.94),rgba(186,143,65,.88) 58%,rgba(235,207,139,.94))!important;
+ box-shadow:inset 0 1px 1px rgba(255,255,255,.8),inset 0 -1px 1px rgba(91,61,19,.28)!important;
+ opacity:1!important;
+}
+.pass-qr{box-shadow:0 2px 12px rgba(0,0,0,.28),0 0 0 1px rgba(231,201,143,.55)!important}
+.pass-name{color:#fff9e9!important;text-shadow:0 2px 14px rgba(0,0,0,.42)!important}
+.pass-serial{color:#e7d5ae!important}
+.pass-foot{color:#d7c9a8!important;border-top-color:rgba(231,201,143,.28)!important}
+.pass-type{color:#f2dfb8!important;border-color:rgba(231,201,143,.52)!important}
+.pass-grid>div{background:rgba(1,24,20,.34)!important;border-color:rgba(231,201,143,.2)!important}
+.pass-grid small{color:#d5c5a0!important}
+.pass-grid strong{color:#f2dfc0!important}
