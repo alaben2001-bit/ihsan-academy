@@ -4275,3 +4275,29 @@ body:has(.auth-layout) .brand .brand-structure{font-size:10px!important;color:#b
  .app-authenticated .content{scroll-margin-bottom:190px}
  .effort-individual-editor{scroll-margin-top:76px;scroll-margin-bottom:190px}
 }
+
+
+/* Learning destinations: larger, dignified cards with the academy's dark emerald identity */
+.module-card.school-module{
+ min-height:320px!important;padding:clamp(25px,4vw,38px)!important;
+ background:radial-gradient(circle at 88% 8%,rgba(35,160,111,.22),transparent 38%),linear-gradient(145deg,#0d3526,#071a12 78%)!important;
+ border:1px solid rgba(212,173,99,.48)!important;color:#f4f0e5!important;
+ box-shadow:0 18px 48px rgba(0,0,0,.28),inset 0 1px 0 rgba(255,255,255,.06)!important
+}
+.module-card.ihsan-module{
+ min-height:320px!important;padding:clamp(25px,4vw,38px)!important;
+ background:radial-gradient(circle at 88% 8%,rgba(190,145,62,.2),transparent 38%),linear-gradient(145deg,#302613,#10180f 78%)!important;
+ border:1px solid rgba(220,184,112,.5)!important;color:#f6efdf!important;
+ box-shadow:0 18px 48px rgba(0,0,0,.3),inset 0 1px 0 rgba(255,255,255,.06)!important
+}
+.module-card.school-module .module-label,.module-card.ihsan-module .module-label{color:#f8f1df!important;font-size:clamp(24px,2.8vw,32px)!important}
+.module-card.school-module .module-desc,.module-card.ihsan-module .module-desc{color:#d4e0d7!important;font-size:15px!important;line-height:2.1}
+.module-card.school-module .module-link{color:#e5c982!important}
+.module-card.ihsan-module .module-link{color:#f0d28a!important}
+.module-card.school-module .module-symbol{width:60px;height:60px;border:1px solid rgba(212,173,99,.35);background:#174d37!important}
+.module-card.ihsan-module .module-symbol{width:60px;height:60px;border:1px solid rgba(232,196,106,.42);background:#735622!important}
+@media(max-width:650px){
+ .module-card.school-module,.module-card.ihsan-module{min-height:245px!important;padding:23px!important}
+ .module-card.school-module .module-label,.module-card.ihsan-module .module-label{font-size:23px!important}
+ .module-card.school-module .module-desc,.module-card.ihsan-module .module-desc{font-size:13px!important}
+}
