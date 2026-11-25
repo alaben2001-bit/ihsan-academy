@@ -4357,3 +4357,9 @@ body:has(.auth-layout) .brand .brand-structure{font-size:10px!important;color:#b
  body[data-print="cards-temp"] #temporary-cards-sheet .pass-foot{font-size:5.5pt!important;padding-top:1mm!important;flex-wrap:nowrap!important}
  body[data-print="cards-temp"] #temporary-cards-sheet .pass-school-name{font-size:5.5pt!important;max-width:58%!important}
 }
+/* Keep the temporary batch wrapper visible while isolating only its ten-card sheet. */
+@media print{
+ body[data-print="cards-temp"] .temp-cards-panel{display:block!important;position:static!important;visibility:visible!important}
+ body[data-print="cards-temp"] .temp-cards-panel>.section-head,
+ body[data-print="cards-temp"] #temporary-cards-status{display:none!important}
+}
