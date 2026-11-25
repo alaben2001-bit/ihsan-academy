@@ -18,7 +18,8 @@ const staffStart = app.indexOf("function staffStudentPassMarkup");
 const staffEnd = app.indexOf("function quranEightMonthMarkup", staffStart);
 const staffPage = staffEnd > staffStart ? app.slice(staffStart, staffEnd) : "";
 
-check("student card QR opens the public canonical academy URL", /class="pass-qr"[^]*?qrSvg\("https:\/\/a-ihsan\.pages\.dev",144\)/.test(studentPage));
+check("student card QR is generated only from its authorized add-points token", /class="pass-qr"[^]*?qrSvg\(links\.add_points,144\)/.test(studentPage) && /QR لإضافة النقاط/.test(studentPage));
+check("student card has no balance, store balance, or level badge", !/passBalances|الرصيد الحالي|رصيد المتجر|نقاط الإنجاز|pass-level/.test(studentPage));
 check("student card print no longer appends a separate QR sheet", !/cardQrSheet\(links/.test(studentPage));
 check("golden decorative chip remains in student card", /class="pass-chip"/.test(studentPage));
 check("staff cards use the same preserved student-pass design", /class="student-pass student-pass-print"/.test(staffPage));
@@ -41,6 +42,8 @@ check("QR has a dedicated print-safe white surface and crisp SVG", /\.pass-qr sv
 check("bulk print hides controls and keeps complete cards", /body\[data-print="cards"\] \.student-card-print-actions\{display:none!important\}/.test(css));
 check("individual print isolates the selected card", /\.student-card-print-item\.is-print-target\{display:block!important\}/.test(css));
 check("student card still retains its original gold-chip styling", /\.pass-chip\{[^}]*linear-gradient\(135deg,#f3d79b,#b98b3c\)/s.test(css));
+check("smart-card chip has six metallic contact pads and engraved contact frame", /grid-template-columns:repeat\(3,1fr\)/.test(css) && /grid-template-rows:repeat\(2,1fr\)/.test(css) && /pass-chip:before/.test(css));
+check("student card uses the emerald luxury finish", /V77 — premium emerald PVC pass/.test(css) && /linear-gradient\(132deg,#073b30 0%,#052b25 48%,#031b19 100%\)/.test(css));
 check("QR tokens have no automatic expiry", /const cardActive = token => Boolean\(token\) && !token\.revoked_at/.test(server));
 check("new QR tokens persist with a null expiry", /expires_at: null, revoked_at: null/.test(server));
 check("legacy QR expiry is cleared without rotating the secret", server.includes("ترقية آمنة للبطاقات القديمة") && server.includes("expires_at: null"));
