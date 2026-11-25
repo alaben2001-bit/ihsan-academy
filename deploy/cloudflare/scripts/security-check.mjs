@@ -573,7 +573,7 @@ assert.match(backend, /if \(token\.revoked_at\) continue;/, "opening a card must
 assert.match(backend, /tokens\[kind\] = \{ hash: await hashToken\(secret\), secret, issued_at: now/, "card tokens must store a hash for verification and the secret for reprint");
 assert.ok(backend.indexOf('path === "/api/cards/resolve"') > 0 && backend.indexOf('path === "/api/cards/resolve"') < backend.indexOf('const user=await currentUser(request,env); if(!user)return fail(401'), "card resolution must run before the login gate so the login QR can be read anonymously");
 assert.match(backend, /requires_password:true,student:\{name:student\.name,username:student\.username/, "the login QR must return only a name and username, never a session");
-assert.match(backend, /if\(kind==="add_points"&&!\["admin","teacher","director","supervisor"\]\.includes\(scanner\.role\)\)return fail\(403/, "authorized staff roles may scan add-points cards");
+assert.match(backend, /if\(resolvedKind==="add_points"&&!\["admin","teacher","director","supervisor"\]\.includes\(scanner\.role\)\)return fail\(403/, "only authorized staff roles may use the smart QR to award points");
 assert.match(backend, /if\(!await canAccessStudentCard\(env,scanner,student\)\)return fail\(403,"هذه البطاقة خارج صلاحيتك"\)/, "card scans must respect group scope");
 assert.match(backend, /if\(path==="\/api\/student-cards\/bulk"&&method==="POST"\)/, "staff must be able to bulk-create group cards");
 assert.match(backend, /student-cards\\\/\(\[\^\/\]\+\)\\\/reissue/, "cards must support reissue");
