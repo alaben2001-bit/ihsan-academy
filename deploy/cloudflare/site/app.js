@@ -718,13 +718,13 @@ function items(){
  const staff=["admin","director","teacher","supervisor"].includes(S.user.role);
  if(S.user.role==="admin"){
   const full=adminFocusIsFull();
-  const daily=[["home","الرئيسية"],["groups","الأفواج وحسابات المعلمين"],["students","الطلاب"],["cards","بطاقات الطلاب"],["scan","المسح والمتابعة", "join-requests","طلبات الانضمام"],["join-requests","طلبات الانضمام"],["attendance","الحضور"],["quran","الحفظ والمراجعة"],["effort","تسجيل المتابعة اليومية"],["teams","الفرق"],["effort-ranking","الترتيب الأسبوعي/الشهري"],["points","النقاط والمتجر"],["notifications","التنبيهات"],["messages","الرسائل"]];
+  const daily=[["home","الرئيسية"],["groups","الأفواج وحسابات المعلمين"],["students","الطلاب"],["cards","بطاقات الطلاب"],["scan","المسح والمتابعة", "join-requests","طلبات الانضمام"],["join-requests","طلبات الانضمام"],["effort","المتابعة اليدوية"],["quran","الحفظ والمراجعة"],["teams","الفرق"],["effort-ranking","الترتيب الأسبوعي/الشهري"],["points","النقاط والمتجر"],["notifications","التنبيهات"],["messages","الرسائل"]];
   if(!full)return daily;
-  return [["home","الرئيسية"],["groups","الأفواج"],["students","الطلاب"],["cards","بطاقات الطلاب"],["scan","المسح والمتابعة", "join-requests","طلبات الانضمام"],["join-requests","طلبات الانضمام"],["attendance","الحضور"],["quran","الحفظ والمراجعة"],["effort","تسجيل المتابعة اليومية"],["teams","الفرق"],["effort-ranking","الترتيب الأسبوعي/الشهري"],["points","النقاط والمتجر"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"],["hadith","الحديث والمتون"],["competitions","المسابقات"],["system-check","فحص النظام"],["hierarchy","التسلسل الإداري"],["roadmap","خريطة الإنجاز"]];
+  return [["home","الرئيسية"],["groups","الأفواج"],["students","الطلاب"],["cards","بطاقات الطلاب"],["scan","المسح والمتابعة", "join-requests","طلبات الانضمام"],["join-requests","طلبات الانضمام"],["effort","المتابعة اليدوية"],["quran","الحفظ والمراجعة"],["teams","الفرق"],["effort-ranking","الترتيب الأسبوعي/الشهري"],["points","النقاط والمتجر"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"],["hadith","الحديث والمتون"],["competitions","المسابقات"],["system-check","فحص النظام"],["hierarchy","التسلسل الإداري"],["roadmap","خريطة الإنجاز"]];
  }
- if(S.user.role==="director")return [["home","الرئيسية"],["groups","الأفواج والمعلمون والفرق"],["students","طلاب المدرسة"],["cards","بطاقات الطلاب"],["scan","المسح والمتابعة", "join-requests","طلبات الانضمام"],["join-requests","طلبات الانضمام"],["roster-bulk","إضافة أسماء الطلبة"],["attendance","الحضور"],["quran","الحفظ والمراجعة"],["effort-ranking","الترتيب الأسبوعي/الشهري"],["points","النقاط والمتجر"],["effort","تسجيل المتابعة اليومية"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"],["hadith","الحديث والمتون"],["competitions","المسابقات"]];
- if(S.user.role==="supervisor")return [["home","الرئيسية"],["students","طلاب فريقي"],["cards","بطاقات الطلاب"],["scan","المسح والمتابعة", "join-requests","طلبات الانضمام"],["teams","فرقي الطلابية"],["attendance","الحضور"],["quran","متابعة الحفظ والمراجعة"],["effort-ranking","الترتيب الأسبوعي/الشهري"],["points","النقاط والمتجر"],["effort","تسجيل المتابعة اليومية"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"],["hadith","الحديث والمتون"],["competitions","المسابقات"]];
- if(S.user.role==="teacher")return [["home","الرئيسية"],["students","طلبتي"],["cards","بطاقات الطلاب"],["scan","المسح والمتابعة", "join-requests","طلبات الانضمام"],["join-requests","طلبات الانضمام"],["roster-bulk","إضافة أسماء الطلبة"],["groups","أفواجي"],["teams","فرقي الطلابية"],["attendance","الحضور"],["quran","متابعة الحفظ والمراجعة"],["effort-ranking","الترتيب الأسبوعي/الشهري"],["points","النقاط والمتجر"],["effort","تسجيل المتابعة اليومية"],["reports","التقارير"],["sheikh-check","فحص واجهة الشيخ"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"],["hadith","الحديث والمتون"],["competitions","المسابقات"]];
+ if(S.user.role==="director")return [["home","الرئيسية"],["groups","الأفواج والمعلمون والفرق"],["students","طلاب المدرسة"],["cards","بطاقات الطلاب"],["scan","المسح والمتابعة", "join-requests","طلبات الانضمام"],["join-requests","طلبات الانضمام"],["roster-bulk","إضافة أسماء الطلبة"],["effort","المتابعة اليدوية"],["quran","الحفظ والمراجعة"],["effort-ranking","الترتيب الأسبوعي/الشهري"],["points","النقاط والمتجر"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"],["hadith","الحديث والمتون"],["competitions","المسابقات"]];
+ if(S.user.role==="supervisor")return [["home","الرئيسية"],["students","طلاب فريقي"],["cards","بطاقات الطلاب"],["scan","المسح والمتابعة", "join-requests","طلبات الانضمام"],["teams","فرقي الطلابية"],["effort","المتابعة اليدوية"],["quran","متابعة الحفظ والمراجعة"],["effort-ranking","الترتيب الأسبوعي/الشهري"],["points","النقاط والمتجر"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"],["hadith","الحديث والمتون"],["competitions","المسابقات"]];
+ if(S.user.role==="teacher")return [["home","الرئيسية"],["students","طلبتي"],["cards","بطاقات الطلاب"],["scan","المسح والمتابعة", "join-requests","طلبات الانضمام"],["join-requests","طلبات الانضمام"],["roster-bulk","إضافة أسماء الطلبة"],["groups","أفواجي"],["teams","فرقي الطلابية"],["effort","المتابعة اليدوية"],["quran","متابعة الحفظ والمراجعة"],["effort-ranking","الترتيب الأسبوعي/الشهري"],["points","النقاط والمتجر"],["reports","التقارير"],["sheikh-check","فحص واجهة الشيخ"],["notifications","التنبيهات"],["messages","الرسائل"],["assignments","الواجبات"],["tests","الاختبارات"],["hadith","الحديث والمتون"],["competitions","المسابقات"]];
  if(S.user.role==="visitor")return [["home","الرئيسية"]];
  if(S.user.role==="student"&&!S.user.group_id)return [["home","الرئيسية"]];
  return [["world","عالمي"],["home","الرئيسية"],["profile","ملفي"],["tasks","مهامي"],["quran","تقدمي في القرآن"],["card","بطاقتي"],["points","النقاط والمتجر"],["leaderboard","الترتيب العام"],["guide","دليل الرحلة"],["teams","فرقتي وطلبات النقل"],["hadith","الحديث والمتون"],["competitions","المسابقات"],["assignments","واجباتي"],["gradebook","تقدمي ودرجاتي"],["attendance","حضوري"],["tests","اختباراتي"],["notifications","التنبيهات"],["messages","الرسائل"]];
@@ -2380,7 +2380,7 @@ async function scanPage(v){
     try{window.IhsanScanner&&window.IhsanScanner.stop()}catch{}
     status.textContent="تم تحديد الطالب — "+(taskLabel()||"المتابعة")+" · "+(groups.find(g=>String(g.id)===String(st.group_id))?.name||"");
     renderList();renderScanPanel(v,st.id);
-    requestAnimationFrame(()=>window.scrollTo(0,previousScroll));
+    requestAnimationFrame(()=>{editor.scrollIntoView({behavior:"smooth",block:"start"});});
   };
   toggle.addEventListener("click",()=>setPickerOpen(!picker.classList.contains("is-open")));
   taskDate.addEventListener("change",updateTask);
@@ -3493,6 +3493,26 @@ async function effortIndividualPage(v,groups){
   try{students=await api("/students?group_id="+encodeURIComponent(group.value));students=students.slice().sort((a,b)=>compareStudentNames(a.name,b.name));renderList();if(!students.length)list.innerHTML='<div class="empty">لا يوجد طلاب في هذا الفوج.</div>'}catch(error){list.innerHTML='<div class="notice error">'+esc(error.message)+'</div>'}
  };
  search.addEventListener("input",renderList);
+ const submitSearch=()=>{
+  if(!students.length){
+   if(!group.value)return toast("اختر الفوج أولًا",true);
+   v.querySelector("#effort-individual-load")?.click();
+   return;
+  }
+  renderList();
+  const query=String(search.value||"").trim().toLocaleLowerCase("ar");
+  const matches=students.filter(st=>!query||String(st.name||"").toLocaleLowerCase("ar").includes(query));
+  search.blur();
+  if(matches.length===1){selectStudent(matches[0].id);return}
+  if(matches.length)list.scrollIntoView({behavior:"smooth",block:"nearest"});
+  else toast("لم نعثر على طالب بهذا الاسم",true);
+ };
+ search.addEventListener("keydown",event=>{
+  if(event.key==="Enter"||event.key==="Search"){
+   event.preventDefault();
+   submitSearch();
+  }
+ });
 }
 async function effortGroupPage(v,groups){
  const today=localDateISO();
@@ -3581,7 +3601,7 @@ async function effortRankingPage(v){
    const data=await api("/effort/ranking?"+query.toString());
    const scopeName=scope==="academy"?"الأكاديمية":scope==="group"?((groups.find(g=>String(g.id)===String(groupId))||{}).name||"الفوج"):(data.team_name||"الفرقة");
    const periodLabel={weekly:"الأسبوعي",monthly:"الشهري",yearly:"السنوي"}[periodSel.value];
-   const metrics=[["attendance","الحضور"],["wird","الورد"],["thabit","التثبيت"],["bring","الإحضار"],["memorization","الحفظ"]];
+   const metrics=[["effort","المتابعة اليدوية"],["wird","الورد"],["thabit","التثبيت"],["bring","الإحضار"],["memorization","الحفظ"]];
    const change=row=>row.rank_change===null||row.rank_change===undefined?'<span class="muted">—</span>':row.rank_change>0?'<strong style="color:#16834a">↑ '+row.rank_change+'</strong>':row.rank_change<0?'<strong style="color:#c0392b">↓ '+Math.abs(row.rank_change)+'</strong>':'<span class="muted">— ثابت</span>';
    if(!data.rows.length){host.innerHTML='<div class="empty">'+(scope==="team"?"لم تُسند عضوية فرقة لهذا الطالب بعد.":"لا توجد بيانات كافية لهذه الفترة.")+'</div>';return;}
    const tableHtml='<div class="table-wrap ranking-table-wrap"><table class="ranking-table"><thead><tr><th>الترتيب</th><th>الطالب</th><th>نقاط الفترة</th><th>التغير</th>'+metrics.map(m=>'<th>'+m[1]+'</th>').join("")+'</tr></thead><tbody>'+data.rows.map(row=>'<tr><td><span class="rank-badge'+(row.rank===1?' is-first':row.rank===2?' is-second':row.rank===3?' is-third':'')+'">'+row.rank+'</span></td><td class="ranking-student">'+esc(row.name)+'</td><td class="ranking-score"><strong>'+Number(row.score||0)+'</strong></td><td>'+change(row)+'</td>'+metrics.map(m=>'<td class="ranking-metric'+(row.metrics[m[0]]===null?' is-empty':'')+'">'+(row.metrics[m[0]]===null?'—':row.metrics[m[0]]+'%')+'</td>').join("")+'</tr>').join("")+'</tbody></table></div>';
