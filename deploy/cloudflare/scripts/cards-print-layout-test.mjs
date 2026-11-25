@@ -60,6 +60,7 @@ check("bulk print prevents page splitting inside a sheet or card", css.includes(
 
 check("staff card uses the academy emblem SVG instead of the Arabic letter mark", /pass-brand-logo[^]*?src="\/ihsan-emblem\.svg"/.test(staffPage) && !staffPage.includes("pass-brand-mark"));
 check("staff card footer uses the resolved school name and never substitutes the group name", /pass-school-name/.test(staffPage) && /schoolName=String\(row\.school_name\|\|"—"\)/.test(staffPage));
+check("all printed cards resolve the official school name from the group school ID", /api\("\/public\/quran-schools"\)/.test(staffPage) && /row\.school_name=schoolMap\.get\(String\(g\?\.school_id\|\|""\)\)\|\|"—"/.test(staffPage));
 check("temporary ten-card list contains the ten requested names", /const temporaryNames=\["ياسين بن ذيب","أنس كعوان","أمير بوقزولة","زكرياء هب الريح","سراج كراش","عبد الرحمن صالحي","مقالة عبد اللطيف","أنس محنان","علي ونوغي","إسحاق سواك"\]/.test(app));
 check("temporary batch refuses ambiguous or missing students and enables print only for ten unique matches", /matches\.length===1/.test(app) && /tempPrint\.disabled=resolved\.length!==10\|\|issues\.length!==0/.test(app));
 check("temporary batch uses the current smart login QR, not add-points QR", /qrSvg\(row\.links\?\.login\|\|""\,180\)/.test(staffPage));
