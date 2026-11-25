@@ -184,7 +184,7 @@ async function main() {
   check("login QR never issues a session cookie", anonymousLogin.setCookie.length === 0, JSON.stringify(anonymousLogin.setCookie));
   const studentSmartScan = await resolveCard("login", loginLink.cardId, loginLink.secret, student.token);
   check("smart QR opens the matching student's own account", studentSmartScan.status === 200 && studentSmartScan.data?.authenticated === true && studentSmartScan.data?.next === "student" && studentSmartScan.data?.student?.id === student.id, JSON.stringify(studentSmartScan.data));
-  const teacherSmartScan = await resolveCard("login", loginLink.cardId, loginLink.secret, teacherInside.token);
+  const teacherSmartScan = await resolveCard("login", loginLink.cardId, loginLink.secret, teacherInside.token, "");
   check("smart QR opens a permitted sheikh workflow", teacherSmartScan.status === 200 && teacherSmartScan.data?.authenticated === true && teacherSmartScan.data?.next === "staff" && teacherSmartScan.data?.student?.id === student.id, JSON.stringify(teacherSmartScan.data));
   const outsideSmartScan = await resolveCard("login", loginLink.cardId, loginLink.secret, teacherOutside.token);
   check("smart QR denies a sheikh outside the student's group", outsideSmartScan.status === 403, JSON.stringify(outsideSmartScan.data));
