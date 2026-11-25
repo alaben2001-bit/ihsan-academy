@@ -20,4 +20,7 @@ assert.match(app,/data-effort-memorized/,"group mode must support memorization")
 assert.match(app,/data-effort-reviewed/,"group mode must support revision");
 assert.match(app,/data-individual-effort-task/,"individual mode must support the additional daily tasks");
 assert.match(css,/\.effort-mode-switch\{display:grid/,"follow-up modes must have a distinct responsive switch");
+assert.match(app,/className="ihsan-prayer-text"/,"entry supplication must have a distinct reading surface");
+assert.match(app,/aria-labelledby","ihsan-prayer-title"/,"entry supplication must expose an accessible title");
+assert.match(css,/\.ihsan-prayer-dialog \.ihsan-prayer-text/,"entry supplication must have a clear responsive reading layout");
 console.log("UX regression checks passed.");
