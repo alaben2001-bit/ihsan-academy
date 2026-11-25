@@ -1,0 +1,15 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+const app=readFileSync(new URL("../site/app.js",import.meta.url),"utf8");
+const css=readFileSync(new URL("../site/style.css",import.meta.url),"utf8");
+const rules=readFileSync(new URL("../site/ihsan-rules.html",import.meta.url),"utf8");
+assert.match(app,/name="remember" type="checkbox" checked/,"login must offer persistent 30-day session");
+assert.match(app,/remember:f\.get\("remember"\)==="on"/,"login must send remember selection to the API");
+assert.match(app,/if\(!\["attendance","hifz"\]\.includes\(id\)\)setPickerOpen\(false\)/,"unchecking attendance must not collapse the task picker");
+assert.match(app,/searchInput\.blur\(\)/,"selecting a student must dismiss the mobile keyboard");
+assert.match(app,/window\.scrollTo\(0,previousScroll\)/,"selecting a student must preserve the current scroll position");
+assert.match(css,/body:has\(\.auth-layout\) \.topbar\{display:none!important\}/,"login header strip must be hidden");
+assert.match(css,/auth-layout \.field input[\s\S]*background:#071a13!important/,"login inputs must use high-contrast dark surfaces");
+assert.match(css,/\.app-authenticated \.content-area\{padding-bottom:calc\(148px/,"mobile workspace must reserve room for bottom navigation");
+assert.doesNotMatch(rules,/۞/,"eight-point star must be removed from the Ihsan rules page");
+console.log("UX regression checks passed.");
