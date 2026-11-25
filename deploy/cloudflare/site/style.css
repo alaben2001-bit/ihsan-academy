@@ -4132,3 +4132,38 @@ body:has(.auth-layout) .welcome{border:1px solid rgba(212,173,99,.5);box-shadow:
   .app-authenticated .scan-camera-card .student-actions .btn{min-height:46px;flex:1 1 140px}
   .app-authenticated .scan-layout{scroll-margin-bottom:150px}
 }
+
+
+/* Daily follow-up: two distinct methods, progressive disclosure and readable student cards */
+.effort-mode-switch{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:0 0 16px}
+.effort-mode-option{display:grid;gap:5px;min-width:0;padding:16px;border:1px solid var(--line);border-radius:14px;background:var(--surface);color:var(--ink);text-align:right;box-shadow:var(--shadow);cursor:pointer}
+.effort-mode-option strong{font-size:15px;font-weight:850}
+.effort-mode-option small{font-size:11px;color:var(--muted);line-height:1.8}
+.effort-mode-option.active{border-color:var(--gold);background:linear-gradient(145deg,var(--mint),var(--surface));box-shadow:0 0 0 2px color-mix(in srgb,var(--gold) 22%,transparent)}
+.effort-individual-list{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,220px),1fr));gap:9px;margin-top:14px}
+.effort-individual-student{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px 10px;align-items:center;padding:13px;border:1px solid var(--line);border-radius:12px;background:var(--surface);color:var(--ink);text-align:right}
+.effort-individual-student strong{font-size:13px;line-height:1.7}
+.effort-individual-student small{grid-column:1;color:var(--muted);font-size:10px}
+.effort-individual-student span{grid-column:2;grid-row:1 / span 2;color:var(--green);font-size:11px;font-weight:800;white-space:nowrap}
+.effort-individual-student:hover{border-color:var(--gold);background:var(--surface-2)}
+.effort-individual-editor{display:grid;gap:15px;margin-top:16px}
+.effort-task-section,.effort-task-details{min-width:0;padding:15px;border:1px solid var(--line);border-radius:13px;background:var(--surface-2)}
+.effort-task-section h4{margin:0 0 12px;color:var(--green);font-size:15px}
+.effort-task-details>summary{cursor:pointer;list-style:none;font-weight:850;color:var(--ink);padding:2px 0}
+.effort-task-details>summary::-webkit-details-marker{display:none}
+.effort-task-details>summary:after{content:"＋";float:left;color:var(--green);font-weight:900}
+.effort-task-details[open]>summary:after{content:"−"}
+.effort-task-details[open]>.form-grid{margin-top:14px}
+.effort-student{display:grid;gap:12px}
+.effort-student h3{margin:0;font-size:15px}
+.effort-roster{display:grid;gap:12px;margin:14px 0}
+.effort-roster .effort-student .form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+@media(max-width:640px){
+ .effort-mode-switch{gap:8px}
+ .effort-mode-option{padding:12px}
+ .effort-mode-option strong{font-size:13px}
+ .effort-mode-option small{font-size:10px}
+ .effort-individual-list{grid-template-columns:1fr}
+ .effort-task-section,.effort-task-details{padding:12px}
+ .effort-roster .effort-student .form-grid{grid-template-columns:1fr}
+}
