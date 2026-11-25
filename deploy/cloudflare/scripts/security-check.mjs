@@ -583,7 +583,7 @@ assert.match(backend, /student_card_reissue/, "card reissue must be audited");
 assert.match(backend, /student_card_revoke/, "card revoke must be audited");
 assert.match(backend, /student_card_print/, "card printing must be audited");
 assert.match(backend, /status:"present",note:"تسجيل حضور آلي بمسح بطاقة الطالب"/, "add-points card scans must automatically record attendance");
-assert.match(backend, /if\(kind==="add_points"&&task==="attendance"\)/, "attendance is automatic only for attendance scans");
+assert.match(backend, /if\(resolvedKind==="add_points"&&task==="attendance"\)/, "attendance is automatic only for authorized attendance scans, including the smart QR");
 assert.match(backend, /eventType:"hifz_no_errors",eventKey:"hifz:"\+date\+":"\+student\.id/, "memorization scans award the idempotent 20-point hifz event");
 assert.match(backend, /achievement_points=20,store_points=20,max_per_day=1/, "memorization awards must be worth 20 points");
 assert.match(backend, /awardAttendancePoints\(env,\{groupId:student\.group_id,date,studentIds:\[student\.id\],awardedBy:scanner\.id\}\)/, "attendance scans must award points through the idempotent attendance engine");
