@@ -23,7 +23,7 @@ check("student card has no balance, store balance, or level badge", !/passBalanc
 check("student card print no longer appends a separate QR sheet", !/cardQrSheet\(links/.test(studentPage));
 check("golden decorative chip remains in student card", /class="pass-chip"/.test(studentPage));
 check("staff cards use the same preserved student-pass design", /class="student-pass student-pass-print"/.test(staffPage));
-check("staff tools expose separate profile and add-points QR codes outside the public printed card", /data-card-qr-tools/.test(staffPage) && /QR الملف الشخصي/.test(staffPage) && /QR إضافة النقاط/.test(staffPage) && server.includes("canAccessStudentCard(env,scanner,student)") && server.includes('kind==="add_points"'));
+check("legacy staff-only QR tools remain separate and server-authorized", /data-card-qr-tools/.test(staffPage) && /QR الملف الشخصي/.test(staffPage) && /QR إضافة النقاط/.test(staffPage) && server.includes("canAccessStudentCard(env,scanner,student)") && server.includes('resolvedKind==="add_points"'));
 check("bulk-printed student card uses the single smart QR", /const qr=qrSvg\(row\.links\?\.login\|\|""\,180\)/.test(staffPage) && /رمز QR الذكي للطالب والشيخ/.test(staffPage));
 check("printed card contains no balance and no level-one label", !/pass-grid|الرصيد الحالي|رصيد المتجر|نقاط الإنجاز|بطاقة مستوى 1/.test(staffPage));
 check("printed card uses smart QR and keeps legacy staff QR tools separate", /const qr=qrSvg\(row\.links\?\.login/.test(staffPage) && /QR الملف الشخصي/.test(staffPage));
