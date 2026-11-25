@@ -25,13 +25,13 @@ check("staff cards use the same preserved student-pass design", /class="student-
 check("staff tools expose separate profile and add-points QR codes outside the public printed card", /data-card-qr-tools/.test(staffPage) && /QR الملف الشخصي/.test(staffPage) && /QR إضافة النقاط/.test(staffPage) && server.includes("canAccessStudentCard(env,scanner,student)") && server.includes('kind==="add_points"'));
 check("printed student card QR is only for authorized add-points flow", /const qr=qrSvg\(row\.links\?\.add_points\|\|""\,180\)/.test(staffPage) && /QR لإضافة النقاط للمخولين/.test(staffPage));
 check("printed card contains no balance and no level-one label", !/pass-grid|الرصيد الحالي|رصيد المتجر|نقاط الإنجاز|بطاقة مستوى 1/.test(staffPage));
-check("printed student QR does not expose staff-only points token", !/const qr=qrSvg\(row\.links\?\.add_points/.test(staffPage));
+check("printed card uses add-points QR and keeps profile QR in staff-only tools", /const qr=qrSvg\(row\.links\?\.add_points/.test(staffPage) && /QR الملف الشخصي/.test(staffPage));
 check("individual print action exists", /data-card-print-one/.test(staffPage));
 check("all permitted groups option exists", /__all_managed_groups__/.test(staffPage));
 check("group and all-scope printing use the existing authorized bulk endpoint", /api\("\/student-cards\/bulk"/.test(staffPage));
 check("all-scope printing follows every paginated batch", /while\(true\)[^]*?data\.has_more[^]*?data\.next_offset/.test(staffPage));
 check("existing bulk endpoint paginates with bounded limits and offset", /LIMIT \? OFFSET \?/.test(server) && /Math\.min\(200/.test(server));
-check("bulk card API supplies authoritative balances and prints achievement/store separately without conflating legacy balances", /pointsTotals\(env,row\.id\)/.test(server) && /totals\.mode==="separate"/.test(staffPage) && /نقاط الإنجاز/.test(staffPage) && /رصيد المتجر/.test(staffPage) && /الرصيد الحالي/.test(staffPage));
+check("bulk card API still supplies authoritative totals without printing balances on the card", /pointsTotals\(env,row\.id\)/.test(server) && /totals\}\)/.test(server) && !/pass-grid|الرصيد الحالي|رصيد المتجر|نقاط الإنجاز/.test(staffPage));
 check("bulk print is split into explicit sheets of ten cards with page numbering", /offset\+=10/.test(staffPage) && /cards-print-page-number/.test(staffPage));
 check("each A4 sheet actually renders ten cards rather than eight", /datasets\.slice\(offset,offset\+10\)/.test(staffPage));
 check("page count is derived from the same ten-card batch size", /Math\.ceil\(datasets\.length\/10\)/.test(staffPage));
