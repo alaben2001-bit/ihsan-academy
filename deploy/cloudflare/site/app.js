@@ -2430,7 +2430,7 @@ async function handleScannedText(v,raw){
   try{
     const taskIds=String(S.scanTaskType||safeStore.get("ihsan_scan_task_type")||"").split(",").filter(id=>["attendance","hifz"].includes(id));
     if(!taskIds.length||!S.scanDate){toast("اختر الحضور أو الحفظ أولًا.",true);return}
-    if(kind!=="add_points"){toast("امسح بطاقة إضافة النقاط الخاصة بالطالب.",true);return}
+    if(kind!=="add_points"&&kind!=="login"){toast("هذا الرمز غير مخصص لمسح مهام الشيخ.",true);return}
     const tasks=taskIds;
     const results=[];
     for(const task of tasks){
@@ -2447,12 +2447,12 @@ async function handleScannedText(v,raw){
     const attendanceResult=results.find((_,i)=>tasks[i]==="attendance");
     const hifzResult=results.find((_,i)=>tasks[i]==="hifz");
     const name=String(rosterStudent.name||student.name||"طالب");
-    if(kind==="add_points"&&tasks.length>1){
+    if((kind==="add_points"||kind==="login")&&tasks.length>1){
       const a=attendanceResult?.attendance_awards?.length?"30 نقطة حضور":"الحضور مسجل اليوم";
       const h=hifzResult?.hifz_awards?.some(x=>x.status==="awarded")?"20 نقطة حفظ":"مكافأة الحفظ مسجلة اليوم";
       toast(name+" — "+a+" + "+h);
-    }else if(kind==="add_points"&&tasks[0]==="attendance")toast("حضور "+name+" — "+(result.attendance_awards?.length?"30 نقطة، ولا تتكرر اليوم":"تم تسجيل الحضور مسبقًا اليوم."));
-    else if(kind==="add_points"&&tasks[0]==="hifz")toast("حفظ "+name+" — "+(result.hifz_awards?.some(x=>x.status==="awarded")?"20 نقطة":"مكافأة الحفظ مسجلة اليوم."));
+    }else if((kind==="add_points"||kind==="login")&&tasks[0]==="attendance")toast("حضور "+name+" — "+(result.attendance_awards?.length?"30 نقطة، ولا تتكرر اليوم":"تم تسجيل الحضور مسبقًا اليوم."));
+    else if((kind==="add_points"||kind==="login")&&tasks[0]==="hifz")toast("حفظ "+name+" — "+(result.hifz_awards?.some(x=>x.status==="awarded")?"20 نقطة":"مكافأة الحفظ مسجلة اليوم."));
     else toast("تم ربط البطاقة بالطالب: "+name+" · "+({add_points:"رمز إضافة النقاط",profile:"رمز الملف الشخصي",login:"رمز الدخول"}[kind]||"بطاقة"));
     renderScanPanel(v,String(rosterStudent.id));
   }catch(error){toast(error.message||"تعذر استخدام البطاقة",true)}
