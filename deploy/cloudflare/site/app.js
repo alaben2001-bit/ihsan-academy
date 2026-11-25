@@ -599,7 +599,7 @@ const authBenefits=[
 
 const scanNotice=(()=>{try{const text=safeStore.getSession("ihsan_scan_notice");if(text)safeStore.removeSession("ihsan_scan_notice");return String(text||"")}catch{return ""}})();
 const authTabs=setup?'':'<div class="auth-tabs" role="tablist" aria-label="تسجيل الدخول أو إنشاء حساب"><button type="button" class="auth-tab is-active" id="tab-login" role="tab" aria-selected="true">تسجيل الدخول</button><button type="button" class="auth-tab" id="tab-signup" role="tab" aria-selected="false">إنشاء حساب</button></div>';
-const loginPane='<div id="login-pane" role="tabpanel">'+'<form id="auth-form" class="stack" autocomplete="off">'+(setup?'<label class="field">رمز الإعداد<input name="code" type="password" required autocomplete="off"></label><label class="field">الاسم الكامل<input name="name" required maxlength="120"></label><label class="field">البريد الإلكتروني<input name="email" type="email" required></label><label class="field">كلمة مرور المدير (14 حرفًا على الأقل)<input name="password" type="password" minlength="14" required autocomplete="new-password"></label>':'<label class="field">الاسم الكامل أو اسم الدخول<input name="username" id="login-identity" type="text" required autocomplete="off" spellcheck="false" autocapitalize="off"></label><label class="field">كلمة المرور<span class="password-input-wrap"><input name="password" id="login-password" type="password" required autocomplete="off"><button type="button" class="password-visibility" id="toggle-login-password" aria-label="إظهار كلمة المرور" aria-pressed="false">إظهار</button></span></label>')+'<div id="auth-error" class="notice error hidden"></div><button class="btn" type="submit">'+(setup?"إنشاء حساب المدير":"تسجيل الدخول")+'</button></form>'+(!setup?'<button type="button" class="btn secondary" id="forgot-password">نسيت كلمة المرور؟ استردادها عبر Google</button><div class="login-divider"><span>أو</span></div><section class="google-login-section" aria-label="تسجيل الدخول باستخدام Google"><div id="google-signin"></div><p id="google-login-note" class="muted small">جارٍ التحقق من إعدادات الدخول بجوجل…</p></section><p class="muted small auth-taysir-link">زائر أو محسن؟ التعرّف على الأكاديمية والمساهمة في <a href="'+esc(TAYSIR_URL)+'" rel="noopener" target="_blank">بوابة التيسير</a>؛ هذا الفضاء داخلي للطلاب والشيوخ المسجلين.</p>':'')+'</div>';
+const loginPane='<div id="login-pane" role="tabpanel">'+'<form id="auth-form" class="stack" autocomplete="off">'+(setup?'<label class="field">رمز الإعداد<input name="code" type="password" required autocomplete="off"></label><label class="field">الاسم الكامل<input name="name" required maxlength="120"></label><label class="field">البريد الإلكتروني<input name="email" type="email" required></label><label class="field">كلمة مرور المدير (14 حرفًا على الأقل)<input name="password" type="password" minlength="14" required autocomplete="new-password"></label>':'<label class="field">الاسم الكامل أو اسم الدخول<input name="username" id="login-identity" type="text" required autocomplete="off" spellcheck="false" autocapitalize="off"></label><label class="field">كلمة المرور<span class="password-input-wrap"><input name="password" id="login-password" type="password" required autocomplete="off"><button type="button" class="password-visibility" id="toggle-login-password" aria-label="إظهار كلمة المرور" aria-pressed="false">إظهار</button></span></label><label class="remember-option"><input name="remember" type="checkbox" checked><span>إبقائي مسجل الدخول على هذا الجهاز لمدة 30 يومًا</span></label>')+'<div id="auth-error" class="notice error hidden"></div><button class="btn" type="submit">'+(setup?"إنشاء حساب المدير":"تسجيل الدخول")+'</button></form>'+(!setup?'<button type="button" class="btn secondary" id="forgot-password">نسيت كلمة المرور؟ استردادها عبر Google</button><div class="login-divider"><span>أو</span></div><section class="google-login-section" aria-label="تسجيل الدخول باستخدام Google"><div id="google-signin"></div><p id="google-login-note" class="muted small">جارٍ التحقق من إعدادات الدخول بجوجل…</p></section><p class="muted small auth-taysir-link">زائر أو محسن؟ التعرّف على الأكاديمية والمساهمة في <a href="'+esc(TAYSIR_URL)+'" rel="noopener" target="_blank">بوابة التيسير</a>؛ هذا الفضاء داخلي للطلاب والشيوخ المسجلين.</p>':'')+'</div>';
 const signupPane=setup?'':'<div id="signup-pane" role="tabpanel" hidden><form id="signup-form" class="stack" autocomplete="off">'
  +'<div class="signup-kind" role="radiogroup" aria-label="نوع الحساب">'
  +'<label class="signup-kind-option"><input type="radio" name="kind" value="student" checked><span class="signup-kind-card"><strong>طالب</strong><small>أنشئ حسابك ثم اطلب الانضمام إلى المدرسة؛ يبقى طلبك قيد الاعتماد حتى يوافق الشيخ أو الإدارة</small></span></label>'
@@ -2366,14 +2366,17 @@ async function scanPage(v){
     const st=students.find(x=>String(x.id)===String(id));
     if(!selectedTaskIds().length||!taskDate.value){openTaskPicker();toast("اختر المهمة أولًا.",true);return}
     if(!st){toast("هذا الطالب خارج نطاق صلاحيتك؛ لم تُفتح المتابعة.",true);return}
+    const searchInput=v.querySelector("#scan-search"),previousScroll=window.scrollY;
+    if(searchInput)searchInput.blur();
     S.scanGroupId=String(st.group_id||"");S.scanStudentId=st.id;
     try{window.IhsanScanner&&window.IhsanScanner.stop()}catch{}
     status.textContent="تم تحديد الطالب — "+(taskLabel()||"المتابعة")+" · "+(groups.find(g=>String(g.id)===String(st.group_id))?.name||"");
     renderList();renderScanPanel(v,st.id);
+    requestAnimationFrame(()=>window.scrollTo(0,previousScroll));
   };
   toggle.addEventListener("click",()=>setPickerOpen(!picker.classList.contains("is-open")));
   taskDate.addEventListener("change",updateTask);
-  v.querySelectorAll("[data-scan-task]").forEach(button=>button.addEventListener("click",()=>{const id=button.dataset.scanTask;let ids=selectedTaskIds();if(["attendance","hifz"].includes(id)){ids=ids.filter(x=>["attendance","hifz"].includes(x));ids=ids.includes(id)?ids.filter(x=>x!==id):[...ids,id];}else{ids=[id];}taskType.value=ids.join(",");if(!ids.some(x=>["points","general"].includes(x)))S.scanActivity="";updateTask();if(!["attendance","hifz"].includes(id)||!ids.length)setPickerOpen(false)}));
+  v.querySelectorAll("[data-scan-task]").forEach(button=>button.addEventListener("click",()=>{const id=button.dataset.scanTask;let ids=selectedTaskIds();if(["attendance","hifz"].includes(id)){ids=ids.filter(x=>["attendance","hifz"].includes(x));ids=ids.includes(id)?ids.filter(x=>x!==id):[...ids,id];}else{ids=[id];}taskType.value=ids.join(",");if(!ids.some(x=>["points","general"].includes(x)))S.scanActivity="";updateTask();if(!["attendance","hifz"].includes(id))setPickerOpen(false)}));
   v.querySelector("#scan-search").addEventListener("input",renderList);
   let scanning=false;
   startButton.addEventListener("click",async()=>{
@@ -3405,29 +3408,134 @@ const EFFORT_TASKS=[
 const EFFORT_STATUS={done:"أُنجز",missed:"لم يُنجز",excused:"بعذر"};
 async function effortPage(v){
  const groups=assignedGroups().slice().sort((a,b)=>compareStudentNames(a.name,b.name));
+ const mode=safeStore.getSession("ihsan_effort_mode")==="individual"?"individual":"group";
+ v.innerHTML=head("المتابعة اليومية","اختر طريقة التسجيل؛ الفردية لطالب واحد، والجماعية لفوج كامل في اليوم نفسه.")+
+ '<div class="effort-mode-switch" role="group" aria-label="طريقة المتابعة"><button type="button" class="effort-mode-option '+(mode==="individual"?"active":"")+'" data-effort-mode="individual"><strong>ط1 · فردية</strong><small>ابحث عن طالب ثم أضف مهمته</small></button><button type="button" class="effort-mode-option '+(mode==="group"?"active":"")+'" data-effort-mode="group"><strong>ط2 · جماعية</strong><small>سجّل مهام الفوج في يوم واحد</small></button></div><div id="effort-mode-content"></div>';
+ v.querySelectorAll("[data-effort-mode]").forEach(button=>button.onclick=()=>{safeStore.setSession("ihsan_effort_mode",button.dataset.effortMode);effortPage(v)});
+ const host=v.querySelector("#effort-mode-content");
+ if(mode==="individual")return effortIndividualPage(host,groups);
+ return effortGroupPage(host,groups);
+}
+function effortStatusOptions(value){
+ return '<option value="">لم يُسجّل</option><option value="done" '+(value==="done"?"selected":"")+'>أُنجز</option><option value="missed" '+(value==="missed"?"selected":"")+'>لم يُنجز</option><option value="excused" '+(value==="excused"?"selected":"")+'>بعذر</option>';
+}
+function attendanceStatusOptions(value){
+ return '<option value="">لم يُسجّل</option><option value="present" '+(value==="present"?"selected":"")+'>حاضر</option><option value="absent" '+(value==="absent"?"selected":"")+'>غائب</option><option value="late" '+(value==="late"?"selected":"")+'>متأخر</option><option value="excused" '+(value==="excused"?"selected":"")+'>بعذر</option>';
+}
+function quranLatestForDay(rows,day,activity){
+ return (rows||[]).filter(row=>row.date===day&&row.activity===activity).sort((a,b)=>String(b.updated_at||"").localeCompare(String(a.updated_at||"")))[0]||null;
+}
+async function effortIndividualPage(v,groups){
  const today=localDateISO();
- v.innerHTML=head("الاجتهاد فيه","سجّل بنود اليوم لكل طالب بالطريقة المباشرة نفسها المستخدمة في الحضور.")+
- '<section class="card"><div class="form-grid"><label class="field">الفوج<select id="effort-group"><option value="">اختر الفوج</option>'+groups.map(g=>'<option value="'+esc(g.id)+'">'+esc(g.name)+'</option>').join("")+'</select></label><label class="field">التاريخ<input id="effort-date" type="date" value="'+today+'" max="'+today+'"></label><div class="wide"><button type="button" class="btn" id="effort-load">عرض الطلبة</button></div></div><div id="effort-roster" class="muted small">اختر الفوج والتاريخ.</div></section>';
- const groupSel=$("#effort-group"),dateInput=$("#effort-date"),host=$("#effort-roster");
- const saved=safeStore.getSession("ihsan_effort_group");if(saved&&groups.some(g=>String(g.id)===saved))groupSel.value=saved;
- $("#effort-load").onclick=async()=>{
-  const gid=groupSel.value,date=dateInput.value;if(!gid||!date)return toast("اختر الفوج والتاريخ",true);
-  safeStore.setSession("ihsan_effort_group",gid);host.innerHTML='<div class="loading">جار تحميل السجل…</div>';
+ v.innerHTML='<section class="card"><div class="form-grid"><label class="field">الفوج<select id="effort-individual-group"><option value="">اختر الفوج</option>'+groups.map(g=>'<option value="'+esc(g.id)+'">'+esc(g.name)+'</option>').join("")+'</select></label><label class="field">التاريخ<input id="effort-individual-date" type="date" value="'+today+'" max="'+today+'"></label><label class="field wide">ابحث عن الطالب<input id="effort-individual-search" type="search" placeholder="اكتب اسم الطالب…" autocomplete="off"></label><div class="wide"><button type="button" class="btn" id="effort-individual-load">عرض الطلبة</button></div></div><div id="effort-individual-list" class="effort-individual-list muted small">اختر الفوج ثم اعرض الطلبة.</div></section><div id="effort-individual-editor"></div>';
+ const group=v.querySelector("#effort-individual-group"),date=v.querySelector("#effort-individual-date"),search=v.querySelector("#effort-individual-search"),list=v.querySelector("#effort-individual-list"),editor=v.querySelector("#effort-individual-editor");
+ const saved=safeStore.getSession("ihsan_effort_group");if(saved&&groups.some(g=>String(g.id)===saved))group.value=saved;
+ let students=[];
+ const renderList=()=>{
+  const query=String(search.value||"").trim().toLocaleLowerCase("ar");
+  const matches=students.filter(st=>!query||String(st.name||"").toLocaleLowerCase("ar").includes(query));
+  list.innerHTML=matches.length?matches.slice(0,100).map(st=>'<button type="button" class="effort-individual-student" data-effort-pick="'+esc(st.id)+'"><strong>'+esc(studentDisplayName(st.name))+'</strong><small>'+esc((groups.find(g=>String(g.id)===String(st.group_id))||{}).name||"")+'</small><span>إضافة مهمة ←</span></button>').join(""):'<div class="empty">لا توجد أسماء مطابقة.</div>';
+  list.querySelectorAll("[data-effort-pick]").forEach(button=>button.onclick=()=>selectStudent(button.dataset.effortPick));
+ };
+ const selectStudent=async id=>{
+  const student=students.find(st=>String(st.id)===String(id));if(!student)return;
+  const previousScroll=window.scrollY;search.blur();editor.innerHTML='<div class="loading">جار فتح بطاقة المتابعة…</div>';
   try{
-   const [students,logs]=await Promise.all([api("/students?group_id="+encodeURIComponent(gid)),api("/effort?group_id="+encodeURIComponent(gid)+"&date="+encodeURIComponent(date))]);
-   if(!students.length){host.innerHTML='<div class="empty">لا يوجد طلبة في هذا الفوج.</div>';return}
-   const byStudent={};logs.forEach(r=>{(byStudent[r.student_id]||(byStudent[r.student_id]={}))[r.category]=r.status});
-   host.innerHTML='<p class="muted small">'+esc((groups.find(g=>String(g.id)===gid)||{}).name||"الفوج")+' · '+esc(date)+' · '+students.length+' طالبًا</p><div class="attendance-bulk-actions"><button type="button" class="btn secondary" id="effort-all-done">الكل أُنجز</button><button type="button" class="btn secondary" id="effort-all-missed">الكل لم يُنجز</button><button type="button" class="btn secondary" id="effort-all-clear">مسح الحالات</button></div><div class="effort-roster">'+students.map(st=>'<article class="card effort-student" data-effort-student="'+esc(st.id)+'"><h3>'+esc(studentDisplayName(st.name))+'</h3><div class="form-grid">'+EFFORT_TASKS.map(([key,label])=>'<label class="field">'+esc(label)+'<select data-effort-task="'+key+'"><option value="">لم يُسجّل</option><option value="done" '+(byStudent[st.id]?.[key]==="done"?"selected":"")+'>أُنجز</option><option value="missed" '+(byStudent[st.id]?.[key]==="missed"?"selected":"")+'>لم يُنجز</option><option value="excused" '+(byStudent[st.id]?.[key]==="excused"?"selected":"")+'>بعذر</option></select></label>').join("")+'</div></article>').join("")+'</div><button type="button" class="btn" id="effort-save">حفظ المتابعة</button>';
-   $("#effort-all-done").onclick=()=>host.querySelectorAll("[data-effort-task]").forEach(sel=>sel.value="done");
-   $("#effort-all-missed").onclick=()=>host.querySelectorAll("[data-effort-task]").forEach(sel=>sel.value="missed");
-   $("#effort-all-clear").onclick=()=>host.querySelectorAll("[data-effort-task]").forEach(sel=>sel.value="");
-   $("#effort-save").onclick=async()=>{
-    const items=[...host.querySelectorAll("[data-effort-student]")].map(card=>({student_id:card.dataset.effortStudent,checks:Object.fromEntries([...card.querySelectorAll("[data-effort-task]")].map(sel=>[sel.dataset.effortTask,sel.value]).filter(pair=>pair[1]))})).filter(item=>Object.keys(item.checks).length);
-    if(!items.length)return toast("سجّل حالة واحدة على الأقل قبل الحفظ",true);
-    const btn=$("#effort-save");btn.disabled=true;
-    try{const result=await api("/effort",{method:"POST",body:JSON.stringify({group_id:gid,date,items})});toast("تم حفظ "+result.saved+" حالة متابعة");await $("#effort-load").click()}catch(e){toast(e.message,true)}finally{if(btn.isConnected)btn.disabled=false}
+   const [attendanceRows,effortRows,quranRows]=await Promise.all([
+    api("/attendance?group_id="+encodeURIComponent(student.group_id)+"&date="+encodeURIComponent(date.value)),
+    api("/effort?group_id="+encodeURIComponent(student.group_id)+"&date="+encodeURIComponent(date.value)),
+    api("/quran/progress?student_id="+encodeURIComponent(student.id))
+   ]);
+   const attendance=attendanceRows.find(row=>String(row.student_id)===String(student.id))||null;
+   const effort=effortRows.filter(row=>String(row.student_id)===String(student.id));
+   const byTask={};effort.forEach(row=>byTask[row.category]=row.status);
+   const mem=quranLatestForDay(quranRows,date.value,"memorization"),rev=quranLatestForDay(quranRows,date.value,"revision");
+   editor.innerHTML='<section class="card effort-individual-editor" data-effort-individual-student="'+esc(student.id)+'"><div class="section-head"><div><span class="eyebrow">إضافة مهمة · متابعة فردية</span><h3>'+esc(studentDisplayName(student.name))+'</h3><p class="muted small">'+esc((groups.find(g=>String(g.id)===String(student.group_id))||{}).name||"الفوج")+' · '+esc(date.value)+'</p></div><button type="button" class="btn secondary" id="effort-individual-back">اختيار طالب آخر</button></div><section class="effort-task-section"><h4>الحضور</h4><div class="form-grid"><label class="field">حالة الحضور<select data-individual-attendance>'+attendanceStatusOptions(attendance?.status)+'</select></label><label class="field">ملاحظة الحضور<input data-individual-attendance-note maxlength="500" value="'+esc(attendance?.note||"")+'" placeholder="اختياري"></label></div></section><details class="effort-task-details" open><summary>الحفظ والمراجعة</summary><div class="form-grid"><label class="field">مقدار الحفظ الجديد<input data-individual-memorized maxlength="300" value="'+esc(mem?.memorized||"")+'" placeholder="مثال: حفظ الثمن 15"></label><label class="field">ملاحظة الحفظ<input data-individual-memorization-note maxlength="500" value="'+esc(mem?.notes||"")+'" placeholder="اختياري"></label><label class="field">مقدار المراجعة<input data-individual-reviewed maxlength="300" value="'+esc(rev?.reviewed||"")+'" placeholder="مثال: مراجعة الأثمان 10–15"></label><label class="field">ملاحظة المراجعة<input data-individual-revision-note maxlength="500" value="'+esc(rev?.notes||"")+'" placeholder="اختياري"></label></div></details><details class="effort-task-details"><summary>المهام اليومية الأخرى</summary><div class="form-grid">'+EFFORT_TASKS.map(([key,label])=>'<label class="field">'+esc(label)+'<select data-individual-effort-task="'+key+'">'+effortStatusOptions(byTask[key])+'</select></label>').join("")+'</div></details><button type="button" class="btn" id="effort-individual-save">حفظ مهام الطالب</button></section>';
+   editor.querySelector("#effort-individual-back").onclick=()=>{editor.innerHTML="";search.focus()};
+   editor.querySelector("#effort-individual-save").onclick=async()=>{
+    const card=editor.querySelector("[data-effort-individual-student]"),button=editor.querySelector("#effort-individual-save"),studentId=card.dataset.effortIndividualStudent;
+    const attendanceStatus=card.querySelector("[data-individual-attendance]").value;
+    const attendanceNote=card.querySelector("[data-individual-attendance-note]").value.trim();
+    const memorized=card.querySelector("[data-individual-memorized]").value.trim(),memorizationNote=card.querySelector("[data-individual-memorization-note]").value.trim();
+    const reviewed=card.querySelector("[data-individual-reviewed]").value.trim(),revisionNote=card.querySelector("[data-individual-revision-note]").value.trim();
+    const checks=Object.fromEntries([...card.querySelectorAll("[data-individual-effort-task]")].map(sel=>[sel.dataset.individualEffortTask,sel.value]).filter(pair=>pair[1]));
+    if(!attendanceStatus&&!memorized&&!memorizationNote&&!reviewed&&!revisionNote&&!Object.keys(checks).length)return toast("اختر مهمة واحدة على الأقل قبل الحفظ",true);
+    button.disabled=true;let saved=0;
+    try{
+     if(attendanceStatus){const result=await api("/attendance",{method:"POST",body:JSON.stringify({group_id:student.group_id,date:date.value,items:[{student_id:studentId,status:attendanceStatus,note:attendanceNote}]})});saved+=Number(result.saved||1)}
+     for(const activity of ["memorization","revision"]){
+      const amount=activity==="memorization"?memorized:reviewed,note=activity==="memorization"?memorizationNote:revisionNote,old=activity==="memorization"?mem:rev;
+      if(!amount&&!note)continue;
+      const body={date:date.value,activity,memorized:activity==="memorization"?amount:"",reviewed:activity==="revision"?amount:"",notes:note,errors:0,corrected:false};
+      if(old?.id)await api("/quran/progress/"+encodeURIComponent(old.id),{method:"PATCH",body:JSON.stringify(body)});
+      else await api("/quran/progress",{method:"POST",body:JSON.stringify({...body,student_id:studentId})});
+      saved++;
+     }
+     if(Object.keys(checks).length){const result=await api("/effort",{method:"POST",body:JSON.stringify({group_id:student.group_id,date:date.value,items:[{student_id:studentId,checks}]})});saved+=Number(result.saved||Object.keys(checks).length)}
+     toast("حُفظت "+saved+" مهمة للطالب");await selectStudent(studentId);
+    }catch(error){toast("تعذّر إكمال الحفظ: "+error.message,true)}finally{if(button.isConnected)button.disabled=false}
    };
-  }catch(e){host.innerHTML='<div class="notice error">'+esc(e.message)+'</div>'}
+   requestAnimationFrame(()=>window.scrollTo(0,previousScroll));
+  }catch(error){editor.innerHTML='<div class="notice error">'+esc(error.message)+'</div>'}
+ };
+ v.querySelector("#effort-individual-load").onclick=async()=>{
+  if(!group.value||!date.value)return toast("اختر الفوج والتاريخ",true);
+  if(date.value>today)return toast("لا يمكن تسجيل متابعة بتاريخ مستقبلي",true);
+  safeStore.setSession("ihsan_effort_group",group.value);list.innerHTML='<div class="loading">جار تحميل الطلبة…</div>';editor.innerHTML="";
+  try{students=await api("/students?group_id="+encodeURIComponent(group.value));students=students.slice().sort((a,b)=>compareStudentNames(a.name,b.name));renderList();if(!students.length)list.innerHTML='<div class="empty">لا يوجد طلاب في هذا الفوج.</div>'}catch(error){list.innerHTML='<div class="notice error">'+esc(error.message)+'</div>'}
+ };
+ search.addEventListener("input",renderList);
+}
+async function effortGroupPage(v,groups){
+ const today=localDateISO();
+ v.innerHTML='<section class="card"><div class="form-grid"><label class="field">الفوج<select id="effort-group"><option value="">اختر الفوج</option>'+groups.map(g=>'<option value="'+esc(g.id)+'">'+esc(g.name)+'</option>').join("")+'</select></label><label class="field">التاريخ<input id="effort-date" type="date" value="'+today+'" max="'+today+'"></label><div class="wide"><button type="button" class="btn" id="effort-load">عرض الطلبة</button></div></div><div id="effort-roster" class="muted small">اختر الفوج والتاريخ.</div></section>';
+ const groupSel=v.querySelector("#effort-group"),dateInput=v.querySelector("#effort-date"),host=v.querySelector("#effort-roster");
+ const saved=safeStore.getSession("ihsan_effort_group");if(saved&&groups.some(g=>String(g.id)===saved))groupSel.value=saved;
+ v.querySelector("#effort-load").onclick=async()=>{
+  const gid=groupSel.value,date=dateInput.value;if(!gid||!date)return toast("اختر الفوج والتاريخ",true);
+  if(date>today)return toast("لا يمكن تسجيل متابعة بتاريخ مستقبلي",true);
+  safeStore.setSession("ihsan_effort_group",gid);host.innerHTML='<div class="loading">جار تحميل سجل الفوج…</div>';
+  try{
+   const students=await api("/students?group_id="+encodeURIComponent(gid));
+   if(!students.length){host.innerHTML='<div class="empty">لا يوجد طلبة في هذا الفوج.</div>';return}
+   const [logs,attendanceRows,quranSets]=await Promise.all([
+    api("/effort?group_id="+encodeURIComponent(gid)+"&date="+encodeURIComponent(date)),
+    api("/attendance?group_id="+encodeURIComponent(gid)+"&date="+encodeURIComponent(date)),
+    Promise.all(students.map(async student=>({student,rows:await api("/quran/progress?student_id="+encodeURIComponent(student.id))})))
+   ]);
+   const byStudent={};logs.forEach(row=>{(byStudent[row.student_id]||(byStudent[row.student_id]={}))[row.category]=row.status});
+   const byAttendance={};attendanceRows.forEach(row=>byAttendance[row.student_id]=row);
+   const byQuran={};quranSets.forEach(({student,rows})=>byQuran[student.id]={mem:quranLatestForDay(rows,date,"memorization"),rev:quranLatestForDay(rows,date,"revision")});
+   host.innerHTML='<p class="muted small">'+esc((groups.find(g=>String(g.id)===String(gid))||{}).name||"الفوج")+' · '+esc(date)+' · '+students.length+' طالبًا</p><div class="attendance-bulk-actions"><button type="button" class="btn secondary" id="effort-all-present">الكل حاضر</button><button type="button" class="btn secondary" id="effort-all-absent">الكل غائب</button><button type="button" class="btn secondary" id="effort-all-done">المهام كلها أُنجزت</button><button type="button" class="btn secondary" id="effort-all-clear">مسح الحالات الجديدة</button></div><div class="effort-roster">'+students.map(st=>{const q=byQuran[st.id]||{};return '<article class="card effort-student" data-effort-student="'+esc(st.id)+'" data-mem-id="'+esc(q.mem?.id||"")+'" data-rev-id="'+esc(q.rev?.id||"")+'"><h3>'+esc(studentDisplayName(st.name))+'</h3><section class="effort-task-section"><h4>الحضور</h4><div class="form-grid"><label class="field">الحالة<select data-effort-attendance>'+attendanceStatusOptions(byAttendance[st.id]?.status)+'</select></label><label class="field">ملاحظة<input data-effort-attendance-note maxlength="500" value="'+esc(byAttendance[st.id]?.note||"")+'" placeholder="اختياري"></label></div></section><details class="effort-task-details"><summary>الحفظ والمراجعة</summary><div class="form-grid"><label class="field">الحفظ الجديد<input data-effort-memorized maxlength="300" value="'+esc(q.mem?.memorized||"")+'" placeholder="مقدار الحفظ"></label><label class="field">ملاحظة الحفظ<input data-effort-mem-note maxlength="500" value="'+esc(q.mem?.notes||"")+'" placeholder="اختياري"></label><label class="field">المراجعة<input data-effort-reviewed maxlength="300" value="'+esc(q.rev?.reviewed||"")+'" placeholder="مقدار المراجعة"></label><label class="field">ملاحظة المراجعة<input data-effort-rev-note maxlength="500" value="'+esc(q.rev?.notes||"")+'" placeholder="اختياري"></label></div></details><details class="effort-task-details"><summary>المهام اليومية الأخرى</summary><div class="form-grid">'+EFFORT_TASKS.map(([key,label])=>'<label class="field">'+esc(label)+'<select data-effort-task="'+key+'">'+effortStatusOptions(byStudent[st.id]?.[key])+'</select></label>').join("")+'</div></details></article>'}).join("")+'</div><button type="button" class="btn" id="effort-save">حفظ متابعة الفوج</button>';
+   v.querySelector("#effort-all-present").onclick=()=>host.querySelectorAll("[data-effort-attendance]").forEach(sel=>sel.value="present");
+   v.querySelector("#effort-all-absent").onclick=()=>host.querySelectorAll("[data-effort-attendance]").forEach(sel=>sel.value="absent");
+   v.querySelector("#effort-all-done").onclick=()=>host.querySelectorAll("[data-effort-task]").forEach(sel=>sel.value="done");
+   v.querySelector("#effort-all-clear").onclick=()=>host.querySelectorAll("[data-effort-attendance],[data-effort-task]").forEach(sel=>sel.value="");
+   v.querySelector("#effort-save").onclick=async()=>{
+    const cards=[...host.querySelectorAll("[data-effort-student]")];
+    const attendanceItems=cards.map(card=>({student_id:card.dataset.effortStudent,status:card.querySelector("[data-effort-attendance]").value,note:card.querySelector("[data-effort-attendance-note]").value.trim()})).filter(item=>item.status);
+    const effortItems=cards.map(card=>({student_id:card.dataset.effortStudent,checks:Object.fromEntries([...card.querySelectorAll("[data-effort-task]")].map(sel=>[sel.dataset.effortTask,sel.value]).filter(pair=>pair[1]))})).filter(item=>Object.keys(item.checks).length);
+    const quranEntries=[];
+    for(const card of cards){
+     const id=card.dataset.effortStudent,mem=card.querySelector("[data-effort-memorized]").value.trim(),memNote=card.querySelector("[data-effort-mem-note]").value.trim(),rev=card.querySelector("[data-effort-reviewed]").value.trim(),revNote=card.querySelector("[data-effort-rev-note]").value.trim();
+     if(mem||memNote)quranEntries.push({student_id:id,activity:"memorization",amount:mem,note:memNote,oldId:card.dataset.memId});
+     if(rev||revNote)quranEntries.push({student_id:id,activity:"revision",amount:rev,note:revNote,oldId:card.dataset.revId});
+    }
+    if(!attendanceItems.length&&!effortItems.length&&!quranEntries.length)return toast("سجّل مهمة واحدة على الأقل قبل الحفظ",true);
+    const button=v.querySelector("#effort-save");button.disabled=true;let saved=0;
+    try{
+     if(attendanceItems.length){const result=await api("/attendance",{method:"POST",body:JSON.stringify({group_id:gid,date,items:attendanceItems})});saved+=Number(result.saved||attendanceItems.length)}
+     for(const entry of quranEntries){
+      const body={date,activity:entry.activity,memorized:entry.activity==="memorization"?entry.amount:"",reviewed:entry.activity==="revision"?entry.amount:"",notes:entry.note,errors:0,corrected:false};
+      if(entry.oldId)await api("/quran/progress/"+encodeURIComponent(entry.oldId),{method:"PATCH",body:JSON.stringify(body)});
+      else await api("/quran/progress",{method:"POST",body:JSON.stringify({...body,student_id:entry.student_id})});
+      saved++;
+     }
+     if(effortItems.length){const result=await api("/effort",{method:"POST",body:JSON.stringify({group_id:gid,date,items:effortItems})});saved+=Number(result.saved||effortItems.length)}
+     toast("حُفظت "+saved+" مهمة متابعة للفوج");await v.querySelector("#effort-load").click();
+    }catch(error){toast("توقّف الحفظ بعد "+saved+" مهمة: "+error.message,true)}finally{if(button.isConnected)button.disabled=false}
+   };
+  }catch(error){host.innerHTML='<div class="notice error">'+esc(error.message)+'</div>'}
  };
 }
 async function effortRankingPage(v){
