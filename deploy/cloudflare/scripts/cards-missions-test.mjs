@@ -186,6 +186,8 @@ async function main() {
   check("smart QR opens the matching student's own account", studentSmartScan.status === 200 && studentSmartScan.data?.authenticated === true && studentSmartScan.data?.next === "student" && studentSmartScan.data?.student?.id === student.id, JSON.stringify(studentSmartScan.data));
   const teacherSmartScan = await resolveCard("login", loginLink.cardId, loginLink.secret, teacherInside.token);
   check("smart QR opens a permitted sheikh workflow", teacherSmartScan.status === 200 && teacherSmartScan.data?.authenticated === true && teacherSmartScan.data?.next === "staff" && teacherSmartScan.data?.student?.id === student.id, JSON.stringify(teacherSmartScan.data));
+  const teacherSmartHifz = await resolveCard("login", loginLink.cardId, loginLink.secret, teacherInside.token, "hifz");
+  check("smart QR can record the selected automatic hifz task", teacherSmartHifz.status === 200 && teacherSmartHifz.data?.next === "points" && Array.isArray(teacherSmartHifz.data?.hifz_awards), JSON.stringify(teacherSmartHifz.data));
   const outsideSmartScan = await resolveCard("login", loginLink.cardId, loginLink.secret, teacherOutside.token);
   check("smart QR denies a sheikh outside the student's group", outsideSmartScan.status === 403, JSON.stringify(outsideSmartScan.data));
   const wrongSecret = await resolveCard("login", loginLink.cardId, "0".repeat(48));
