@@ -2362,8 +2362,16 @@ export default {
       const student=await studentCardRow(env,card.student_id);
       if(!student)return fail(404,"ملف الطالب غير متاح");
       if(kind==="login"){
+        const scanner=await currentUser(request,env);
+        if(scanner){
+          if(!await canAccessStudentCard(env,scanner,student))return fail(403,"هذه البطاقة لا تخص حسابك أو أنها خارج صلاحيتك");
+          if(scanner.role==="student"&&scanner.student_id!==student.id)return fail(403,"هذه البطاقة لا تخص حساب الطالب المسجل على هذا الجهاز");
+          if(!["student","admin","teacher","director","supervisor"].includes(scanner.role))return fail(403,"ليس لديك صلاحية استخدام بطاقة الطالب");
+          await log(env,scanner.id,"student_card_scan_authenticated",{card_id:card.id,student_id:student.id});
+          return json({ok:true,kind,authenticated:true,student:{id:student.id,name:student.name,group_id:student.group_id,group_name:student.group_name||""},next:scanner.role==="student"?"student":"staff"});
+        }
         await log(env,null,"student_card_scan_login",{card_id:card.id,student_id:student.id});
-        return json({ok:true,kind,requires_password:true,student:{name:student.name,username:student.username||"",group_name:student.group_name||""},message:"امسح البطاقة ثم أدخل كلمة المرور. لا يتم الدخول تلقائيًا حفاظًا على الخصوصية."});
+        return json({ok:true,kind,requires_password:true,student:{name:student.name,username:student.username||"",group_name:student.group_name||""},message:"تعرّفنا على البطاقة. أدخل كلمة المرور لإثبات هويتك؛ لا يتم الدخول تلقائيًا حفاظًا على الخصوصية."});
       }
       const scanner=await currentUser(request,env);
       if(!scanner)return fail(401,"سجّل الدخول أولًا ثم أعد مسح البطاقة.");
