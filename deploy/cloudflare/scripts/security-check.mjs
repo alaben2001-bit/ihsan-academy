@@ -573,7 +573,7 @@ assert.match(backend, /if \(token\.revoked_at\) continue;/, "opening a card must
 assert.match(backend, /tokens\[kind\] = \{ hash: await hashToken\(secret\), secret, issued_at: now/, "card tokens must store a hash for verification and the secret for reprint");
 assert.ok(backend.indexOf('path === "/api/cards/resolve"') > 0 && backend.indexOf('path === "/api/cards/resolve"') < backend.indexOf('const user=await currentUser(request,env); if(!user)return fail(401'), "card resolution must run before the login gate so the login QR can be read anonymously");
 assert.match(backend, /requires_password:true,student:\{name:student\.name,username:student\.username/, "the login QR must return only a name and username, never a session");
-assert.match(backend, /if\(kind==="add_points"&&!\["admin","teacher","director","supervisor"\]\.includes\(scanner\.role\)\)return fail\(403/, "authorized staff roles may scan add-points cards");
+assert.match(backend, /if\(resolvedKind==="add_points"&&!\["admin","teacher","director","supervisor"\]\.includes\(scanner\.role\)\)return fail\(403/, "only authorized staff roles may use the smart QR to award points");
 assert.match(backend, /if\(!await canAccessStudentCard\(env,scanner,student\)\)return fail\(403,"هذه البطاقة خارج صلاحيتك"\)/, "card scans must respect group scope");
 assert.match(backend, /if\(path==="\/api\/student-cards\/bulk"&&method==="POST"\)/, "staff must be able to bulk-create group cards");
 assert.match(backend, /student-cards\\\/\(\[\^\/\]\+\)\\\/reissue/, "cards must support reissue");
@@ -583,7 +583,7 @@ assert.match(backend, /student_card_reissue/, "card reissue must be audited");
 assert.match(backend, /student_card_revoke/, "card revoke must be audited");
 assert.match(backend, /student_card_print/, "card printing must be audited");
 assert.match(backend, /status:"present",note:"تسجيل حضور آلي بمسح بطاقة الطالب"/, "add-points card scans must automatically record attendance");
-assert.match(backend, /if\(kind==="add_points"&&task==="attendance"\)/, "attendance is automatic only for attendance scans");
+assert.match(backend, /if\(resolvedKind==="add_points"&&task==="attendance"\)/, "attendance is automatic only for authorized attendance scans, including the smart QR");
 assert.match(backend, /eventType:"hifz_no_errors",eventKey:"hifz:"\+date\+":"\+student\.id/, "memorization scans award the idempotent 20-point hifz event");
 assert.match(backend, /achievement_points=20,store_points=20,max_per_day=1/, "memorization awards must be worth 20 points");
 assert.match(backend, /awardAttendancePoints\(env,\{groupId:student\.group_id,date,studentIds:\[student\.id\],awardedBy:scanner\.id\}\)/, "attendance scans must award points through the idempotent attendance engine");
@@ -655,7 +655,8 @@ assert.doesNotMatch(app, /points_awarded\|\|0/, "badge UI must not show zero-poi
 
 assert.doesNotMatch(app, /WORLD_STAGES|worldStage\(/, "deferred level progression must not remain in the student UI or guide");
 assert.match(app, /إنجازات تستحق الاعتزاز/, "student world must show earned badges instead of levels");
-assert.match(app, /QR لإضافة النقاط/, "the student card QR must be dedicated to adding points");
+assert.match(app, /رمز QR الذكي للطالب والشيخ/, "the student card must display one smart QR for student and authorized Sheikh flows");
+assert.match(app, /qrSvg\(links\.login,144\)/, "the printed student card must use the smart login token");
 assert.doesNotMatch(app, /class="pass-level"/, "the printed student card must not contain a level or badge tile");
 assert.doesNotMatch(app, /passBalances/, "the printed student card must not display any points or store balance");
 assert.match(app, /رصيدان منفصلان/, "the guide must explain the separate achievement and store balances");

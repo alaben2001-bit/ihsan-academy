@@ -619,6 +619,18 @@ const signupPane=setup?'':'<div id="signup-pane" role="tabpanel" hidden><form id
  +'</form>'
  +'<p class="muted small signup-assurance">إنشاء الحساب لا يمنحك أي صلاحيات خاصة: طالب ← يُسند إلى فوج بعد اعتماد طلبك من الشيخ أو الإدارة · شيخ/معلم ← تُفعّل الصلاحية باعتماد الإدارة فقط. أما الزائرون والمحسنون فيتعرّفون على الأكاديمية عبر بوابة التيسير.</p></div>';
 app.innerHTML='<div class="auth-layout"><section class="welcome"><div><span class="eyebrow">بِسْمِ اللهِ الرَّحْمَنِ الرَّحِيمِ</span><h1>أكاديمية الإحسان في بناء الإنسان</h1></div><div class="welcome-bottom"><button type="button" class="btn academy-about-welcome" id="about-open-welcome">الهيكل التنظيمي</button></div></section><section class="panel stack">'+(setup?'<div class="notice">أول دخول: أنشئ حساب المدير مرة واحدة.</div>':'')+'<div><h2 id="auth-title">'+(setup?"إعداد الأكاديمية":"تسجيل الدخول")+'</h2></div>'+(scanNotice?'<div class="notice scan-notice" role="status">'+esc(scanNotice)+'</div>':"")+authTabs+loginPane+signupPane+'</section></div>';
+// عند فتح رابط البطاقة بلا جلسة: التعرّف على الطالب وتعبئة هويته دون تجاوز كلمة المرور.
+const scannedLogin=readScanHash();
+if(!setup&&scannedLogin?.kind==="login"){
+ api("/cards/resolve",{method:"POST",body:JSON.stringify({kind:scannedLogin.kind,card_id:scannedLogin.cardId,secret:scannedLogin.secret})}).then(data=>{
+  const identity=$("#login-identity"),signupName=$('#signup-form input[name="name"]');
+  if(identity)identity.value=String(data.student?.username||data.student?.name||"");
+  if(signupName)signupName.value=String(data.student?.name||"");
+  const note=document.createElement("div");note.className="notice scan-notice";note.setAttribute("role","status");
+  note.textContent=data.student?.username?"تم التعرف على "+String(data.student.name||"الطالب")+". أدخل كلمة المرور لإثبات الدخول.":"تم التعرف على "+String(data.student?.name||"الطالب")+". اختر إنشاء حساب لإكمال التسجيل؛ لن تحتاج إلى كتابة اسمك.";
+  $("#auth-title")?.insertAdjacentElement("afterend",note);
+ }).catch(error=>{const note=document.createElement("div");note.className="notice error";note.textContent=error.message;$("#auth-title")?.insertAdjacentElement("afterend",note)});
+}
 $("#toggle-login-password")?.addEventListener("click",()=>{const input=$("#login-password"),button=$("#toggle-login-password");if(!input||!button)return;const reveal=input.type==="password";input.type=reveal?"text":"password";button.textContent=reveal?"إخفاء":"إظهار";button.setAttribute("aria-label",reveal?"إخفاء كلمة المرور":"إظهار كلمة المرور");button.setAttribute("aria-pressed",String(reveal));input.focus()});
  // لا تُحفظ هوية الدخول ولا كلمة المرور على هذا الجهاز؛ يعيد المستخدم إدخالها عند كل عودة.
  $("#auth-form").setAttribute("autocomplete","off");
@@ -1938,7 +1950,13 @@ async function processPendingScan(){
  clearPendingScan();
  try{
   const result=await api("/cards/resolve",{method:"POST",body:JSON.stringify({kind:scan.kind,card_id:scan.cardId,secret:scan.secret})});
-  if(scan.kind==="login"){toast("بطاقة "+String(result.student?.name||"الطالب")+" — سجّل الدخول بكلمة المرور.");return}
+  if(scan.kind==="login"){
+   if(S.user.role==="student"){go("profile");toast("مرحبًا بعودتك؛ تم التعرف على بطاقتك.");return}
+   S.mode="school";S.tab="students";safeStore.setSession("ihsan_last_mode","school");safeStore.setSession("ihsan_last_tab","students");shell();
+   await studentProfile($("#view"),result.student.id);
+   toast("تم التعرف على "+String(result.student?.name||"الطالب")+" وفتح ملفه.");
+   return;
+  }
   if(scan.kind==="profile"){
    if(S.user.role==="student"){go("profile");return}
    S.mode="school";S.tab="students";safeStore.setSession("ihsan_last_mode","school");safeStore.setSession("ihsan_last_tab","students");shell();
@@ -1975,8 +1993,8 @@ async function cardPage(v){
  const badges=(gam?.badges||[]).map(badge=>'<span class="pass-badge"><span aria-hidden="true">'+esc(badge.icon||"★")+'</span>'+esc(badge.name)+'</span>').join("");
 
  v.innerHTML='<div class="card-page">'+
-  '<div class="card-page-head"><div><span class="eyebrow">هويتك في الأكاديمية</span><h2>بطاقة الطالب</h2><p>بطاقة تعريف أنيقة، ورمزها مخصص لإضافة النقاط عبر المشرفين المخولين؛ اعرضها أو اطبعها.</p></div><div class="student-actions"><button class="btn secondary" type="button" id="card-qr-reissue">إعادة إصدار الرموز</button><button class="btn secondary" type="button" id="pass-print">طباعة البطاقة</button></div></div>'+
-  '<section class="printable"><section class="student-pass-wrap"><article class="student-pass" aria-label="بطاقة الطالب"><span class="pass-shine" aria-hidden="true"></span><div class="pass-pattern" aria-hidden="true"></div><div class="pass-head"><span class="pass-brand"><span class="pass-brand-mark" aria-hidden="true">إ</span>أكاديمية الإحسان</span><span class="pass-type">بطاقة طالب</span></div><div class="pass-middle"><span class="pass-chip" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="pass-qr" aria-label="QR لإضافة النقاط">'+(links.add_points?qrSvg(links.add_points,144):'<span class="card-qr-missing">—</span>')+'</span></div><div class="pass-name">'+esc(student.name||S.user.name||"الطالب")+'</div><div class="pass-serial" dir="ltr">'+esc(serial)+'</div><div class="pass-grid"><div><small>ترتيب الفوج</small><strong>'+(me?"#"+Number(me.rank):"—")+'</strong></div><div><small>سلسلة القراءة</small><strong>'+Number(reading?.streak||0)+'</strong></div></div><div class="pass-foot"><span>الفوج: '+esc(student.group_name||"—")+'</span><span>رمز ثابت لا ينتهي تلقائيًا</span></div></article></section>'+
+  '<div class="card-page-head"><div><span class="eyebrow">هويتك في الأكاديمية</span><h2>بطاقة الطالب</h2><p>بطاقة تعريف أنيقة برمز ذكي واحد؛ يتعرف على الطالب أو الشيخ بحسب الجلسة والصلاحيات.</p></div><div class="student-actions"><button class="btn secondary" type="button" id="card-qr-reissue">إعادة إصدار الرموز</button><button class="btn secondary" type="button" id="pass-print">طباعة البطاقة</button></div></div>'+
+  '<section class="printable"><section class="student-pass-wrap"><article class="student-pass" aria-label="بطاقة الطالب"><span class="pass-shine" aria-hidden="true"></span><div class="pass-pattern" aria-hidden="true"></div><div class="pass-head"><span class="pass-brand"><span class="pass-brand-mark" aria-hidden="true">إ</span>أكاديمية الإحسان</span><span class="pass-type">بطاقة طالب</span></div><div class="pass-middle"><span class="pass-chip" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span><span class="pass-qr" aria-label="رمز QR الذكي للطالب والشيخ">'+(links.login?qrSvg(links.login,144):'<span class="card-qr-missing">—</span>')+'</span></div><div class="pass-name">'+esc(student.name||S.user.name||"الطالب")+'</div><div class="pass-serial" dir="ltr">'+esc(serial)+'</div><div class="pass-grid"><div><small>ترتيب الفوج</small><strong>'+(me?"#"+Number(me.rank):"—")+'</strong></div><div><small>سلسلة القراءة</small><strong>'+Number(reading?.streak||0)+'</strong></div></div><div class="pass-foot"><span>الفوج: '+esc(student.group_name||"—")+'</span><span>رمز ثابت لا ينتهي تلقائيًا</span></div></article></section>'+
   '<div class="pass-stats"><div class="stat"><small>أيام القرآن</small><strong>'+Number(gam?.stats?.quran_days||0)+'</strong></div><div class="stat"><small>مرات الحضور</small><strong>'+Number(gam?.stats?.attendance||0)+'</strong></div><div class="stat"><small>الاختبارات</small><strong>'+Number(gam?.stats?.tests||0)+'</strong></div><div class="stat"><small>أيام القراءة</small><strong>'+Number(reading?.total_days||0)+'</strong></div></div>'+
   '<div class="card-page-grid"><section class="card"><div class="section-head"><div><h3>أوسمتك</h3><p>تُفتح تلقائيًا عند تحقق شرطها.</p></div></div><div class="pass-badges">'+(badges||'<p class="muted">لم تُفتح وسام بعد؛ ابدأ بورد اليوم.</p>')+'</div></section><section class="card"><div class="section-head"><div><h3>آخر حركات الرصيد</h3><p>كل حركة مسجّلة ولا تُحذف.</p></div><button class="btn secondary" type="button" data-card-go="points">كل الحركات</button></div><div class="list">'+(recent||'<p class="muted">لا توجد حركات نقاط بعد.</p>')+'</div></section></div>'+
   '</div>';
@@ -1992,8 +2010,8 @@ async function cardPage(v){
 
 function staffStudentPassMarkup(row){
  const student=row.student||{},serial=passSerial(student.id),totals=row.totals||{};
- const qr=qrSvg(row.links?.add_points||"",180);
- return '<article class="student-pass student-pass-print" data-card-student="'+esc(student.id)+'" aria-label="بطاقة '+esc(student.name)+'"><span class="pass-shine" aria-hidden="true"></span><div class="pass-pattern" aria-hidden="true"></div><div class="pass-head"><span class="pass-brand"><span class="pass-brand-mark" aria-hidden="true">إ</span>أكاديمية الإحسان</span><span class="pass-type">بطاقة طالب</span></div><div class="pass-middle"><span class="pass-chip" aria-hidden="true"><i></i><i></i><i></i></span><span class="pass-qr" aria-label="رمز QR لإضافة النقاط للمخولين">'+(qr||'<span class="card-qr-missing">—</span>')+'</span></div><div class="pass-name">'+esc(student.name||"الطالب")+'</div><div class="pass-serial" dir="ltr">'+esc(serial)+'</div><div class="pass-foot"><span>الفوج: '+esc(student.group_name||"—")+'</span><span>أكاديمية الإحسان</span></div></article>';
+ const qr=qrSvg(row.links?.login||"",180);
+ return '<article class="student-pass student-pass-print" data-card-student="'+esc(student.id)+'" aria-label="بطاقة '+esc(student.name)+'"><span class="pass-shine" aria-hidden="true"></span><div class="pass-pattern" aria-hidden="true"></div><div class="pass-head"><span class="pass-brand"><span class="pass-brand-mark" aria-hidden="true">إ</span>أكاديمية الإحسان</span><span class="pass-type">بطاقة طالب</span></div><div class="pass-middle"><span class="pass-chip" aria-hidden="true"><i></i><i></i><i></i></span><span class="pass-qr" aria-label="رمز QR الذكي للطالب والشيخ">'+(qr||'<span class="card-qr-missing">—</span>')+'</span></div><div class="pass-name">'+esc(student.name||"الطالب")+'</div><div class="pass-serial" dir="ltr">'+esc(serial)+'</div><div class="pass-foot"><span>الفوج: '+esc(student.group_name||"—")+'</span><span>أكاديمية الإحسان</span></div></article>';
 }
 async function staffCardsPage(v){
  if(!["admin","teacher","director","supervisor"].includes(S.user.role)){v.innerHTML=head("بطاقات الطلاب","هذه الصفحة للشيخ أو المشرف.");return}
@@ -2434,7 +2452,7 @@ async function handleScannedText(v,raw){
   try{
     const taskIds=String(S.scanTaskType||safeStore.get("ihsan_scan_task_type")||"").split(",").filter(id=>["attendance","hifz"].includes(id));
     if(!taskIds.length||!S.scanDate){toast("اختر الحضور أو الحفظ أولًا.",true);return}
-    if(kind!=="add_points"){toast("امسح بطاقة إضافة النقاط الخاصة بالطالب.",true);return}
+    if(kind!=="add_points"&&kind!=="login"){toast("هذا الرمز غير مخصص لمسح مهام الشيخ.",true);return}
     const tasks=taskIds;
     const results=[];
     for(const task of tasks){
@@ -2451,12 +2469,12 @@ async function handleScannedText(v,raw){
     const attendanceResult=results.find((_,i)=>tasks[i]==="attendance");
     const hifzResult=results.find((_,i)=>tasks[i]==="hifz");
     const name=String(rosterStudent.name||student.name||"طالب");
-    if(kind==="add_points"&&tasks.length>1){
+    if((kind==="add_points"||kind==="login")&&tasks.length>1){
       const a=attendanceResult?.attendance_awards?.length?"30 نقطة حضور":"الحضور مسجل اليوم";
       const h=hifzResult?.hifz_awards?.some(x=>x.status==="awarded")?"20 نقطة حفظ":"مكافأة الحفظ مسجلة اليوم";
       toast(name+" — "+a+" + "+h);
-    }else if(kind==="add_points"&&tasks[0]==="attendance")toast("حضور "+name+" — "+(result.attendance_awards?.length?"30 نقطة، ولا تتكرر اليوم":"تم تسجيل الحضور مسبقًا اليوم."));
-    else if(kind==="add_points"&&tasks[0]==="hifz")toast("حفظ "+name+" — "+(result.hifz_awards?.some(x=>x.status==="awarded")?"20 نقطة":"مكافأة الحفظ مسجلة اليوم."));
+    }else if((kind==="add_points"||kind==="login")&&tasks[0]==="attendance")toast("حضور "+name+" — "+(result.attendance_awards?.length?"30 نقطة، ولا تتكرر اليوم":"تم تسجيل الحضور مسبقًا اليوم."));
+    else if((kind==="add_points"||kind==="login")&&tasks[0]==="hifz")toast("حفظ "+name+" — "+(result.hifz_awards?.some(x=>x.status==="awarded")?"20 نقطة":"مكافأة الحفظ مسجلة اليوم."));
     else toast("تم ربط البطاقة بالطالب: "+name+" · "+({add_points:"رمز إضافة النقاط",profile:"رمز الملف الشخصي",login:"رمز الدخول"}[kind]||"بطاقة"));
     renderScanPanel(v,String(rosterStudent.id));
   }catch(error){toast(error.message||"تعذر استخدام البطاقة",true)}
