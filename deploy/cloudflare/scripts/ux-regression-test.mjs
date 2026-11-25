@@ -23,4 +23,5 @@ assert.match(css,/\.effort-mode-switch\{display:grid/,"follow-up modes must have
 assert.match(app,/className="ihsan-prayer-text"/,"entry supplication must have a distinct reading surface");
 assert.match(app,/aria-labelledby","ihsan-prayer-title"/,"entry supplication must expose an accessible title");
 assert.match(css,/\.ihsan-prayer-dialog \.ihsan-prayer-text/,"entry supplication must have a clear responsive reading layout");
+// Keep the dialog-specific selector covered so generic prayer text styles cannot regress.
 console.log("UX regression checks passed.");
