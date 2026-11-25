@@ -614,6 +614,18 @@ const signupPane=setup?'':'<div id="signup-pane" role="tabpanel" hidden><form id
  +'</form>'
  +'<p class="muted small signup-assurance">إنشاء الحساب لا يمنحك أي صلاحيات خاصة: طالب ← يُسند إلى فوج بعد اعتماد طلبك من الشيخ أو الإدارة · شيخ/معلم ← تُفعّل الصلاحية باعتماد الإدارة فقط. أما الزائرون والمحسنون فيتعرّفون على الأكاديمية عبر بوابة التيسير.</p></div>';
 app.innerHTML='<div class="auth-layout"><section class="welcome"><div><span class="eyebrow">بِسْمِ اللهِ الرَّحْمَنِ الرَّحِيمِ</span><h1>أكاديمية الإحسان في بناء الإنسان</h1></div><div class="welcome-bottom"><button type="button" class="btn academy-about-welcome" id="about-open-welcome">الهيكل التنظيمي</button></div></section><section class="panel stack">'+(setup?'<div class="notice">أول دخول: أنشئ حساب المدير مرة واحدة.</div>':'')+'<div><h2 id="auth-title">'+(setup?"إعداد الأكاديمية":"تسجيل الدخول")+'</h2></div>'+(scanNotice?'<div class="notice scan-notice" role="status">'+esc(scanNotice)+'</div>':"")+authTabs+loginPane+signupPane+'</section></div>';
+// عند فتح رابط البطاقة بلا جلسة: التعرّف على الطالب وتعبئة هويته دون تجاوز كلمة المرور.
+const scannedLogin=readScanHash();
+if(!setup&&scannedLogin?.kind==="login"){
+ api("/cards/resolve",{method:"POST",body:JSON.stringify({kind:scannedLogin.kind,card_id:scannedLogin.cardId,secret:scannedLogin.secret})}).then(data=>{
+  const identity=$("#login-identity"),signupName=$('#signup-form input[name="name"]');
+  if(identity)identity.value=String(data.student?.username||data.student?.name||"");
+  if(signupName)signupName.value=String(data.student?.name||"");
+  const note=document.createElement("div");note.className="notice scan-notice";note.setAttribute("role","status");
+  note.textContent=data.student?.username?"تم التعرف على "+String(data.student.name||"الطالب")+". أدخل كلمة المرور لإثبات الدخول.":"تم التعرف على "+String(data.student?.name||"الطالب")+". اختر إنشاء حساب لإكمال التسجيل؛ لن تحتاج إلى كتابة اسمك.";
+  $("#auth-title")?.insertAdjacentElement("afterend",note);
+ }).catch(error=>{const note=document.createElement("div");note.className="notice error";note.textContent=error.message;$("#auth-title")?.insertAdjacentElement("afterend",note)});
+}
 $("#toggle-login-password")?.addEventListener("click",()=>{const input=$("#login-password"),button=$("#toggle-login-password");if(!input||!button)return;const reveal=input.type==="password";input.type=reveal?"text":"password";button.textContent=reveal?"إخفاء":"إظهار";button.setAttribute("aria-label",reveal?"إخفاء كلمة المرور":"إظهار كلمة المرور");button.setAttribute("aria-pressed",String(reveal));input.focus()});
  // لا تُحفظ هوية الدخول ولا كلمة المرور على هذا الجهاز؛ يعيد المستخدم إدخالها عند كل عودة.
  $("#auth-form").setAttribute("autocomplete","off");
@@ -1933,7 +1945,13 @@ async function processPendingScan(){
  clearPendingScan();
  try{
   const result=await api("/cards/resolve",{method:"POST",body:JSON.stringify({kind:scan.kind,card_id:scan.cardId,secret:scan.secret})});
-  if(scan.kind==="login"){toast("بطاقة "+String(result.student?.name||"الطالب")+" — سجّل الدخول بكلمة المرور.");return}
+  if(scan.kind==="login"){
+   if(S.user.role==="student"){go("profile");toast("مرحبًا بعودتك؛ تم التعرف على بطاقتك.");return}
+   S.mode="school";S.tab="students";safeStore.setSession("ihsan_last_mode","school");safeStore.setSession("ihsan_last_tab","students");shell();
+   await studentProfile($("#view"),result.student.id);
+   toast("تم التعرف على "+String(result.student?.name||"الطالب")+" وفتح ملفه.");
+   return;
+  }
   if(scan.kind==="profile"){
    if(S.user.role==="student"){go("profile");return}
    S.mode="school";S.tab="students";safeStore.setSession("ihsan_last_mode","school");safeStore.setSession("ihsan_last_tab","students");shell();
