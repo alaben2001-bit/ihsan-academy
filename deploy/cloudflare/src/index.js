@@ -5456,6 +5456,40 @@ export default {
       await log(env,user.id,created?"student_card_create":"student_card_open",{card_id:card.id,student_id:student.id});
       return json({ok:true,created,card:cardPublic(card),links:cardLinks(card,url.origin),student:{id:student.id,name:student.name,group_id:student.group_id,group_name:student.group_name||""}},created?201:200);
     }
+    // معاينة تجريبية للقراءة فقط: تجلب الأسماء المطلوبة دون إنشاء أو إعادة إصدار أي بطاقة.
+    if(path==="/api/student-cards/trial"&&method==="POST"){
+      if(user.role==="student")return fail(403,"غير مسموح");
+      const parsed=await parseBody(request,4000);if(parsed.error)return parsed.error;const b=parsed.value;
+      const requested=(Array.isArray(b.names)?b.names:[]).map(name=>clean(name,120)).filter(Boolean);
+      if(!requested.length)return fail(400,"حدّد الأسماء المطلوبة");
+      const names=[...new Set(requested)].slice(0,20);
+      let managed=await managedGroupIds(env,user);
+      const askedGroups=(Array.isArray(b.group_ids)?b.group_ids:[]).map(id=>clean(id,80)).filter(Boolean);
+      if(askedGroups.length){
+        const allowed=[];
+        for(const id of [...new Set(askedGroups)].slice(0,50))if(await canManageGroup(env,user,id))allowed.push(id);
+        managed=managed===null?allowed:managed.filter(id=>allowed.includes(id));
+      }
+      if(managed!==null&&!managed.length)return fail(403,"لا يوجد فوج ضمن صلاحيتك");
+      const marks=names.map(()=>"?").join(",");
+      let sql="SELECT id,display_name AS name,group_id FROM students WHERE active=1 AND display_name IN ("+marks+")";
+      const binds=[...names];
+      if(managed!==null){sql+=" AND group_id IN ("+managed.map(()=>"?").join(",")+")";binds.push(...managed)}
+      const rows=await env.DB.prepare(sql+" ORDER BY display_name,id LIMIT 40").bind(...binds).all();
+      const cards=[],groupNames=new Map();
+      for(const row of rows.results||[]){
+        const group=groupNames.has(row.group_id)?groupNames.get(row.group_id):await groupRow(env,row.group_id);
+        groupNames.set(row.group_id,group);
+        const school=group?.school_id?await env.DB.prepare("SELECT name FROM quran_schools WHERE id=?").bind(group.school_id).first():null;
+        const card=await cardRecord(env,row.id);
+        const publicCard=card?cardPublic(card):null;
+        cards.push({student:{id:row.id,name:row.name,group_id:row.group_id,group_name:group?.name||"",school_name:school?.name||group?.name||""},card:publicCard,links:card?cardLinks(card,url.origin):{},card_exists:Boolean(card)});
+      }
+      const found=new Set(cards.map(item=>String(item.student.name||"").normalize("NFKC").replace(/[\u0640\s]+/g," ").trim()));
+      const missing=names.filter(name=>!found.has(name.normalize("NFKC").replace(/[\u0640\s]+/g," ").trim()));
+      await log(env,user.id,"student_cards_trial_preview",{count:cards.length});
+      return json({count:cards.length,cards,missing});
+    }
     if(path==="/api/student-cards/bulk"&&method==="POST"){
       if(user.role==="student")return fail(403,"غير مسموح");
       const parsed=await parseBody(request,4000);if(parsed.error)return parsed.error;const b=parsed.value;

@@ -2045,27 +2045,28 @@ async function staffCardsPage(v){
    const selectedGroups=selected===allValue?groups:groups.filter(g=>g.id===selected);
    if(!selectedGroups.length)throw new Error("لا يوجد فوج ضمن صلاحيتك");
    const datasets=[];
-   for(const group of selectedGroups){
-    let offset=0;
-    while(true){
-     const data=await api("/student-cards/bulk",{method:"POST",body:JSON.stringify({group_id:group.id,offset,limit:200})});
-     datasets.push(...(data.cards||[]));
-     if(!data.has_more)break;
-     const next=Number(data.next_offset);
-     if(!Number.isInteger(next)||next<=offset)throw new Error("تعذر إكمال تحميل بطاقات الفوج بأمان");
-     offset=next;
+   if(trialOnly){
+    const data=await api("/student-cards/trial",{method:"POST",body:JSON.stringify({names:trialNames,group_ids:selectedGroups.map(group=>group.id)})});
+    datasets.push(...(data.cards||[]));
+    const normalizeName=value=>String(value||"").normalize("NFKC").replace(/[\u0640\s]+/g," ").trim();
+    const found=new Set(datasets.map(row=>normalizeName(row.student?.name)));
+    const missing=trialNames.filter(name=>!found.has(normalizeName(name)));
+    if(datasets.length!==10||missing.length)throw new Error("لم يُعثر على البطاقات العشر كاملة ضمن الأفواج المتاحة. المطابق: "+datasets.length+" من 10. غير الموجودة: "+(missing.join("، ")||"لا يوجد")+"؛ لم نعرض قائمة ناقصة.");
+   }else{
+    for(const group of selectedGroups){
+     let offset=0;
+     while(true){
+      const data=await api("/student-cards/bulk",{method:"POST",body:JSON.stringify({group_id:group.id,offset,limit:200})});
+      datasets.push(...(data.cards||[]));
+      if(!data.has_more)break;
+      const next=Number(data.next_offset);
+      if(!Number.isInteger(next)||next<=offset)throw new Error("تعذر إكمال تحميل بطاقات الفوج بأمان");
+      offset=next;
+     }
     }
    }
-   if(trialOnly){
-    const normalizeName=value=>String(value||"").normalize("NFKC").replace(/[\u0640\s]+/g," ").trim();
-    const wanted=new Set(trialNames.map(normalizeName));
-    const matches=datasets.filter(row=>wanted.has(normalizeName(row.student?.name)));
-    const found=new Set(matches.map(row=>normalizeName(row.student?.name)));
-    const missing=trialNames.filter(name=>!found.has(normalizeName(name)));
-    if(matches.length!==10||missing.length)throw new Error("لم يُعثر على البطاقات العشر كاملة ضمن الأفواج المتاحة. المطابق: "+matches.length+" من 10. غير الموجودة: "+(missing.join("، ")||"لا يوجد")+"؛ لم نعرض قائمة ناقصة.");
-    datasets.splice(0,datasets.length,...trialNames.map(name=>matches.find(row=>normalizeName(row.student?.name)===normalizeName(name))));
-   }
-   const count=$("#cards-count"),pageCount=Math.ceil(datasets.length/10);if(count)count.textContent=datasets.length+" بطاقة · "+selectedGroups.length+" فوج · "+pageCount+" صفحات A4 · 10 بطاقات/صفحة";
+   const shownGroups=trialOnly?new Set(datasets.map(row=>row.student?.group_id).filter(Boolean)).size:selectedGroups.length;
+   const count=$("#cards-count"),pageCount=Math.ceil(datasets.length/10);if(count)count.textContent=datasets.length+" بطاقة · "+shownGroups+" فوج · "+pageCount+" صفحات A4 · 10 بطاقات/صفحة";
    const pages=[];
    for(let offset=0;offset<datasets.length;offset+=10){
     const items= datasets.slice(offset,offset+10).map(row=>
