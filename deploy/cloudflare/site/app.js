@@ -2009,9 +2009,9 @@ async function cardPage(v){
 }
 
 function staffStudentPassMarkup(row){
- const student=row.student||{},serial=passSerial(student.id),totals=row.totals||{};
- const qr=qrSvg(row.links?.login||"",180);
- return '<article class="student-pass student-pass-print" data-card-student="'+esc(student.id)+'" aria-label="بطاقة '+esc(student.name)+'"><span class="pass-shine" aria-hidden="true"></span><div class="pass-pattern" aria-hidden="true"></div><div class="pass-head"><span class="pass-brand"><span class="pass-brand-mark" aria-hidden="true">إ</span>أكاديمية الإحسان</span><span class="pass-type">بطاقة طالب</span></div><div class="pass-middle"><span class="pass-chip" aria-hidden="true"><i></i><i></i><i></i></span><span class="pass-qr" aria-label="رمز QR الذكي للطالب والشيخ">'+(qr||'<span class="card-qr-missing">—</span>')+'</span></div><div class="pass-name">'+esc(student.name||"الطالب")+'</div><div class="pass-serial" dir="ltr">'+esc(serial)+'</div><div class="pass-foot"><span>الفوج: '+esc(student.group_name||"—")+'</span><span>أكاديمية الإحسان</span></div></article>';
+ const student=row.student||{},serial=passSerial(student.id);
+ const qr=qrSvg(row.links?.add_points||"",180);
+ return '<article class="student-pass student-pass-print" data-card-student="'+esc(student.id)+'" aria-label="بطاقة '+esc(student.name)+'"><span class="pass-shine" aria-hidden="true"></span><div class="pass-pattern" aria-hidden="true"></div><div class="pass-head"><span class="pass-brand"><img class="pass-brand-logo" src="/icon.svg" alt="شعار أكاديمية الإحسان">أكاديمية الإحسان</span><span class="pass-type">بطاقة طالب</span></div><div class="pass-middle"><span class="pass-chip" aria-hidden="true"><i></i><i></i><i></i></span><span class="pass-qr" aria-label="رمز إضافة النقاط">'+(qr||'<span class="card-qr-missing">—</span>')+'</span></div><div class="pass-name">'+esc(student.name||"الطالب")+'</div><div class="pass-serial" dir="ltr">'+esc(serial)+'</div><div class="pass-foot"><span>الفوج: '+esc(student.group_name||"—")+'</span><span class="pass-school-name">'+esc(student.school_name||student.group_name||"المدرسة")+'</span></div></article>';
 }
 async function staffCardsPage(v){
  if(!["admin","teacher","director","supervisor"].includes(S.user.role)){v.innerHTML=head("بطاقات الطلاب","هذه الصفحة للشيخ أو المشرف.");return}
