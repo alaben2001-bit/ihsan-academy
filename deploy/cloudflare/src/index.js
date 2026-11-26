@@ -2682,6 +2682,32 @@ export default {
     if(groupMatch&&method==="DELETE"){
       if(user.role!=="admin"&&user.role!=="director")return fail(403,"إيقاف الأفواج للمدير العام أو مدير المدرسة");if(!await canManageGroup(env,user,groupMatch[1]))return fail(403,"الفوج خارج نطاق صلاحيتك");await env.DB.prepare("UPDATE groups SET active=0 WHERE id=?").bind(groupMatch[1]).run();await log(env,user.id,"group_deactivate",{id:groupMatch[1]});return json({ok:true});
     }
+    // إنشاء حساب معلّم باسم دخول فريد؛ لا يُشترط بريد إلكتروني.
+    // كلمة المرور الأولية موحدة مؤقتًا، ويمنع must_change_password استعمال المنصة حتى تغييرها.
+    if(path==="/api/teachers"&&method==="POST"){
+      if(user.role!=="admin")return fail(403,"إنشاء حسابات المعلمين للمدير العام فقط");
+      const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
+      const name=clean(b.name,120);
+      const identity=normalizeStudentName(b.username||name);
+      if(!name||!identity||identity.length>120)return fail(400,"أدخل اسم المعلم واسم الدخول");
+      const existingUsers=await env.DB.prepare("SELECT id,display_name,identity_normalized FROM users WHERE active=1").all();
+      const nameKey=normalizeStudentName(name);
+      const duplicate=(existingUsers.results||[]).some(row=>normalizeStudentName(row.identity_normalized)===identity||normalizeStudentName(row.display_name)===nameKey);
+      const existingStudents=await env.DB.prepare("SELECT display_name FROM students WHERE active=1").all();
+      const studentNameConflict=(existingStudents.results||[]).some(row=>normalizeStudentName(row.display_name)===nameKey);
+      if(duplicate||studentNameConflict)return fail(409,"الاسم أو معرّف الدخول موجود مسبقًا؛ راجع السجل قبل إنشاء حساب جديد.");
+      const id=uuid();
+      try{
+        await env.DB.prepare("INSERT INTO users(id,display_name,identity_normalized,password_hash,role,active,must_change_password) VALUES(?,?,?,?, 'teacher',1,1)")
+          .bind(id,name,identity,await passwordHash(INITIAL_STUDENT_PASSWORD)).run();
+      }catch(error){
+        if(String(error?.message||error).toLowerCase().includes("unique"))return fail(409,"اسم الدخول مستخدم بالفعل؛ راجع الحساب الموجود.");
+        console.error("Ihsan teacher account creation failed",{message:String(error?.message||error)});
+        return fail(500,"تعذّر إنشاء حساب المعلم.");
+      }
+      await log(env,user.id,"teacher_account_created",{id,role:"teacher"});
+      return json({ok:true,id,name,username:identity,role:"teacher",must_change_password:true,temporary_password:INITIAL_STUDENT_PASSWORD},201);
+    }
     if(path==="/api/teachers"&&method==="GET"){
       if(user.role==="admin"){const r=await env.DB.prepare("SELECT id,display_name AS name,identity_normalized AS username FROM users WHERE role='teacher' AND active=1 ORDER BY display_name").all();return json(r.results||[]);}
       if(user.role==="director"){

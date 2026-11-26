@@ -79,13 +79,17 @@ async function makeStudent(admin, groupId, name, username, password) {
 }
 
 async function makeTeacher(admin, name, username, password, groupId, groupName = null) {
-  const create = await call("/api/teachers", { method: "POST", token: admin, body: { name, username, password } });
+  const create = await call("/api/teachers", { method: "POST", token: admin, body: { name, username } });
   if (create.status !== 201) throw new Error("teacher creation failed: " + JSON.stringify(create.data));
-  const first = await login(username, password);
-  if (!first.token) throw new Error("teacher login failed: " + JSON.stringify(first.data));
-  const change = await call("/api/me/password", { method: "POST", token: first.token, body: { current_password: password, new_password: password + "b" } });
+  const temporaryPassword = create.data?.temporary_password;
+  if (temporaryPassword !== "12345678" || create.data?.must_change_password !== true) {
+    throw new Error("teacher creation did not return the required temporary password and forced-change flag: " + JSON.stringify(create.data));
+  }
+  const first = await login(username, temporaryPassword);
+  if (!first.token || first.data?.user?.must_change_password !== true) throw new Error("teacher login failed or did not require a password change: " + JSON.stringify(first.data));
+  const change = await call("/api/me/password", { method: "POST", token: first.token, body: { current_password: temporaryPassword, new_password: password } });
   if (change.status !== 200) throw new Error("teacher password change failed: " + JSON.stringify(change.data));
-  const second = await login(username, password + "b");
+  const second = await login(username, password);
   const teachers = await call("/api/teachers", { token: admin });
   const row = (teachers.data || []).find(teacher => teacher.username === username);
   if (!row) throw new Error("teacher row was not returned");

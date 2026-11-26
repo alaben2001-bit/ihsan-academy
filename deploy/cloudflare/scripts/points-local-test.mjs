@@ -235,12 +235,13 @@ async function main() {
   // -------------------------------------------------------------------------
   // 9) Server-side scope: a teacher outside the group cannot award points
   // -------------------------------------------------------------------------
-  const teacherCreate = await call("/api/teachers", { method: "POST", token: admin, body: { name: "معلم الاختبار", username: "points-teacher-1", password: "TeacherPass#2026" } });
-  check("create test teacher", teacherCreate.status === 201, JSON.stringify(teacherCreate.data));
-  const teacherLogin = await login("points-teacher-1", "TeacherPass#2026");
-  check("teacher login returns a token", teacherLogin.status === 200 && teacherLogin.token.length === 64, JSON.stringify(teacherLogin.data));
+  const teacherCreate = await call("/api/teachers", { method: "POST", token: admin, body: { name: "معلم الاختبار", username: "points-teacher-1" } });
+  check("create test teacher", teacherCreate.status === 201 && teacherCreate.data?.temporary_password === "12345678" && teacherCreate.data?.must_change_password === true, JSON.stringify(teacherCreate.data));
+  const teacherLogin = await login("points-teacher-1", teacherCreate.data?.temporary_password || "");
+  check("teacher login returns a token and requires first-login password change", teacherLogin.status === 200 && teacherLogin.token.length === 64 && teacherLogin.data?.user?.must_change_password === true, JSON.stringify(teacherLogin.data));
   let teacherToken = teacherLogin.token;
-  await call("/api/me/password", { method: "POST", token: teacherToken, body: { current_password: "TeacherPass#2026", new_password: "TeacherPass#2026b" } });
+  const teacherPasswordChange = await call("/api/me/password", { method: "POST", token: teacherToken, body: { current_password: teacherCreate.data?.temporary_password || "", new_password: "TeacherPass#2026b" } });
+  check("teacher can replace the temporary password", teacherPasswordChange.status === 200, JSON.stringify(teacherPasswordChange.data));
   teacherToken = (await login("points-teacher-1", "TeacherPass#2026b")).token;
 
   const scopedSummary = await call("/api/points/summary?student_id=" + encodeURIComponent(student.id), { token: teacherToken });

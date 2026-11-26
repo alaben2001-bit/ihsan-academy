@@ -98,10 +98,21 @@ async function makeStaff(admin, body) {
 }
 
 async function makeTeacher(admin, body) {
-  const created = await call("/api/teachers", { method: "POST", token: admin, body });
+  const created = await call("/api/teachers", { method: "POST", token: admin, body: { name: body.name, username: body.username } });
   if (created.status !== 201) throw new Error("teacher creation failed: " + JSON.stringify(created.data));
-  const token = await activateLogin(body.username, body.password);
-  return { id: created.data.id, token };
+  const temporaryPassword = created.data?.temporary_password;
+  if (temporaryPassword !== "12345678" || created.data?.must_change_password !== true) {
+    throw new Error("teacher creation did not return the required temporary password and forced-change flag: " + JSON.stringify(created.data));
+  }
+  const first = await login(body.username, temporaryPassword);
+  if (!first.token || first.data?.user?.must_change_password !== true) {
+    throw new Error("teacher temporary-password login failed or did not force a password change: " + JSON.stringify(first.data));
+  }
+  const change = await call("/api/me/password", { method: "POST", token: first.token, body: { current_password: temporaryPassword, new_password: body.password } });
+  if (change.status !== 200) throw new Error("teacher password change failed: " + JSON.stringify(change.data));
+  const second = await login(body.username, body.password);
+  if (!second.token) throw new Error("teacher re-login failed: " + JSON.stringify(second.data));
+  return { id: created.data.id, token: second.token };
 }
 
 async function setProfile(admin, studentId, profile) {

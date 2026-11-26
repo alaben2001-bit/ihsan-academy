@@ -155,13 +155,14 @@ async function main() {
   // ---------- 6) تحضير مجموعة (فوج) وإسنادها للشيخ المعيّن من الإدارة ----------
   const adminTeacherName = "شيخ معين " + RUN;
   const adminTeacherUsername = "journey-sheikh-" + RUN;
-  const createdTeacher = await call("/api/teachers", { method: "POST", token: admin, body: { name: adminTeacherName, username: adminTeacherUsername, password: "SheikhJourney#2026" } });
-  check("admin creates the assigned shaykh account", createdTeacher.status === 201, JSON.stringify(createdTeacher.data));
+  const createdTeacher = await call("/api/teachers", { method: "POST", token: admin, body: { name: adminTeacherName, username: adminTeacherUsername } });
+  check("admin creates the assigned shaykh account with a temporary password", createdTeacher.status === 201 && createdTeacher.data?.temporary_password === "12345678" && createdTeacher.data?.must_change_password === true, JSON.stringify(createdTeacher.data));
   const assignedTeacherId = createdTeacher.data?.id;
   // حساب الأستاذ المُنشأ يجب تغيير كلمة مروره المؤقتة أولًا
-  const sheikhLogin1 = await login(adminTeacherUsername, "SheikhJourney#2026");
-  check("assigned shaykh can log in", sheikhLogin1.status === 200, JSON.stringify(sheikhLogin1.data));
-  const sheikhPass = await call("/api/me/password", { method: "POST", token: sheikhLogin1.token, body: { current_password: "SheikhJourney#2026", new_password: "SheikhJourney#2026New" } });
+  const temporaryTeacherPassword = createdTeacher.data?.temporary_password || "";
+  const sheikhLogin1 = await login(adminTeacherUsername, temporaryTeacherPassword);
+  check("assigned shaykh can log in and is forced to change the temporary password", sheikhLogin1.status === 200 && sheikhLogin1.data?.user?.must_change_password === true, JSON.stringify(sheikhLogin1.data));
+  const sheikhPass = await call("/api/me/password", { method: "POST", token: sheikhLogin1.token, body: { current_password: temporaryTeacherPassword, new_password: "SheikhJourney#2026New" } });
   check("assigned shaykh changes temporary password", sheikhPass.status === 200, JSON.stringify(sheikhPass.data));
   const sheikhLogin = await login(adminTeacherUsername, "SheikhJourney#2026New");
   const sheikh = sheikhLogin.token;
