@@ -2033,8 +2033,10 @@ async function staffCardsPage(v){
  if(!groups.length){v.innerHTML=head("بطاقات الطلاب","لا يوجد فوج ضمن صلاحيتك.");return}
  if(!S.cardsGroupId||!groups.some(g=>g.id===S.cardsGroupId))S.cardsGroupId=groups[0].id;
  const allValue="__all_managed_groups__";
- v.innerHTML=head("بطاقات الطلاب","معاينة جميع البطاقات قبل الطباعة. من نافذة الطباعة اختر «حفظ بصيغة PDF» لإنشاء ملف للطباعة بالمقاس الحقيقي.")+
-  '<div class="card cards-toolbar"><label class="field">نطاق البطاقات<select id="cards-group"><option value="'+allValue+'">جميع الطلاب ضمن صلاحيتي</option>'+groups.map(g=>'<option value="'+esc(g.id)+'"'+(g.id===S.cardsGroupId?" selected":"")+'>'+esc(g.name)+'</option>').join("")+'</select></label><div class="student-actions"><button class="btn secondary" type="button" id="cards-print">حفظ PDF / طباعة النطاق</button><span class="muted small" id="cards-count"></span></div><p class="muted small">كل بطاقة تضم رمز QR الخاص بالطالب داخل تصميمها. المقاس CR80 الحقيقي؛ 10 بطاقات في ورقة A4 عند حفظ PDF أو الطباعة.</p></div>'+
+ const trialNames=["ياسين بن ذيب","أنس كعوان","أمير بوقزولة","زكرياء هب الريح","سراج كراش","عبد الرحمن صالحي","مقالة عبد اللطيف","أنس محنان","علي ونوغي","إسحاق سواك"];
+ let trialOnly=false;
+ v.innerHTML=head("بطاقات الطلاب","معاينة البطاقات والطباعة بالمقاس الحقيقي CR80.")+
+  '<div class="card cards-toolbar"><div class="student-actions"><button class="btn" type="button" id="cards-trial">قسم التنزيل التجريبي · 10 بطاقات</button><button class="btn secondary" type="button" id="cards-all">العودة إلى النطاق المعتاد</button><button class="btn secondary" type="button" id="cards-print">حفظ PDF / طباعة</button><span class="muted small" id="cards-count"></span></div><label class="field">نطاق البطاقات<select id="cards-group"><option value="'+allValue+'">جميع الطلاب ضمن صلاحيتي</option>'+groups.map(g=>'<option value="'+esc(g.id)+'"'+(g.id===S.cardsGroupId?" selected":"")+'>'+esc(g.name)+'</option>').join("")+'</select></label><p class="muted small">القسم التجريبي يعرض الأسماء العشرة المحددة فقط، ولا يغيّر بيانات الطلاب أو رموز QR.</p></div>'+
   '<div id="cards-sheet" class="cards-sheet"><div class="loading">جار تجهيز معاينة البطاقات…</div></div>';
  const loadCards=async()=>{
   const host=$("#cards-sheet");if(!host)return;host.innerHTML='<div class="loading">جار تجهيز معاينة البطاقات…</div>';
@@ -2054,12 +2056,22 @@ async function staffCardsPage(v){
      offset=next;
     }
    }
+   if(trialOnly){
+    const normalizeName=value=>String(value||"").normalize("NFKC").replace(/[\\u0640\\s]+/g," ").trim();
+    const wanted=new Set(trialNames.map(normalizeName));
+    const matches=datasets.filter(row=>wanted.has(normalizeName(row.student?.name)));
+    const found=new Set(matches.map(row=>normalizeName(row.student?.name)));
+    const missing=trialNames.filter(name=>!found.has(normalizeName(name)));
+    if(matches.length!==10||missing.length)throw new Error("لم يُعثر على البطاقات العشر كاملة ضمن الأفواج المتاحة. المطابق: "+matches.length+" من 10. غير الموجودة: "+(missing.join("، ")||"لا يوجد")+"؛ لم نعرض قائمة ناقصة.");
+    datasets.splice(0,datasets.length,...trialNames.map(name=>matches.find(row=>normalizeName(row.student?.name)===normalizeName(name))));
+   }
    const count=$("#cards-count"),pageCount=Math.ceil(datasets.length/10);if(count)count.textContent=datasets.length+" بطاقة · "+selectedGroups.length+" فوج · "+pageCount+" صفحات A4 · 10 بطاقات/صفحة";
    const pages=[];
    for(let offset=0;offset<datasets.length;offset+=10){
-    const items=datasets.slice(offset,offset+10).map(row=>
-     '<section class="student-card-print-item" data-card-item="'+esc(row.student.id)+'">'+staffStudentPassMarkup(row)+'<div class="student-card-print-actions"><button class="btn secondary" type="button" data-card-print-one="'+esc(row.student.id)+'">طباعة هذه البطاقة</button><button class="btn secondary" type="button" data-card-qr-tools="'+esc(row.student.id)+'">رموز الشيخ</button><button class="btn secondary" type="button" data-card-reissue="'+esc(row.student.id)+'">إعادة إصدار الرموز</button><button class="btn danger" type="button" data-card-revoke="'+esc(row.student.id)+'">إلغاء الرموز</button><div class="staff-card-qr-tools hidden" data-card-qr-panel="'+esc(row.student.id)+'"><div><strong>QR الملف الشخصي</strong>'+qrSvg(row.links?.profile||"",112)+'</div><div><strong>QR إضافة النقاط</strong>'+qrSvg(row.links?.add_points||"",112)+'</div><small>المسح يتطلب دخول الشيخ وصلاحيته على الفوج.</small></div></div></section>'
+    const items= datasets.slice(offset,offset+10).map(row=>
+     '<section class="student-card-print-item" data-card-item="'+esc(row.student.id)+'">'+staffStudentPassMarkup(row)+(trialOnly?'<div class="student-card-print-actions"><button class="btn secondary" type="button" data-card-print-one="'+esc(row.student.id)+'">طباعة هذه البطاقة</button></div>':'<div class="student-card-print-actions"><button class="btn secondary" type="button" data-card-print-one="'+esc(row.student.id)+'">طباعة هذه البطاقة</button><button class="btn secondary" type="button" data-card-qr-tools="'+esc(row.student.id)+'">رموز الشيخ</button><button class="btn secondary" type="button" data-card-reissue="'+esc(row.student.id)+'">إعادة إصدار الرموز</button><button class="btn danger" type="button" data-card-revoke="'+esc(row.student.id)+'">إلغاء الرموز</button><div class="staff-card-qr-tools hidden" data-card-qr-panel="'+esc(row.student.id)+'"><div><strong>QR الملف الشخصي</strong>'+qrSvg(row.links?.profile||"",112)+'</div><div><strong>QR إضافة النقاط</strong>'+qrSvg(row.links?.add_points||"",112)+'</div><small>المسح يتطلب دخول الشيخ وصلاحيته على الفوج.</small></div></div>')+'</section>'
     );
+
     pages.push('<section class="cards-print-page"><div class="cards-sheet-grid">'+items.join("")+'</div><span class="cards-print-page-number">صفحة '+(Math.floor(offset/10)+1)+' من '+pageCount+'</span></section>');
    }
    host.innerHTML=pages.join("")||'<div class="notice">لا توجد بطاقات في النطاق المحدد.</div>';
@@ -2084,6 +2096,8 @@ async function staffCardsPage(v){
    });
   }catch(error){host.innerHTML='<div class="notice error">'+esc(error.message)+'</div>'}
  };
+ $("#cards-trial")?.addEventListener("click",()=>{trialOnly=true;loadCards()});
+ $("#cards-all")?.addEventListener("click",()=>{trialOnly=false;loadCards()});
  $("#cards-group")?.addEventListener("change",e=>{S.cardsGroupId=e.target.value;loadCards()});
  $("#cards-print")?.addEventListener("click",()=>{document.body.dataset.print="cards";window.print()});
  window.addEventListener("afterprint",()=>{delete document.body.dataset.print;delete document.body.dataset.printStudent;document.querySelectorAll(".student-card-print-item.is-print-target").forEach(item=>item.classList.remove("is-print-target"))});
