@@ -6,7 +6,8 @@ assert.ok(route.includes('if(user.role!=="admin")'),"teacher account creation mu
 assert.ok(route.includes('normalizeStudentName(b.username||name)'),"teacher identity must be normalized");
 assert.ok(route.includes('passwordHash(INITIAL_STUDENT_PASSWORD)'),"new teacher must receive the configured temporary password through hashing");
 assert.ok(route.includes("must_change_password) VALUES(?,?,?,?, 'teacher',1,1)"),"new teacher must be forced to change password");
-assert.ok(route.includes('return fail(409,"اسم الدخول مستخدم بالفعل'),"duplicate identities must be rejected");
+assert.ok(route.includes("studentNameConflict"),"duplicate display names must be checked against the student roster");
+assert.ok(route.includes("const duplicate=(existingUsers.results||[])"),"duplicate login and display names must be rejected");
 assert.ok(route.includes("temporary_password:INITIAL_STUDENT_PASSWORD"),"admin UI receives the temporary credential once");
 assert.ok(!route.includes("email"),"teacher account creation must not require or fabricate email");
 assert.ok(route.includes('log(env,user.id,"teacher_account_created",{id,role:"teacher"})'),"audit log must omit credentials");
