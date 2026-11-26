@@ -2057,7 +2057,7 @@ async function staffCardsPage(v){
     }
    }
    if(trialOnly){
-    const normalizeName=value=>String(value||"").normalize("NFKC").replace(/[\\u0640\\s]+/g," ").trim();
+    const normalizeName=value=>String(value||"").normalize("NFKC").replace(/[\u0640\s]+/g," ").trim();
     const wanted=new Set(trialNames.map(normalizeName));
     const matches=datasets.filter(row=>wanted.has(normalizeName(row.student?.name)));
     const found=new Set(matches.map(row=>normalizeName(row.student?.name)));
