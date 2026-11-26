@@ -5465,13 +5465,15 @@ export default {
       if(!groupId||!await canManageGroup(env,user,groupId))return fail(403,"اختر فوجًا ضمن صلاحيتك");
       const group=await groupRow(env,groupId);
       if(!group||group.active!==1)return fail(404,"الفوج غير موجود أو غير نشط");
+      const school=group.school_id?await env.DB.prepare("SELECT name FROM quran_schools WHERE id=?").bind(group.school_id).first():null;
+      const schoolName=school?.name||group.name;
       const rows=await env.DB.prepare("SELECT id,display_name AS name FROM students WHERE group_id=? AND active=1 ORDER BY display_name LIMIT ? OFFSET ?").bind(groupId,limit,offset).all();
       const cards=[];
       for(const row of rows.results||[]){
         const ensured=await ensureStudentCard(env,{id:row.id,name:row.name,group_id:groupId},user.id);
         const card=ensured.card;
         const totals=await pointsTotals(env,row.id);
-        cards.push({student:{id:row.id,name:row.name,group_id:groupId,group_name:group.name},card:cardPublic(card),links:cardLinks(card,url.origin),totals});
+        cards.push({student:{id:row.id,name:row.name,group_id:groupId,group_name:group.name,school_name:schoolName},card:cardPublic(card),links:cardLinks(card,url.origin),totals});
       }
       await log(env,user.id,"student_cards_bulk",{group_id:groupId,count:cards.length});
       return json({group:{id:group.id,name:group.name},count:cards.length,cards,next_offset:(rows.results||[]).length===limit?offset+cards.length:null,has_more:(rows.results||[]).length===limit});
