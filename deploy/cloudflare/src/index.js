@@ -2684,7 +2684,7 @@ export default {
     }
     // إنشاء حساب معلّم باسم دخول فريد؛ لا يُشترط بريد إلكتروني.
     // كلمة المرور الأولية موحدة مؤقتًا، ويمنع must_change_password استعمال المنصة حتى تغييرها.
-    if(path==="/api/admin/teachers"&&method==="POST"){
+    if(path==="/api/teachers"&&method==="POST"){
       if(user.role!=="admin")return fail(403,"إنشاء حسابات المعلمين للمدير العام فقط");
       const parsed=await parseBody(request);if(parsed.error)return parsed.error;const b=parsed.value;
       const name=clean(b.name,120);
@@ -2702,7 +2702,7 @@ export default {
         return fail(500,"تعذّر إنشاء حساب المعلم.");
       }
       await log(env,user.id,"teacher_account_created",{id,role:"teacher"});
-      return json({ok:true,id,name,username:identity,role:"teacher",must_change_password:true},201);
+      return json({ok:true,id,name,username:identity,role:"teacher",must_change_password:true,temporary_password:INITIAL_STUDENT_PASSWORD},201);
     }
     if(path==="/api/teachers"&&method==="GET"){
       if(user.role==="admin"){const r=await env.DB.prepare("SELECT id,display_name AS name,identity_normalized AS username FROM users WHERE role='teacher' AND active=1 ORDER BY display_name").all();return json(r.results||[]);}
