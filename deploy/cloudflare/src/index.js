@@ -2690,8 +2690,12 @@ export default {
       const name=clean(b.name,120);
       const identity=normalizeStudentName(b.username||name);
       if(!name||!identity||identity.length>120)return fail(400,"أدخل اسم المعلم واسم الدخول");
-      const duplicate=await env.DB.prepare("SELECT id FROM users WHERE identity_normalized=? LIMIT 1").bind(identity).first();
-      if(duplicate)return fail(409,"اسم الدخول مستخدم بالفعل؛ راجع الحساب الموجود ولا تنشئ حسابًا مكررًا.");
+      const existingUsers=await env.DB.prepare("SELECT id,display_name,identity_normalized FROM users WHERE active=1").all();
+      const nameKey=normalizeStudentName(name);
+      const duplicate=(existingUsers.results||[]).some(row=>normalizeStudentName(row.identity_normalized)===identity||normalizeStudentName(row.display_name)===nameKey);
+      const existingStudents=await env.DB.prepare("SELECT display_name FROM students WHERE active=1").all();
+      const studentNameConflict=(existingStudents.results||[]).some(row=>normalizeStudentName(row.display_name)===nameKey);
+      if(duplicate||studentNameConflict)return fail(409,"الاسم أو معرّف الدخول موجود مسبقًا؛ راجع السجل قبل إنشاء حساب جديد.");
       const id=uuid();
       try{
         await env.DB.prepare("INSERT INTO users(id,display_name,identity_normalized,password_hash,role,active,must_change_password) VALUES(?,?,?,?, 'teacher',1,1)")
