@@ -4324,3 +4324,20 @@ body:has(.auth-layout) .brand .brand-structure{font-size:10px!important;color:#b
 .academy-back-to-top.is-visible{opacity:1;visibility:visible;transform:translateY(0)}
 .academy-back-to-top:focus-visible{outline:3px solid #d6b66b;outline-offset:3px}
 @media(max-width:640px){.academy-back-to-top{inset-inline-end:14px;bottom:calc(14px + env(safe-area-inset-bottom));width:42px;height:42px}.ihsan-visual-inline{width:calc(100% - 24px);margin:18px auto}.ihsan-visual-inline img{max-height:100px}}
+
+
+/* PVC card refinement: official emblem, school footer and complete 2x5 A4 sheets. */
+.pass-brand{gap:8px}
+.pass-brand-logo{display:block;width:34px;height:34px;flex:0 0 34px;object-fit:contain;border-radius:9px;border:1px solid rgba(232,196,119,.55);background:#174b3b;padding:2px}
+.pass-brand-mark{display:none!important}
+.pass-school-name{max-width:58%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;text-align:left;color:#f1dcae}
+.student-pass{background:radial-gradient(520px 260px at 8% 0%,rgba(54,139,101,.35),transparent 62%),radial-gradient(420px 240px at 100% 100%,rgba(212,173,99,.2),transparent 66%),linear-gradient(135deg,#0b4a37,#092d24 58%,#061a15)}
+@media print{
+  @page cards-a4{size:A4 portrait;margin:0}
+  body[data-print="cards"] .cards-print-page{page:cards-a4!important;box-sizing:border-box!important;width:210mm!important;height:297mm!important;min-height:297mm!important;max-height:297mm!important;padding:10mm!important;overflow:hidden!important}
+  body[data-print="cards"] .cards-sheet-grid{box-sizing:border-box!important;width:190mm!important;height:273mm!important;min-height:273mm!important;max-height:273mm!important;grid-template-columns:repeat(2,85.6mm)!important;grid-template-rows:repeat(5,54mm)!important;grid-auto-rows:54mm!important;gap:.7mm 6mm!important;justify-content:center!important;align-content:start!important;overflow:visible!important}
+  body[data-print="cards"] .pass-brand-logo{width:7mm!important;height:7mm!important;flex:0 0 7mm!important;padding:.4mm!important;border-radius:1.5mm!important}
+  body[data-print="cards"] .pass-brand{font-size:7pt!important}
+  body[data-print="cards"] .pass-school-name{max-width:58%!important;font-size:5.5pt!important;line-height:1.15!important}
+  body[data-print="cards"] .pass-brand-mark{display:none!important}
+}
