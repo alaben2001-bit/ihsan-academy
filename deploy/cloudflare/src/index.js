@@ -5427,6 +5427,24 @@ export default {
       await log(env,user.id,created?"student_card_create":"student_card_open",{card_id:card.id,student_id:student.id});
       return json({ok:true,created,card:cardPublic(card),links:cardLinks(card,url.origin),student:{id:student.id,name:student.name,group_id:student.group_id,group_name:student.group_name||""}},created?201:200);
     }
+    if(path==="/api/student-cards/preview-bulk"&&method==="GET"){
+      if(user.role==="student")return fail(403,"غير مسموح");
+      const groupId=clean(url.searchParams.get("group_id"),80);
+      const offset=Math.max(0,Math.min(100000,Math.floor(Number(url.searchParams.get("offset"))||0)));
+      const limit=Math.max(1,Math.min(200,Math.floor(Number(url.searchParams.get("limit"))||200)));
+      if(!groupId||!await canManageGroup(env,user,groupId))return fail(403,"اختر فوجًا ضمن صلاحيتك");
+      const group=await groupRow(env,groupId);
+      if(!group||group.active!==1)return fail(404,"الفوج غير موجود أو غير نشط");
+      const rows=await env.DB.prepare("SELECT id,display_name AS name FROM students WHERE group_id=? AND active=1 ORDER BY display_name LIMIT ? OFFSET ?").bind(groupId,limit,offset).all();
+      const cards=[];
+      for(const row of rows.results||[]){
+        const student={id:row.id,name:row.name,group_id:groupId,group_name:group.name};
+        const card=await cardRecord(env,row.id);
+        if(card&&(card.student_id!==row.id||card.id!==row.id))return fail(409,"تعارض في هوية بطاقة الطالب؛ أوقفنا المعاينة");
+        cards.push({student,card:card?cardPublic(card):null,links:card?cardLinks(card,url.origin):{}});
+      }
+      return json({group:{id:group.id,name:group.name},count:cards.length,cards,next_offset:(rows.results||[]).length===limit?offset+cards.length:null,has_more:(rows.results||[]).length===limit});
+    }
     if(path==="/api/student-cards/bulk"&&method==="POST"){
       if(user.role==="student")return fail(403,"غير مسموح");
       const parsed=await parseBody(request,4000);if(parsed.error)return parsed.error;const b=parsed.value;

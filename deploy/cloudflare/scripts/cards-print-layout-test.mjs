@@ -43,7 +43,7 @@ check("bulk print hides controls and keeps complete cards", /body\[data-print="c
 check("individual print isolates the selected card", /\.student-card-print-item\.is-print-target\{display:block!important\}/.test(css));
 check("student card still retains its original gold-chip styling", /\.pass-chip\{[^}]*linear-gradient\(135deg,#f3d79b,#b98b3c\)/s.test(css));
 check("smart-card chip has six metallic contact pads and engraved contact frame", /grid-template-columns:repeat\(3,1fr\)/.test(css) && /grid-template-rows:repeat\(2,1fr\)/.test(css) && /pass-chip:before/.test(css));
-check("student card uses the emerald luxury finish", /V77 — premium emerald PVC pass/.test(css) && /linear-gradient\(132deg,#073b30 0%,#052b25 48%,#031b19 100%\)/.test(css));
+check("student card keeps the original burgundy gradient", /linear-gradient\(135deg,#6e0d25,#2a0712 55%,#12040a\)/.test(css));
 check("QR tokens have no automatic expiry", /const cardActive = token => Boolean\(token\) && !token\.revoked_at/.test(server));
 check("new QR tokens persist with a null expiry", /expires_at: null, revoked_at: null/.test(server));
 check("legacy QR expiry is cleared without rotating the secret", server.includes("ترقية آمنة للبطاقات القديمة") && server.includes("expires_at: null"));
@@ -56,6 +56,19 @@ check("bulk print preserves a full five-row 2×5 CR80 sheet per A4 page", css.in
 check("final overriding print rules also use five rows, not the legacy four-row layout", /V76[^]*?grid-template-rows:repeat\(5,54mm\)!important[^]*?height:273mm!important/.test(css) && !/V76[^]*?grid-template-rows:repeat\(4,54mm\)!important/.test(css));
 check("bulk print offers Save as PDF from the browser print dialog", /حفظ PDF \/ طباعة النطاق/.test(app) && /حفظ بصيغة PDF/.test(app));
 check("bulk print prevents page splitting inside a sheet or card", css.includes("break-inside:avoid!important") && css.includes("page-break-inside:avoid!important"));
+
+
+check("staff card uses the academy emblem SVG instead of the Arabic letter mark", /pass-brand-logo[^]*?src="\/ihsan-emblem\.svg"/.test(staffPage) && !staffPage.includes("pass-brand-mark"));
+check("staff card footer uses the resolved school name and never substitutes the group name", /pass-school-name/.test(staffPage) && /schoolName=String\(row\.school_name\|\|"—"\)/.test(staffPage));
+check("all printed cards resolve the official school name from the group school ID", /api\("\/public\/quran-schools"\)/.test(staffPage) && /row\.school_name=schoolMap\.get\(String\(g\?\.school_id\|\|""\)\)\|\|"—"/.test(staffPage));
+check("temporary ten-card list contains the ten requested names", /const temporaryNames=\["ياسين بن ذيب","أنس كعوان","أمير بوقزولة","زكرياء هب الريح","سراج كراش","عبد الرحمن صالحي","مقالة عبد اللطيف","أنس محنان","علي ونوغي","إسحاق سواك"\]/.test(app));
+check("temporary batch refuses ambiguous or missing students and enables print only for ten unique matches", /matches\.length===1/.test(app) && /tempPrint\.disabled=resolved\.length!==10\|\|issues\.length!==0/.test(app));
+check("temporary ten-card preview uses a read-only GET endpoint and never calls card creation", /path==="\/api\/student-cards\/preview-bulk"&&method==="GET"/.test(server) && !server.slice(server.indexOf('if(path==="/api/student-cards/preview-bulk"'),server.indexOf('if(path==="/api/student-cards/bulk"')).includes("ensureStudentCard"));
+check("temporary ten-card preview does not write audit events", !server.slice(server.indexOf('if(path==="/api/student-cards/preview-bulk"'),server.indexOf('if(path==="/api/student-cards/bulk"')).includes("log(env"));
+check("temporary ten-card matching honors explicit newer Anas record and approved short-name aliases", /studentId:"78520f17-c024-48b6-88ff-65bfb3b26bb7"/.test(app) && /aliases:\["أمير"\]/.test(app) && /aliases:\["عبد الرحمان"\]/.test(app));
+check("temporary batch uses the current smart login QR, not add-points QR", /qrSvg\(row\.links\?\.login\|\|""\,180\)/.test(staffPage));
+check("temporary A4 print isolates one 2×5 sheet of CR80 cards", /body\[data-print="cards-temp"\] #temporary-cards-sheet/.test(css) && /grid-template-columns:repeat\(2,85\.6mm\)!important;grid-template-rows:repeat\(5,54mm\)!important/.test(css) && /width:85\.6mm!important;height:54mm!important/.test(css));
+check("original academy emblem is deployed beside the Cloudflare site", fs.existsSync(path.join(root, "site/ihsan-emblem.svg")));
 
 const failed = checks.filter(item => !item.ok);
 console.log("\n" + (checks.length - failed.length) + "/" + checks.length + " source-layout checks passed.");

@@ -4310,3 +4310,56 @@ body:has(.auth-layout) .brand .brand-structure{font-size:10px!important;color:#b
 .scan-daily-effort-grid .field select{min-height:43px;width:100%;background:#071a13;color:#f7f2e7;border:1px solid #668a73;border-radius:9px}
 .scan-daily-effort>button{min-height:48px}
 @media(max-width:600px){.scan-daily-effort{padding:11px}.scan-daily-effort-grid{grid-template-columns:1fr}.scan-daily-effort-grid .field{padding:10px}}
+
+
+/* Temporary ten-card batch: preserve the original burgundy CR80 design. */
+.pass-brand-logo{display:block;width:34px;height:34px;flex:0 0 34px;object-fit:contain;border-radius:8px;background:#fff;border:1px solid rgba(232,196,119,.55);padding:2px}
+.pass-school-name{max-width:58%;overflow-wrap:anywhere;text-align:left;font-size:9px;font-weight:800;color:#ffe4a9}
+.temporary-cards-sheet{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;justify-items:center;margin-top:14px}
+.temp-card-item{width:100%;max-width:560px;min-width:0}
+.temp-card-item .student-pass{width:100%;max-width:560px}
+.temp-card-issues{margin:8px 0;padding-inline-start:22px;line-height:1.9}
+.temp-card-issues li{margin:3px 0}
+@media(max-width:720px){.temporary-cards-sheet{grid-template-columns:minmax(0,1fr)}}
+@media print{
+ @page{size:A4 portrait;margin:10mm}
+ body[data-print="cards-temp"] *{visibility:hidden!important}
+ body[data-print="cards-temp"] #temporary-cards-sheet,
+ body[data-print="cards-temp"] #temporary-cards-sheet *{visibility:visible!important}
+ body[data-print="cards-temp"] .temp-cards-panel,
+ body[data-print="cards-temp"] .cards-toolbar,
+ body[data-print="cards-temp"] #cards-sheet{display:none!important}
+ body[data-print="cards-temp"] #temporary-cards-sheet{
+  position:fixed!important;inset:0 auto auto 0!important;z-index:2147483647!important;
+  display:grid!important;width:190mm!important;height:270mm!important;margin:0!important;padding:0!important;
+  grid-template-columns:repeat(2,85.6mm)!important;grid-template-rows:repeat(5,54mm)!important;
+  column-gap:6mm!important;row-gap:0!important;justify-content:center!important;align-content:center!important;
+  overflow:visible!important;background:#fff!important
+ }
+ body[data-print="cards-temp"] #temporary-cards-sheet .temp-card-item{
+  display:block!important;width:85.6mm!important;height:54mm!important;min-width:0!important;max-width:none!important;
+  margin:0!important;padding:0!important;break-inside:avoid!important;page-break-inside:avoid!important
+ }
+ body[data-print="cards-temp"] #temporary-cards-sheet .student-pass{
+  display:flex!important;box-sizing:border-box!important;width:85.6mm!important;height:54mm!important;
+  min-width:85.6mm!important;min-height:54mm!important;max-width:85.6mm!important;max-height:54mm!important;
+  margin:0!important;padding:3.2mm!important;gap:1mm!important;border-radius:3mm!important;overflow:hidden!important;
+  aspect-ratio:85.6/54!important;box-shadow:none!important;-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important
+ }
+ body[data-print="cards-temp"] #temporary-cards-sheet .pass-brand{font-size:7pt!important;gap:1.5mm!important}
+ body[data-print="cards-temp"] #temporary-cards-sheet .pass-brand-logo{width:7mm!important;height:7mm!important;flex:0 0 7mm!important;padding:.4mm!important}
+ body[data-print="cards-temp"] #temporary-cards-sheet .pass-type{font-size:6pt!important}
+ body[data-print="cards-temp"] #temporary-cards-sheet .pass-middle{min-height:0!important;flex:1!important}
+ body[data-print="cards-temp"] #temporary-cards-sheet .pass-qr{width:19mm!important;height:19mm!important;flex:0 0 19mm!important;padding:1mm!important}
+ body[data-print="cards-temp"] #temporary-cards-sheet .pass-chip{width:10mm!important;height:7mm!important}
+ body[data-print="cards-temp"] #temporary-cards-sheet .pass-name{font-size:11pt!important;line-height:1.15!important;margin:0!important}
+ body[data-print="cards-temp"] #temporary-cards-sheet .pass-serial{font-size:6.5pt!important}
+ body[data-print="cards-temp"] #temporary-cards-sheet .pass-foot{font-size:5.5pt!important;padding-top:1mm!important;flex-wrap:nowrap!important}
+ body[data-print="cards-temp"] #temporary-cards-sheet .pass-school-name{font-size:5.5pt!important;max-width:58%!important}
+}
+/* Keep the temporary batch wrapper visible while isolating only its ten-card sheet. */
+@media print{
+ body[data-print="cards-temp"] .temp-cards-panel{display:block!important;position:static!important;visibility:hidden!important}
+ body[data-print="cards-temp"] .temp-cards-panel>.section-head,
+ body[data-print="cards-temp"] #temporary-cards-status{display:none!important}
+}

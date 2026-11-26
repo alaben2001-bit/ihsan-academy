@@ -2009,9 +2009,9 @@ async function cardPage(v){
 }
 
 function staffStudentPassMarkup(row){
- const student=row.student||{},serial=passSerial(student.id),totals=row.totals||{};
- const qr=qrSvg(row.links?.login||"",180);
- return '<article class="student-pass student-pass-print" data-card-student="'+esc(student.id)+'" aria-label="بطاقة '+esc(student.name)+'"><span class="pass-shine" aria-hidden="true"></span><div class="pass-pattern" aria-hidden="true"></div><div class="pass-head"><span class="pass-brand"><span class="pass-brand-mark" aria-hidden="true">إ</span>أكاديمية الإحسان</span><span class="pass-type">بطاقة طالب</span></div><div class="pass-middle"><span class="pass-chip" aria-hidden="true"><i></i><i></i><i></i></span><span class="pass-qr" aria-label="رمز QR الذكي للطالب والشيخ">'+(qr||'<span class="card-qr-missing">—</span>')+'</span></div><div class="pass-name">'+esc(student.name||"الطالب")+'</div><div class="pass-serial" dir="ltr">'+esc(serial)+'</div><div class="pass-foot"><span>الفوج: '+esc(student.group_name||"—")+'</span><span>أكاديمية الإحسان</span></div></article>';
+ const student=row.student||{},serial=passSerial(student.id);
+ const qr=qrSvg(row.links?.login||"",180),schoolName=String(row.school_name||"—");
+ return '<article class="student-pass student-pass-print" data-card-student="'+esc(student.id)+'" aria-label="بطاقة '+esc(student.name)+'"><span class="pass-shine" aria-hidden="true"></span><div class="pass-pattern" aria-hidden="true"></div><div class="pass-head"><span class="pass-brand"><img class="pass-brand-logo" src="/ihsan-emblem.svg" alt="" loading="eager">أكاديمية الإحسان</span><span class="pass-type">بطاقة طالب</span></div><div class="pass-middle"><span class="pass-chip" aria-hidden="true"><i></i><i></i><i></i></span><span class="pass-qr" aria-label="رمز QR الذكي للطالب والشيخ">'+(qr||'<span class="card-qr-missing">—</span>')+'</span></div><div class="pass-name">'+esc(student.name||"الطالب")+'</div><div class="pass-serial" dir="ltr">'+esc(serial)+'</div><div class="pass-foot"><span>الفوج: '+esc(student.group_name||"—")+'</span><span class="pass-school-name">'+esc(schoolName)+'</span></div></article>';
 }
 async function staffCardsPage(v){
  if(!["admin","teacher","director","supervisor"].includes(S.user.role)){v.innerHTML=head("بطاقات الطلاب","هذه الصفحة للشيخ أو المشرف.");return}
@@ -2022,6 +2022,7 @@ async function staffCardsPage(v){
  const allValue="__all_managed_groups__";
  v.innerHTML=head("بطاقات الطلاب","معاينة جميع البطاقات قبل الطباعة. من نافذة الطباعة اختر «حفظ بصيغة PDF» لإنشاء ملف للطباعة بالمقاس الحقيقي.")+
   '<div class="card cards-toolbar"><label class="field">نطاق البطاقات<select id="cards-group"><option value="'+allValue+'">جميع الطلاب ضمن صلاحيتي</option>'+groups.map(g=>'<option value="'+esc(g.id)+'"'+(g.id===S.cardsGroupId?" selected":"")+'>'+esc(g.name)+'</option>').join("")+'</select></label><div class="student-actions"><button class="btn secondary" type="button" id="cards-print">حفظ PDF / طباعة النطاق</button><span class="muted small" id="cards-count"></span></div><p class="muted small">كل بطاقة تضم رمز QR الخاص بالطالب داخل تصميمها. المقاس CR80 الحقيقي؛ 10 بطاقات في ورقة A4 عند حفظ PDF أو الطباعة.</p></div>'+
+  '<section class="card temp-cards-panel"><div class="section-head"><div><h3>البطاقات العشر — تنزيل مؤقت</h3><p class="muted small">قائمة مؤقتة لا تنشئ طلابًا ولا تغيّر انتماءاتهم. لا يُتاح PDF إلا بعد مطابقة الأسماء العشرة بسجلات فريدة.</p></div><div class="student-actions"><button class="btn secondary" type="button" id="temporary-cards-load">مطابقة البطاقات العشر</button><button class="btn" type="button" id="temporary-cards-print" disabled>تنزيل PDF / طباعة</button></div></div><div id="temporary-cards-status" class="muted small" role="status">لم تبدأ المطابقة بعد.</div><div id="temporary-cards-sheet" class="temporary-cards-sheet"></div></section>'+
   '<div id="cards-sheet" class="cards-sheet"><div class="loading">جار تجهيز معاينة البطاقات…</div></div>';
  const loadCards=async()=>{
   const host=$("#cards-sheet");if(!host)return;host.innerHTML='<div class="loading">جار تجهيز معاينة البطاقات…</div>';
@@ -2033,7 +2034,7 @@ async function staffCardsPage(v){
    for(const group of selectedGroups){
     let offset=0;
     while(true){
-     const data=await api("/student-cards/bulk",{method:"POST",body:JSON.stringify({group_id:group.id,offset,limit:200})});
+     const data=await api("/student-cards/preview-bulk?group_id="+encodeURIComponent(group.id)+"&offset="+offset+"&limit=200");
      datasets.push(...(data.cards||[]));
      if(!data.has_more)break;
      const next=Number(data.next_offset);
@@ -2041,6 +2042,8 @@ async function staffCardsPage(v){
      offset=next;
     }
    }
+   const schoolRows=await api("/public/quran-schools"),schoolMap=new Map((Array.isArray(schoolRows)?schoolRows:[]).map(x=>[String(x.id),String(x.name||"")])),groupMap=new Map(groups.map(g=>[String(g.id),g]));
+   for(const row of datasets){const g=groupMap.get(String(row.student?.group_id||""));row.school_name=schoolMap.get(String(g?.school_id||""))||"—";}
    const count=$("#cards-count"),pageCount=Math.ceil(datasets.length/10);if(count)count.textContent=datasets.length+" بطاقة · "+selectedGroups.length+" فوج · "+pageCount+" صفحات A4 · 10 بطاقات/صفحة";
    const pages=[];
    for(let offset=0;offset<datasets.length;offset+=10){
@@ -2073,6 +2076,59 @@ async function staffCardsPage(v){
  };
  $("#cards-group")?.addEventListener("change",e=>{S.cardsGroupId=e.target.value;loadCards()});
  $("#cards-print")?.addEventListener("click",()=>{document.body.dataset.print="cards";window.print()});
+ const temporaryNames=[
+  {name:"ياسين بن ذيب"},
+  {name:"أنس كعوان",studentId:"78520f17-c024-48b6-88ff-65bfb3b26bb7"},
+  {name:"أمير بوقزولة",aliases:["أمير"],groupIncludes:["أبو عبيدة"]},
+  {name:"زكرياء هب الريح",aliases:["زكرياء"],groupIncludes:["أبو عبيدة"]},
+  {name:"سراج كراش",aliases:["سراج"],groupIncludes:["الإرشاد"]},
+  {name:"عبد الرحمن صالحي",aliases:["عبد الرحمان"],groupIncludes:["الإرشاد"]},
+  {name:"مقالة عبد اللطيف"},
+  {name:"أنس محنان"},
+  {name:"علي ونوغي"},
+  {name:"إسحاق سواك",aliases:["اسحاق سواك"]}
+ ];
+ const tempLoad=$("#temporary-cards-load"),tempPrint=$("#temporary-cards-print"),tempStatus=$("#temporary-cards-status"),tempSheet=$("#temporary-cards-sheet");
+ const normalizeStudentName=value=>String(value||"").normalize("NFKC").replace(/[\u064B-\u065F\u0670ـ]/g,"").replace(/[أإآ]/g,"ا").replace(/ى/g,"ي").replace(/\s+/g," ").trim();
+ tempLoad?.addEventListener("click",async()=>{
+  tempLoad.disabled=true;tempPrint.disabled=true;tempStatus.textContent="جار مطابقة الأسماء مع سجلات الأفواج ضمن صلاحيتك…";tempSheet.innerHTML="";
+  try{
+   const schoolRows=await api("/public/quran-schools"),schoolMap=new Map((Array.isArray(schoolRows)?schoolRows:[]).map(x=>[String(x.id),String(x.name||"")]));
+   const groupMap=new Map(groups.map(g=>[String(g.id),g]));
+   const records=[];
+   for(const group of groups){
+    let offset=0;
+    while(true){
+     const data=await api("/student-cards/bulk",{method:"POST",body:JSON.stringify({group_id:group.id,offset,limit:200})});
+     for(const row of (data.cards||[])){const g=groupMap.get(String(row.student?.group_id||group.id));row.school_name=schoolMap.get(String(g?.school_id||""))||"—";records.push(row)}
+     if(!data.has_more)break;
+     const next=Number(data.next_offset);if(!Number.isInteger(next)||next<=offset)throw new Error("تعذر إكمال قراءة سجلات الأفواج بأمان");offset=next;
+    }
+   }
+   const resolved=[],issues=[];
+   for(const wanted of temporaryNames){
+    const wantedName=normalizeStudentName(wanted.name);
+    const aliases=[wantedName,...(wanted.aliases||[]).map(normalizeStudentName)];
+    const matches=records.filter(row=>{
+     if(wanted.studentId)return String(row.student?.id||"")===wanted.studentId;
+     const nameMatches=aliases.includes(normalizeStudentName(row.student?.name));
+     const groupMatches=(wanted.groupIncludes||[]).every(part=>normalizeStudentName(row.student?.group_name).includes(normalizeStudentName(part)));
+     return nameMatches&&groupMatches;
+    });
+    if(matches.length===1){
+     const row=matches[0];
+     if(!row.card||!row.links?.login){issues.push({name:wanted.name,reason:"السجل مطابق لكن البطاقة أو رمز الدخول الذكي غير موجود؛ لن ننشئه أثناء المعاينة"});continue}
+     resolved.push({...row,student:{...row.student,name:wanted.name}});
+    }else issues.push({name:wanted.name,reason:matches.length?"توجد مطابقة متعددة؛ يلزم حسمها":"لم يُعثر على سجل مطابق"});
+   }
+   tempStatus.innerHTML='<strong>نتيجة المطابقة: '+resolved.length+'/10</strong>'+(issues.length?'<ul class="temp-card-issues">'+issues.map(x=>'<li><strong>'+esc(x.name)+'</strong> — '+esc(x.reason)+'</li>').join("")+'</ul>':'<p>اكتملت المطابقة الفريدة للأسماء العشرة.</p>');
+   tempSheet.innerHTML=resolved.map(row=>'<section class="temp-card-item">'+staffStudentPassMarkup(row)+'</section>').join("");
+   if(issues.length)tempStatus.insertAdjacentHTML("beforeend",'<p class="muted small">لن يُنشأ PDF ناقص أو ببيانات تخمينية. عالج المطابقات أعلاه أولًا.</p>');
+   tempPrint.disabled=resolved.length!==10||issues.length!==0;
+  }catch(error){tempStatus.textContent=error.message||"تعذرت مطابقة البطاقات.";tempSheet.innerHTML=""}
+  finally{tempLoad.disabled=false}
+ });
+ tempPrint?.addEventListener("click",()=>{if(tempPrint.disabled)return;document.body.dataset.print="cards-temp";window.print()});
  window.addEventListener("afterprint",()=>{delete document.body.dataset.print;delete document.body.dataset.printStudent;document.querySelectorAll(".student-card-print-item.is-print-target").forEach(item=>item.classList.remove("is-print-target"))});
  await loadCards();
 }
