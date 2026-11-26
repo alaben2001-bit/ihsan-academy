@@ -24,9 +24,9 @@ check("student card print no longer appends a separate QR sheet", !/cardQrSheet\
 check("golden decorative chip remains in student card", /class="pass-chip"/.test(studentPage));
 check("staff cards use the same preserved student-pass design", /class="student-pass student-pass-print"/.test(staffPage));
 check("legacy staff-only QR tools remain separate and server-authorized", /data-card-qr-tools/.test(staffPage) && /QR الملف الشخصي/.test(staffPage) && /QR إضافة النقاط/.test(staffPage) && server.includes("canAccessStudentCard(env,scanner,student)") && server.includes('resolvedKind==="add_points"'));
-check("bulk-printed student card uses the single smart QR", /const qr=qrSvg\(row\.links\?\.login\|\|""\,180\)/.test(staffPage) && /رمز QR الذكي للطالب والشيخ/.test(staffPage));
+check("bulk-printed student card uses only the add-points QR", /const qr=qrSvg\(row\.links\?\.add_points\|\|""\,180\)/.test(staffPage) && /رمز إضافة النقاط/.test(staffPage));
 check("printed card contains no balance and no level-one label", !/pass-grid|الرصيد الحالي|رصيد المتجر|نقاط الإنجاز|بطاقة مستوى 1/.test(staffPage));
-check("printed card uses smart QR and keeps legacy staff QR tools separate", /const qr=qrSvg\(row\.links\?\.login/.test(staffPage) && /QR الملف الشخصي/.test(staffPage));
+check("printed card uses only add-points QR while optional staff tools stay outside print", /const qr=qrSvg\(row\.links\?\.add_points/.test(staffPage) && /QR الملف الشخصي/.test(staffPage));
 check("individual print action exists", /data-card-print-one/.test(staffPage));
 check("all permitted groups option exists", /__all_managed_groups__/.test(staffPage));
 check("group and all-scope printing use the existing authorized bulk endpoint", /api\("\/student-cards\/bulk"/.test(staffPage));
@@ -56,6 +56,15 @@ check("bulk print preserves a full five-row 2×5 CR80 sheet per A4 page", css.in
 check("final overriding print rules also use five rows, not the legacy four-row layout", /V76[^]*?grid-template-rows:repeat\(5,54mm\)!important[^]*?height:273mm!important/.test(css) && !/V76[^]*?grid-template-rows:repeat\(4,54mm\)!important/.test(css));
 check("bulk print offers Save as PDF from the browser print dialog", /حفظ PDF \/ طباعة النطاق/.test(app) && /حفظ بصيغة PDF/.test(app));
 check("bulk print prevents page splitting inside a sheet or card", css.includes("break-inside:avoid!important") && css.includes("page-break-inside:avoid!important"));
+
+
+check("staff card uses academy emblem instead of a letter mark", staffPage.includes('class="pass-brand-logo" src="/icon.svg"') && !staffPage.includes("pass-brand-mark"));
+check("staff card keeps neutral بطاقة طالب title", staffPage.includes("بطاقة طالب") && !staffPage.includes("بطاقة مستوى 1"));
+check("staff card removes هوية الطالب label", !staffPage.includes("هوية الطالب"));
+check("staff card footer prints school name", staffPage.includes("student.school_name||student.group_name"));
+check("bulk API returns official school name", server.includes('const school=group.school_id?await env.DB.prepare("SELECT name FROM quran_schools WHERE id=?")') && server.includes("school_name:schoolName"));
+check("bulk A4 layout uses full A4 with 10 mm safe margins", css.includes("@page cards-a4{size:A4 portrait;margin:0}") && css.includes("height:297mm!important;min-height:297mm!important;max-height:297mm!important;padding:10mm!important"));
+check("bulk grid reserves five complete CR80 rows", css.includes("grid-template-rows:repeat(5,54mm)!important") && css.includes("width:190mm!important;height:273mm!important"));
 
 const failed = checks.filter(item => !item.ok);
 console.log("\n" + (checks.length - failed.length) + "/" + checks.length + " source-layout checks passed.");
