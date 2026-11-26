@@ -2671,10 +2671,13 @@ export default {
     if(groupMatch&&method==="PATCH"){
       if(user.role!=="admin"&&user.role!=="director")return fail(403,"تعديل الأفواج للمدير العام أو مدير المدرسة");const parsed=await parseBody(request);if(parsed.error)return parsed.error;const id=groupMatch[1],b=parsed.value;
       const g=await groupRow(env,id);if(!g)return fail(404,"الفوج غير موجود");if(!await canManageGroup(env,user,id))return fail(403,"الفوج خارج نطاق صلاحيتك");
-      const name=clean(b.name??g.name,120),teacherId=b.teacher_id===undefined?g.teacher_id:(clean(b.teacher_id,80)||null);
+      const name=clean(b.name??g.name,120),teacherId=b.teacher_id===undefined?g.teacher_id:(clean(b.teacher_id,80)||null),schoolId=b.school_id===undefined?g.school_id:clean(b.school_id,80);
       if(!name)return fail(400,"اسم الفوج مطلوب");
-      if(teacherId){const t=await env.DB.prepare("SELECT id FROM users WHERE id=? AND role IN ('teacher','admin') AND active=1").bind(teacherId).first();if(!t)return fail(400,"المعلم المحدد غير صالح");}
-      await env.DB.prepare("UPDATE groups SET name=?,teacher_id=? WHERE id=?").bind(name,teacherId,id).run();await log(env,user.id,"group_update",{id,name});return json({ok:true});
+      if(teacherId){const t=await env.DB.prepare("SELECT id FROM users WHERE id=? AND role IN ('teacher','admin') AND active=1").bind(teacherId).first();if(!t)return fail(400,"الشيخ المحدد غير صالح");}
+      if(!schoolId)return fail(400,"اختر المدرسة التابعة للفوج");
+      if(user.role==="director"&&!(user.school_ids||[]).includes(schoolId))return fail(403,"المدرسة الجديدة خارج نطاق صلاحيتك");
+      const school=await env.DB.prepare("SELECT id FROM quran_schools WHERE id=? AND active=1").bind(schoolId).first();if(!school)return fail(400,"المدرسة المحددة غير موجودة أو موقوفة");
+      await env.DB.prepare("UPDATE groups SET name=?,teacher_id=?,school_id=? WHERE id=?").bind(name,teacherId,schoolId,id).run();await log(env,user.id,"group_update",{id,name,school_id:schoolId,teacher_id:teacherId});return json({ok:true});
     }
     if(groupMatch&&method==="DELETE"){
       if(user.role!=="admin"&&user.role!=="director")return fail(403,"إيقاف الأفواج للمدير العام أو مدير المدرسة");if(!await canManageGroup(env,user,groupMatch[1]))return fail(403,"الفوج خارج نطاق صلاحيتك");await env.DB.prepare("UPDATE groups SET active=0 WHERE id=?").bind(groupMatch[1]).run();await log(env,user.id,"group_deactivate",{id:groupMatch[1]});return json({ok:true});
