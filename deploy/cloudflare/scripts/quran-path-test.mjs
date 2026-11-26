@@ -295,10 +295,12 @@ async function main() {
   check("summary reports an active streak", Number(summary.data?.streak) >= 1, JSON.stringify(summary.data?.streak));
 
   // 8) Staff scope: a teacher outside the group cannot read or write the path
-  const teacherCreate = await call("/api/teachers", { method: "POST", token: admin, body: { name: "معلم اختبار القرآن " + RUN, username: "quran-teacher-1-" + RUN, password: "QuranTeacher#2026" } });
-  check("create test teacher", teacherCreate.status === 201, JSON.stringify(teacherCreate.data));
-  const teacherFirst = await login("quran-teacher-1-" + RUN, "QuranTeacher#2026");
-  await call("/api/me/password", { method: "POST", token: teacherFirst.token, body: { current_password: "QuranTeacher#2026", new_password: "QuranTeacher#2026b" } });
+  const teacherCreate = await call("/api/teachers", { method: "POST", token: admin, body: { name: "معلم اختبار القرآن " + RUN, username: "quran-teacher-1-" + RUN } });
+  check("create test teacher", teacherCreate.status === 201 && teacherCreate.data?.temporary_password === "12345678" && teacherCreate.data?.must_change_password === true, JSON.stringify(teacherCreate.data));
+  const teacherFirst = await login("quran-teacher-1-" + RUN, teacherCreate.data?.temporary_password || "");
+  check("teacher first login requires password change", teacherFirst.status === 200 && teacherFirst.token.length === 64 && teacherFirst.data?.user?.must_change_password === true, JSON.stringify(teacherFirst.data));
+  const teacherPasswordChange = await call("/api/me/password", { method: "POST", token: teacherFirst.token, body: { current_password: teacherCreate.data?.temporary_password || "", new_password: "QuranTeacher#2026b" } });
+  check("teacher changes the temporary password", teacherPasswordChange.status === 200, JSON.stringify(teacherPasswordChange.data));
   const teacher = (await login("quran-teacher-1-" + RUN, "QuranTeacher#2026b")).token;
   const teacherRead = await call("/api/quran/path?student_id=" + encodeURIComponent(studentA.id), { token: teacher });
   check("teacher outside the group cannot read the path", teacherRead.status === 403, JSON.stringify(teacherRead.data));
