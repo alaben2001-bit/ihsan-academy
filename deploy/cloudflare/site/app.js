@@ -2115,8 +2115,11 @@ async function staffCardsPage(v){
      const groupMatches=(wanted.groupIncludes||[]).every(part=>normalizeStudentName(row.student?.group_name).includes(normalizeStudentName(part)));
      return nameMatches&&groupMatches;
     });
-    if(matches.length===1)resolved.push({...matches[0],student:{...matches[0].student,name:wanted.name}});
-    else issues.push({name:wanted.name,reason:matches.length?"توجد مطابقة متعددة؛ يلزم حسمها":"لم يُعثر على سجل مطابق"});
+    if(matches.length===1){
+     const row=matches[0];
+     if(!row.card||!row.links?.login){issues.push({name:wanted.name,reason:"السجل مطابق لكن البطاقة أو رمز الدخول الذكي غير موجود؛ لن ننشئه أثناء المعاينة"});continue}
+     resolved.push({...row,student:{...row.student,name:wanted.name}});
+    }else issues.push({name:wanted.name,reason:matches.length?"توجد مطابقة متعددة؛ يلزم حسمها":"لم يُعثر على سجل مطابق"});
    }
    tempStatus.innerHTML='<strong>نتيجة المطابقة: '+resolved.length+'/10</strong>'+(issues.length?'<ul class="temp-card-issues">'+issues.map(x=>'<li><strong>'+esc(x.name)+'</strong> — '+esc(x.reason)+'</li>').join("")+'</ul>':'<p>اكتملت المطابقة الفريدة للأسماء العشرة.</p>');
    tempSheet.innerHTML=resolved.map(row=>'<section class="temp-card-item">'+staffStudentPassMarkup(row)+'</section>').join("");
