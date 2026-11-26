@@ -2034,7 +2034,7 @@ async function staffCardsPage(v){
    for(const group of selectedGroups){
     let offset=0;
     while(true){
-     const data=await api("/student-cards/bulk",{method:"POST",body:JSON.stringify({group_id:group.id,offset,limit:200})});
+     const data=await api("/student-cards/preview-bulk?group_id="+encodeURIComponent(group.id)+"&offset="+offset+"&limit=200");
      datasets.push(...(data.cards||[]));
      if(!data.has_more)break;
      const next=Number(data.next_offset);
@@ -2076,7 +2076,18 @@ async function staffCardsPage(v){
  };
  $("#cards-group")?.addEventListener("change",e=>{S.cardsGroupId=e.target.value;loadCards()});
  $("#cards-print")?.addEventListener("click",()=>{document.body.dataset.print="cards";window.print()});
- const temporaryNames=["ياسين بن ذيب","أنس كعوان","أمير بوقزولة","زكرياء هب الريح","سراج كراش","عبد الرحمن صالحي","مقالة عبد اللطيف","أنس محنان","علي ونوغي","إسحاق سواك"];
+ const temporaryNames=[
+  {name:"ياسين بن ذيب"},
+  {name:"أنس كعوان",studentId:"78520f17-c024-48b6-88ff-65bfb3b26bb7"},
+  {name:"أمير بوقزولة",aliases:["أمير"],groupIncludes:["أبو عبيدة"]},
+  {name:"زكرياء هب الريح",aliases:["زكرياء"],groupIncludes:["أبو عبيدة"]},
+  {name:"سراج كراش",aliases:["سراج"],groupIncludes:["الإرشاد"]},
+  {name:"عبد الرحمن صالحي",aliases:["عبد الرحمان"],groupIncludes:["الإرشاد"]},
+  {name:"مقالة عبد اللطيف"},
+  {name:"أنس محنان"},
+  {name:"علي ونوغي"},
+  {name:"إسحاق سواك",aliases:["اسحاق سواك"]}
+ ];
  const tempLoad=$("#temporary-cards-load"),tempPrint=$("#temporary-cards-print"),tempStatus=$("#temporary-cards-status"),tempSheet=$("#temporary-cards-sheet");
  const normalizeStudentName=value=>String(value||"").normalize("NFKC").replace(/[\u064B-\u065F\u0670ـ]/g,"").replace(/[أإآ]/g,"ا").replace(/ى/g,"ي").replace(/\s+/g," ").trim();
  tempLoad?.addEventListener("click",async()=>{
@@ -2096,9 +2107,16 @@ async function staffCardsPage(v){
    }
    const resolved=[],issues=[];
    for(const wanted of temporaryNames){
-    const matches=records.filter(row=>normalizeStudentName(row.student?.name)===normalizeStudentName(wanted));
-    if(matches.length===1)resolved.push(matches[0]);
-    else issues.push({name:wanted,reason:matches.length?"توجد مطابقة متعددة؛ يلزم حسمها":"لم يُعثر على سجل مطابق"});
+    const wantedName=normalizeStudentName(wanted.name);
+    const aliases=[wantedName,...(wanted.aliases||[]).map(normalizeStudentName)];
+    const matches=records.filter(row=>{
+     if(wanted.studentId)return String(row.student?.id||"")===wanted.studentId;
+     const nameMatches=aliases.includes(normalizeStudentName(row.student?.name));
+     const groupMatches=(wanted.groupIncludes||[]).every(part=>normalizeStudentName(row.student?.group_name).includes(normalizeStudentName(part)));
+     return nameMatches&&groupMatches;
+    });
+    if(matches.length===1)resolved.push({...matches[0],student:{...matches[0].student,name:wanted.name}});
+    else issues.push({name:wanted.name,reason:matches.length?"توجد مطابقة متعددة؛ يلزم حسمها":"لم يُعثر على سجل مطابق"});
    }
    tempStatus.innerHTML='<strong>نتيجة المطابقة: '+resolved.length+'/10</strong>'+(issues.length?'<ul class="temp-card-issues">'+issues.map(x=>'<li><strong>'+esc(x.name)+'</strong> — '+esc(x.reason)+'</li>').join("")+'</ul>':'<p>اكتملت المطابقة الفريدة للأسماء العشرة.</p>');
    tempSheet.innerHTML=resolved.map(row=>'<section class="temp-card-item">'+staffStudentPassMarkup(row)+'</section>').join("");
