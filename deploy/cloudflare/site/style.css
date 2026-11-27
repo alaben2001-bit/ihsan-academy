@@ -4341,3 +4341,10 @@ body:has(.auth-layout) .brand .brand-structure{font-size:10px!important;color:#b
   body[data-print="cards"] .pass-school-name{max-width:58%!important;font-size:5.5pt!important;line-height:1.15!important}
   body[data-print="cards"] .pass-brand-mark{display:none!important}
 }
+
+/* V81 — keep all ten cards when a browser ignores the named A4 page rule. */
+@page{size:A4 portrait;margin:0}
+@media print{
+  body[data-print="cards"] .cards-print-page{overflow:visible!important}
+  body[data-print="cards"] .cards-sheet-grid{overflow:visible!important}
+}
