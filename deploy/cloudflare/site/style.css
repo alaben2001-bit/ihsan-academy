@@ -4475,4 +4475,8 @@ body:has(.auth-layout) .brand .brand-structure{font-size:10px!important;color:#b
  .identity-swatch-emerald{--swatch:#0e3b2d;--swatch-2:#37b98a}
  .identity-swatch-night:after{content:"";position:absolute;inset:4px 4px auto auto;width:9px;height:9px;border-radius:50%;background:var(--id-gold);box-shadow:0 0 8px var(--id-gold)}
  @media(max-width:560px){html[data-identity] .identity-options{grid-template-columns:1fr}}
+  html:root:root[data-identity] :is(body,#app,.shell,.content,.content-area,.workspace,.app-shell,.layout,main){background-color:var(--id-paper)!important;color:var(--id-ink)!important}
+  html[data-identity] .auth-layout .auth-tabs{background-color:var(--id-surface-2)!important;border-color:var(--id-line)!important}
+  html[data-identity] .auth-layout .auth-tab{background-color:var(--id-surface)!important;background-image:none!important;color:var(--id-ink)!important;border-color:var(--id-line)!important;box-shadow:none!important}
+  html[data-identity] .auth-layout .auth-tab.is-active{background-image:linear-gradient(135deg,var(--id-accent),var(--id-accent-deep))!important;background-color:var(--id-accent)!important;color:var(--id-on-accent)!important;border-color:var(--id-gold)!important}
 }
