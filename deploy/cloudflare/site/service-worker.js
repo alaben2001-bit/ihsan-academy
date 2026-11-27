@@ -1,5 +1,5 @@
-﻿const CACHE = "ihsan-academy-pwa-v181-20261126-31";
-const ASSET_VERSION = "20261126-31";
+const CACHE = "ihsan-academy-pwa-v184-20261127-02";
+const ASSET_VERSION = "20261127-02";
 
 const SHELL = [
   "/",
@@ -9,6 +9,9 @@ const SHELL = [
   "/app.js?v=" + ASSET_VERSION,
   "/qr.js?v=" + ASSET_VERSION,
   "/startup.js?v=" + ASSET_VERSION,
+  "/identity-boot.js?v=" + ASSET_VERSION,
+  "/identity-app.js?v=" + ASSET_VERSION,
+  "/identity-rules.css?v=" + ASSET_VERSION,
   "/manifest.json",
   "/icon.svg",
   "/icon-192.png",
